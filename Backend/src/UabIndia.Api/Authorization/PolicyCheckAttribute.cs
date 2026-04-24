@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using UabIndia.Application.Interfaces;
+using UabIndia.Core.Authorization;
 using UabIndia.Core.Services;
 
 namespace UabIndia.Api.Authorization
@@ -31,7 +32,9 @@ namespace UabIndia.Api.Authorization
 
             var user = context.HttpContext.User;
             var roles = user.Claims.Where(c => c.Type.EndsWith("/role", StringComparison.OrdinalIgnoreCase) || c.Type.EndsWith("role", StringComparison.OrdinalIgnoreCase))
-                .Select(c => c.Value)
+                .Select(c => RoleCatalog.Normalize(c.Value))
+                .Where(r => !string.IsNullOrWhiteSpace(r))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
             Guid? userId = null;

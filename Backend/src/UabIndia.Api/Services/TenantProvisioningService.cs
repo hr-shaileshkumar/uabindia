@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using UabIndia.Api.Models;
+using UabIndia.Core.Authorization;
 using UabIndia.Core.Entities;
 using UabIndia.Core.Services;
 using UabIndia.Infrastructure.Data;
@@ -38,10 +39,10 @@ namespace UabIndia.Api.Services
 
         private static readonly (string Name, string Description)[] DefaultRoles =
         {
-            ("SuperAdmin", "Tenant super administrator"),
-            ("Admin", "Company administrator"),
-            ("Manager", "Project manager"),
-            ("Employee", "Standard employee")
+            (RoleCatalog.SuperAdminRoleName, "Tenant super administrator"),
+            (RoleCatalog.AdminRoleName, "Company administrator"),
+            (RoleCatalog.ManagerRoleName, "Project manager"),
+            (RoleCatalog.EmployeeRoleName, "Standard employee")
         };
 
         private readonly ApplicationDbContext _db;
@@ -264,7 +265,7 @@ EXEC sp_executesql @sql;";
 
             await tenantDb.Database.MigrateAsync();
 
-            var adminRole = await tenantDb.Roles.FirstOrDefaultAsync(r => r.Name == "Admin");
+            var adminRole = await tenantDb.Roles.FirstOrDefaultAsync(r => r.Name == RoleCatalog.AdminRoleName);
             foreach (var role in DefaultRoles)
             {
                 var existingRole = await tenantDb.Roles.FirstOrDefaultAsync(r => r.Name == role.Name);
@@ -276,8 +277,8 @@ EXEC sp_executesql @sql;";
 
             await tenantDb.SaveChangesAsync();
 
-            adminRole = await tenantDb.Roles.FirstOrDefaultAsync(r => r.Name == "Admin");
-            var superAdminRole = await tenantDb.Roles.FirstOrDefaultAsync(r => r.Name == "SuperAdmin");
+            adminRole = await tenantDb.Roles.FirstOrDefaultAsync(r => r.Name == RoleCatalog.AdminRoleName);
+            var superAdminRole = await tenantDb.Roles.FirstOrDefaultAsync(r => r.Name == RoleCatalog.SuperAdminRoleName);
 
             var adminUser = await tenantDb.Users.FirstOrDefaultAsync(u => u.Email == adminEmail);
             if (adminUser == null)

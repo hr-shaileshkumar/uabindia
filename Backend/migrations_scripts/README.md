@@ -3,6 +3,7 @@
 This folder contains SQL migration artifacts for the HRMS module-based schema.
 
 - File: `master_setup.sql` — single, idempotent master setup that provisions all modules.
+- File: `role_cleanup_standardize_20260425.sql` — one-time role normalization script to standardize role names to `SUPER_ADMIN`, `ADMIN`, `MANAGER`, `EMPLOYEE` and remap references.
 - Folder: `modules/` — module-specific, idempotent migrations (Auth, Core, HRMS, Payroll, Reports).
 - Folder: `archive/` — legacy one-off migrations kept for reference only:
 	- `migrate-20260201.sql` (consolidated schema)

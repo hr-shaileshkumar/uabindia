@@ -6,7 +6,9 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using UabIndia.Application.Interfaces;
+using UabIndia.Core.Authorization;
 using UabIndia.Core.Services;
+using UabIndia.Core.Entities;
 using UabIndia.Infrastructure.Data;
 
 namespace UabIndia.Infrastructure.Services
@@ -27,77 +29,61 @@ namespace UabIndia.Infrastructure.Services
         public async Task<PolicyDecision> EvaluateAsync(PolicyContext context)
         {
             var tenantId = context.TenantId == Guid.Empty ? _tenantAccessor.GetTenantId() : context.TenantId;
-            var config = await _db.TenantConfigs
-                .AsNoTracking()
-                .FirstOrDefaultAsync(c => c.TenantId == tenantId);
 
-            if (config == null || string.IsNullOrWhiteSpace(config.ConfigJson))
+            // Check if user is ERP Owner (Super Admin)
+            if (context.UserId.HasValue)
             {
-                return Allow("No policy config");
+                var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == context.UserId.Value && u.TenantId == tenantId);
+                if (user?.IsSystemAdmin == true)
+                {
+                    return Allow("ERP Owner has full access");
+                }
             }
 
-            try
+            // Get user's roles
+            var userRoles = await _db.UserRoles
+                .Where(ur => ur.UserId == context.UserId && ur.TenantId == tenantId && !ur.IsDeleted)
+                .Select(ur => ur.RoleId)
+                .ToListAsync();
+
+            if (!userRoles.Any())
             {
-                using var doc = JsonDocument.Parse(config.ConfigJson);
-                if (!doc.RootElement.TryGetProperty("policies", out var policies) || policies.ValueKind != JsonValueKind.Array)
-                {
-                    return Allow("No policies defined");
-                }
-
-                var matches = new List<JsonElement>();
-                foreach (var policy in policies.EnumerateArray())
-                {
-                    var resource = policy.GetProperty("resource").GetString();
-                    var action = policy.GetProperty("action").GetString();
-
-                    if (!string.Equals(resource, context.Resource, StringComparison.OrdinalIgnoreCase))
-                        continue;
-                    if (!string.Equals(action, context.Action, StringComparison.OrdinalIgnoreCase))
-                        continue;
-
-                    matches.Add(policy);
-                }
-
-                if (matches.Count == 0)
-                {
-                    return Allow("No matching policy");
-                }
-
-                foreach (var policy in matches)
-                {
-                    if (!policy.TryGetProperty("roles", out var rolesElement) || rolesElement.ValueKind != JsonValueKind.Array)
-                        continue;
-
-                    var allowedRoles = rolesElement.EnumerateArray()
-                        .Select(r => r.GetString())
-                        .Where(r => !string.IsNullOrWhiteSpace(r))
-                        .ToList();
-
-                    if (!allowedRoles.Any(r => context.Roles.Contains(r, StringComparer.OrdinalIgnoreCase)))
-                        continue;
-
-                    if (policy.TryGetProperty("scope", out var scopeElement))
-                    {
-                        var scope = scopeElement.GetString();
-                        if (string.Equals(scope, "self", StringComparison.OrdinalIgnoreCase))
-                        {
-                            if (!context.UserId.HasValue || !context.TargetUserId.HasValue || context.UserId != context.TargetUserId)
-                            {
-                                return Deny("Self-scope policy requires matching user context");
-                            }
-                        }
-                    }
-
-                    return Allow("Policy matched");
-                }
-
-                return Deny("No policy matched user roles");
+                return Deny("User has no roles assigned");
             }
-            catch (JsonException ex)
+
+            // Get permissions for user's roles
+            var permissions = await _db.RolePermissions
+                .Where(rp => userRoles.Contains(rp.RoleId) && rp.TenantId == tenantId && !rp.IsDeleted)
+                .Join(_db.Permissions,
+                    rp => rp.PermissionId,
+                    p => p.Id,
+                    (rp, p) => p)
+                .Where(p => !p.IsDeleted)
+                .ToListAsync();
+
+            // Check if any permission matches the resource and action
+            var hasPermission = permissions.Any(p =>
+                string.Equals(p.Module, context.Resource, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(p.Action, context.Action, StringComparison.OrdinalIgnoreCase));
+
+            if (hasPermission)
             {
-                _logger.LogWarning(ex, "Invalid policy JSON in tenant config");
-                return Allow("Invalid policy config");
+                return Allow("Permission granted");
             }
+
+            // Fallback to role-based check for backward compatibility
+            var roleNames = await _db.Roles
+                .Where(r => userRoles.Contains(r.Id) && r.TenantId == tenantId && !r.IsDeleted)
+                .Select(r => r.Name)
+                .ToListAsync();
+
+            // Special role checks
+            if (RoleCatalog.HasAnyRole(roleNames, SystemRole.SuperAdmin))
+            {
+                return Allow("Super admin role");
+            }
+
+            return Deny("No matching permission found");
         }
 
         private static PolicyDecision Allow(string reason) => new PolicyDecision { Allowed = true, Reason = reason };

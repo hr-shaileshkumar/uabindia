@@ -10,8 +10,11 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.RateLimiting;
 using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
+using System.Text.Json;
 using UabIndia.Infrastructure.Data;
 using UabIndia.Core.Entities;
+using UabIndia.Core.Authorization;
 
 namespace UabIndia.Api.Controllers
 {
@@ -119,8 +122,8 @@ namespace UabIndia.Api.Controllers
             {
                 var roleSet = new System.Collections.Generic.HashSet<string>(roles, System.StringComparer.OrdinalIgnoreCase)
                 {
-                    "SuperAdmin",
-                    "Admin"
+                    RoleCatalog.SuperAdminRoleName,
+                    RoleCatalog.AdminRoleName
                 };
                 roles = roleSet.ToArray();
             }
@@ -288,6 +291,80 @@ namespace UabIndia.Api.Controllers
                 fullName = user.FullName,
                 roles
             });
+        }
+
+        [Authorize]
+        [HttpGet("permissions")]
+        public async Task<IActionResult> Permissions()
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var userIdClaim = User?.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value
+                ?? User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                ?? User?.FindFirst("nameidentifier")?.Value
+                ?? User?.FindFirst("sub")?.Value;
+            if (string.IsNullOrWhiteSpace(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized();
+            }
+
+            // Check if user is ERP Owner / Super Admin
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId && u.TenantId == tenantId);
+            var userRoleNames = await _db.UserRoles
+                .Where(ur => ur.UserId == userId && ur.TenantId == tenantId && !ur.IsDeleted)
+                .Join(_db.Roles,
+                    ur => ur.RoleId,
+                    r => r.Id,
+                    (ur, r) => r.Name)
+                .ToListAsync();
+
+            var isSuperAdminByRole = RoleCatalog.HasAnyRole(userRoleNames, SystemRole.SuperAdmin);
+
+            if (user?.IsSystemAdmin == true || isSuperAdminByRole)
+            {
+                return Ok(new { mode = "enforced", permissions = new[] { "*" } });
+            }
+
+            // Get user's roles
+            var userRoles = await _db.UserRoles
+                .Where(ur => ur.UserId == userId && ur.TenantId == tenantId && !ur.IsDeleted)
+                .Select(ur => ur.RoleId)
+                .ToListAsync();
+
+            // Get permissions
+            var permissions = await _db.RolePermissions
+                .Where(rp => userRoles.Contains(rp.RoleId) && rp.TenantId == tenantId && !rp.IsDeleted)
+                .Join(_db.Permissions,
+                    rp => rp.PermissionId,
+                    p => p.Id,
+                    (rp, p) => p)
+                .Where(p => !p.IsDeleted)
+                .Select(p => $"{p.Module}:{p.Action}")
+                .Distinct()
+                .ToListAsync();
+
+            // Map to frontend expected format
+            var frontendPermissions = new List<string>();
+            foreach (var perm in permissions)
+            {
+                var parts = perm.Split(':');
+                if (parts.Length == 2)
+                {
+                    var module = parts[0];
+                    var action = parts[1];
+                    frontendPermissions.Add($"module:{module}");
+                    frontendPermissions.Add($"{module}.*");
+                    frontendPermissions.Add($"{module}.{action}");
+                    frontendPermissions.Add($"resource:{module}.{action}");
+                }
+            }
+
+            // Add wildcard for ERP Owner
+            if (user?.IsSystemAdmin == true)
+            {
+                frontendPermissions.Add("*");
+            }
+
+            return Ok(new { mode = "enforced", permissions = frontendPermissions.Distinct() });
         }
 
         [Authorize]

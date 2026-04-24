@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Authorization;
 using System.Linq;
 using UabIndia.Api.Authorization;
 using Microsoft.AspNetCore.Http.Features;
+using UabIndia.Core.Authorization;
 using UabIndia.Core.Services;
 using Hangfire;
 using Hangfire.SqlServer;
@@ -272,27 +273,36 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization(options =>
 {
+    bool IsAdminRole(Microsoft.AspNetCore.Authorization.AuthorizationHandlerContext context)
+    {
+        var roleClaims = context.User.Claims
+            .Where(c => c.Type.EndsWith("/role", StringComparison.OrdinalIgnoreCase) || c.Type.EndsWith("role", StringComparison.OrdinalIgnoreCase))
+            .Select(c => c.Value);
+
+        return RoleCatalog.IsAdminLike(roleClaims);
+    }
+
     // Admin-only policies
-    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin", "SuperAdmin"));
+    options.AddPolicy("AdminOnly", policy => policy.RequireAssertion(IsAdminRole));
     
     // LAYER 1: Platform / Core (System-level, admin-only)
     options.AddPolicy("Module:platform", policy => 
     {
-        policy.RequireRole("Admin", "SuperAdmin"); // Platform is admin-only
+        policy.RequireAssertion(IsAdminRole); // Platform is admin-only
         policy.Requirements.Add(new ModuleEnabledRequirement("platform"));
     });
     
     // LAYER 2: Modules & Licensing (Product control, admin-only)
     options.AddPolicy("Module:licensing", policy => 
     {
-        policy.RequireRole("Admin", "SuperAdmin"); // Licensing is admin-only
+        policy.RequireAssertion(IsAdminRole); // Licensing is admin-only
         policy.Requirements.Add(new ModuleEnabledRequirement("licensing"));
     });
     
     // LAYER 3: Authentication & Security (Identity layer, admin-only for most)
     options.AddPolicy("Module:security", policy => 
     {
-        policy.RequireRole("Admin", "SuperAdmin"); // Security management is admin-only
+        policy.RequireAssertion(IsAdminRole); // Security management is admin-only
         policy.Requirements.Add(new ModuleEnabledRequirement("security"));
     });
     
@@ -312,6 +322,8 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddScoped<IAuthorizationHandler, ModuleEnabledHandler>();
 builder.Services.AddScoped<IPolicyEngine, UabIndia.Infrastructure.Services.PolicyEngineService>();
+// Workflow service (EF-backed production implementation)
+builder.Services.AddScoped<UabIndia.Application.Interfaces.IWorkflowService, UabIndia.Infrastructure.Services.EfWorkflowService>();
 
 // Rate limiting - Multi-layer approach
 builder.Services.AddRateLimiter(options =>
@@ -596,6 +608,12 @@ app.UseMiddleware<TenantResolverMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Permission enforcement (policy-first)
+app.UseMiddleware<UabIndia.Api.Middleware.PolicyEnforcementMiddleware>();
+
+// Company/Project scope enforcement
+app.UseMiddleware<UabIndia.Api.Middleware.OrgScopeMiddleware>();
+
 // Audit middleware - captures all POST/PUT/DELETE for compliance
 app.UseMiddleware<AuditMiddleware>();
 
@@ -613,10 +631,10 @@ if (app.Environment.IsDevelopment())
     var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<User>>();
     var tenantAccessor = scope.ServiceProvider.GetRequiredService<ITenantAccessor>();
 
-    var tenant = db.Tenants.FirstOrDefault(t => t.Subdomain == "demo") ?? db.Tenants.FirstOrDefault();
+    var tenant = db.Tenants.FirstOrDefault(t => t.Subdomain == "api") ?? db.Tenants.FirstOrDefault();
     if (tenant == null)
     {
-        tenant = new Tenant { Subdomain = "demo", Name = "Demo Tenant", IsActive = true };
+        tenant = new Tenant { Subdomain = "api", Name = "UabIndia API Tenant", IsActive = true };
         db.Tenants.Add(tenant);
         db.SaveChanges();
     }
@@ -625,18 +643,18 @@ if (app.Environment.IsDevelopment())
     tenantAccessor.SetTenantId(tenant.Id);
     tenantAccessor.SetTenantSchema($"tenant_{tenant.Subdomain ?? tenant.Id.ToString("N")}");
 
-    var adminRole = db.Roles.FirstOrDefault(r => r.TenantId == tenant.Id && r.Name == "Admin");
-    var superAdminRole = db.Roles.FirstOrDefault(r => r.TenantId == tenant.Id && r.Name == "SuperAdmin");
+    var adminRole = db.Roles.FirstOrDefault(r => r.TenantId == tenant.Id && r.Name == RoleCatalog.AdminRoleName);
+    var superAdminRole = db.Roles.FirstOrDefault(r => r.TenantId == tenant.Id && r.Name == RoleCatalog.SuperAdminRoleName);
     if (adminRole == null)
     {
-        adminRole = new Role { TenantId = tenant.Id, Name = "Admin", Description = "System Administrator" };
+        adminRole = new Role { TenantId = tenant.Id, Name = RoleCatalog.AdminRoleName, Description = "System Administrator" };
         db.Roles.Add(adminRole);
         db.SaveChanges();
     }
 
     if (superAdminRole == null)
     {
-        superAdminRole = new Role { TenantId = tenant.Id, Name = "SuperAdmin", Description = "Tenant super administrator" };
+        superAdminRole = new Role { TenantId = tenant.Id, Name = RoleCatalog.SuperAdminRoleName, Description = "Tenant super administrator" };
         db.Roles.Add(superAdminRole);
         db.SaveChanges();
     }
@@ -868,6 +886,24 @@ if (app.Environment.IsDevelopment())
             IsEnabled = true
         });
         db.SaveChanges();
+    }
+}
+
+// Ensure policy catalog is seeded for all tenants (admin roles default)
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var tenantAccessor = scope.ServiceProvider.GetRequiredService<ITenantAccessor>();
+    var logger = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILoggerFactory>()
+        .CreateLogger("PolicySeeder");
+    var seeder = new UabIndia.Api.Services.PolicySeeder();
+    try
+    {
+        await seeder.EnsurePoliciesAsync(db, tenantAccessor, logger);
+    }
+    catch (Microsoft.Data.SqlClient.SqlException ex)
+    {
+        logger.LogWarning(ex, "Policy seeding skipped because required tables are missing. Run migrations first.");
     }
 }
 
