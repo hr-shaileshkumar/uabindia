@@ -12,6 +12,17 @@ namespace UabIndia.Api.Models
         public string? EmployeeCode { get; set; }
         public Guid? ProjectId { get; set; }
         public string? Status { get; set; }
+
+        public bool CreateLogin { get; set; }
+
+        [EmailAddress]
+        public string? WorkEmail { get; set; }
+
+        public string? InitialPassword { get; set; }
+
+        public string? LoginRole { get; set; } = "EMPLOYEE";
+
+        public bool SendInviteLink { get; set; }
     }
 
     public class EmployeeDto
@@ -22,5 +33,7 @@ namespace UabIndia.Api.Models
         public string? EmployeeCode { get; set; }
         public Guid? ProjectId { get; set; }
         public string? Status { get; set; }
+        public bool LoginCreated { get; set; }
+        public string? WorkEmail { get; set; }
     }
 }

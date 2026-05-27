@@ -1,0 +1,283 @@
+openapi: 3.1.0
+info:
+  title: Workflow Engine API (fragment)
+  version: "1.0.0"
+  description: |-
+    OpenAPI fragment for the generic workflow/approval engine. Use alongside existing API.
+servers:
+  - url: /api/v1
+    description: API v1 (path versioning recommended)
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    WorkflowDefinition:
+      type: object
+      required: [key,name,version,steps,transitions]
+      properties:
+        key:
+          type: string
+        name:
+          type: string
+        version:
+          type: string
+        description:
+          type: string
+        variables:
+          type: object
+          additionalProperties:
+            type: string
+    WorkflowInstance:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        definitionKey:
+          type: string
+        businessKey:
+          type: string
+        tenantId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [Pending,InProgress,Approved,Rejected,Cancelled,Completed,Escalated]
+        currentStepKey:
+          type: string
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        rowVersion:
+          type: string
+          description: Base64 rowversion/etag for concurrency
+    ActionRequest:
+      type: object
+      required: [actionType, stepKey]
+      properties:
+        actionType:
+          type: string
+          enum: [approve,reject,submit,cancel,escalate,complete]
+        stepKey:
+          type: string
+        decision:
+          type: string
+        notes:
+          type: string
+        clientActionId:
+          type: string
+          description: idempotency key for dedup
+        data:
+          type: object
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+security:
+  - bearerAuth: []
+paths:
+  /workflows/definitions:
+    post:
+      summary: Create workflow definition (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkflowDefinition'
+      responses:
+        '201':
+          description: Created
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /workflows/definitions/{key}:
+    get:
+      summary: Get workflow definition by key
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Definition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowDefinition'
+        '404':
+          description: Not found
+
+  /workflows/instances:
+    post:
+      summary: Start a workflow instance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                definitionKey:
+                  type: string
+                businessKey:
+                  type: string
+                tenantId:
+                  type: string
+                variables:
+                  type: object
+      responses:
+        '201':
+          description: Instance created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowInstance'
+        '400':
+          $ref: '#/components/schemas/ErrorResponse'
+
+  /workflows/instances/{id}:
+    get:
+      summary: Get workflow instance status and history
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Instance detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowInstance'
+        '404':
+          description: Not found
+
+  /workflows/instances/{id}/actions:
+    post:
+      summary: Perform an action on a workflow instance (approve/reject/submit...)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: If-Match
+          in: header
+          required: false
+          schema:
+            type: string
+          description: RowVersion ETag for optimistic concurrency (return 412 if mismatch)
+        - name: X-Api-Version
+          in: header
+          required: false
+          schema:
+            type: string
+          description: Optional contract version override
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActionRequest'
+      responses:
+        '200':
+          description: Action accepted and processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowInstance'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (role/scope check failed)
+        '412':
+          description: Precondition failed - concurrency (If-Match mismatch)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /workflows/instances/{id}/approvals:
+    get:
+      summary: Get pending approvals for an instance or for the calling user
+      parameters:
+        - name: id
+          in: path
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: mine
+          in: query
+          schema:
+            type: boolean
+            default: true
+          description: When true, return approvals assigned to calling user
+      responses:
+        '200':
+          description: List of pending approvals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    stepKey:
+                      type: string
+                    approverId:
+                      type: string
+                    assignedAt:
+                      type: string
+                      format: date-time
+                    slaHours:
+                      type: number
+        '401':
+          description: Unauthorized
+
+components:
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+x-notes:
+  - "Role-based visibility: enforce via Authorization policies on controller + policy engine. API returns only fields allowed by caller's role/scope."
+  - "Versioning: use path versioning (/api/v1). Support optional X-Api-Version header for minor contract overrides."
+  - "Concurrency: use If-Match header with RowVersion/ETag. Return 412 on mismatch."
+  - "Error model: uniform ErrorResponse with code/message/details. Use 4xx for client errors, 5xx for server errors."

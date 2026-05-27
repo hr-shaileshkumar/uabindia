@@ -111,14 +111,14 @@ namespace UabIndia.Infrastructure.Repositories
         // ==================== PROVIDENT FUND OPERATIONS ====================
         #region Provident Fund Operations
 
-        public async Task<ProvidentFund> GetProvidentFundByIdAsync(Guid id)
+        public async Task<ProvidentFund?> GetProvidentFundByIdAsync(Guid id)
         {
             return await _context.ProvidentFunds
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
         }
 
-        public async Task<ProvidentFund> GetProvidentFundByEmployeeAsync(Guid employeeId)
+        public async Task<ProvidentFund?> GetProvidentFundByEmployeeAsync(Guid employeeId)
         {
             return await _context.ProvidentFunds
                 .AsNoTracking()
@@ -236,7 +236,7 @@ namespace UabIndia.Infrastructure.Repositories
         // ==================== PF WITHDRAWAL OPERATIONS ====================
         #region PF Withdrawal Operations
 
-        public async Task<PFWithdrawal> GetPFWithdrawalByIdAsync(Guid id)
+        public async Task<PFWithdrawal?> GetPFWithdrawalByIdAsync(Guid id)
         {
             return await _context.PFWithdrawals
                 .AsNoTracking()
@@ -359,14 +359,14 @@ namespace UabIndia.Infrastructure.Repositories
         // ==================== ESI OPERATIONS ====================
         #region ESI Operations
 
-        public async Task<EmployeeStateInsurance> GetESIByIdAsync(Guid id)
+        public async Task<EmployeeStateInsurance?> GetESIByIdAsync(Guid id)
         {
             return await _context.EmployeeStateInsurances
                 .AsNoTracking()
                 .FirstOrDefaultAsync(e => e.Id == id && !e.IsDeleted);
         }
 
-        public async Task<EmployeeStateInsurance> GetESIByEmployeeAsync(Guid employeeId)
+        public async Task<EmployeeStateInsurance?> GetESIByEmployeeAsync(Guid employeeId)
         {
             return await _context.EmployeeStateInsurances
                 .AsNoTracking()
@@ -473,14 +473,14 @@ namespace UabIndia.Infrastructure.Repositories
         // ==================== INCOME TAX OPERATIONS ====================
         #region Income Tax Operations
 
-        public async Task<IncomeTax> GetIncomeTaxByIdAsync(Guid id)
+        public async Task<IncomeTax?> GetIncomeTaxByIdAsync(Guid id)
         {
             return await _context.IncomeTaxes
                 .AsNoTracking()
                 .FirstOrDefaultAsync(it => it.Id == id && !it.IsDeleted);
         }
 
-        public async Task<IncomeTax> GetIncomeTaxByEmployeeAsync(Guid employeeId)
+        public async Task<IncomeTax?> GetIncomeTaxByEmployeeAsync(Guid employeeId)
         {
             return await _context.IncomeTaxes
                 .AsNoTracking()
@@ -649,14 +649,14 @@ namespace UabIndia.Infrastructure.Repositories
         // ==================== PROFESSIONAL TAX OPERATIONS ====================
         #region Professional Tax Operations
 
-        public async Task<ProfessionalTax> GetPTByIdAsync(Guid id)
+        public async Task<ProfessionalTax?> GetPTByIdAsync(Guid id)
         {
             return await _context.ProfessionalTaxes
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
         }
 
-        public async Task<ProfessionalTax> GetPTByEmployeeAsync(Guid employeeId)
+        public async Task<ProfessionalTax?> GetPTByEmployeeAsync(Guid employeeId)
         {
             return await _context.ProfessionalTaxes
                 .AsNoTracking()
@@ -782,14 +782,14 @@ namespace UabIndia.Infrastructure.Repositories
         // ==================== TAX DECLARATION OPERATIONS ====================
         #region Tax Declaration Operations
 
-        public async Task<TaxDeclaration> GetTaxDeclarationByIdAsync(Guid id)
+        public async Task<TaxDeclaration?> GetTaxDeclarationByIdAsync(Guid id)
         {
             return await _context.TaxDeclarations
                 .AsNoTracking()
                 .FirstOrDefaultAsync(td => td.Id == id && !td.IsDeleted);
         }
 
-        public async Task<TaxDeclaration> GetTaxDeclarationByEmployeeAsync(Guid employeeId, int financialYear)
+        public async Task<TaxDeclaration?> GetTaxDeclarationByEmployeeAsync(Guid employeeId, int financialYear)
         {
             return await _context.TaxDeclarations
                 .AsNoTracking()
@@ -897,7 +897,7 @@ namespace UabIndia.Infrastructure.Repositories
         // ==================== COMPLIANCE REPORT OPERATIONS ====================
         #region Compliance Report Operations
 
-        public async Task<ComplianceReport> GetComplianceReportByIdAsync(Guid id)
+        public async Task<ComplianceReport?> GetComplianceReportByIdAsync(Guid id)
         {
             return await _context.ComplianceReports
                 .AsNoTracking()
@@ -960,7 +960,7 @@ namespace UabIndia.Infrastructure.Repositories
                 .ToListAsync();
         }
 
-        public async Task<ComplianceReport> GetLatestReportByTypeAsync(string reportType)
+        public async Task<ComplianceReport?> GetLatestReportByTypeAsync(string reportType)
         {
             return await _context.ComplianceReports
                 .AsNoTracking()
@@ -993,7 +993,7 @@ namespace UabIndia.Infrastructure.Repositories
         // ==================== COMPLIANCE AUDIT OPERATIONS ====================
         #region Compliance Audit Operations
 
-        public async Task<ComplianceAudit> GetComplianceAuditByIdAsync(Guid id)
+        public async Task<ComplianceAudit?> GetComplianceAuditByIdAsync(Guid id)
         {
             return await _context.ComplianceAudits
                 .AsNoTracking()
@@ -1089,7 +1089,7 @@ namespace UabIndia.Infrastructure.Repositories
         // ==================== STATUTORY SETTINGS OPERATIONS ====================
         #region Statutory Settings Operations
 
-        public async Task<StatutorySettings> GetSettingByKeyAsync(string settingKey)
+        public async Task<StatutorySettings?> GetSettingByKeyAsync(string settingKey)
         {
             return await _context.StatutorySettings
                 .AsNoTracking()

@@ -385,6 +385,8 @@ namespace UabIndia.Tests
         {
             private Guid _tenantId;
             private string? _tenantSchema;
+            private bool _includeDeleted;
+            private bool _includeAllTenants;
 
             public void SetTenantId(Guid tenantId)
             {
@@ -404,6 +406,22 @@ namespace UabIndia.Tests
             public string? GetTenantSchema()
             {
                 return _tenantSchema;
+            }
+
+            public void SetDataVisibility(bool includeDeleted, bool includeAllTenants)
+            {
+                _includeDeleted = includeDeleted;
+                _includeAllTenants = includeAllTenants;
+            }
+
+            public bool IncludeDeleted()
+            {
+                return _includeDeleted;
+            }
+
+            public bool IncludeAllTenants()
+            {
+                return _includeAllTenants;
             }
         }
     }

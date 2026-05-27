@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace UabIndia.Core.Entities
 {
@@ -17,6 +18,7 @@ namespace UabIndia.Core.Entities
         public string? Narration { get; set; }
         public bool IsReconciled { get; set; }
         public string? AttachmentUrl { get; set; }
+        public ICollection<JournalEntryLine> Lines { get; set; } = new List<JournalEntryLine>();
     }
 
     public class JournalEntryLine : BaseEntity

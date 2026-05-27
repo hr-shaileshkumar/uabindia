@@ -102,8 +102,27 @@ BEGIN TRY
                 Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY DEFAULT NEWID(),
                 TenantId UNIQUEIDENTIFIER NOT NULL,
                 CompanyId UNIQUEIDENTIFIER NOT NULL,
+                ProjectCode NVARCHAR(50) NOT NULL DEFAULT '',
                 Name NVARCHAR(256) NOT NULL,
+                Description NVARCHAR(MAX) NULL,
+                ProjectType NVARCHAR(50) NOT NULL DEFAULT 'Internal',
+                Priority NVARCHAR(20) NOT NULL DEFAULT 'Medium',
+                Status NVARCHAR(30) NOT NULL DEFAULT 'Planned',
                 IsActive BIT NOT NULL DEFAULT 1,
+                StartDate DATETIME2 NULL,
+                EndDate DATETIME2 NULL,
+                ActualStartDate DATETIME2 NULL,
+                ActualEndDate DATETIME2 NULL,
+                Budget DECIMAL(18,2) NULL,
+                ActualCost DECIMAL(18,2) NULL,
+                CurrencyCode CHAR(3) NOT NULL DEFAULT 'INR',
+                ClientName NVARCHAR(256) NULL,
+                ContractNumber NVARCHAR(100) NULL,
+                BillingType NVARCHAR(30) NULL,
+                CompletionPercentage INT NOT NULL DEFAULT 0,
+                ProjectManagerId UNIQUEIDENTIFIER NULL,
+                Location NVARCHAR(256) NULL,
+                UpdatedBy UNIQUEIDENTIFIER NULL,
                 CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
                 UpdatedAt DATETIME2 NULL,
                 CreatedBy UNIQUEIDENTIFIER NULL,
@@ -156,7 +175,7 @@ BEGIN TRY
         IF NOT EXISTS (SELECT 1 FROM dbo.Tenants)
         BEGIN
             INSERT INTO dbo.Tenants (Id, Subdomain, Name, IsActive, CreatedAt)
-            VALUES (NEWID(), 'demo', 'Demo Tenant', 1, SYSUTCDATETIME());
+            VALUES (NEWID(), 'erp', 'UAB India ERP', 1, SYSUTCDATETIME());
         END
 
         DECLARE @DemoTenantId UNIQUEIDENTIFIER;

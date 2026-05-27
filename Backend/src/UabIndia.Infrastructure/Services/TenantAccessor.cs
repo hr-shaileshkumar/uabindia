@@ -6,6 +6,8 @@ namespace UabIndia.Infrastructure.Services
     {
         private System.Guid _tenantId = System.Guid.Empty;
         private string? _tenantSchema;
+        private bool _includeDeleted;
+        private bool _includeAllTenants;
 
         public void SetTenantId(System.Guid tenantId)
         {
@@ -20,5 +22,15 @@ namespace UabIndia.Infrastructure.Services
         }
 
         public string? GetTenantSchema() => _tenantSchema;
+
+        public void SetDataVisibility(bool includeDeleted, bool includeAllTenants)
+        {
+            _includeDeleted = includeDeleted;
+            _includeAllTenants = includeAllTenants;
+        }
+
+        public bool IncludeDeleted() => _includeDeleted;
+
+        public bool IncludeAllTenants() => _includeAllTenants;
     }
 }

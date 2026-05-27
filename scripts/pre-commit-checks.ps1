@@ -41,12 +41,12 @@ if (Get-Command dotnet-format -ErrorAction SilentlyContinue) {
 }
 
 # 4) Run frontend lint if configured
-$frontendPkg = Join-Path $repoRoot 'Frontend/package.json'
+$frontendPkg = Join-Path $repoRoot 'frontend/package.json'
 if (Test-Path $frontendPkg) {
     $pkg = Get-Content $frontendPkg -Raw | ConvertFrom-Json
     if ($pkg.scripts -and $pkg.scripts.lint) {
-        Write-Host "Running frontend lint: npm --prefix Frontend run lint"
-        npm --prefix Frontend run lint
+        Write-Host "Running frontend lint: npm --prefix frontend run lint"
+        npm --prefix frontend run lint
         if ($LASTEXITCODE -ne 0) {
             Write-Error "Frontend lint failed. Fix lint errors before committing."
             exit 1

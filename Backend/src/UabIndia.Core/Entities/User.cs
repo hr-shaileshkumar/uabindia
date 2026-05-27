@@ -9,5 +9,7 @@ namespace UabIndia.Core.Entities
         public string? FullName { get; set; }
         public bool IsSystemAdmin { get; set; }
         public bool IsActive { get; set; } = true;
+        public string? PasswordResetToken { get; set; }
+        public DateTime? PasswordResetExpires { get; set; }
     }
 }

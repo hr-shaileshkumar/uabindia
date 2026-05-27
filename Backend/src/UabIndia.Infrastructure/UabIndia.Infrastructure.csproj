@@ -19,4 +19,10 @@
     <ProjectReference Include="..\UabIndia.Core\UabIndia.Core.csproj" />
     <ProjectReference Include="..\UabIndia.Application\UabIndia.Application.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Data\Migrations\Sql\*.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

@@ -75,11 +75,19 @@ namespace UabIndia.Api.Controllers
                 })
                 .FirstOrDefaultAsync();
 
-            var brandingJson = await _db.TenantConfigs
-                .AsNoTracking()
-                .Where(c => c.TenantId == tenantId)
-                .Select(c => c.BrandingJson)
-                .FirstOrDefaultAsync() ?? "{}";
+            string brandingJson;
+            try
+            {
+                brandingJson = await _db.TenantConfigs
+                    .AsNoTracking()
+                    .Where(c => c.TenantId == tenantId)
+                    .Select(c => c.BrandingJson)
+                    .FirstOrDefaultAsync() ?? "{}";
+            }
+            catch (Exception ex) when (ex is Microsoft.Data.SqlClient.SqlException || ex.Message.Contains("TenantConfigs", StringComparison.OrdinalIgnoreCase))
+            {
+                brandingJson = "{}";
+            }
 
             var response = new PublicCompanyProfileResponse
             {
@@ -89,6 +97,61 @@ namespace UabIndia.Api.Controllers
             };
 
             return Ok(response);
+        }
+
+        [HttpGet("website-pages/{pageType}")]
+        public async Task<IActionResult> GetWebsitePage(string pageType)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            if (tenantId == Guid.Empty)
+            {
+                return NotFound(new { message = "Tenant not resolved" });
+            }
+
+            var page = await _db.WebsitePages
+                .AsNoTracking()
+                .Where(p => p.TenantId == tenantId && p.PageType == pageType && p.IsPublished && p.IsDeleted == false)
+                .Select(p => new
+                {
+                    p.PageType,
+                    p.Title,
+                    p.ContentJson
+                })
+                .FirstOrDefaultAsync();
+
+            if (page == null)
+            {
+                // Return default content if no published page
+                return Ok(new
+                {
+                    PageType = pageType,
+                    Title = GetDefaultTitle(pageType),
+                    ContentJson = GetDefaultContent(pageType)
+                });
+            }
+
+            return Ok(page);
+        }
+
+        private string GetDefaultTitle(string pageType)
+        {
+            return pageType switch
+            {
+                "home" => "Welcome",
+                "header" => "Header",
+                "about" => "About Us",
+                "contact" => "Contact Us",
+                "career" => "Careers",
+                "login" => "Login",
+                "footer" => "Footer",
+                _ => "Page"
+            };
+        }
+
+        private string GetDefaultContent(string pageType)
+        {
+            // Return basic JSON structure for default content
+            return "{}";
         }
 
         [HttpPost("contact")]

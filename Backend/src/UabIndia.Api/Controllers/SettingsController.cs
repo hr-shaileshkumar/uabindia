@@ -73,9 +73,17 @@ namespace UabIndia.Api.Controllers
         public async Task<IActionResult> GetTenantConfig()
         {
             var tenantId = _tenantAccessor.GetTenantId();
-            var config = await _db.TenantConfigs
-                .AsNoTracking()
-                .FirstOrDefaultAsync(c => c.TenantId == tenantId);
+            TenantConfig? config;
+            try
+            {
+                config = await _db.TenantConfigs
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(c => c.TenantId == tenantId);
+            }
+            catch (System.Exception ex) when (ex is Microsoft.Data.SqlClient.SqlException || ex.Message.Contains("TenantConfigs", System.StringComparison.OrdinalIgnoreCase))
+            {
+                return Ok(new TenantConfigDto());
+            }
 
             if (config == null)
             {
@@ -98,8 +106,16 @@ namespace UabIndia.Api.Controllers
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
             var tenantId = _tenantAccessor.GetTenantId();
-            var config = await _db.TenantConfigs
-                .FirstOrDefaultAsync(c => c.TenantId == tenantId);
+            TenantConfig? config;
+            try
+            {
+                config = await _db.TenantConfigs
+                    .FirstOrDefaultAsync(c => c.TenantId == tenantId);
+            }
+            catch (System.Exception ex) when (ex is Microsoft.Data.SqlClient.SqlException || ex.Message.Contains("TenantConfigs", System.StringComparison.OrdinalIgnoreCase))
+            {
+                return StatusCode(503, new { message = "Tenant config table not available. Run migrations and retry." });
+            }
 
             if (config == null)
             {

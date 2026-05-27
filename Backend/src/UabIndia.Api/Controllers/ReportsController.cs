@@ -133,6 +133,118 @@ namespace UabIndia.Api.Controllers
             });
         }
 
+        [HttpGet("hr/project-compare")]
+        public async Task<IActionResult> ProjectCompare(
+            [FromQuery] Guid? companyId,
+            [FromQuery] Guid[]? projectIds,
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate)
+        {
+            var fromDateValue = fromDate ?? DateTime.UtcNow.AddDays(-30);
+            var toDateValue = toDate ?? DateTime.UtcNow;
+
+            var projectsQuery = _db.Projects
+                .AsNoTracking()
+                .Where(p => !p.IsDeleted);
+
+            if (companyId.HasValue)
+            {
+                projectsQuery = projectsQuery.Where(p => p.CompanyId == companyId.Value);
+            }
+
+            if (projectIds is { Length: > 0 })
+            {
+                projectsQuery = projectsQuery.Where(p => projectIds.Contains(p.Id));
+            }
+
+            var projects = await projectsQuery
+                .Select(p => new
+                {
+                    p.Id,
+                    p.Name
+                })
+                .ToListAsync();
+
+            if (projects.Count == 0)
+            {
+                return Ok(new
+                {
+                    projects = Array.Empty<object>(),
+                    dateRange = new { from = fromDateValue, to = toDateValue }
+                });
+            }
+
+            var targetProjectIds = projects.Select(p => p.Id).ToList();
+
+            var employeeStats = await _db.Employees
+                .AsNoTracking()
+                .Where(e => !e.IsDeleted && e.ProjectId.HasValue && targetProjectIds.Contains(e.ProjectId.Value))
+                .GroupBy(e => e.ProjectId!.Value)
+                .Select(g => new
+                {
+                    projectId = g.Key,
+                    totalEmployees = g.Count(),
+                    activeEmployees = g.Count(e => e.Status == "Active" || e.Status == "active")
+                })
+                .ToListAsync();
+
+            var attendanceStats = await _db.AttendanceRecords
+                .AsNoTracking()
+                .Where(a => a.ProjectId.HasValue
+                            && targetProjectIds.Contains(a.ProjectId.Value)
+                            && a.Timestamp >= fromDateValue
+                            && a.Timestamp <= toDateValue)
+                .GroupBy(a => a.ProjectId!.Value)
+                .Select(g => new
+                {
+                    projectId = g.Key,
+                    attendanceRecords = g.Count()
+                })
+                .ToListAsync();
+
+            var leaveStats = await (
+                from lr in _db.LeaveRequests.AsNoTracking()
+                join e in _db.Employees.AsNoTracking() on lr.EmployeeId equals e.Id
+                where !lr.IsDeleted
+                      && !e.IsDeleted
+                      && e.ProjectId != null
+                      && targetProjectIds.Contains(e.ProjectId ?? Guid.Empty)
+                        && lr.FromDate <= toDateValue
+                        && lr.ToDate >= fromDateValue
+                group lr by e.ProjectId into g
+                select new
+                {
+                    projectId = g.Key ?? Guid.Empty,
+                    leaveRequests = g.Count(),
+                    approvedLeaveDays = g.Where(x => x.Status == "Approved").Sum(x => (decimal?)x.Days) ?? 0
+                })
+                .ToListAsync();
+
+            var rows = projects.Select(project =>
+            {
+                var employee = employeeStats.FirstOrDefault(x => x.projectId == project.Id);
+                var attendance = attendanceStats.FirstOrDefault(x => x.projectId == project.Id);
+                var leave = leaveStats.FirstOrDefault(x => x.projectId == project.Id);
+
+                return new
+                {
+                    projectId = project.Id,
+                    projectName = project.Name,
+                    totalEmployees = employee?.totalEmployees ?? 0,
+                    activeEmployees = employee?.activeEmployees ?? 0,
+                    attendanceRecords = attendance?.attendanceRecords ?? 0,
+                    leaveRequests = leave?.leaveRequests ?? 0,
+                    approvedLeaveDays = leave?.approvedLeaveDays ?? 0
+                };
+            });
+
+            return Ok(new
+            {
+                projects = rows,
+                dateRange = new { from = fromDateValue, to = toDateValue }
+            });
+        }
+
         // ===== PAYROLL REPORTS =====
 
         [HttpGet("payroll/overview")]

@@ -29,6 +29,8 @@ namespace UabIndia.Infrastructure.Data
         public DbSet<User> Users { get; set; }
         public DbSet<Role> Roles { get; set; }
         public DbSet<UserRole> UserRoles { get; set; }
+        public DbSet<Permission> Permissions { get; set; }
+        public DbSet<RolePermission> RolePermissions { get; set; }
         public DbSet<Employee> Employees { get; set; }
         public DbSet<AttendanceRecord> AttendanceRecords { get; set; }
         public DbSet<AttendanceCorrection> AttendanceCorrections { get; set; }
@@ -49,7 +51,15 @@ namespace UabIndia.Infrastructure.Data
         public DbSet<Module> Modules { get; set; }
         public DbSet<TenantModule> TenantModules { get; set; }
         public DbSet<TenantConfig> TenantConfigs { get; set; }
+        public DbSet<WebsitePage> WebsitePages { get; set; }
         public DbSet<ContactSubmission> ContactSubmissions { get; set; }
+        public DbSet<EntityFieldDefinition> EntityFieldDefinitions { get; set; }
+        public DbSet<EntityFieldValue> EntityFieldValues { get; set; }
+        public DbSet<DocumentRecord> DocumentRecords { get; set; }
+        public DbSet<NotificationMessage> NotificationMessages { get; set; }
+        public DbSet<HelpdeskTicket> HelpdeskTickets { get; set; }
+        public DbSet<HelpdeskEscalation> HelpdeskEscalations { get; set; }
+        public DbSet<HelpdeskFaqArticle> HelpdeskFaqArticles { get; set; }
 
         // Workflow & Approvals
         public DbSet<WorkflowDefinition> WorkflowDefinitions { get; set; }
@@ -144,6 +154,31 @@ namespace UabIndia.Infrastructure.Data
                 modelBuilder.HasDefaultSchema(CurrentTenantSchema);
             }
 
+            // Apply a safe default precision for all decimal properties to prevent truncation warnings.
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+            {
+                var clrType = entityType.ClrType;
+                if (clrType == null)
+                {
+                    continue;
+                }
+
+                foreach (var property in entityType.GetProperties())
+                {
+                    if (property.ClrType != typeof(decimal) && property.ClrType != typeof(decimal?))
+                    {
+                        continue;
+                    }
+
+                    if (property.GetPrecision() != null)
+                    {
+                        continue;
+                    }
+
+                    modelBuilder.Entity(clrType).Property(property.Name).HasPrecision(18, 4);
+                }
+            }
+
             var encryptedString = new ValueConverter<string?, string?>(
                 v => string.IsNullOrWhiteSpace(v) ? null : _encryptionService.Encrypt(v),
                 v => string.IsNullOrWhiteSpace(v) ? null : _encryptionService.Decrypt(v));
@@ -178,8 +213,15 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<AuditLog>().ToTable("AuditLogs");
             modelBuilder.Entity<Module>().ToTable("Modules");
             modelBuilder.Entity<TenantModule>().ToTable("TenantModules");
-            modelBuilder.Entity<TenantConfig>().ToTable("TenantConfigs");
+            modelBuilder.Entity<TenantConfig>().ToTable("TenantConfigs", "dbo");
             modelBuilder.Entity<ContactSubmission>().ToTable("ContactSubmissions");
+            modelBuilder.Entity<EntityFieldDefinition>().ToTable("EntityFieldDefinitions");
+            modelBuilder.Entity<EntityFieldValue>().ToTable("EntityFieldValues");
+            modelBuilder.Entity<DocumentRecord>().ToTable("DocumentRecords");
+            modelBuilder.Entity<NotificationMessage>().ToTable("NotificationMessages");
+            modelBuilder.Entity<HelpdeskTicket>().ToTable("HelpdeskTickets");
+            modelBuilder.Entity<HelpdeskEscalation>().ToTable("HelpdeskEscalations");
+            modelBuilder.Entity<HelpdeskFaqArticle>().ToTable("HelpdeskFaqArticles");
 
             // Performance Management
             modelBuilder.Entity<AppraisalCycle>().ToTable("AppraisalCycles");
@@ -312,6 +354,16 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<Shift>().ToTable("Shifts");
             modelBuilder.Entity<ShiftAssignment>().ToTable("ShiftAssignments");
             modelBuilder.Entity<ShiftSwap>().ToTable("ShiftSwaps");
+            modelBuilder.Entity<ShiftSwap>()
+                .HasOne(s => s.RequestorShiftAssignment)
+                .WithMany()
+                .HasForeignKey(s => s.RequestorShiftAssignmentId)
+                .OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<ShiftSwap>()
+                .HasOne(s => s.TargetShiftAssignment)
+                .WithMany()
+                .HasForeignKey(s => s.TargetShiftAssignmentId)
+                .OnDelete(DeleteBehavior.NoAction);
             modelBuilder.Entity<ShiftRotation>().ToTable("ShiftRotations");
             modelBuilder.Entity<RotationSchedule>().ToTable("RotationSchedules");
 
@@ -335,6 +387,9 @@ namespace UabIndia.Infrastructure.Data
 
             modelBuilder.Entity<Tenant>().ToTable("Tenants", "dbo");
             modelBuilder.Entity<Tenant>().Ignore(t => t.TenantId);
+            modelBuilder.Entity<Tenant>().Property(t => t.ProvisionStatus)
+                .HasMaxLength(32)
+                .HasDefaultValue("Pending");
 
             modelBuilder.Entity<Module>().ToTable("Modules", "dbo");
 
@@ -344,12 +399,19 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<TenantModule>().HasIndex(t => new { t.TenantId, t.ModuleKey }).IsUnique();
 
             // Apply global query filter for multi-tenant + soft delete
-            modelBuilder.Entity<Tenant>().HasQueryFilter(e => !e.IsDeleted);
-            modelBuilder.Entity<Company>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
-            modelBuilder.Entity<Project>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
-            modelBuilder.Entity<User>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
-            modelBuilder.Entity<Role>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
-            modelBuilder.Entity<UserRole>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<Tenant>().HasQueryFilter(e => _tenantAccessor.IncludeDeleted() || !e.IsDeleted);
+            modelBuilder.Entity<Company>().HasQueryFilter(e => (_tenantAccessor.IncludeDeleted() || !e.IsDeleted) && (_tenantAccessor.IncludeAllTenants() || e.TenantId == _tenantAccessor.GetTenantId()));
+            modelBuilder.Entity<Project>().HasQueryFilter(e => (_tenantAccessor.IncludeDeleted() || !e.IsDeleted) && (_tenantAccessor.IncludeAllTenants() || e.TenantId == _tenantAccessor.GetTenantId()));
+            modelBuilder.Entity<User>().HasQueryFilter(e => (_tenantAccessor.IncludeDeleted() || !e.IsDeleted) && (_tenantAccessor.IncludeAllTenants() || e.TenantId == _tenantAccessor.GetTenantId()));
+            modelBuilder.Entity<Role>().HasQueryFilter(e => (_tenantAccessor.IncludeDeleted() || !e.IsDeleted) && (_tenantAccessor.IncludeAllTenants() || e.TenantId == _tenantAccessor.GetTenantId()));
+            modelBuilder.Entity<UserRole>().HasQueryFilter(e => (_tenantAccessor.IncludeDeleted() || !e.IsDeleted) && (_tenantAccessor.IncludeAllTenants() || e.TenantId == _tenantAccessor.GetTenantId()));
+            modelBuilder.Entity<EntityFieldDefinition>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<EntityFieldValue>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<DocumentRecord>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<NotificationMessage>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<HelpdeskTicket>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<HelpdeskEscalation>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<HelpdeskFaqArticle>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<Employee>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<AttendanceRecord>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<AttendanceCorrection>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
@@ -366,7 +428,7 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<Payslip>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<FeatureFlag>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<RefreshToken>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
-            modelBuilder.Entity<AuditLog>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<AuditLog>().HasQueryFilter(e => (_tenantAccessor.IncludeDeleted() || !e.IsDeleted) && (_tenantAccessor.IncludeAllTenants() || e.TenantId == _tenantAccessor.GetTenantId()));
             modelBuilder.Entity<TenantModule>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<TenantConfig>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
 
@@ -420,6 +482,12 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<AssetDepreciation>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<AssetMaintenance>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
 
+            // Performance Management Query Filters
+            modelBuilder.Entity<AppraisalCycle>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<PerformanceAppraisal>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<AppraisalRating>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<AppraisalCompetency>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+
             // Shift Management Query Filters
             modelBuilder.Entity<Shift>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<ShiftAssignment>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
@@ -452,6 +520,8 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<User>().HasIndex(u => new { u.TenantId, u.Email }).IsUnique();
             modelBuilder.Entity<Employee>().HasIndex(e => new { e.TenantId, e.CompanyId });
             modelBuilder.Entity<AttendanceRecord>().HasIndex(a => new { a.TenantId, a.EmployeeId, a.Timestamp });
+            modelBuilder.Entity<HelpdeskTicket>().HasIndex(t => new { t.TenantId, t.TicketNumber }).IsUnique();
+            modelBuilder.Entity<HelpdeskEscalation>().HasIndex(e => new { e.TenantId, e.HelpdeskTicketId, e.EscalatedAt });
         }
 
         public override int SaveChanges()

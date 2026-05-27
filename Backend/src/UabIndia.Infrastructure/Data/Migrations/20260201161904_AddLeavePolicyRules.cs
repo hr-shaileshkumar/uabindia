@@ -11,27 +11,26 @@ namespace UabIndia.Infrastructure.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateTable(
-                name: "LeavePolicyRules",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    LeavePolicyId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ApplicableGender = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    EmploymentType = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Encashable = table.Column<bool>(type: "bit", nullable: false),
-                    CarryForwardAllowed = table.Column<bool>(type: "bit", nullable: false),
-                    MaxCarryForward = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    TenantId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_LeavePolicyRules", x => x.Id);
-                });
+            migrationBuilder.Sql(@"
+IF OBJECT_ID(N'[LeavePolicyRules]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [LeavePolicyRules] (
+        [Id] uniqueidentifier NOT NULL,
+        [LeavePolicyId] uniqueidentifier NOT NULL,
+        [ApplicableGender] nvarchar(max) NOT NULL,
+        [EmploymentType] nvarchar(max) NOT NULL,
+        [Encashable] bit NOT NULL,
+        [CarryForwardAllowed] bit NOT NULL,
+        [MaxCarryForward] decimal(18,2) NULL,
+        [TenantId] uniqueidentifier NOT NULL,
+        [CreatedAt] datetime2 NOT NULL,
+        [UpdatedAt] datetime2 NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [IsDeleted] bit NOT NULL,
+        CONSTRAINT [PK_LeavePolicyRules] PRIMARY KEY ([Id])
+    );
+END
+");
 
             #if false
             migrationBuilder.DropPrimaryKey(
@@ -712,8 +711,12 @@ namespace UabIndia.Infrastructure.Data.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "LeavePolicyRules");
+            migrationBuilder.Sql(@"
+IF OBJECT_ID(N'[LeavePolicyRules]', N'U') IS NOT NULL
+BEGIN
+    DROP TABLE [LeavePolicyRules];
+END
+");
 
             #if false
             migrationBuilder.DropTable(

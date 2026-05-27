@@ -7,9 +7,11 @@ using System.Threading.Tasks;
 using UabIndia.Api.Models;
 using UabIndia.Api.Services;
 using UabIndia.Application.Interfaces;
+using UabIndia.Core.Authorization;
 using UabIndia.Core.Entities;
 using UabIndia.Core.Services;
 using UabIndia.Infrastructure.Data;
+using System.Security.Claims;
 
 namespace UabIndia.Api.Controllers
 {
@@ -32,11 +34,10 @@ namespace UabIndia.Api.Controllers
         }
 
         /// <summary>
-        /// Invalidates all company list cache pages for the current tenant.
+        /// Invalidates all company list cache pages for a tenant.
         /// </summary>
-        private async Task InvalidateCompanyCache()
+        private async Task InvalidateCompanyCache(Guid tenantId)
         {
-            var tenantId = _tenantAccessor.GetTenantId();
             // Invalidate all company list cache entries for this tenant
             // (ideally with RemoveByPrefixAsync once Redis SCAN is implemented)
             for (int page = 1; page <= 10; page++)
@@ -45,12 +46,53 @@ namespace UabIndia.Api.Controllers
                 {
                     var key = $"company_list_{tenantId}_{page}_{limit}";
                     await _cache.RemoveAsync(key);
+                    var deletedKey = $"company_list_{tenantId}_{page}_{limit}_True";
+                    await _cache.RemoveAsync(deletedKey);
+                    var activeKey = $"company_list_{tenantId}_{page}_{limit}_False";
+                    await _cache.RemoveAsync(activeKey);
                 }
             }
         }
 
+        private bool IsSuperAdmin()
+        {
+            var roleClaims = User.Claims
+                .Where(c => c.Type == ClaimTypes.Role || c.Type.EndsWith("/role", StringComparison.OrdinalIgnoreCase))
+                .Select(c => c.Value);
+            return RoleCatalog.HasAnyRole(roleClaims, SystemRole.SuperAdmin);
+        }
+
+        private static bool IsTenantSchemaUnavailable(Exception ex)
+        {
+            var text = ex.ToString();
+            return text.Contains("Invalid object name", StringComparison.OrdinalIgnoreCase)
+                || text.Contains("Cannot find the object", StringComparison.OrdinalIgnoreCase)
+                || text.Contains("Could not find object", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string BuildDefaultCompanyCode(string seed, Guid tenantId)
+        {
+            var compact = new string((seed ?? string.Empty)
+                .Where(char.IsLetterOrDigit)
+                .ToArray())
+                .ToUpperInvariant();
+
+            if (string.IsNullOrWhiteSpace(compact))
+            {
+                compact = "COMP";
+            }
+
+            if (compact.Length > 8)
+            {
+                compact = compact[..8];
+            }
+
+            var suffix = tenantId.ToString("N")[..4].ToUpperInvariant();
+            return $"{compact}-{suffix}";
+        }
+
         [HttpGet]
-        public async Task<IActionResult> List([FromQuery] int page = 1, [FromQuery] int limit = 10)
+        public async Task<IActionResult> List([FromQuery] int page = 1, [FromQuery] int limit = 10, [FromQuery] bool includeDeleted = false)
         {
             try
             {
@@ -60,20 +102,51 @@ namespace UabIndia.Api.Controllers
                 if (limit < 1) limit = 10;
                 if (limit > 100) limit = 100;
                 
-                // Cache key: company_list_{tenantId}_{page}_{limit}
-                var cacheKey = $"company_list_{tenantId}_{page}_{limit}";
+                // Cache key: company_list_{tenantId}_{page}_{limit}_{includeDeleted}
+                var cacheKey = $"company_list_{tenantId}_{page}_{limit}_{includeDeleted}";
                 
                 var cached = await _cache.GetAsync<object>(cacheKey);
                 if (cached != null)
                     return Ok(cached);
                 
-                var total = await _db.Companies
-                    .Where(c => c.TenantId == tenantId && !c.IsDeleted)
-                    .CountAsync();
+                var query = includeDeleted
+                    ? _db.Companies.IgnoreQueryFilters().AsNoTracking().Where(c => c.TenantId == tenantId)
+                    : _db.Companies.AsNoTracking().Where(c => c.TenantId == tenantId && !c.IsDeleted);
 
-                var data = await _db.Companies
-                    .Where(c => c.TenantId == tenantId && !c.IsDeleted)
-                    .AsNoTracking()
+                var total = await query.CountAsync();
+
+                if (total == 0 && !includeDeleted)
+                {
+                    var tenant = await _db.Tenants
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(t => t.Id == tenantId && !t.IsDeleted);
+
+                    if (tenant != null)
+                    {
+                        var companyName = string.IsNullOrWhiteSpace(tenant.Name)
+                            ? $"{tenant.Subdomain?.ToUpperInvariant() ?? "TENANT"} Company"
+                            : tenant.Name.Trim();
+
+                        _db.Companies.Add(new Company
+                        {
+                            TenantId = tenantId,
+                            Name = companyName,
+                            LegalName = companyName,
+                            Code = BuildDefaultCompanyCode(companyName, tenantId),
+                            IsActive = true,
+                            CreatedAt = DateTime.UtcNow
+                        });
+
+                        await _db.SaveChangesAsync();
+                        await InvalidateCompanyCache(tenantId);
+
+                        total = await _db.Companies
+                            .Where(c => c.TenantId == tenantId && !c.IsDeleted)
+                            .CountAsync();
+                    }
+                }
+
+                var data = await query
                     .OrderBy(c => c.Name)
                     .Skip((page - 1) * limit)
                     .Take(limit)
@@ -81,6 +154,7 @@ namespace UabIndia.Api.Controllers
                     {
                         Id = c.Id,
                         TenantId = c.TenantId,
+                        IsDeleted = c.IsDeleted,
                         Name = c.Name,
                         LegalName = c.LegalName,
                         Code = c.Code,
@@ -124,6 +198,11 @@ namespace UabIndia.Api.Controllers
             }
             catch (Exception ex)
             {
+                if (IsTenantSchemaUnavailable(ex))
+                {
+                    return Ok(new { companies = Array.Empty<CompanyDto>(), total = 0, page, limit, warning = "Tenant schema is still initializing." });
+                }
+
                 Console.WriteLine($"❌ Error fetching companies: {ex.Message}");
                 Console.WriteLine($"❌ Stack trace: {ex.StackTrace}");
                 
@@ -136,20 +215,54 @@ namespace UabIndia.Api.Controllers
             }
         }
 
+        /// <summary>
+        /// SuperAdmin-only: returns all companies across all tenants (with tenant names and FY data), no pagination.
+        /// Used to populate cross-tenant dropdowns in the admin UI.
+        /// </summary>
+        [HttpGet("all")]
+        public async Task<IActionResult> ListAll()
+        {
+            var roleClaims = User.Claims
+                .Where(c => c.Type == ClaimTypes.Role || c.Type.EndsWith("/role", StringComparison.OrdinalIgnoreCase))
+                .Select(c => c.Value);
+            if (!RoleCatalog.HasAnyRole(roleClaims, SystemRole.SuperAdmin))
+                return Forbid();
+
+            var companies = await (
+                from c in _db.Companies.AsNoTracking().IgnoreQueryFilters()
+                where !c.IsDeleted
+                join t in _db.Tenants.AsNoTracking().IgnoreQueryFilters() on c.TenantId equals t.Id into ct
+                from t in ct.DefaultIfEmpty()
+                orderby t.Name, c.Name
+                select new
+                {
+                    id = c.Id,
+                    name = c.Name,
+                    tenantId = c.TenantId,
+                    tenantName = t != null ? t.Name : string.Empty,
+                    financialYearStart = c.FinancialYearStart,
+                    financialYearEnd = c.FinancialYearEnd,
+                }
+            ).ToListAsync();
+
+            return Ok(new { companies });
+        }
+
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> Get(Guid id)
         {
             try
             {
                 var tenantId = _tenantAccessor.GetTenantId();
+                var superAdmin = IsSuperAdmin();
                 
-                var company = await _db.Companies
-                    .AsNoTracking()
-                    .Where(c => c.Id == id && c.TenantId == tenantId && !c.IsDeleted)
+                var company = await (superAdmin ? _db.Companies.AsNoTracking().IgnoreQueryFilters() : _db.Companies.AsNoTracking())
+                    .Where(c => c.Id == id && (superAdmin || c.TenantId == tenantId) && !c.IsDeleted)
                     .Select(c => new CompanyDto
                     {
                         Id = c.Id,
                         TenantId = c.TenantId,
+                        IsDeleted = c.IsDeleted,
                         Name = c.Name,
                         LegalName = c.LegalName,
                         Code = c.Code,
@@ -189,6 +302,11 @@ namespace UabIndia.Api.Controllers
             }
             catch (Exception ex)
             {
+                if (IsTenantSchemaUnavailable(ex))
+                {
+                    return NotFound(new { message = "Tenant schema is still initializing." });
+                }
+
                 Console.WriteLine($"❌ Error fetching company: {ex.Message}");
                 Console.WriteLine($"❌ Stack trace: {ex.StackTrace}");
                 
@@ -264,7 +382,7 @@ namespace UabIndia.Api.Controllers
             await _db.SaveChangesAsync();
             
             // Invalidate cache after create
-            await InvalidateCompanyCache();
+            await InvalidateCompanyCache(company.TenantId);
 
             return Ok(new
             {
@@ -332,19 +450,23 @@ namespace UabIndia.Api.Controllers
                 if (!ModelState.IsValid) return BadRequest(ModelState);
 
                 var tenantId = _tenantAccessor.GetTenantId();
-            var company = await _db.Companies
-                .FirstOrDefaultAsync(c => c.Id == id && c.TenantId == tenantId && !c.IsDeleted);
+                var superAdmin = IsSuperAdmin();
+                var company = await (superAdmin ? _db.Companies.IgnoreQueryFilters() : _db.Companies)
+                    .FirstOrDefaultAsync(c => c.Id == id && (superAdmin || c.TenantId == tenantId) && !c.IsDeleted);
 
-            if (company == null) return NotFound(new { message = "Company not found" });
+                if (company == null) return NotFound(new { message = "Company not found" });
 
-            // Check for duplicate code if changed
-            if (!string.IsNullOrEmpty(dto.Code) && dto.Code != company.Code)
-            {
-                var sanitizedCode = _sanitizer.Sanitize(dto.Code);
-                var codeExists = await _db.Companies
-                    .AnyAsync(c => c.Code == sanitizedCode && c.TenantId == tenantId && c.Id != id && !c.IsDeleted);
-                if (codeExists) return BadRequest(new { message = "Company code already exists" });
-            }
+                var targetTenantId = company.TenantId;
+
+                // Check for duplicate code if changed
+                if (!string.IsNullOrEmpty(dto.Code) && dto.Code != company.Code)
+                {
+                    var sanitizedCode = _sanitizer.Sanitize(dto.Code);
+                    var codeExists = await _db.Companies
+                        .IgnoreQueryFilters()
+                        .AnyAsync(c => c.Code == sanitizedCode && c.TenantId == targetTenantId && c.Id != id && !c.IsDeleted);
+                    if (codeExists) return BadRequest(new { message = "Company code already exists" });
+                }
 
             // Update fields with sanitization
             if (!string.IsNullOrEmpty(dto.Name)) company.Name = _sanitizer.Sanitize(dto.Name) ?? dto.Name;
@@ -384,7 +506,7 @@ namespace UabIndia.Api.Controllers
             await _db.SaveChangesAsync();
             
             // Invalidate cache after update
-            await InvalidateCompanyCache();
+            await InvalidateCompanyCache(company.TenantId);
 
             return Ok(new { message = "Company updated successfully", company });
             }
@@ -410,21 +532,22 @@ namespace UabIndia.Api.Controllers
             try
             {
                 var tenantId = _tenantAccessor.GetTenantId();
-            var company = await _db.Companies
-                .FirstOrDefaultAsync(c => c.Id == id && c.TenantId == tenantId && !c.IsDeleted);
+                var superAdmin = IsSuperAdmin();
+                var company = await (superAdmin ? _db.Companies.IgnoreQueryFilters() : _db.Companies)
+                    .FirstOrDefaultAsync(c => c.Id == id && (superAdmin || c.TenantId == tenantId) && !c.IsDeleted);
 
-            if (company == null) return NotFound(new { message = "Company not found" });
+                if (company == null) return NotFound(new { message = "Company not found" });
 
-            // Soft delete
-            company.IsDeleted = true;
-            company.UpdatedAt = DateTime.UtcNow;
-            _db.Companies.Update(company);
-            await _db.SaveChangesAsync();
-            
-            // Invalidate cache after delete
-            await InvalidateCompanyCache();
+                // Soft delete
+                company.IsDeleted = true;
+                company.UpdatedAt = DateTime.UtcNow;
+                _db.Companies.Update(company);
+                await _db.SaveChangesAsync();
+                
+                // Invalidate cache after delete
+                await InvalidateCompanyCache(company.TenantId);
 
-            return Ok(new { message = "Company deleted successfully" });
+                return Ok(new { message = "Company deleted successfully" });
             }
             catch (Exception ex)
             {

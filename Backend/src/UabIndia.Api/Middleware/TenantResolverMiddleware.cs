@@ -58,7 +58,7 @@ namespace UabIndia.Api.Middleware
                 // In Development allow a default tenant (Guid.Empty) so local testing works without subdomains
                 if (env.IsDevelopment())
                 {
-                    var defaultTenant = await db.Tenants.FirstOrDefaultAsync(t => t.Subdomain == "demo")
+                    var defaultTenant = await db.Tenants.FirstOrDefaultAsync(t => t.Subdomain == "api")
                         ?? await db.Tenants.FirstOrDefaultAsync();
                     if (defaultTenant != null)
                     {

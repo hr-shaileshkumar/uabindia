@@ -7,6 +7,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using UabIndia.Api.Models;
 using UabIndia.Application.Interfaces;
+using UabIndia.Core.Authorization;
+using UabIndia.Core.Entities;
 using UabIndia.Infrastructure.Data;
 
 namespace UabIndia.Api.Controllers
@@ -30,7 +32,7 @@ namespace UabIndia.Api.Controllers
         public async Task<IActionResult> List()
         {
             var tenantId = _tenantAccessor.GetTenantId();
-            var data = await _db.Roles
+            var rawRoles = await _db.Roles
                 .AsNoTracking()
                 .Where(r => r.TenantId == tenantId && !r.IsDeleted)
                 .Select(r => new RoleDto
@@ -39,10 +41,226 @@ namespace UabIndia.Api.Controllers
                     Name = r.Name,
                     Description = r.Description
                 })
-                .OrderBy(r => r.Name)
                 .ToListAsync();
 
+            var data = rawRoles
+                .GroupBy(r => RoleCatalog.Normalize(r.Name))
+                .Select(group =>
+                {
+                    var canonical = group.FirstOrDefault(r =>
+                    {
+                        var parsed = RoleCatalog.Parse(r.Name);
+                        return parsed != SystemRole.Unknown
+                               && string.Equals(r.Name, RoleCatalog.ToCanonicalRoleName(parsed), StringComparison.Ordinal);
+                    });
+
+                    return canonical ?? group.OrderBy(r => r.Name, StringComparer.OrdinalIgnoreCase).First();
+                })
+                .OrderBy(r => r.Name)
+                .ToList();
+
             return Ok(new { roles = data });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] CreateRoleDto dto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var tenantId = _tenantAccessor.GetTenantId();
+            var incomingName = dto.Name?.Trim() ?? string.Empty;
+            var normalizedIncomingName = RoleCatalog.Normalize(incomingName);
+            if (string.IsNullOrWhiteSpace(normalizedIncomingName))
+            {
+                return BadRequest(new { message = "Role name is required." });
+            }
+
+            var tenantRoles = await _db.Roles
+                .IgnoreQueryFilters()
+                .Where(r => r.TenantId == tenantId)
+                .ToListAsync();
+
+            var existing = tenantRoles.FirstOrDefault(r =>
+                string.Equals(RoleCatalog.Normalize(r.Name), normalizedIncomingName, StringComparison.OrdinalIgnoreCase));
+
+            if (existing != null)
+            {
+                if (!existing.IsDeleted)
+                {
+                    return BadRequest(new { message = "Role already exists." });
+                }
+
+                existing.IsDeleted = false;
+                existing.Name = incomingName;
+                existing.Description = string.IsNullOrWhiteSpace(dto.Description) ? existing.Description : dto.Description.Trim();
+                existing.UpdatedAt = DateTime.UtcNow;
+                await _db.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    role = new RoleDto
+                    {
+                        Id = existing.Id,
+                        Name = existing.Name,
+                        Description = existing.Description
+                    },
+                    restored = true
+                });
+            }
+
+            var role = new Role
+            {
+                TenantId = tenantId,
+                Name = incomingName,
+                Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim()
+            };
+
+            _db.Roles.Add(role);
+            await _db.SaveChangesAsync();
+
+            return Ok(new
+            {
+                role = new RoleDto
+                {
+                    Id = role.Id,
+                    Name = role.Name,
+                    Description = role.Description
+                },
+                restored = false
+            });
+        }
+
+        [HttpPut("{roleId:guid}")]
+        public async Task<IActionResult> Update(Guid roleId, [FromBody] UpdateRoleDto dto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var tenantId = _tenantAccessor.GetTenantId();
+            var role = await _db.Roles
+                .FirstOrDefaultAsync(r => r.Id == roleId && r.TenantId == tenantId && !r.IsDeleted);
+
+            if (role == null)
+            {
+                return NotFound(new { message = "Role not found." });
+            }
+
+            var isSystemRole = RoleCatalog.Parse(role.Name) != SystemRole.Unknown;
+
+            if (!string.IsNullOrWhiteSpace(dto.Name))
+            {
+                var incomingName = dto.Name.Trim();
+                var normalizedIncomingName = RoleCatalog.Normalize(incomingName);
+
+                if (string.IsNullOrWhiteSpace(normalizedIncomingName))
+                {
+                    return BadRequest(new { message = "Role name is required." });
+                }
+
+                if (isSystemRole && !string.Equals(role.Name, incomingName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest(new { message = "System roles cannot be renamed." });
+                }
+
+                var tenantRoles = await _db.Roles
+                    .IgnoreQueryFilters()
+                    .Where(r => r.TenantId == tenantId)
+                    .ToListAsync();
+
+                var duplicateExists = tenantRoles.Any(r =>
+                    r.Id != roleId
+                    && !r.IsDeleted
+                    && string.Equals(RoleCatalog.Normalize(r.Name), normalizedIncomingName, StringComparison.OrdinalIgnoreCase));
+
+                if (duplicateExists)
+                {
+                    return BadRequest(new { message = "Role already exists." });
+                }
+
+                role.Name = incomingName;
+            }
+
+            role.Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim();
+            role.UpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync();
+
+            return Ok(new
+            {
+                role = new RoleDto
+                {
+                    Id = role.Id,
+                    Name = role.Name,
+                    Description = role.Description
+                }
+            });
+        }
+
+        [HttpDelete("{roleId:guid}")]
+        public async Task<IActionResult> Delete(Guid roleId)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var role = await _db.Roles
+                .FirstOrDefaultAsync(r => r.Id == roleId && r.TenantId == tenantId && !r.IsDeleted);
+
+            if (role == null)
+            {
+                return NotFound(new { message = "Role not found." });
+            }
+
+            var parsedSystemRole = RoleCatalog.Parse(role.Name);
+            if (parsedSystemRole != SystemRole.Unknown)
+            {
+                var canonicalName = RoleCatalog.ToCanonicalRoleName(parsedSystemRole);
+                var isCanonicalRecord = string.Equals(role.Name, canonicalName, StringComparison.Ordinal);
+
+                if (isCanonicalRecord)
+                {
+                    return BadRequest(new { message = "System roles cannot be deleted." });
+                }
+
+                var canonicalRoleExists = await _db.Roles.AnyAsync(r =>
+                    r.TenantId == tenantId
+                    && !r.IsDeleted
+                    && r.Id != role.Id
+                    && string.Equals(r.Name, canonicalName, StringComparison.OrdinalIgnoreCase));
+
+                if (!canonicalRoleExists)
+                {
+                    return BadRequest(new { message = "System roles cannot be deleted." });
+                }
+            }
+
+            var hasAssignedUsers = await _db.UserRoles
+                .AnyAsync(ur => ur.RoleId == roleId && ur.TenantId == tenantId && !ur.IsDeleted);
+
+            if (hasAssignedUsers)
+            {
+                return BadRequest(new { message = "Role is assigned to users. Remove role assignments before deleting it." });
+            }
+
+            var now = DateTime.UtcNow;
+            role.IsDeleted = true;
+            role.UpdatedAt = now;
+
+            var rolePermissions = await _db.RolePermissions
+                .Where(rp => rp.RoleId == roleId && rp.TenantId == tenantId && !rp.IsDeleted)
+                .ToListAsync();
+
+            foreach (var rolePermission in rolePermissions)
+            {
+                rolePermission.IsDeleted = true;
+                rolePermission.UpdatedAt = now;
+            }
+
+            await _db.SaveChangesAsync();
+
+            return Ok(new { deleted = true, roleId });
         }
 
         // GET /api/v1/roles/{roleId}/permissions
@@ -173,5 +391,24 @@ namespace UabIndia.Api.Controllers
     public class UpdateRolePermissionsDto
     {
         public Guid[] PermissionIds { get; set; } = Array.Empty<Guid>();
+    }
+
+    public class CreateRoleDto
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(100)]
+        public string Name { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.StringLength(250)]
+        public string? Description { get; set; }
+    }
+
+    public class UpdateRoleDto
+    {
+        [System.ComponentModel.DataAnnotations.StringLength(100)]
+        public string? Name { get; set; }
+
+        [System.ComponentModel.DataAnnotations.StringLength(250)]
+        public string? Description { get; set; }
     }
 }

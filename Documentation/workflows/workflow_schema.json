@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Generic Workflow Definition Schema",
+  "type": "object",
+  "required": ["key","name","version","steps","transitions"],
+  "properties": {
+    "key": { "type": "string", "description": "Unique workflow key (stable identifier)" },
+    "name": { "type": "string" },
+    "version": { "type": "string", "description": "Semantic version of the definition" },
+    "description": { "type": "string" },
+    "variables": {
+      "type": "object",
+      "description": "Typed variables the workflow expects (used in conditions)",
+      "additionalProperties": { "type": ["string","number","boolean","object","array"] }
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["key","name","type"],
+        "properties": {
+          "key": { "type": "string" },
+          "name": { "type": "string" },
+          "type": { "type": "string", "enum": ["start","task","approval","automated","end"] },
+          "roleRequired": { "type": ["string","array"], "description": "Role or roles allowed to perform actions for this step" },
+          "scope": { "type": "string", "description": "Optional scope: tenant/company/project" },
+          "assigneeExpression": { "type": "string", "description": "Expression to resolve the assignee (e.g. 'employee.managerId')" },
+          "autoTransitionAfterSeconds": { "type": "integer", "minimum": 0 },
+          "slaHours": { "type": "number", "minimum": 0 },
+          "metadata": { "type": "object", "additionalProperties": true }
+        }
+      }
+    },
+    "transitions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["from","to"],
+        "properties": {
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "condition": { "type": ["object","string"], "description": "Optional condition (JsonLogic object or expression)" },
+          "action": { "type": "string", "description": "Named action that triggers this transition (approve/reject/submit/cancel)" }
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "description": "Optional list of domain events emitted by the workflow",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": false
+}

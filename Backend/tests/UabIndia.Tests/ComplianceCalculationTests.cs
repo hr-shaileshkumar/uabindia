@@ -173,6 +173,8 @@ namespace UabIndia.Tests
         {
             private Guid _tenantId;
             private string? _tenantSchema;
+            private bool _includeDeleted;
+            private bool _includeAllTenants;
 
             public MockTenantAccessor(Guid tenantId)
             {
@@ -186,6 +188,16 @@ namespace UabIndia.Tests
             public void SetTenantSchema(string? schema) => _tenantSchema = schema;
 
             public string? GetTenantSchema() => _tenantSchema;
+
+            public void SetDataVisibility(bool includeDeleted, bool includeAllTenants)
+            {
+                _includeDeleted = includeDeleted;
+                _includeAllTenants = includeAllTenants;
+            }
+
+            public bool IncludeDeleted() => _includeDeleted;
+
+            public bool IncludeAllTenants() => _includeAllTenants;
         }
     }
 }

@@ -81,19 +81,19 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: Frontend/package-lock.json
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        run: cd Frontend && npm install
+        run: cd frontend && npm ci
 
       - name: Check TypeScript
-        run: cd Frontend && npm run build
+        run: cd frontend && npm run build
 
       - name: Upload frontend artifacts
         uses: actions/upload-artifact@v3
         with:
           name: frontend-build
-          path: Frontend/dist/
+          path: frontend/.next/
 
   docker-build:
     needs: [build-backend]

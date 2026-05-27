@@ -37,9 +37,11 @@ namespace UabIndia.Api.Middleware
                 return;
             }
 
-            // Skip audit for login and health check endpoints
+            // Skip audit for login, health check, and audit-log management endpoints
+            // (auditing the audit system itself causes recursive meta-audit entries)
             var path = context.Request.Path.ToString().ToLower();
-            if (path.Contains("/auth/login") || path.Contains("/health") || path.Contains("/swagger"))
+            if (path.Contains("/auth/login") || path.Contains("/health") || path.Contains("/swagger")
+                || path.Contains("/auditlogs"))
             {
                 await _next(context);
                 return;
@@ -126,8 +128,9 @@ namespace UabIndia.Api.Middleware
                 // Extract entity name from path (e.g., /api/v1/employees -> Employees)
                 var entityName = ExtractEntityNameFromPath(path);
 
-                // Extract entityId from response if available
-                Guid? entityId = ExtractEntityIdFromResponse(responseBody);
+                // Extract entityId from response if available, fall back to URL path for DELETE
+                Guid? entityId = ExtractEntityIdFromResponse(responseBody)
+                                 ?? (method == "DELETE" ? ExtractEntityIdFromPath(path) : null);
 
                 Guid? performedBy = null;
                 if (!string.IsNullOrEmpty(userId) && Guid.TryParse(userId, out var parsedUserId))
@@ -173,6 +176,22 @@ namespace UabIndia.Api.Middleware
                 return char.ToUpper(entity[0]) + entity.Substring(1); // Capitalize
             }
             return "Unknown";
+        }
+
+        private Guid? ExtractEntityIdFromPath(string path)
+        {
+            // For DELETE /api/v1/users/{guid}, extract the GUID from the last URL segment
+            try
+            {
+                var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                for (int i = segments.Length - 1; i >= 0; i--)
+                {
+                    if (Guid.TryParse(segments[i], out var guid))
+                        return guid;
+                }
+            }
+            catch { }
+            return null;
         }
 
         private Guid? ExtractEntityIdFromResponse(string responseBody)

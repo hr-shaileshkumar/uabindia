@@ -104,17 +104,23 @@ namespace UabIndia.Api.Controllers
                 return BadRequest(new { message = "DeviceId is required." });
             }
 
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == req.Email && u.IsActive && !u.IsDeleted);
+            // Use IgnoreQueryFilters so users from any tenant can authenticate regardless of the
+            // request-context tenant resolved by TenantResolverMiddleware from the host/header.
+            var user = await _db.Users
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(u => u.Email == req.Email && u.IsActive && !u.IsDeleted);
             if (user == null) return Unauthorized(new { message = "Invalid credentials" });
 
             var verify = _hasher.VerifyHashedPassword(user, user.PasswordHash, req.Password);
             if (verify == PasswordVerificationResult.Failed) return Unauthorized(new { message = "Invalid credentials" });
 
             var userId = user.Id;
-            var tenantId = _tenantAccessor.GetTenantId();
+            // Always use the user's own tenant, not the request-context tenant
+            var tenantId = user.TenantId;
             var roles = await _db.UserRoles
-                .Join(_db.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, r.Name })
-                .Where(x => x.UserId == userId)
+                .IgnoreQueryFilters()
+                .Join(_db.Roles.IgnoreQueryFilters(), ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, ur.TenantId, r.Name })
+                .Where(x => x.UserId == userId && x.TenantId == tenantId)
                 .Select(x => x.Name)
                 .ToArrayAsync();
 
@@ -181,15 +187,17 @@ namespace UabIndia.Api.Controllers
 
             if (string.IsNullOrWhiteSpace(incomingRefresh)) return BadRequest();
 
-            var tenantId = _tenantAccessor.GetTenantId();
             var presentedHash = _refresh.HashToken(incomingRefresh);
-            var existing = await _refreshRepo.GetByHashAsync(tenantId, presentedHash);
+            // Find the token across all tenants — the token's TenantId is the authoritative source.
+            var existing = await _db.RefreshTokens.FirstOrDefaultAsync(r => r.TokenHash == presentedHash);
             if (existing == null)
             {
                 // token doesn't exist
                 return Unauthorized();
             }
 
+            // Use the tenant stored in the refresh token itself, not the request-context tenant
+            var tenantId = existing.TenantId;
             var userId = existing.UserId;
 
             if (existing.IsRevoked)
@@ -236,8 +244,9 @@ namespace UabIndia.Api.Controllers
             }
 
             var roles = await _db.UserRoles
-                .Join(_db.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, r.Name })
-                .Where(x => x.UserId == userId)
+                .IgnoreQueryFilters()
+                .Join(_db.Roles.IgnoreQueryFilters(), ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, ur.TenantId, r.Name })
+                .Where(x => x.UserId == userId && x.TenantId == tenantId)
                 .Select(x => x.Name)
                 .ToArrayAsync();
 
@@ -275,12 +284,14 @@ namespace UabIndia.Api.Controllers
                 return Unauthorized();
             }
 
-            var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId && u.TenantId == tenantId);
+            // IgnoreQueryFilters: user is already authenticated via JWT; find by ID only
+            var user = await _db.Users.AsNoTracking().IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null) return Unauthorized();
 
             var roles = await _db.UserRoles
-                .Join(_db.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, r.Name })
-                .Where(x => x.UserId == userId)
+                .IgnoreQueryFilters()
+                .Join(_db.Roles.IgnoreQueryFilters(), ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, ur.TenantId, r.Name })
+                .Where(x => x.UserId == userId && x.TenantId == user.TenantId)
                 .Select(x => x.Name)
                 .ToArrayAsync();
 
@@ -289,6 +300,7 @@ namespace UabIndia.Api.Controllers
                 id = user.Id,
                 email = user.Email,
                 fullName = user.FullName,
+                tenantId = user.TenantId,
                 roles
             });
         }
@@ -308,10 +320,13 @@ namespace UabIndia.Api.Controllers
             }
 
             // Check if user is ERP Owner / Super Admin
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId && u.TenantId == tenantId);
+            // IgnoreQueryFilters: JWT already authenticated; find user across all tenants
+            var user = await _db.Users.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Id == userId);
+            var userTenantId = user?.TenantId ?? tenantId;
             var userRoleNames = await _db.UserRoles
-                .Where(ur => ur.UserId == userId && ur.TenantId == tenantId && !ur.IsDeleted)
-                .Join(_db.Roles,
+                .IgnoreQueryFilters()
+                .Where(ur => ur.UserId == userId && ur.TenantId == userTenantId && !ur.IsDeleted)
+                .Join(_db.Roles.IgnoreQueryFilters(),
                     ur => ur.RoleId,
                     r => r.Id,
                     (ur, r) => r.Name)
@@ -319,21 +334,32 @@ namespace UabIndia.Api.Controllers
 
             var isSuperAdminByRole = RoleCatalog.HasAnyRole(userRoleNames, SystemRole.SuperAdmin);
 
+            object capabilities = new
+            {
+                isSuperAdmin = user?.IsSystemAdmin == true || isSuperAdminByRole,
+                includeDeletedByDefault = user?.IsSystemAdmin == true || isSuperAdminByRole,
+                includeAllTenantsByDefault = user?.IsSystemAdmin == true || isSuperAdminByRole,
+                canRestoreDeleted = user?.IsSystemAdmin == true || isSuperAdminByRole,
+                canHardDelete = user?.IsSystemAdmin == true || isSuperAdminByRole,
+            };
+
             if (user?.IsSystemAdmin == true || isSuperAdminByRole)
             {
-                return Ok(new { mode = "enforced", permissions = new[] { "*" } });
+                return Ok(new { mode = "enforced", permissions = new[] { "*" }, capabilities });
             }
 
-            // Get user's roles
+            // Get user's roles (use userTenantId, not request-context tenantId)
             var userRoles = await _db.UserRoles
-                .Where(ur => ur.UserId == userId && ur.TenantId == tenantId && !ur.IsDeleted)
+                .IgnoreQueryFilters()
+                .Where(ur => ur.UserId == userId && ur.TenantId == userTenantId && !ur.IsDeleted)
                 .Select(ur => ur.RoleId)
                 .ToListAsync();
 
             // Get permissions
             var permissions = await _db.RolePermissions
-                .Where(rp => userRoles.Contains(rp.RoleId) && rp.TenantId == tenantId && !rp.IsDeleted)
-                .Join(_db.Permissions,
+                .IgnoreQueryFilters()
+                .Where(rp => userRoles.Contains(rp.RoleId) && rp.TenantId == userTenantId && !rp.IsDeleted)
+                .Join(_db.Permissions.IgnoreQueryFilters(),
                     rp => rp.PermissionId,
                     p => p.Id,
                     (rp, p) => p)
@@ -364,7 +390,7 @@ namespace UabIndia.Api.Controllers
                 frontendPermissions.Add("*");
             }
 
-            return Ok(new { mode = "enforced", permissions = frontendPermissions.Distinct() });
+            return Ok(new { mode = "enforced", permissions = frontendPermissions.Distinct(), capabilities });
         }
 
         [Authorize]
@@ -390,6 +416,74 @@ namespace UabIndia.Api.Controllers
             Response.Cookies.Delete("access_token");
             Response.Cookies.Delete("refresh_token");
             return Ok();
+        }
+
+        [HttpPost("forgot-password")]
+        [EnableRateLimiting("auth-forgot")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest req)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            // Always return success to prevent email enumeration
+            var user = await _db.Users
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(u => u.Email == req.Email && u.IsActive && !u.IsDeleted);
+
+            if (user != null)
+            {
+                // Generate reset token
+                var resetToken = Guid.NewGuid().ToString("N");
+                var tokenHash = _refresh.HashToken(resetToken);
+                var expires = DateTime.UtcNow.AddHours(1);
+
+                // Store reset token (you might want to create a separate table for this)
+                // For now, we'll use a simple approach with user metadata
+                user.PasswordResetToken = tokenHash;
+                user.PasswordResetExpires = expires;
+                await _db.SaveChangesAsync();
+
+                // TODO: Send email with reset link
+                // For now, just log it
+                _logger.LogInformation("Password reset requested for user {UserId}. Token: {Token}", user.Id, resetToken);
+            }
+
+            return Ok(new { message = "If an account with this email exists, you will receive password reset instructions." });
+        }
+
+        [HttpPost("reset-password")]
+        [EnableRateLimiting("auth-reset")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest req)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var tokenHash = _refresh.HashToken(req.Token!);
+
+            var user = await _db.Users
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(u =>
+                    u.PasswordResetToken == tokenHash &&
+                    u.PasswordResetExpires > DateTime.UtcNow &&
+                    u.IsActive &&
+                    !u.IsDeleted);
+
+            if (user == null)
+            {
+                return BadRequest(new { message = "Invalid or expired reset token." });
+            }
+
+            // Hash the new password
+            var hashedPassword = _hasher.HashPassword(user, req.NewPassword!);
+            user.PasswordHash = hashedPassword;
+            user.PasswordResetToken = null;
+            user.PasswordResetExpires = null;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync();
+
+            // Revoke all refresh tokens for security
+            await _refreshRepo.RevokeAllForUserAsync(user.TenantId, user.Id);
+
+            return Ok(new { message = "Password has been reset successfully." });
         }
 
         public class LoginRequest
@@ -420,6 +514,26 @@ namespace UabIndia.Api.Controllers
         {
             [Required]
             public Guid UserId { get; set; }
+        }
+
+        public class ForgotPasswordRequest
+        {
+            [Required]
+            [EmailAddress]
+            [StringLength(255)]
+            public string? Email { get; set; }
+        }
+
+        public class ResetPasswordRequest
+        {
+            [Required]
+            [StringLength(128, MinimumLength = 8)]
+            public string? Token { get; set; }
+
+            [Required]
+            [MinLength(8)]
+            [MaxLength(100)]
+            public string? NewPassword { get; set; }
         }
 
         private void SetAuthCookies(string accessToken, string refreshToken, DateTime refreshExpires)

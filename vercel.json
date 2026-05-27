@@ -1,7 +1,17 @@
 {
-  "buildCommand": "cd frontend-next && npm run build",
-  "devCommand": "cd frontend-next && npm run dev",
-  "installCommand": "cd frontend-next && npm ci",
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm ci",
   "framework": "nextjs",
-  "outputDirectory": "frontend-next/.next"
+  "outputDirectory": ".next",
+  "env": {
+    "NEXT_PUBLIC_API_URL": "@next_public_api_url",
+    "NEXT_PUBLIC_APP_VERSION": "@next_public_app_version"
+  },
+  "regions": ["iad1"],
+  "functions": {
+    "api/**/*.{js,ts}": {
+      "maxDuration": 30
+    }
+  }
 }

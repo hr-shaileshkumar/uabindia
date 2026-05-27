@@ -75,6 +75,7 @@ coverage-final.json
 ########################################################
 # Environment & secrets
 ########################################################
+.venv/
 .env
 .env.*.local
 .env.local
@@ -124,6 +125,11 @@ certs/
 # GitHub Actions artifacts (local/emulator files)
 *.workflow-cache
 actions-runner/
+
+# Local utility binaries / local packaging artifacts
+ngrok.exe
+ngrok.zip
+backend_deployment.zip
 
 ########################################################
 # Keep migration SQL artifacts tracked (do not ignore)

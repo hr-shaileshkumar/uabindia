@@ -1,0 +1,32 @@
+{
+  "key": "leave_approval",
+  "name": "Leave Approval Workflow",
+  "version": "1.0.0",
+  "description": "Standard leave request approval: employee -> manager -> HR -> payroll notification",
+  "variables": {
+    "employeeId": "guid",
+    "managerId": "guid",
+    "companyId": "guid",
+    "leaveDays": "number",
+    "leaveType": "string",
+    "startDate": "date",
+    "endDate": "date"
+  },
+  "steps": [
+    { "key": "apply", "name": "Apply Leave", "type": "start", "metadata": { "ui": "form:leave" }},
+    { "key": "manager_approval", "name": "Manager Approval", "type": "approval", "roleRequired": "Manager", "assigneeExpression": "managerId", "slaHours": 48 },
+    { "key": "hr_approval", "name": "HR Approval", "type": "approval", "roleRequired": "HR", "slaHours": 48 },
+    { "key": "payroll_notify", "name": "Notify Payroll", "type": "automated", "metadata": { "job":"notifyPayroll" }},
+    { "key": "completed", "name": "Completed", "type": "end" }
+  ],
+  "transitions": [
+    { "from": "apply", "to": "manager_approval", "action": "submit" },
+    { "from": "manager_approval", "to": "hr_approval", "action": "approve" },
+    { "from": "manager_approval", "to": "completed", "action": "approve", "condition": { "/<=": [ {"var":"leaveDays"}, 0 ] } },
+    { "from": "hr_approval", "to": "payroll_notify", "action": "approve" },
+    { "from": "payroll_notify", "to": "completed", "action": "complete" },
+    { "from": "manager_approval", "to": "completed", "action": "reject", "condition": true },
+    { "from": "hr_approval", "to": "completed", "action": "reject", "condition": true }
+  ],
+  "events": ["workflow.started","workflow.step.completed","workflow.completed","workflow.rejected"]
+}

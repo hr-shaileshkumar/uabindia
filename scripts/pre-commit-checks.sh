@@ -28,10 +28,10 @@ else
 fi
 
 # frontend lint if present
-if [ -f "$REPO_ROOT/Frontend/package.json" ]; then
-  if grep -q '"lint"' "$REPO_ROOT/Frontend/package.json"; then
+if [ -f "$REPO_ROOT/frontend/package.json" ]; then
+  if grep -q '"lint"' "$REPO_ROOT/frontend/package.json"; then
     echo "Running frontend lint"
-    npm --prefix Frontend run lint || { echo "Frontend lint failed" >&2; exit 1; }
+    npm --prefix frontend run lint || { echo "Frontend lint failed" >&2; exit 1; }
   fi
 fi
 

@@ -67,7 +67,7 @@ dotnet run
 
 ### Start Frontend
 ```bash
-cd frontend-next
+cd frontend
 npm install
 npm run dev
 # Frontend runs on http://localhost:3000
@@ -137,7 +137,7 @@ HRMS/
 │   │   └── UabIndia.Identity/
 │   └── tests/ (16 passing tests)
 │
-├── frontend-next/
+├── frontend/
 │   ├── src/app/erp/ (ERP pages)
 │   ├── src/app/hrms/ (HRMS pages)
 │   ├── src/lib/ (API client)
@@ -253,7 +253,7 @@ cd Backend/src/UabIndia.Api
 dotnet run
 
 # Frontend (new terminal)
-cd frontend-next
+cd frontend
 npm run dev
 ```
 

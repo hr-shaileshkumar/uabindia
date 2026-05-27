@@ -1,0 +1,30 @@
+{
+  "key": "payroll_approval",
+  "name": "Payroll Batch Approval",
+  "version": "1.0.0",
+  "description": "Approval for a payroll run: submit -> finance -> exec (conditional) -> post processing",
+  "variables": {
+    "runId": "guid",
+    "initiatorId": "guid",
+    "tenantId": "guid",
+    "payrollTotal": "number",
+    "payrollMonth": "string"
+  },
+  "steps": [
+    { "key": "submit_run", "name": "Submit Payroll Run", "type": "start" },
+    { "key": "finance_approval", "name": "Finance Approval", "type": "approval", "roleRequired": "FinanceManager", "slaHours": 24 },
+    { "key": "exec_approval", "name": "Executive Approval", "type": "approval", "roleRequired": ["CFO","CEO"], "slaHours": 24 },
+    { "key": "post_processing", "name": "Post Processing", "type": "automated", "metadata": { "job":"processPayments" }},
+    { "key": "completed", "name": "Completed", "type": "end" }
+  ],
+  "transitions": [
+    { "from": "submit_run", "to": "finance_approval", "action": "submit" },
+    { "from": "finance_approval", "to": "exec_approval", "action": "approve", "condition": { ">": [ {"var":"payrollTotal"}, 1000000 ] } },
+    { "from": "finance_approval", "to": "post_processing", "action": "approve", "condition": { "<=": [ {"var":"payrollTotal"}, 1000000 ] } },
+    { "from": "exec_approval", "to": "post_processing", "action": "approve" },
+    { "from": "post_processing", "to": "completed", "action": "complete" },
+    { "from": "finance_approval", "to": "completed", "action": "reject", "condition": true },
+    { "from": "exec_approval", "to": "completed", "action": "reject", "condition": true }
+  ],
+  "events": ["payroll.submitted","payroll.approved","payroll.published"]
+}

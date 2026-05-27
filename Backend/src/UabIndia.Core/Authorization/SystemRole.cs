@@ -15,8 +15,8 @@ namespace UabIndia.Core.Authorization
 
     public static class RoleCatalog
     {
-        public const string SuperAdminRoleName = "SUPER_ADMIN";
-        public const string AdminRoleName = "ADMIN";
+        public const string SuperAdminRoleName = "SuperAdmin";
+        public const string AdminRoleName = "Admin";
         public const string ManagerRoleName = "MANAGER";
         public const string EmployeeRoleName = "EMPLOYEE";
 

@@ -3,11 +3,14 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 using UabIndia.Infrastructure.Data;
 using UabIndia.Api.Models;
 using UabIndia.Application.Interfaces;
 using UabIndia.Core.Entities;
+using UabIndia.Core.Authorization;
 using Microsoft.AspNetCore.Authorization;
+using UabIndia.Api.Services;
 
 namespace UabIndia.Api.Controllers
 {
@@ -19,11 +22,19 @@ namespace UabIndia.Api.Controllers
     {
         private readonly ApplicationDbContext _db;
         private readonly ITenantAccessor _tenantAccessor;
+        private readonly IPasswordHasher<User> _hasher;
+        private readonly RoleMappingResolver _roleMappingResolver;
 
-        public EmployeesController(ApplicationDbContext db, ITenantAccessor tenantAccessor)
+        public EmployeesController(
+            ApplicationDbContext db,
+            ITenantAccessor tenantAccessor,
+            IPasswordHasher<User> hasher,
+            RoleMappingResolver roleMappingResolver)
         {
             _db = db;
             _tenantAccessor = tenantAccessor;
+            _hasher = hasher;
+            _roleMappingResolver = roleMappingResolver;
         }
 
         [HttpPost]
@@ -32,6 +43,11 @@ namespace UabIndia.Api.Controllers
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
             var tenantId = _tenantAccessor.GetTenantId();
+            if (dto.CreateLogin && string.IsNullOrWhiteSpace(dto.WorkEmail))
+            {
+                return BadRequest(new { message = "WorkEmail is required when CreateLogin is enabled." });
+            }
+
             var companyExists = await _db.Companies.AnyAsync(c => c.Id == dto.CompanyId && c.TenantId == tenantId && !c.IsDeleted);
             if (!companyExists) return BadRequest(new { message = "Invalid company." });
 
@@ -47,11 +63,86 @@ namespace UabIndia.Api.Controllers
             };
 
             _db.Employees.Add(employee);
+            var loginCreated = false;
+            string? workEmail = null;
+
+            if (dto.CreateLogin)
+            {
+                workEmail = dto.WorkEmail!.Trim();
+                var existingUser = await _db.Users
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(u => u.TenantId == tenantId && u.Email == workEmail && !u.IsDeleted);
+
+                if (existingUser != null)
+                {
+                    return BadRequest(new { message = "A user with this email already exists." });
+                }
+
+                var roleName = ResolveEmployeeLoginRole(dto.LoginRole);
+                var role = await _db.Roles
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(r => r.TenantId == tenantId && r.Name == roleName && !r.IsDeleted);
+
+                if (role == null)
+                {
+                    role = new Role
+                    {
+                        TenantId = tenantId,
+                        Name = roleName,
+                        Description = roleName == RoleCatalog.EmployeeRoleName ? "Standard employee" : "Employee login role"
+                    };
+                    _db.Roles.Add(role);
+                }
+
+                var user = new User
+                {
+                    TenantId = tenantId,
+                    Email = workEmail,
+                    FullName = dto.FullName,
+                    IsSystemAdmin = false,
+                    IsActive = true
+                };
+
+                var password = string.IsNullOrWhiteSpace(dto.InitialPassword)
+                    ? BuildTemporaryPassword()
+                    : dto.InitialPassword!.Trim();
+
+                user.PasswordHash = _hasher.HashPassword(user, password);
+                _db.Users.Add(user);
+
+                _db.UserRoles.Add(new UserRole
+                {
+                    TenantId = tenantId,
+                    UserId = user.Id,
+                    RoleId = role.Id
+                });
+
+                loginCreated = true;
+            }
+
             await _db.SaveChangesAsync();
 
-            var result = new EmployeeDto { Id = employee.Id, FullName = employee.FullName, CompanyId = employee.CompanyId, EmployeeCode = employee.EmployeeCode, ProjectId = employee.ProjectId, Status = employee.Status };
+            var result = new EmployeeDto
+            {
+                Id = employee.Id,
+                FullName = employee.FullName,
+                CompanyId = employee.CompanyId,
+                EmployeeCode = employee.EmployeeCode,
+                ProjectId = employee.ProjectId,
+                Status = employee.Status,
+                LoginCreated = loginCreated,
+                WorkEmail = workEmail
+            };
             return CreatedAtAction(nameof(Get), new { id = employee.Id }, result);
         }
+
+        private string ResolveEmployeeLoginRole(string? requestedRole)
+        {
+            return _roleMappingResolver.ResolveEmployeeRole(requestedRole);
+        }
+
+        private static string BuildTemporaryPassword()
+            => $"Emp@{Guid.NewGuid():N}"[..18];
 
         [HttpGet]
         public async Task<IActionResult> List()

@@ -15,6 +15,8 @@ using UabIndia.Core.Entities;
 using Microsoft.AspNetCore.Authorization;
 using System.Linq;
 using UabIndia.Api.Authorization;
+using System.Data.Common;
+using Microsoft.Data.SqlClient;
 using Microsoft.AspNetCore.Http.Features;
 using UabIndia.Core.Authorization;
 using UabIndia.Core.Services;
@@ -22,8 +24,19 @@ using Hangfire;
 using Hangfire.SqlServer;
 using Sentry;
 using Sentry.AspNetCore;
+using System.IO;
 
 var builder = WebApplication.CreateBuilder(args);
+LoadDotEnvConfiguration(builder.Configuration, builder.Environment.ContentRootPath);
+
+var explicitEnvironment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+    ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
+if (string.IsNullOrWhiteSpace(explicitEnvironment))
+{
+    explicitEnvironment = Environments.Development;
+}
+builder.Environment.EnvironmentName = explicitEnvironment;
+builder.Configuration.AddJsonFile($"appsettings.{explicitEnvironment}.json", optional: true, reloadOnChange: true);
 
 // Application Insights for production monitoring and telemetry
 if (!builder.Environment.IsDevelopment())
@@ -174,6 +187,8 @@ builder.Services.AddScoped<ITenantAccessor, TenantAccessor>();
 // Input sanitization service (XSS protection)
 builder.Services.AddScoped<UabIndia.Api.Services.InputSanitizer>();
 builder.Services.AddScoped<TenantProvisioningService>();
+builder.Services.AddScoped<IUiSchemaService, UiSchemaService>();
+builder.Services.AddSingleton<RoleMappingResolver>();
 
 // Encryption service for PII
 builder.Services.AddSingleton<IEncryptionService, UabIndia.Infrastructure.Services.AesEncryptionService>();
@@ -325,11 +340,19 @@ builder.Services.AddScoped<IPolicyEngine, UabIndia.Infrastructure.Services.Polic
 // Workflow service (EF-backed production implementation)
 builder.Services.AddScoped<UabIndia.Application.Interfaces.IWorkflowService, UabIndia.Infrastructure.Services.EfWorkflowService>();
 
+// Startup database bootstrap (migrations + idempotent schema compatibility patches)
+builder.Services.AddHostedService<DatabaseInitializationService>();
+
 // Rate limiting - Multi-layer approach
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     var isDev = builder.Environment.IsDevelopment();
+    var ipPermitLimit = isDev ? 5000 : 100;
+    var ipWindow = isDev ? TimeSpan.FromMinutes(1) : TimeSpan.FromMinutes(1);
+    var tenantTokenLimit = isDev ? 500000 : 10000;
+    var tenantReplenishment = isDev ? TimeSpan.FromHours(1) : TimeSpan.FromDays(1);
+    var tenantTokensPerPeriod = isDev ? 500000 : 10000;
 
     // Auth-specific limiter (stricter than global)
     options.AddPolicy("auth-login", httpContext =>
@@ -342,15 +365,15 @@ builder.Services.AddRateLimiter(options =>
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                 QueueLimit = 0
             }));
-    
+
     // Layer 1: Per-IP rate limiting (DDoS protection)
     options.AddPolicy("ip-limit", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             factory: _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 100,
-                Window = TimeSpan.FromMinutes(1),
+                PermitLimit = ipPermitLimit,
+                Window = ipWindow,
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                 QueueLimit = 0
             }));
@@ -365,9 +388,9 @@ builder.Services.AddRateLimiter(options =>
             partitionKey: tenantId.ToString(),
             factory: _ => new TokenBucketRateLimiterOptions
             {
-                TokenLimit = 10000,              // 10k requests per day per tenant
-                ReplenishmentPeriod = TimeSpan.FromDays(1),
-                TokensPerPeriod = 10000,
+                TokenLimit = tenantTokenLimit,
+                ReplenishmentPeriod = tenantReplenishment,
+                TokensPerPeriod = tenantTokensPerPeriod,
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                 QueueLimit = 0
             });
@@ -382,8 +405,8 @@ builder.Services.AddRateLimiter(options =>
                 partitionKey: ip,
                 factory: _ => new FixedWindowRateLimiterOptions
                 {
-                    PermitLimit = 100,
-                    Window = TimeSpan.FromMinutes(1),
+                    PermitLimit = ipPermitLimit,
+                    Window = ipWindow,
                     QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                     QueueLimit = 0
                 });
@@ -397,9 +420,9 @@ builder.Services.AddRateLimiter(options =>
                 partitionKey: tenantId.ToString(),
                 factory: _ => new TokenBucketRateLimiterOptions
                 {
-                    TokenLimit = 10000,
-                    ReplenishmentPeriod = TimeSpan.FromDays(1),
-                    TokensPerPeriod = 10000,
+                    TokenLimit = tenantTokenLimit,
+                    ReplenishmentPeriod = tenantReplenishment,
+                    TokensPerPeriod = tenantTokensPerPeriod,
                     QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                     QueueLimit = 0
                 });
@@ -455,6 +478,7 @@ if (!env.IsEnvironment("Test"))
     {
         options.WorkerCount = Environment.ProcessorCount * 2;
         options.SchedulePollingInterval = TimeSpan.FromSeconds(15);
+        options.Queues = new[] { "tenant-provisioning", "default" };
     });
 
     // Background job service
@@ -465,6 +489,416 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+if (!app.Environment.IsEnvironment("Test"))
+{
+    using var migrationScope = app.Services.CreateScope();
+    var migrationDb = migrationScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var migrationLogger = migrationScope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILoggerFactory>()
+        .CreateLogger("DatabaseMigration");
+
+    try
+    {
+        await migrationDb.Database.MigrateAsync();
+        await EnsureSchemaCompatibilityAsync(migrationDb, migrationLogger);
+        migrationLogger.LogInformation("Database migrations applied successfully at startup.");
+    }
+    catch (Exception ex)
+    {
+        // If migration failed due to objects already existing (e.g. running against a DB that was created manually),
+        // attempt to reconcile by marking pending migrations as applied in __EFMigrationsHistory and retrying.
+        migrationLogger.LogWarning(ex, "Migrations failed at startup. Attempting reconciliation if schema already exists.");
+
+        // Only handle SQL Server-specific 'object already exists' error (ErrorNumber 2714)
+        if (ex is SqlException sqlEx && sqlEx.Number == 2714)
+        {
+            try
+            {
+                await MarkPendingMigrationsAsAppliedAsync(migrationDb, migrationLogger);
+
+                using var retryScope = app.Services.CreateScope();
+                var retryDb = retryScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                await retryDb.Database.MigrateAsync();
+                await EnsureSchemaCompatibilityAsync(retryDb, migrationLogger);
+                migrationLogger.LogInformation("Database migrations applied successfully after reconciliation.");
+            }
+            catch (Exception inner)
+            {
+                migrationLogger.LogError(inner, "Reconciliation attempt failed while applying migrations.");
+
+                if (ShouldRecoverDevelopmentDatabase(inner, app.Environment))
+                {
+                    try
+                    {
+                        migrationLogger.LogWarning("Development database appears to be in a partially migrated state. Attempting non-destructive migration retry.");
+                        using var recoveryScope = app.Services.CreateScope();
+                        var recoveryDb = recoveryScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                        // Avoid automatically deleting the database to prevent data loss in development
+                        await recoveryDb.Database.MigrateAsync();
+                        await EnsureSchemaCompatibilityAsync(recoveryDb, migrationLogger);
+                        migrationLogger.LogInformation("Development database migrations applied successfully after reconciliation.");
+                    }
+                    catch (Exception recoveryEx)
+                    {
+                        migrationLogger.LogError(recoveryEx, "Failed to recover the development database after reconciliation failure.");
+                        if (ShouldAllowStartupWithoutDatabase(recoveryEx, app.Environment))
+                        {
+                            migrationLogger.LogWarning("Continuing startup without a database connection because development SQL initialization is unavailable.");
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
+                }
+                else
+                {
+                    if (ShouldAllowStartupWithoutDatabase(inner, app.Environment))
+                    {
+                        migrationLogger.LogWarning("Continuing startup without a database connection because development SQL initialization is unavailable.");
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+            }
+        }
+        else if (ShouldRecoverDevelopmentDatabase(ex, app.Environment))
+        {
+            try
+            {
+                migrationLogger.LogWarning("Development database appears to be in a partially migrated state. Attempting non-destructive migration retry.");
+                // Avoid automatically deleting the database to prevent accidental data loss
+                await migrationDb.Database.MigrateAsync();
+                await EnsureSchemaCompatibilityAsync(migrationDb, migrationLogger);
+                migrationLogger.LogInformation("Development database migrations applied successfully.");
+            }
+            catch (Exception inner)
+            {
+                migrationLogger.LogError(inner, "Failed to recover the development database.");
+                if (ShouldAllowStartupWithoutDatabase(inner, app.Environment))
+                {
+                    migrationLogger.LogWarning("Continuing startup without a database connection because development SQL initialization is unavailable.");
+                }
+                else
+                {
+                    throw;
+                }
+            }
+        }
+        else
+        {
+            migrationLogger.LogError(ex, "Failed to apply database migrations at startup.");
+            if (ShouldAllowStartupWithoutDatabase(ex, app.Environment))
+            {
+                migrationLogger.LogWarning("Continuing startup without a database connection because development SQL initialization is unavailable.");
+            }
+            else
+            {
+                throw;
+            }
+        }
+    }
+}
+
+static bool ShouldRecoverDevelopmentDatabase(Exception ex, IWebHostEnvironment env)
+{
+    if (!env.IsDevelopment() || ex is not SqlException)
+    {
+        return false;
+    }
+
+    // Local development may have a partially applied or inconsistent schema.
+    // Recover by recreating the database from the current model and marking
+    // all migrations as applied when running locally.
+    return true;
+}
+
+static bool ShouldAllowStartupWithoutDatabase(Exception ex, IWebHostEnvironment env)
+{
+    if (!env.IsDevelopment())
+    {
+        return false;
+    }
+
+    for (var current = ex; current is not null; current = current.InnerException)
+    {
+        if (current is SqlException)
+        {
+            return true;
+        }
+
+        if (current.Message.Contains("SSPI", StringComparison.OrdinalIgnoreCase) ||
+            current.Message.Contains("requires encryption", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// NOTE: This function is defined but currently unused. It's kept for potential future use in recovery scenarios.
+// Uncomment the call in the SqlException handling if needed.
+#pragma warning disable CS8321
+static async Task MarkAllMigrationsAsAppliedAsync(ApplicationDbContext db, Microsoft.Extensions.Logging.ILogger logger)
+{
+    var migrations = db.Database.GetMigrations().ToList();
+    if (!migrations.Any())
+    {
+        logger.LogInformation("No migrations found to mark as applied.");
+        return;
+    }
+
+    await using var conn = db.Database.GetDbConnection();
+    try
+    {
+        if (conn.State == System.Data.ConnectionState.Closed)
+            await conn.OpenAsync();
+
+        var createHistorySql = @"
+IF OBJECT_ID(N'[dbo].[__EFMigrationsHistory]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[__EFMigrationsHistory] (
+        [MigrationId] nvarchar(150) NOT NULL,
+        [ProductVersion] nvarchar(32) NOT NULL,
+        CONSTRAINT [PK___EFMigrationsHistory] PRIMARY KEY ([MigrationId])
+    );
+END;";
+        await db.Database.ExecuteSqlRawAsync(createHistorySql);
+
+        var existingHistory = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        await using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "SELECT [MigrationId] FROM [dbo].[__EFMigrationsHistory];";
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                existingHistory.Add(reader.GetString(0));
+            }
+        }
+
+        foreach (var migration in migrations)
+        {
+            if (existingHistory.Contains(migration))
+                continue;
+
+            await db.Database.ExecuteSqlRawAsync(
+                "INSERT INTO [dbo].[__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES ({0}, {1});",
+                migration,
+                "8.0.0"
+            );
+            logger.LogInformation("Marked migration '{Migration}' as applied.", migration);
+        }
+    }
+    finally
+    {
+        if (conn.State != System.Data.ConnectionState.Closed)
+            await conn.CloseAsync();
+    }
+}
+
+static async Task MarkPendingMigrationsAsAppliedAsync(ApplicationDbContext db, Microsoft.Extensions.Logging.ILogger logger)
+{
+    // Get pending migrations
+    var pending = db.Database.GetPendingMigrations().ToList();
+    if (!pending.Any())
+    {
+        logger.LogInformation("No pending migrations to mark as applied.");
+        return;
+    }
+
+    // Try to locate migration source files (conservative reconciliation)
+    var cwd = System.IO.Directory.GetCurrentDirectory();
+    var candidatePaths = new[] {
+        System.IO.Path.GetFullPath(System.IO.Path.Combine(cwd, "..", "UabIndia.Infrastructure", "Data", "Migrations")),
+        System.IO.Path.GetFullPath(System.IO.Path.Combine(cwd, "..", "UabIndia.Infrastructure", "Migrations")),
+        System.IO.Path.GetFullPath(System.IO.Path.Combine(cwd, "..", "..", "UabIndia.Infrastructure", "Data", "Migrations")),
+        System.IO.Path.GetFullPath(System.IO.Path.Combine(cwd, "..", "..", "UabIndia.Infrastructure", "Migrations"))
+    };
+
+    var migrationsFolder = candidatePaths.FirstOrDefault(p => System.IO.Directory.Exists(p));
+
+    await using var conn = db.Database.GetDbConnection();
+    try
+    {
+        if (conn.State == System.Data.ConnectionState.Closed)
+            await conn.OpenAsync();
+
+        // Ensure __EFMigrationsHistory table exists (minimal schema)
+        var createHistorySql = @"
+IF OBJECT_ID(N'[dbo].[__EFMigrationsHistory]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[__EFMigrationsHistory] (
+        [MigrationId] nvarchar(150) NOT NULL,
+        [ProductVersion] nvarchar(32) NOT NULL,
+        CONSTRAINT [PK___EFMigrationsHistory] PRIMARY KEY ([MigrationId])
+    );
+END;";
+        await db.Database.ExecuteSqlRawAsync(createHistorySql);
+
+        // For each pending migration, if we can detect that its main created tables already exist, mark it applied.
+        foreach (var m in pending)
+        {
+            var tablesDetected = new List<string>();
+
+            if (!string.IsNullOrEmpty(migrationsFolder))
+            {
+                try
+                {
+                    var files = System.IO.Directory.GetFiles(migrationsFolder, $"*{m}*.cs");
+                    if (files.Length > 0)
+                    {
+                        var content = System.IO.File.ReadAllText(files[0]);
+                        // crude regex to find CreateTable name: "TableName"
+                        var rx = new System.Text.RegularExpressions.Regex(@"CreateTable\s*\(\s*name\s*:\s*""(?<t>[^""]+)""", System.Text.RegularExpressions.RegexOptions.Compiled);
+                        var matches = rx.Matches(content);
+                        foreach (System.Text.RegularExpressions.Match match in matches)
+                        {
+                            if (match.Success && match.Groups["t"].Success)
+                                tablesDetected.Add(match.Groups["t"].Value);
+                        }
+                        // also check for migrationBuilder.Sql raw creation naming
+                        var rx2 = new System.Text.RegularExpressions.Regex(@"CREATE TABLE \[(?<t>[^\]]+)\]", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+                        var matches2 = rx2.Matches(content);
+                        foreach (System.Text.RegularExpressions.Match match in matches2)
+                        {
+                            if (match.Success && match.Groups["t"].Success)
+                                tablesDetected.Add(match.Groups["t"].Value);
+                        }
+                    }
+                }
+                catch (Exception readEx)
+                {
+                    logger.LogDebug(readEx, "Failed to read migration file for {Migration}", m);
+                }
+            }
+
+            bool shouldMark = false;
+            if (tablesDetected.Count == 0)
+            {
+                // If we couldn't detect files/tables, be conservative and skip marking this migration.
+                logger.LogInformation("Skipping automatic mark for migration {Migration} because no table targets were detected.", m);
+                shouldMark = false;
+            }
+            else
+            {
+                // Check if all detected tables exist
+                bool allExist = true;
+                foreach (var t in tablesDetected.Distinct())
+                {
+                    await using var cmd = conn.CreateCommand();
+                    cmd.CommandText = $"SELECT CASE WHEN OBJECT_ID(N'[dbo].[{t}]', N'U') IS NOT NULL THEN 1 ELSE 0 END";
+                    var res = await cmd.ExecuteScalarAsync();
+                    if (res == null || Convert.ToInt32(res) == 0)
+                    {
+                        allExist = false;
+                        break;
+                    }
+                }
+
+                shouldMark = allExist;
+            }
+
+            if (shouldMark)
+            {
+                var insertSql = $@"IF NOT EXISTS (SELECT 1 FROM [dbo].[__EFMigrationsHistory] WHERE [MigrationId] = '{m}')
+BEGIN
+    INSERT INTO [dbo].[__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES ('{m}', '8.0.0');
+END;";
+                await db.Database.ExecuteSqlRawAsync(insertSql);
+                logger.LogInformation("Marked migration {Migration} as applied.", m);
+            }
+        }
+
+        logger.LogWarning("Migration reconciliation completed (conservative). PendingCount={PendingCount}", pending.Count);
+    }
+    catch (DbException dbEx)
+    {
+        logger.LogError(dbEx, "Failed while attempting to mark migrations as applied.");
+        throw;
+    }
+    finally
+    {
+        try { await conn.CloseAsync(); } catch { }
+    }
+}
+
+static void LoadDotEnvConfiguration(ConfigurationManager configuration, string contentRootPath)
+{
+    var candidates = new[]
+    {
+        FindDotEnvPath(contentRootPath),
+        FindDotEnvPath(Directory.GetCurrentDirectory())
+    }
+    .Where(path => !string.IsNullOrWhiteSpace(path))
+    .Distinct(StringComparer.OrdinalIgnoreCase)
+    .ToArray();
+
+    foreach (var path in candidates)
+    {
+        if (path is null || !File.Exists(path))
+        {
+            continue;
+        }
+
+        var values = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var rawLine in File.ReadLines(path))
+        {
+            var line = rawLine.Trim();
+            if (line.Length == 0 || line.StartsWith('#'))
+            {
+                continue;
+            }
+
+            var separatorIndex = line.IndexOf('=');
+            if (separatorIndex <= 0)
+            {
+                continue;
+            }
+
+            var key = line[..separatorIndex].Trim();
+            var value = line[(separatorIndex + 1)..].Trim().Trim('"');
+            if (key.Length == 0)
+            {
+                continue;
+            }
+
+            values[key] = value;
+            values[key.Replace("__", ":", StringComparison.Ordinal)] = value;
+            Environment.SetEnvironmentVariable(key, value);
+        }
+
+        if (values.Count > 0)
+        {
+            configuration.AddInMemoryCollection(values);
+        }
+    }
+}
+
+static string? FindDotEnvPath(string? startDirectory)
+{
+    if (string.IsNullOrWhiteSpace(startDirectory))
+    {
+        return null;
+    }
+
+    var directory = new DirectoryInfo(startDirectory);
+    while (directory is not null)
+    {
+        var candidate = Path.Combine(directory.FullName, ".env");
+        if (File.Exists(candidate))
+        {
+            return candidate;
+        }
+
+        directory = directory.Parent;
+    }
+
+    return null;
+}
+#pragma warning restore CS8321
 
 if (!app.Environment.IsDevelopment())
 {
@@ -608,6 +1042,9 @@ app.UseMiddleware<TenantResolverMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Centralized backend-driven data visibility context (SuperAdmin: all tenants + deleted)
+app.UseMiddleware<DataVisibilityMiddleware>();
+
 // Permission enforcement (policy-first)
 app.UseMiddleware<UabIndia.Api.Middleware.PolicyEnforcementMiddleware>();
 
@@ -626,25 +1063,43 @@ if (app.Environment.IsDevelopment())
 // Dev-only seed to avoid "Invalid credentials" on fresh DB
 if (app.Environment.IsDevelopment())
 {
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<User>>();
-    var tenantAccessor = scope.ServiceProvider.GetRequiredService<ITenantAccessor>();
-
-    var tenant = db.Tenants.FirstOrDefault(t => t.Subdomain == "api") ?? db.Tenants.FirstOrDefault();
-    if (tenant == null)
+    try
     {
-        tenant = new Tenant { Subdomain = "api", Name = "UabIndia API Tenant", IsActive = true };
-        db.Tenants.Add(tenant);
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<User>>();
+        var tenantAccessor = scope.ServiceProvider.GetRequiredService<ITenantAccessor>();
+
+        var tenant = db.Tenants.FirstOrDefault(t => t.Subdomain == "api") ?? db.Tenants.FirstOrDefault();
+        if (tenant == null)
+        {
+            tenant = new Tenant { Subdomain = "api", Name = "UabIndia API Tenant", IsActive = true };
+            db.Tenants.Add(tenant);
+            db.SaveChanges();
+        }
+
+        // Ensure tenant filter and SaveChanges use the demo tenant
+        tenantAccessor.SetTenantId(tenant.Id);
+        tenantAccessor.SetTenantSchema($"tenant_{tenant.Subdomain ?? tenant.Id.ToString("N")}");
+
+        var tenantRoles = db.Roles.Where(r => r.TenantId == tenant.Id).ToList();
+        var adminRole = tenantRoles.FirstOrDefault(r => RoleCatalog.Parse(r.Name) == SystemRole.Admin);
+        var superAdminRole = tenantRoles.FirstOrDefault(r => RoleCatalog.Parse(r.Name) == SystemRole.SuperAdmin);
+
+    if (adminRole != null && !string.Equals(adminRole.Name, RoleCatalog.AdminRoleName, StringComparison.Ordinal))
+    {
+        adminRole.Name = RoleCatalog.AdminRoleName;
+        adminRole.UpdatedAt = DateTime.UtcNow;
         db.SaveChanges();
     }
 
-    // Ensure tenant filter and SaveChanges use the demo tenant
-    tenantAccessor.SetTenantId(tenant.Id);
-    tenantAccessor.SetTenantSchema($"tenant_{tenant.Subdomain ?? tenant.Id.ToString("N")}");
+    if (superAdminRole != null && !string.Equals(superAdminRole.Name, RoleCatalog.SuperAdminRoleName, StringComparison.Ordinal))
+    {
+        superAdminRole.Name = RoleCatalog.SuperAdminRoleName;
+        superAdminRole.UpdatedAt = DateTime.UtcNow;
+        db.SaveChanges();
+    }
 
-    var adminRole = db.Roles.FirstOrDefault(r => r.TenantId == tenant.Id && r.Name == RoleCatalog.AdminRoleName);
-    var superAdminRole = db.Roles.FirstOrDefault(r => r.TenantId == tenant.Id && r.Name == RoleCatalog.SuperAdminRoleName);
     if (adminRole == null)
     {
         adminRole = new Role { TenantId = tenant.Id, Name = RoleCatalog.AdminRoleName, Description = "System Administrator" };
@@ -659,7 +1114,7 @@ if (app.Environment.IsDevelopment())
         db.SaveChanges();
     }
 
-    var adminUser = db.Users.FirstOrDefault(u => u.TenantId == tenant.Id && u.Email == "admin@uabindia.in");
+    var adminUser = db.Users.IgnoreQueryFilters().FirstOrDefault(u => u.TenantId == tenant.Id && u.Email == "admin@uabindia.in");
     if (adminUser == null)
     {
         adminUser = new User
@@ -676,26 +1131,52 @@ if (app.Environment.IsDevelopment())
     }
     else
     {
+        // Restore if soft-deleted and ensure correct state
+        bool changed = false;
+        if (adminUser.IsDeleted)
+        {
+            adminUser.IsDeleted = false;
+            adminUser.IsActive = true;
+            adminUser.IsSystemAdmin = true;
+            changed = true;
+        }
         var verify = hasher.VerifyHashedPassword(adminUser, adminUser.PasswordHash, "Admin@123");
         if (verify == PasswordVerificationResult.Failed)
         {
             adminUser.PasswordHash = hasher.HashPassword(adminUser, "Admin@123");
+            changed = true;
+        }
+        if (changed)
+        {
+            adminUser.UpdatedAt = DateTime.UtcNow;
             db.Users.Update(adminUser);
             db.SaveChanges();
         }
     }
 
-    var adminUserRole = db.UserRoles.FirstOrDefault(ur => ur.TenantId == tenant.Id && ur.UserId == adminUser.Id && ur.RoleId == adminRole.Id);
+    var adminUserRole = db.UserRoles.IgnoreQueryFilters().FirstOrDefault(ur => ur.TenantId == tenant.Id && ur.UserId == adminUser.Id && ur.RoleId == adminRole.Id);
     if (adminUserRole == null)
     {
         db.UserRoles.Add(new UserRole { TenantId = tenant.Id, UserId = adminUser.Id, RoleId = adminRole.Id });
         db.SaveChanges();
     }
+    else if (adminUserRole.IsDeleted)
+    {
+        adminUserRole.IsDeleted = false;
+        db.UserRoles.Update(adminUserRole);
+        db.SaveChanges();
+    }
 
-    var superUserRole = db.UserRoles.FirstOrDefault(ur => ur.TenantId == tenant.Id && ur.UserId == adminUser.Id && ur.RoleId == superAdminRole.Id);
+    var superUserRole = db.UserRoles.IgnoreQueryFilters().FirstOrDefault(ur => ur.TenantId == tenant.Id && ur.UserId == adminUser.Id && ur.RoleId == superAdminRole.Id);
     if (superUserRole == null)
     {
         db.UserRoles.Add(new UserRole { TenantId = tenant.Id, UserId = adminUser.Id, RoleId = superAdminRole.Id });
+        db.SaveChanges();
+    }
+    else if (superUserRole.IsDeleted)
+    {
+        superUserRole.IsDeleted = false;
+        db.UserRoles.Update(superUserRole);
         db.SaveChanges();
     }
 
@@ -876,16 +1357,21 @@ if (app.Environment.IsDevelopment())
         db.SaveChanges();
     }
 
-    var securityTenantModule = db.TenantModules.FirstOrDefault(tm => tm.TenantId == tenant.Id && tm.ModuleKey == "security");
-    if (securityTenantModule == null)
-    {
-        db.TenantModules.Add(new TenantModule
+        var securityTenantModule = db.TenantModules.FirstOrDefault(tm => tm.TenantId == tenant.Id && tm.ModuleKey == "security");
+        if (securityTenantModule == null)
         {
-            TenantId = tenant.Id,
-            ModuleKey = "security",
-            IsEnabled = true
-        });
-        db.SaveChanges();
+            db.TenantModules.Add(new TenantModule
+            {
+                TenantId = tenant.Id,
+                ModuleKey = "security",
+                IsEnabled = true
+            });
+            db.SaveChanges();
+        }
+    }
+    catch (Exception ex) when (ShouldAllowStartupWithoutDatabase(ex, app.Environment))
+    {
+        app.Logger.LogWarning(ex, "Skipping development seed because the local database connection is unavailable.");
     }
 }
 
@@ -901,9 +1387,9 @@ using (var scope = app.Services.CreateScope())
     {
         await seeder.EnsurePoliciesAsync(db, tenantAccessor, logger);
     }
-    catch (Microsoft.Data.SqlClient.SqlException ex)
+    catch (Exception ex) when (ShouldAllowStartupWithoutDatabase(ex, app.Environment))
     {
-        logger.LogWarning(ex, "Policy seeding skipped because required tables are missing. Run migrations first.");
+        logger.LogWarning(ex, "Policy seeding skipped because the local database connection is unavailable.");
     }
 }
 
@@ -932,12 +1418,13 @@ app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks
 
 if (!app.Environment.IsEnvironment("Test"))
 {
-    // Hangfire Dashboard (admin-only: /hangfire)
-    app.UseHangfireDashboard("/hangfire");
-
-    // Schedule recurring background jobs
-    using (var connection = JobStorage.Current.GetConnection())
+    try
     {
+        // Hangfire Dashboard (admin-only: /hangfire)
+        app.UseHangfireDashboard("/hangfire");
+
+        // Schedule recurring background jobs
+        using var connection = JobStorage.Current.GetConnection();
         var recurringJobManager = new RecurringJobManager();
         var jobService = app.Services.CreateScope().ServiceProvider.GetRequiredService<UabIndia.Infrastructure.Services.HangfireJobService>();
 
@@ -981,6 +1468,10 @@ if (!app.Environment.IsEnvironment("Test"))
             new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc }
         );
     }
+    catch (Exception ex) when (ShouldAllowStartupWithoutDatabase(ex, app.Environment))
+    {
+        app.Logger.LogWarning(ex, "Skipping Hangfire startup because the local database connection is unavailable.");
+    }
 }
 
 // Liveness probe - is the application process running?
@@ -998,6 +1489,93 @@ app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.Health
 app.MapControllers();
 
 app.Run();
+
+static async Task EnsureSchemaCompatibilityAsync(ApplicationDbContext db, Microsoft.Extensions.Logging.ILogger logger)
+{
+    await UabIndia.Infrastructure.Data.Migrations.MigrationBootstrap.EnsureInitialCleanSchemaAsync(db, logger);
+
+    const string ensureColumnsSql = @"
+IF OBJECT_ID(N'[dbo].[Tenants]', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.Tenants', 'ProvisionStatus') IS NULL
+    BEGIN
+        ALTER TABLE [dbo].[Tenants] ADD [ProvisionStatus] nvarchar(32) NOT NULL DEFAULT N'Pending';
+    END;
+
+    IF COL_LENGTH('dbo.Tenants', 'DeletedAt') IS NULL
+    BEGIN
+        ALTER TABLE [dbo].[Tenants] ADD [DeletedAt] datetime2 NULL;
+    END;
+
+    IF COL_LENGTH('dbo.Tenants', 'DeletedBy') IS NULL
+    BEGIN
+        ALTER TABLE [dbo].[Tenants] ADD [DeletedBy] uniqueidentifier NULL;
+    END;
+END;
+
+IF OBJECT_ID(N'[dbo].[Users]', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.Users', 'PasswordResetToken') IS NULL
+    BEGIN
+        ALTER TABLE [dbo].[Users] ADD [PasswordResetToken] nvarchar(512) NULL;
+    END;
+
+    IF COL_LENGTH('dbo.Users', 'PasswordResetExpires') IS NULL
+    BEGIN
+        ALTER TABLE [dbo].[Users] ADD [PasswordResetExpires] datetime2 NULL;
+    END;
+
+    IF COL_LENGTH('dbo.Users', 'PasswordResetToken') IS NOT NULL
+    BEGIN
+        -- If an index depends on PasswordResetToken, drop it before altering the column
+        IF EXISTS (
+            SELECT 1 FROM sys.indexes WHERE name = N'IX_Users_PasswordResetToken' AND object_id = OBJECT_ID(N'[dbo].[Users]')
+        )
+        BEGIN
+            DROP INDEX [IX_Users_PasswordResetToken] ON [dbo].[Users];
+        END
+
+        ALTER TABLE [dbo].[Users] ALTER COLUMN [PasswordResetToken] nvarchar(512) NULL;
+    END;
+END;";
+
+    var rowsAffected = await db.Database.ExecuteSqlRawAsync(ensureColumnsSql);
+
+    const string ensureIndexesSql = @"
+IF OBJECT_ID(N'[dbo].[Users]', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.Users', 'PasswordResetToken') IS NOT NULL
+       AND NOT EXISTS (
+        SELECT 1
+        FROM sys.indexes
+        WHERE name = N'IX_Users_PasswordResetToken'
+          AND object_id = OBJECT_ID(N'[dbo].[Users]')
+    )
+    BEGIN
+        CREATE INDEX [IX_Users_PasswordResetToken]
+            ON [dbo].[Users]([PasswordResetToken])
+            WHERE [PasswordResetToken] IS NOT NULL;
+    END;
+
+    IF COL_LENGTH('dbo.Users', 'PasswordResetExpires') IS NOT NULL
+       AND NOT EXISTS (
+        SELECT 1
+        FROM sys.indexes
+        WHERE name = N'IX_Users_PasswordResetExpires'
+          AND object_id = OBJECT_ID(N'[dbo].[Users]')
+    )
+    BEGIN
+        CREATE INDEX [IX_Users_PasswordResetExpires]
+            ON [dbo].[Users]([PasswordResetExpires])
+            WHERE [PasswordResetExpires] IS NOT NULL;
+    END;
+END;";
+    await db.Database.ExecuteSqlRawAsync(ensureIndexesSql);
+    if (rowsAffected >= 0)
+    {
+        logger.LogInformation("Schema compatibility check completed.");
+    }
+}
 
 public partial class Program
 {
