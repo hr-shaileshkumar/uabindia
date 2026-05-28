@@ -1,9 +1,9 @@
 {
-  "buildCommand": "npm run build",
-  "devCommand": "npm run dev",
-  "installCommand": "npm ci",
+  "buildCommand": "npm --prefix frontend run build",
+  "devCommand": "npm --prefix frontend run dev",
+  "installCommand": "npm --prefix frontend ci",
   "framework": "nextjs",
-  "outputDirectory": ".next",
+  "outputDirectory": "frontend/.next",
   "env": {
     "NEXT_PUBLIC_API_URL": "@next_public_api_url",
     "NEXT_PUBLIC_APP_VERSION": "@next_public_app_version"

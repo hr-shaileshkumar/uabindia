@@ -446,12 +446,14 @@ export default function CompaniesPage() {
               </select>
             )}
             <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
-              <button
-                onClick={() => setShowDeleted((prev) => !prev)}
-                className={`erp-action-btn ${showDeleted ? "erp-action-btn-warning" : "erp-action-btn-secondary"}`}
-              >
-                {showDeleted ? "Hide Deleted" : "Show Deleted"}
-              </button>
+              {isSuperAdmin && (
+                <button
+                  onClick={() => setShowDeleted((prev) => !prev)}
+                  className={`erp-action-btn ${showDeleted ? "erp-action-btn-warning" : "erp-action-btn-secondary"}`}
+                >
+                  {showDeleted ? "Hide Deleted" : "Show Deleted"}
+                </button>
+              )}
               <button onClick={handleNew} className="erp-action-btn erp-action-btn-primary">
                 Create Company
               </button>
@@ -626,16 +628,20 @@ export default function CompaniesPage() {
                         <TableActionMenu
                           items={
                             !company.isDeleted
-                              ? [
-                                  { label: "View Details", onClick: () => setSelectedCompany(company) },
-                                  { label: "Quick Edit", onClick: () => openQuickEdit(company) },
-                                  { label: "Open Full Edit", onClick: () => handleEdit(company) },
-                                  { label: "Delete", onClick: () => void handleDelete(company.id), danger: true, disabled: deleteCompanyMutation.isPending },
-                                ]
-                              : [
-                                  { label: "Restore", onClick: () => void handleRestore(company) },
-                                  { label: "Permanent Delete", onClick: () => void handleHardDelete(company), danger: true },
-                                ]
+                              ? isSuperAdmin
+                                ? [
+                                    { label: "View Details", onClick: () => setSelectedCompany(company) },
+                                    { label: "Quick Edit", onClick: () => openQuickEdit(company) },
+                                    { label: "Open Full Edit", onClick: () => handleEdit(company) },
+                                    { label: "Delete", onClick: () => void handleDelete(company.id), danger: true, disabled: deleteCompanyMutation.isPending },
+                                  ]
+                                : [{ label: "View Details", onClick: () => setSelectedCompany(company) }]
+                              : isSuperAdmin
+                                ? [
+                                    { label: "Restore", onClick: () => void handleRestore(company) },
+                                    { label: "Permanent Delete", onClick: () => void handleHardDelete(company), danger: true },
+                                  ]
+                                : [{ label: "View Details", onClick: () => setSelectedCompany(company) }]
                           }
                         />
                       </td>

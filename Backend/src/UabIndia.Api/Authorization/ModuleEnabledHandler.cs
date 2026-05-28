@@ -24,6 +24,13 @@ namespace UabIndia.Api.Authorization
                 return;
             }
 
+            // SuperAdmin and SystemAdmin bypass module enablement checks.
+            if (context.User.IsInRole("SuperAdmin") || context.User.IsInRole("SystemAdmin"))
+            {
+                context.Succeed(requirement);
+                return;
+            }
+
             var tenantId = _tenantAccessor.GetTenantId();
 
             var moduleActive = await _db.Modules

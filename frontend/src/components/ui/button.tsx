@@ -17,7 +17,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className = "", variant = "default", size = "default", ...props }, ref) => {
+  ({ className = "", variant = "default", size = "default", type = "button", ...props }, ref) => {
     const baseStyles =
       "inline-flex items-center justify-center rounded-xl border border-transparent font-semibold tracking-[0.01em] shadow-sm transition-[background-color,border-color,color,box-shadow,transform] hover:-translate-y-px active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0 disabled:pointer-events-none disabled:opacity-50 focus-visible:ring-[var(--erp-primary)]";
 
@@ -59,6 +59,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         data-erp-button="true"
+        type={type}
         className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}
         ref={ref}
         {...props}

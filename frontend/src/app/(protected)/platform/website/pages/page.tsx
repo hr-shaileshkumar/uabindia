@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Edit, Eye, EyeOff } from "lucide-react";
 import { notifyError, notifySuccess } from "@/lib/notifications";
+import { usePermissions } from "@/context/PermissionContext";
 import WebsitePageEditor from "@/components/admin/website/WebsitePageEditor";
 
 interface WebsitePage {
@@ -36,21 +37,14 @@ const PAGE_TYPES = [
 ];
 
 export default function WebsitePagesPage() {
+  const { isSuperAdmin } = usePermissions();
   const [pages, setPages] = useState<WebsitePage[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingPage, setEditingPage] = useState<WebsitePage | null>(null);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   useEffect(() => {
-    checkSuperAdmin();
     loadPages();
   }, []);
-
-  const checkSuperAdmin = () => {
-    // Assuming we can get this from context or API
-    // For now, hardcode or fetch
-    setIsSuperAdmin(true); // TODO: implement proper check
-  };
 
   const loadPages = async () => {
     try {

@@ -345,7 +345,7 @@ namespace UabIndia.Api.Controllers
 
             if (user?.IsSystemAdmin == true || isSuperAdminByRole)
             {
-                return Ok(new { mode = "enforced", permissions = new[] { "*" }, capabilities });
+                return Ok(new { mode = "open", permissions = new[] { "*" }, capabilities });
             }
 
             // Get user's roles (use userTenantId, not request-context tenantId)

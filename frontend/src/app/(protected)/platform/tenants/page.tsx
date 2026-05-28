@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { hrApi } from "@/services/hrApi";
 import { useOrgContext } from "@/context/OrgContext";
+import { usePermissions } from "@/context/PermissionContext";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { useTableSelection } from "@/hooks/useTableSelection";
@@ -269,6 +270,7 @@ export default function TenantsPage() {
   const router = useRouter();
   // Platform pages are global admin views – intentionally ignore topbar org context
   const { companyId: ctxCompanyId } = useOrgContext();
+  const { isSuperAdmin } = usePermissions();
   const [tenants, setTenants] = useState<TenantRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -556,6 +558,26 @@ export default function TenantsPage() {
       window.removeEventListener("resize", closeMenu);
       window.removeEventListener("scroll", closeMenu, true);
     };
+  }, [openMenuId]);
+
+  useEffect(() => {
+    if (!openMenuId) return;
+
+    const handleOutsidePointer = (event: PointerEvent) => {
+      const menuElement = document.getElementById(`tenant-action-menu-${openMenuId}`);
+      const buttonElement = document.querySelector<HTMLButtonElement>(`button[data-action-menu-id='${openMenuId}']`);
+      if (
+        menuElement &&
+        buttonElement &&
+        !menuElement.contains(event.target as Node) &&
+        !buttonElement.contains(event.target as Node)
+      ) {
+        setOpenMenuId(null);
+      }
+    };
+
+    document.addEventListener("pointerdown", handleOutsidePointer);
+    return () => document.removeEventListener("pointerdown", handleOutsidePointer);
   }, [openMenuId]);
 
   const toggleActionMenu = (tenantId: string, button: HTMLButtonElement) => {
@@ -1253,13 +1275,15 @@ export default function TenantsPage() {
         eyebrow="Platform / Core"
         actions={
           <div className="flex w-full flex-col gap-2 lg:w-auto lg:flex-row lg:flex-wrap lg:items-center lg:justify-end">
-            <button
-              type="button"
-              onClick={() => setShowDeleted((prev) => !prev)}
-              className={`erp-action-btn w-full lg:w-auto ${showDeleted ? "erp-action-btn-warning" : "erp-action-btn-secondary"}`}
-            >
-              {showDeleted ? "Hide Deleted" : "Show Deleted"}
-            </button>
+            {isSuperAdmin && (
+              <button
+                type="button"
+                onClick={() => setShowDeleted((prev) => !prev)}
+                className={`erp-action-btn w-full lg:w-auto ${showDeleted ? "erp-action-btn-warning" : "erp-action-btn-secondary"}`}
+              >
+                {showDeleted ? "Hide Deleted" : "Show Deleted"}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => {
@@ -1367,37 +1391,45 @@ export default function TenantsPage() {
                     <td className="px-4 py-3 text-slate-600">{formatDate(tenant.lastRepairAt)}</td>
                     <td className="px-4 py-3 text-slate-600">{formatDate(tenant.lastActivityAt)}</td>
                     <td className="px-4 py-3">
-                      <div className={`relative ${openMenuId === tenant.id ? "z-50" : "z-10"}`}>
-                        <button
-                          type="button"
-                          onClick={(event) => toggleActionMenu(tenant.id, event.currentTarget)}
-                          className="rounded-lg border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                        >
-                          Actions ▾
-                        </button>
-                        {openMenuId === tenant.id && (
-                          <div
-                            className="fixed z-90 w-44 rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
-                            style={{ top: menuPosition.top, left: menuPosition.left }}
+                      {isSuperAdmin ? (
+                        <div className={`relative ${openMenuId === tenant.id ? "z-50" : "z-10"}`}>
+                          <button
+                            type="button"
+                            data-action-menu-id={tenant.id}
+                            onClick={(event) => toggleActionMenu(tenant.id, event.currentTarget)}
+                            onPointerDown={(event) => event.stopPropagation()}
+                            className="rounded-lg border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
                           >
-                            {!tenant.isDeleted ? (
-                              <>
-                                <button type="button" onClick={() => startEdit(tenant)} className="block w-full px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50">Edit</button>
-                                <button type="button" onClick={handleManageUsers} className="block w-full px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50">Manage Users</button>
-                                <button type="button" onClick={() => handleManageModules(tenant)} className="block w-full px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50">Manage Modules</button>
-                                <button type="button" onClick={() => handleBilling(tenant)} className="block w-full px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50">Billing</button>
-                                <button type="button" onClick={() => void handleProvisionLogs(tenant)} className="block w-full px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50">Provision Logs</button>
-                                <button type="button" onClick={() => { setOpenMenuId(null); void handleDelete(tenant); }} disabled={deletingId === tenant.id} className="block w-full px-3 py-2 text-left text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-60">{deletingId === tenant.id ? "Deleting..." : "Delete"}</button>
-                              </>
-                            ) : (
-                              <>
-                                <button type="button" onClick={() => { setOpenMenuId(null); void handleRestore(tenant); }} className="block w-full px-3 py-2 text-left text-xs font-medium text-green-700 hover:bg-green-50">Restore</button>
-                                <button type="button" onClick={() => { setOpenMenuId(null); void handleHardDelete(tenant); }} className="block w-full px-3 py-2 text-left text-xs font-medium text-red-700 hover:bg-red-50">Permanent Delete</button>
-                              </>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                            Actions ▾
+                          </button>
+                          {openMenuId === tenant.id && (
+                            <div
+                              id={`tenant-action-menu-${tenant.id}`}
+                              className="fixed z-90 w-44 rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+                              style={{ top: menuPosition.top, left: menuPosition.left }}
+                              onPointerDown={(event) => event.stopPropagation()}
+                            >
+                              {!tenant.isDeleted ? (
+                                <>
+                                  <button type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => startEdit(tenant)} className="block w-full px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50">Edit</button>
+                                  <button type="button" onPointerDown={(event) => event.stopPropagation()} onClick={handleManageUsers} className="block w-full px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50">Manage Users</button>
+                                  <button type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => handleManageModules(tenant)} className="block w-full px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50">Manage Modules</button>
+                                  <button type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => handleBilling(tenant)} className="block w-full px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50">Billing</button>
+                                  <button type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => void handleProvisionLogs(tenant)} className="block w-full px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50">Provision Logs</button>
+                                  <button type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => { setOpenMenuId(null); void handleDelete(tenant); }} disabled={deletingId === tenant.id} className="block w-full px-3 py-2 text-left text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-60">{deletingId === tenant.id ? "Deleting..." : "Delete"}</button>
+                                </>
+                              ) : (
+                                <>
+                                  <button type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => { setOpenMenuId(null); void handleRestore(tenant); }} className="block w-full px-3 py-2 text-left text-xs font-medium text-green-700 hover:bg-green-50">Restore</button>
+                                  <button type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => { setOpenMenuId(null); void handleHardDelete(tenant); }} className="block w-full px-3 py-2 text-left text-xs font-medium text-red-700 hover:bg-red-50">Permanent Delete</button>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-500">No actions available</span>
+                      )}
                     </td>
                   </tr>
                 );

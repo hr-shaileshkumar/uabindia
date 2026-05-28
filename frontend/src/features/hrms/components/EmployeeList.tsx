@@ -1,10 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import { TableActionMenu, type ActionMenuItem } from "@/components/table/TableActionMenu";
 import { hrApi } from "@/services/hrApi";
 import { ROUTES } from "@/constants/routes";
+import { PERMISSIONS } from "@/constants/permissions";
+import { useAuth } from "@/context/AuthContext";
+import { usePermissions } from "@/context/PermissionContext";
 
 export type Employee = {
   id: string;
@@ -64,6 +69,21 @@ export default function EmployeeList() {
     void fetchEmployees();
   }, [fetchEmployees]);
 
+  const router = useRouter();
+  const { user } = useAuth();
+  const { hasPermission, isSuperAdmin } = usePermissions();
+
+  const userRoles = user?.roles ?? [];
+  const isHrManager = userRoles.some((role) => /hr/i.test(role ?? ""));
+
+  const canCreateEmployee = isSuperAdmin || hasPermission([PERMISSIONS.EMPLOYEE_CREATE]);
+  const canEditEmployee = isSuperAdmin || hasPermission([PERMISSIONS.EMPLOYEE_EDIT]);
+  const canDeleteEmployee = isSuperAdmin || hasPermission([PERMISSIONS.EMPLOYEE_DELETE]);
+  const canApproveLeave = isSuperAdmin || hasPermission([PERMISSIONS.LEAVE_APPROVE]);
+  const canPunchAttendance = isSuperAdmin || hasPermission([PERMISSIONS.ATTENDANCE_CREATE]);
+  const canAccessDocuments = isSuperAdmin || hasPermission([PERMISSIONS.DOCUMENTS_VIEW]);
+  const canViewPayslip = isSuperAdmin || hasPermission([PERMISSIONS.PAYROLL_PAYSLIPS_VIEW]);
+
   const handleDelete = async (id: string) => {
     try {
       setDeletingId(id);
@@ -75,6 +95,84 @@ export default function EmployeeList() {
     } finally {
       setDeletingId(null);
     }
+  };
+
+  const handleStatusToggle = async (employee: Employee) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const currentStatus = employee.status ?? "Inactive";
+      const newStatus = currentStatus === "Active" ? "Inactive" : "Active";
+      await hrApi.hrms.employees.update(employee.id, {
+        status: newStatus,
+      });
+      void fetchEmployees();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update employee status");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getEmployeeActions = (employee: Employee): ActionMenuItem[] => {
+    const actions: ActionMenuItem[] = [
+      {
+        label: "View Profile",
+        onClick: () => router.push(`${ROUTES.EMPLOYEES}/${employee.id}`),
+      },
+    ];
+
+    if (canEditEmployee) {
+      actions.push({
+        label: "Edit Employee",
+        onClick: () => router.push(`${ROUTES.EMPLOYEES}/${employee.id}`),
+      });
+    }
+
+    if (canPunchAttendance) {
+      actions.push({
+        label: "Mark Attendance",
+        onClick: () => router.push(`${ROUTES.ATTENDANCE}?employeeId=${employee.id}`),
+      });
+    }
+
+    if (canApproveLeave) {
+      actions.push({
+        label: "Approve / Review Leave",
+        onClick: () => router.push(`${ROUTES.LEAVE}?employeeId=${employee.id}`),
+      });
+    }
+
+    if (canAccessDocuments) {
+      actions.push({
+        label: "Upload Documents",
+        onClick: () => router.push(`${ROUTES.DOCUMENTS}?employeeId=${employee.id}&module=hrms`),
+      });
+    }
+
+    if (canViewPayslip) {
+      actions.push({
+        label: "View Payslip",
+        onClick: () => router.push(`${ROUTES.PAYROLL_PAYSLIPS}?employeeId=${employee.id}`),
+      });
+    }
+
+    if (canEditEmployee) {
+      actions.push({
+        label: employee.status === "Active" ? "Mark Inactive" : "Activate Employee",
+        onClick: () => void handleStatusToggle(employee),
+      });
+    }
+
+    if (canDeleteEmployee) {
+      actions.push({
+        label: "Delete Employee",
+        onClick: () => setConfirmDeleteId(employee.id),
+        danger: true,
+      });
+    }
+
+    return actions;
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -121,12 +219,14 @@ export default function EmployeeList() {
         title="Employee Master"
         subtitle="Manage your organization's employees"
         actions={
-          <Link
-            href={`${ROUTES.EMPLOYEES}/new`}
-            className="erp-action-btn erp-action-btn-primary"
-          >
-            + Add Employee
-          </Link>
+          canCreateEmployee ? (
+            <Link
+              href={`${ROUTES.EMPLOYEES}/new`}
+              className="erp-action-btn erp-action-btn-primary"
+            >
+              + Add Employee
+            </Link>
+          ) : null
         }
         filters={
           <form
@@ -235,19 +335,7 @@ export default function EmployeeList() {
                     </td>
                     <td className="px-5 py-3 text-right">
                       <div className="flex items-center justify-end gap-3">
-                        <Link
-                          href={`${ROUTES.EMPLOYEES}/${emp.id}`}
-                          className="text-xs font-medium text-blue-600 hover:text-blue-700"
-                        >
-                          View / Edit
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => setConfirmDeleteId(emp.id)}
-                          className="text-xs font-medium text-red-500 hover:text-red-700"
-                        >
-                          Delete
-                        </button>
+                        <TableActionMenu items={getEmployeeActions(emp)} label="Actions" />
                       </div>
                     </td>
                   </tr>

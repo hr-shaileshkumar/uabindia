@@ -432,12 +432,14 @@ export default function UsersPage() {
       icon="employees"
       actions={
         <div className="flex w-full flex-col gap-2 lg:w-auto lg:flex-row lg:flex-wrap lg:items-center lg:justify-end">
-          <button
-            onClick={() => setShowDeleted((prev) => !prev)}
-            className={`erp-action-btn w-full lg:w-auto ${showDeleted ? "erp-action-btn-warning" : "erp-action-btn-secondary"}`}
-          >
-            {showDeleted ? "Hide Deleted" : "Show Deleted"}
-          </button>
+          {isSuperAdmin && (
+            <button
+              onClick={() => setShowDeleted((prev) => !prev)}
+              className={`erp-action-btn w-full lg:w-auto ${showDeleted ? "erp-action-btn-warning" : "erp-action-btn-secondary"}`}
+            >
+              {showDeleted ? "Hide Deleted" : "Show Deleted"}
+            </button>
+          )}
           <button onClick={openCreate} className="erp-action-btn erp-action-btn-primary w-full lg:w-auto">
             Create User
           </button>
@@ -682,16 +684,20 @@ export default function UsersPage() {
                     <TableActionMenu
                       items={
                         !u.isDeleted
-                          ? [
-                              { label: "View Details", onClick: () => setSelectedUser(u) },
-                              { label: "Quick Edit", onClick: () => openQuickEdit(u) },
-                              { label: "Open Full Edit", onClick: () => openFullEdit(u) },
-                              { label: "Delete", onClick: () => void handleDelete(u), danger: true },
-                            ]
-                          : [
-                              { label: "Restore", onClick: () => void handleRestore(u) },
-                              { label: "Permanent Delete", onClick: () => void handleHardDelete(u), danger: true },
-                            ]
+                          ? isSuperAdmin
+                            ? [
+                                { label: "View Details", onClick: () => setSelectedUser(u) },
+                                { label: "Quick Edit", onClick: () => openQuickEdit(u) },
+                                { label: "Open Full Edit", onClick: () => openFullEdit(u) },
+                                { label: "Delete", onClick: () => void handleDelete(u), danger: true },
+                              ]
+                            : [{ label: "View Details", onClick: () => setSelectedUser(u) }]
+                          : isSuperAdmin
+                            ? [
+                                { label: "Restore", onClick: () => void handleRestore(u) },
+                                { label: "Permanent Delete", onClick: () => void handleHardDelete(u), danger: true },
+                              ]
+                            : [{ label: "View Details", onClick: () => setSelectedUser(u) }]
                       }
                     />
                   </td>

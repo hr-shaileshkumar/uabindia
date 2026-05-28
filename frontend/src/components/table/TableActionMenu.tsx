@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 
 export interface ActionMenuItem {
   label: string;
@@ -25,7 +25,9 @@ export function TableActionMenu({ items, label = "Actions" }: TableActionMenuPro
   const btnRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const handleOpen = () => {
+  const handleOpen = (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
     if (!btnRef.current) return;
     const rect = btnRef.current.getBoundingClientRect();
     const menuH = 200;
@@ -35,10 +37,10 @@ export function TableActionMenu({ items, label = "Actions" }: TableActionMenuPro
     setOpen((v) => !v);
   };
 
-  // Close on outside click
+  // Close on outside click / pointer down
   useEffect(() => {
     if (!open) return;
-    const handler = (e: MouseEvent) => {
+    const handler = (e: PointerEvent) => {
       if (
         !btnRef.current?.contains(e.target as Node) &&
         !menuRef.current?.contains(e.target as Node)
@@ -46,8 +48,8 @@ export function TableActionMenu({ items, label = "Actions" }: TableActionMenuPro
         setOpen(false);
       }
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    document.addEventListener("pointerdown", handler);
+    return () => document.removeEventListener("pointerdown", handler);
   }, [open]);
 
   return (
@@ -56,6 +58,7 @@ export function TableActionMenu({ items, label = "Actions" }: TableActionMenuPro
         ref={btnRef}
         type="button"
         onClick={handleOpen}
+        onPointerDown={(event) => event.stopPropagation()}
         className="erp-action-btn erp-action-btn-secondary text-xs"
       >
         {label} ▾
@@ -66,13 +69,17 @@ export function TableActionMenu({ items, label = "Actions" }: TableActionMenuPro
           ref={menuRef}
           style={{ position: "fixed", top: position.top, left: position.left, zIndex: 9999 }}
           className="min-w-40 rounded-xl border border-slate-200 bg-white py-1 shadow-xl"
+          onPointerDown={(event) => event.stopPropagation()}
         >
           {items.map((item) => (
             <button
               key={item.label}
               type="button"
               disabled={item.disabled}
-              onClick={() => {
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 setOpen(false);
                 item.onClick();
               }}

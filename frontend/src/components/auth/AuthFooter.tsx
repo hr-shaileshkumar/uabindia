@@ -46,14 +46,14 @@ export default function AuthFooter() {
             <div className="space-y-2">
               <p className="font-semibold text-slate-100">UAB India</p>
               <p>City, State, Country</p>
-              <p>operations@clientcompany.com</p>
-              <p>+91 00 0000 0000</p>
+              <p>operations@uabindia.com</p>
+              <p>+91 9798490879</p>
             </div>
           </div>
         </div>
 
         <div className="border-t border-slate-800 pt-6 text-center text-xs text-slate-500">
-          © {currentYear} UAB India. All rights reserved.
+          © {currentYear} Uabindia. All rights reserved.
         </div>
       </div>
     </footer>

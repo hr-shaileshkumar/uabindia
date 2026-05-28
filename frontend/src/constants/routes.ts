@@ -59,6 +59,8 @@ export const ROUTES = {
 
   // ── Admin Console (Platform) ─────────────────────────────────────────────────
   PLATFORM_HOME: "/platform",
+  SUPERADMIN_HOME: "/superadmin",
+  SUPERADMIN_DASHBOARD: "/superadmin/dashboard",
   // Tenant Management
   PLATFORM_COMPANIES: "/platform/companies",
   PLATFORM_TENANTS: "/platform/tenants",

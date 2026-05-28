@@ -10,7 +10,7 @@ import { ROUTES } from "@/constants/routes";
 export interface SidebarProps {
   modules: Module[];
   isLoading?: boolean;
-  variant?: "admin" | "user";
+  variant?: "admin" | "user" | "superadmin";
   activeModuleKey?: string | null;
   onModuleChange?: (key: string) => void;
   isMobileOpen?: boolean;
@@ -202,6 +202,16 @@ export function Sidebar({
       return [
         ...common,
         { key: "pin-employees", label: "Employees", href: ROUTES.EMPLOYEES, icon: "users" },
+      ];
+    }
+
+    if (variant === "superadmin") {
+      return [
+        ...common,
+        { key: "pin-superadmin", label: "SuperAdmin Console", href: ROUTES.SUPERADMIN_DASHBOARD, icon: "grid" },
+        { key: "pin-tenants", label: "Tenant Management", href: ROUTES.PLATFORM_TENANTS, icon: "users" },
+        { key: "pin-security", label: "Security", href: ROUTES.SECURITY_HOME, icon: "shield" },
+        { key: "pin-licensing", label: "Licensing", href: ROUTES.LICENSING_HOME, icon: "layers" },
       ];
     }
 

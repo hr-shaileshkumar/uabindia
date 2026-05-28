@@ -38,6 +38,7 @@ namespace UabIndia.Api.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "SuperAdmin,Admin,HR Manager")]
         public async Task<IActionResult> Create([FromBody] CreateEmployeeDto dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -145,12 +146,45 @@ namespace UabIndia.Api.Controllers
             => $"Emp@{Guid.NewGuid():N}"[..18];
 
         [HttpGet]
-        public async Task<IActionResult> List()
+        public async Task<IActionResult> List(
+            int page = 1,
+            int limit = 10,
+            string? companyId = null,
+            string? projectId = null,
+            string? search = null,
+            string? status = null)
         {
             var tenantId = _tenantAccessor.GetTenantId();
-            var data = await _db.Employees
+            var query = _db.Employees
                 .AsNoTracking()
-                .Where(e => e.TenantId == tenantId)
+                .Where(e => e.TenantId == tenantId && !e.IsDeleted);
+
+            if (!string.IsNullOrWhiteSpace(companyId) && Guid.TryParse(companyId, out var companyGuid))
+            {
+                query = query.Where(e => e.CompanyId == companyGuid);
+            }
+
+            if (!string.IsNullOrWhiteSpace(projectId) && Guid.TryParse(projectId, out var projectGuid))
+            {
+                query = query.Where(e => e.ProjectId == projectGuid);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(e => (e.FullName != null && e.FullName.Contains(search))
+                                       || (e.EmployeeCode != null && e.EmployeeCode.Contains(search)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                query = query.Where(e => e.Status == status);
+            }
+
+            var total = await query.CountAsync();
+            var data = await query
+                .OrderBy(e => e.FullName)
+                .Skip((page - 1) * limit)
+                .Take(limit)
                 .Select(e => new EmployeeDto
                 {
                     Id = e.Id,
@@ -162,7 +196,42 @@ namespace UabIndia.Api.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(data);
+            return Ok(new { employees = data, total });
+        }
+
+        [HttpPut("{id}")]
+        [Authorize(Roles = "SuperAdmin,Admin,HR Manager")]
+        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateEmployeeDto dto)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var tenantId = _tenantAccessor.GetTenantId();
+            var employee = await _db.Employees.FirstOrDefaultAsync(e => e.Id == id && e.TenantId == tenantId && !e.IsDeleted);
+            if (employee == null) return NotFound();
+
+            if (!string.IsNullOrWhiteSpace(dto.FullName)) employee.FullName = dto.FullName;
+            if (!string.IsNullOrWhiteSpace(dto.EmployeeCode)) employee.EmployeeCode = dto.EmployeeCode;
+            if (dto.CompanyId.HasValue) employee.CompanyId = dto.CompanyId.Value;
+            if (dto.ProjectId.HasValue) employee.ProjectId = dto.ProjectId;
+            if (!string.IsNullOrWhiteSpace(dto.Status)) employee.Status = dto.Status;
+
+            employee.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+            return NoContent();
+        }
+
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "SuperAdmin,Admin,HR Manager")]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var employee = await _db.Employees.FirstOrDefaultAsync(e => e.Id == id && e.TenantId == tenantId && !e.IsDeleted);
+            if (employee == null) return NotFound();
+
+            employee.IsDeleted = true;
+            employee.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+            return NoContent();
         }
 
         [HttpGet("{id}")]

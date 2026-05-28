@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { TableActionMenu } from "@/components/table/TableActionMenu";
+import { usePermissions } from "@/context/PermissionContext";
+import { PERMISSIONS } from "@/constants/permissions";
 
 type PurchaseOrder = {
   id: string;
@@ -68,6 +70,11 @@ const getStatusChipClass = (status: string) => {
 
 export default function PurchaseOrdersPage() {
   const { confirm, confirmDialog } = useConfirmDialog();
+  const { hasPermission } = usePermissions();
+  const canCreatePurchaseOrder = hasPermission([PERMISSIONS.PURCHASE_ORDERS_CREATE]);
+  const canEditPurchaseOrder = hasPermission([PERMISSIONS.PURCHASE_ORDERS_EDIT]);
+  const canDeletePurchaseOrder = hasPermission([PERMISSIONS.PURCHASE_ORDERS_DELETE]);
+
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -100,9 +107,16 @@ export default function PurchaseOrdersPage() {
     }));
   };
 
+  const canSavePurchaseOrder = editingId ? canEditPurchaseOrder : canCreatePurchaseOrder;
+
   const handleSave = async () => {
     if (!formData.poNumber.trim() || !formData.vendorId.trim()) {
       setError("PO number and vendor are required");
+      return;
+    }
+
+    if (!canSavePurchaseOrder) {
+      setError("You do not have permission to save this purchase order.");
       return;
     }
 
@@ -172,9 +186,11 @@ export default function PurchaseOrdersPage() {
       eyebrow="Operations / Procurement"
       icon="box"
       actions={
-        <button type="button" onClick={handleCreateNew} className="erp-action-btn erp-action-btn-primary">
-          Create Purchase Order
-        </button>
+        canCreatePurchaseOrder ? (
+          <button type="button" onClick={handleCreateNew} className="erp-action-btn erp-action-btn-primary">
+            Create Purchase Order
+          </button>
+        ) : null
       }
     >
       {confirmDialog}
@@ -258,12 +274,17 @@ export default function PurchaseOrdersPage() {
                           </td>
                           <td className="erp-td font-semibold text-slate-900">{formatCurrency(order.totalAmount)}</td>
                           <td className="erp-td">
-                            <TableActionMenu
-                              items={[
-                                { label: "Edit", onClick: () => handleEdit(order) },
-                                { label: "Delete", onClick: () => handleDelete(order.id), danger: true },
-                              ]}
-                            />
+                            {(() => {
+                              const actionItems = [
+                                ...(canEditPurchaseOrder ? [{ label: "Edit", onClick: () => handleEdit(order) }] : []),
+                                ...(canDeletePurchaseOrder ? [{ label: "Delete", onClick: () => handleDelete(order.id), danger: true }] : []),
+                              ];
+                              return actionItems.length > 0 ? (
+                                <TableActionMenu items={actionItems} />
+                              ) : (
+                                <span className="text-xs text-slate-500">No actions available</span>
+                              );
+                            })()}
                           </td>
                         </tr>
                       ))}

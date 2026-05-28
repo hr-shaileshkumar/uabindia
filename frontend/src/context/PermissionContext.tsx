@@ -88,7 +88,7 @@ export const PermissionProvider = ({ children }: { children: React.ReactNode }) 
     try {
       const res = await apiClient.get("/auth/permissions");
       const permissions = Array.isArray(res.data?.permissions) ? res.data.permissions : [];
-      const mode = (res.data?.mode === "enforced" ? "enforced" : "open") as PermissionMode;
+      const rawMode = (res.data?.mode === "enforced" ? "enforced" : "open") as PermissionMode;
       const capabilities = {
         ...defaultCapabilities,
         ...(res.data?.capabilities && typeof res.data.capabilities === "object" ? res.data.capabilities : {}),
@@ -97,6 +97,7 @@ export const PermissionProvider = ({ children }: { children: React.ReactNode }) 
       if (typeof window !== "undefined") {
         window.localStorage.setItem("erp:capabilities", JSON.stringify(capabilities));
       }
+      const mode = capabilities.isSuperAdmin ? "open" : rawMode;
       setState({
         permissions: new Set(permissions.map((p: string) => normalize(p))),
         mode,

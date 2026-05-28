@@ -36,4 +36,13 @@ namespace UabIndia.Api.Models
         public bool LoginCreated { get; set; }
         public string? WorkEmail { get; set; }
     }
+
+    public class UpdateEmployeeDto
+    {
+        public string? FullName { get; set; }
+        public string? EmployeeCode { get; set; }
+        public Guid? CompanyId { get; set; }
+        public Guid? ProjectId { get; set; }
+        public string? Status { get; set; }
+    }
 }

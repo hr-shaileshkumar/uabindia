@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { TableActionMenu } from "@/components/table/TableActionMenu";
+import { usePermissions } from "@/context/PermissionContext";
+import { PERMISSIONS } from "@/constants/permissions";
 
 type SalesOrder = {
   id: string;
@@ -70,6 +72,11 @@ const getStatusChipClass = (status: string) => {
 
 export default function SalesOrdersPage() {
   const { confirm, confirmDialog } = useConfirmDialog();
+  const { hasPermission } = usePermissions();
+  const canCreateSalesOrder = hasPermission([PERMISSIONS.SALES_ORDERS_CREATE]);
+  const canEditSalesOrder = hasPermission([PERMISSIONS.SALES_ORDERS_EDIT]);
+  const canDeleteSalesOrder = hasPermission([PERMISSIONS.SALES_ORDERS_DELETE]);
+
   const [orders, setOrders] = useState<SalesOrder[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -102,9 +109,16 @@ export default function SalesOrdersPage() {
     }));
   };
 
+  const canSaveSalesOrder = editingId ? canEditSalesOrder : canCreateSalesOrder;
+
   const handleSave = async () => {
     if (!formData.soNumber.trim() || !formData.customerId.trim()) {
       setError("Order number and customer are required");
+      return;
+    }
+
+    if (!canSaveSalesOrder) {
+      setError("You do not have permission to save this sales order.");
       return;
     }
 
@@ -175,9 +189,11 @@ export default function SalesOrdersPage() {
       eyebrow="Operations / Commercial Orders"
       icon="briefcase"
       actions={
-        <button type="button" onClick={handleCreateNew} className="erp-action-btn erp-action-btn-primary">
-          Create Sales Order
-        </button>
+        canCreateSalesOrder ? (
+          <button type="button" onClick={handleCreateNew} className="erp-action-btn erp-action-btn-primary">
+            Create Sales Order
+          </button>
+        ) : null
       }
     >
       {confirmDialog}
@@ -261,12 +277,17 @@ export default function SalesOrdersPage() {
                           </td>
                           <td className="erp-td font-semibold text-slate-900">{formatCurrency(order.totalAmount)}</td>
                           <td className="erp-td">
-                            <TableActionMenu
-                              items={[
-                                { label: "Edit", onClick: () => handleEdit(order) },
-                                { label: "Delete", onClick: () => handleDelete(order.id), danger: true },
-                              ]}
-                            />
+                            {(() => {
+                              const actionItems = [
+                                ...(canEditSalesOrder ? [{ label: "Edit", onClick: () => handleEdit(order) }] : []),
+                                ...(canDeleteSalesOrder ? [{ label: "Delete", onClick: () => handleDelete(order.id), danger: true }] : []),
+                              ];
+                              return actionItems.length > 0 ? (
+                                <TableActionMenu items={actionItems} />
+                              ) : (
+                                <span className="text-xs text-slate-500">No actions available</span>
+                              );
+                            })()}
                           </td>
                         </tr>
                       ))}

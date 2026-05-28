@@ -861,14 +861,18 @@ export default function ProjectsPage() {
                     <TableActionMenu
                       items={
                         !p.isDeleted
-                          ? [
-                              { label: "Edit", onClick: () => openEdit(p) },
-                              { label: "Delete", onClick: () => void handleDelete(p), danger: true },
-                            ]
-                          : [
-                              { label: "Restore", onClick: () => void handleRestore(p) },
-                              { label: "Permanent Delete", onClick: () => void handleHardDelete(p), danger: true },
-                            ]
+                          ? isSuperAdmin
+                            ? [
+                                { label: "Edit", onClick: () => openEdit(p) },
+                                { label: "Delete", onClick: () => void handleDelete(p), danger: true },
+                              ]
+                            : [{ label: "View Project", onClick: () => openEdit(p) }]
+                          : isSuperAdmin
+                            ? [
+                                { label: "Restore", onClick: () => void handleRestore(p) },
+                                { label: "Permanent Delete", onClick: () => void handleHardDelete(p), danger: true },
+                              ]
+                            : [{ label: "View Project", onClick: () => openEdit(p) }]
                       }
                     />
                   </td>

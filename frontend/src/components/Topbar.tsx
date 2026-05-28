@@ -20,7 +20,7 @@ export interface TopbarProps {
   user: User;
   modules: Module[];
   appVersion?: string;
-  variant?: "admin" | "user";
+  variant?: "admin" | "user" | "superadmin";
   onRefresh?: () => void;
   onLogout?: () => void;
   onOpenSidebar?: () => void;
@@ -507,7 +507,7 @@ export function Topbar({
 
   const roles = (user as { roles?: string[] } | null)?.roles || [];
   const canAccessAdminConsole =
-    variant === "admin" &&
+    (variant === "admin" || variant === "superadmin") &&
     hasPermission([
     PERMISSIONS.PLATFORM_VIEW,
     PERMISSIONS.PLATFORM_COMPANIES_VIEW,
@@ -599,7 +599,7 @@ export function Topbar({
       description: "Sales > Orders",
       path: ROUTES.SALES_ORDERS,
       visible:
-        variant === "admin" ||
+        variant === "admin" || variant === "superadmin" ||
         hasPermission([PERMISSIONS.SALES_ORDERS_VIEW, "erp.sales_orders.create", "salesorders.create", "erp.*"]),
     },
     {
@@ -608,7 +608,7 @@ export function Topbar({
       description: "Operations > Customers",
       path: ROUTES.CUSTOMERS,
       visible:
-        variant === "admin" ||
+        variant === "admin" || variant === "superadmin" ||
         hasPermission([PERMISSIONS.CUSTOMER_VIEW, "customer.create", "erp.*"]),
     },
     {
@@ -617,7 +617,7 @@ export function Topbar({
       description: "Operations > Purchase",
       path: ROUTES.PURCHASE_ORDERS,
       visible:
-        variant === "admin" ||
+        variant === "admin" || variant === "superadmin" ||
         hasPermission([PERMISSIONS.PURCHASE_ORDERS_VIEW, "purchaseorders.create", "erp.*"]),
     },
     {
@@ -626,7 +626,7 @@ export function Topbar({
       description: "HRMS > Employees",
       path: ROUTES.EMPLOYEES,
       visible:
-        variant === "admin" ||
+        variant === "admin" || variant === "superadmin" ||
         hasPermission([PERMISSIONS.EMPLOYEE_CREATE, PERMISSIONS.EMPLOYEE_VIEW, "hrms.*"]),
     },
     {
@@ -635,7 +635,7 @@ export function Topbar({
       description: "Payroll > Runs",
       path: ROUTES.PAYROLL_RUNS,
       visible:
-        variant === "admin" ||
+        variant === "admin" || variant === "superadmin" ||
         hasPermission([PERMISSIONS.PAYROLL_RUNS_VIEW, "payroll.run", "payroll.*"]),
     },
   ].filter((action) => action.visible);

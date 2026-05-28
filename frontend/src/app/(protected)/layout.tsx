@@ -55,9 +55,11 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
     () =>
       pathname.startsWith("/erp") ||
       pathname.startsWith("/platform") ||
+      pathname.startsWith("/superadmin") ||
       [
         "/dashboard",
         "/platform",
+        "/superadmin",
         "/hrms",
         "/payroll",
         "/reports",
@@ -90,7 +92,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
     return userRoleSet.has("admin") || userRoleSet.has("tenantadmin") || userRoleSet.has("tenant admin");
   }, [isSuperAdmin, userRoleSet]);
 
-  const shellVariant: "admin" | "user" = isAdminUser ? "admin" : "user";
+  const shellVariant: "admin" | "user" | "superadmin" = isSuperAdmin ? "superadmin" : isAdminUser ? "admin" : "user";
 
   const MODULE_FALLBACK_META = useMemo<Record<string, { name: string; displayName: string; description: string; icon: string; basePath: string }>>(() => ({
     operations:      { name: "Workspace",    displayName: "Workspace",    description: "Shared workspace — dashboard, approvals, notifications, and documents.", icon: "dashboard",    basePath: ROUTES.DASHBOARD },
@@ -143,6 +145,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
     if (canonicalPath.startsWith("/erp/hrms") || canonicalPath.startsWith("/hrms")) return "hrms";
     if (canonicalPath.startsWith("/erp/payroll") || canonicalPath.startsWith("/payroll")) return "payroll";
     if (canonicalPath.startsWith("/erp/reports") || canonicalPath.startsWith("/reports")) return "reports";
+    if (canonicalPath.startsWith("/superadmin")) return "platform";
     if (canonicalPath.startsWith("/platform")) return "platform";
     if (
       canonicalPath.startsWith("/erp") ||
@@ -487,7 +490,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
   }, [modules, isSidebarModuleAllowed, isSidebarPageAllowed]);
 
   const shellModules = useMemo(() => {
-    if (shellVariant === "admin") {
+    if (shellVariant === "admin" || shellVariant === "superadmin") {
       return visibleModules;
     }
 
