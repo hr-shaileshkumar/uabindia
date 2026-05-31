@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AxiosError } from "axios";
 import { User, Company, Project, FinancialYear, Module } from "@/types";
-import GlobalSearch from "./GlobalSearch";
 import { hrApi } from "@/services/hrApi";
 import apiClient from "@/services/apiClient";
 import { useOrgContext } from "@/context/OrgContext";
@@ -656,11 +655,41 @@ export function Topbar({
           </button>
 
           <div className="hidden items-center justify-center rounded-lg px-2 py-1 md:flex">
-            <img
-              src="/logo.png?v=erp-20260205"
-              alt="UABIndia ERP"
-              className="h-6 w-auto object-contain"
-            />
+            {(() => {
+              const selectedCompanyData = selectedCompany ? companies.find((c) => c.id === selectedCompany) : null;
+              const logoUrl = selectedCompanyData?.logoUrl;
+              const defaultBrandAlt = "ERP Tenant Portal";
+              if (logoUrl && logoUrl !== "/logo.png") {
+                return (
+                  <img
+                    src={logoUrl}
+                    alt={getCompanyDisplayName(selectedCompanyData) || "Tenant Logo"}
+                    className="h-6 w-auto object-contain"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = "none";
+                      setLogoLoadFailed(true);
+                    }}
+                  />
+                );
+              }
+              if (logoLoadFailed) {
+                return (
+                  <img
+                    src="/logo.png?v=erp-20260205"
+                    alt={defaultBrandAlt}
+                    className="h-6 w-auto object-contain"
+                  />
+                );
+              }
+              return (
+                <img
+                  src="/logo.png?v=erp-20260205"
+                  alt={defaultBrandAlt}
+                  className="h-6 w-auto object-contain"
+                />
+              );
+            })()}
           </div>
         </div>
 

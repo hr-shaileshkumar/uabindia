@@ -1,6 +1,6 @@
 export const clientProfile = {
   companyName: "Client Company Name",
-  brandName: "UabIndia ERP",
+  brandName: "Uabindia ERP",
   industry: "Advanced SaaS ERP",
   headquarters: "City, State, Country",
   employeeCount: "250+",
@@ -8,7 +8,7 @@ export const clientProfile = {
   supportPhone: "+91 00 0000 0000",
   supportHours: "Mon-Sat | 9:00 AM - 6:30 PM",
   supportTier: "Premium (24x6)",
-  implementationPartner: "UabIndia ERP",
+  implementationPartner: "Uabindia ERP",
   heroTitle: "Your company workspace, designed for modern tenant teams.",
   heroSubtitle:
     "This portal is built for client companies using advanced SaaS ERP services. Keep HR, payroll, finance, operations, and ERP workflows aligned with real-time visibility.",

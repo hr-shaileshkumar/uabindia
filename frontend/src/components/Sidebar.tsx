@@ -20,7 +20,7 @@ export interface SidebarProps {
 }
 
 type GroupedSubModules = { label: string; items: NonNullable<Module["subModules"]> };
-type SidebarShortcut = { key: string; label: string; href: string; icon: "star" | "clock" | "file" | "users" | "wallet" | "chart" | "grid" };
+type SidebarShortcut = { key: string; label: string; href: string; icon: "star" | "clock" | "file" | "users" | "wallet" | "chart" | "grid" | "shield" | "layers" };
 
 const MODULE_ORDER = ["operations", "hrms", "payroll", "reports", "platform", "licensing", "security", "integrations", "helpdesk", "communication"] as const;
 const SIDEBAR_COLLAPSED_STORAGE_KEY = "erp.sidebar.collapsed";

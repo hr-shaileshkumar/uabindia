@@ -13,24 +13,39 @@ type PublicHeaderProps = {
 
 export default function PublicHeader({ profile, headerContent }: PublicHeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [logoLoadFailed, setLogoLoadFailed] = useState(false);
 
-  return (
-    <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-xl shadow-sm">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 lg:px-6">
-        <Link href="/" className="flex items-center gap-3">
-          {profile.logoUrl && profile.logoUrl !== "/logo.png" ? (
-            <img
-              src={profile.logoUrl}
-              alt={profile.brandName || profile.companyName}
-              width={140}
-              height={40}
-              className="h-10 w-auto object-contain"
-            />
-          ) : (
-            <div className="flex h-10 items-center justify-center rounded-2xl border border-slate-200 bg-slate-100 px-4 text-sm font-semibold text-slate-900 shadow-sm">
-              {profile.brandName || profile.companyName}
-            </div>
-          )}
+return (
+       <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-xl shadow-sm">
+         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 lg:px-6">
+           <Link href="/" className="flex items-center gap-3">
+             {(() => {
+               const tenantLogo = profile.logoUrl;
+               const brandingAlt = profile.brandName || profile.companyName || "ERP Tenant Portal";
+               if (tenantLogo && tenantLogo !== "/logo.png" && !logoLoadFailed) {
+                 return (
+                   <>
+                     <img
+                       src={tenantLogo}
+                       alt={brandingAlt}
+                       width={140}
+                       height={40}
+                       className="h-10 w-auto object-contain"
+                       onError={() => setLogoLoadFailed(true)}
+                     />
+                   </>
+                 );
+               }
+               return (
+                 <img
+                   src="/logo.png?v=erp-20260205"
+                   alt={brandingAlt}
+                   width={140}
+                   height={40}
+                   className="h-10 w-auto object-contain"
+                 />
+               );
+             })()}
         </Link>
 
         <div className="hidden items-center gap-8 lg:flex">

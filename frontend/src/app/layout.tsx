@@ -14,7 +14,7 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "UabIndia ERP",
+  title: "Uabindia ERP",
   description: "Enterprise Resource Planning System",
 };
 

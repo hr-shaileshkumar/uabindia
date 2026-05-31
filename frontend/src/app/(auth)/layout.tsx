@@ -48,11 +48,5 @@ export default async function AuthLayout({
     }
   }
 
-  return (
-    <div className="flex min-h-screen flex-col bg-(--erp-canvas) text-slate-900">
-      <main className="flex-1">
-        {children}
-      </main>
-    </div>
-  );
+  return <>{children}</>;
 }
