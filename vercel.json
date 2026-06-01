@@ -1,7 +1,7 @@
 {
-  "buildCommand": "npm install --legacy-peer-deps --prefix frontend --no-workspaces && npm --prefix frontend run build",
-  "devCommand": "npm --prefix frontend run dev",
-  "installCommand": "npm install --legacy-peer-deps --prefix frontend --no-workspaces",
+  "buildCommand": "cd frontend && npm install --legacy-peer-deps --no-workspaces && npm run build",
+  "devCommand": "cd frontend && npm run dev",
+  "installCommand": "cd frontend && npm install --legacy-peer-deps --no-workspaces",
   "framework": "nextjs",
   "outputDirectory": "frontend/.next",
   "env": {

@@ -5,10 +5,9 @@
     "frontend"
   ],
   "scripts": {
-    "postinstall": "npm install --legacy-peer-deps --prefix frontend --no-workspaces",
-    "dev": "npm --prefix frontend run dev",
-    "build": "npm install --legacy-peer-deps --prefix frontend --no-workspaces && npm --prefix frontend run build",
-    "start": "npm --prefix frontend run start",
-    "lint": "npm --prefix frontend run lint"
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm install --legacy-peer-deps --no-workspaces && npm run build",
+    "start": "cd frontend && npm run start",
+    "lint": "cd frontend && npm run lint"
   }
 }
