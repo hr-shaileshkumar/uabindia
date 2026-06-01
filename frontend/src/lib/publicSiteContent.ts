@@ -55,7 +55,7 @@ export const getRawMarkupContent = (contentJson: string | null | undefined): str
 const legalYear = "2026";
 
 export const getDefaultHeaderContent = (profile: ClientProfile): PublicHeaderContent => ({
-  badge: profile.brandName || "Uabindia ERP Cloud",
+  badge: profile.brandName || "Uabindia ERP",
   announcement: `Workspace for ${profile.companyName} on ${profile.brandName}`,
   navLinks: [
     { label: "Home", href: "/" },

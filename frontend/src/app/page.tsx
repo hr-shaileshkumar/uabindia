@@ -45,7 +45,7 @@ const defaultWorkflow = [
   },
   {
     title: "Launch secure operations",
-    description: "Give teams access to ERP, payroll, finance, and HR in one polished workspace.",
+    description: "Give teams access to Uabindia ERP, payroll, finance, and HR in one polished workspace.",
   },
   {
     title: "Measure and optimize",
@@ -57,13 +57,13 @@ export default function Home() {
   const { profile, pageRecord, headerContent, footerContent, parseContent } = usePublicPageData("home");
   const content = parseContent<HomeContent>({
     eyebrow: `Welcome to ${profile.brandName}`,
-    title: profile.heroTitle || `Modern ERP workflows built for ${profile.companyName}`,
+    title: profile.heroTitle || `Modern ${profile.brandName || "Uabindia ERP"} workflows built for ${profile.companyName}`,
     subtitle:
       profile.heroSubtitle ||
       "A polished tenant-aware SaaS platform for finance, HR, payroll, and operational teams.",
     primaryCtaLabel: "Start your workspace",
     secondaryCtaLabel: "Book a demo",
-    trustPills: ["Tenant-based branding", "ERP + HRMS + Payroll", "Secure role-based access"],
+    trustPills: ["Tenant-based branding", "Uabindia ERP + HRMS + Payroll", "Secure role-based access"],
     featureCards: defaultFeatures,
     workflowSteps: defaultWorkflow,
     testimonial:
@@ -202,7 +202,7 @@ export default function Home() {
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Customer story</p>
             <p className="mt-6 text-2xl font-semibold leading-tight">{content.testimonial}</p>
             <p className="mt-6 max-w-xl text-sm leading-7 text-slate-300">
-              Organizations rely on tenant-aware ERP control and a modern SaaS workspace for finance, HR, and operations.
+              Organizations rely on tenant-aware Uabindia ERP control and a modern SaaS workspace for finance, HR, and operations.
             </p>
           </div>
         </div>
@@ -221,7 +221,7 @@ export default function Home() {
           <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-200">Ready to launch</p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-tight">Simplify your ERP and HRMS experience today.</h2>
+              <h2 className="mt-3 text-3xl font-semibold tracking-tight">Simplify your Uabindia ERP and HRMS experience today.</h2>
             </div>
             <div className="flex flex-col items-start gap-3 sm:flex-row sm:justify-end">
               <PublicButtonLink href="/login" variant="secondary" className="bg-white text-(--erp-primary)">

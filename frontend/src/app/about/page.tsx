@@ -35,14 +35,14 @@ const productPillars = [
 export default function AboutPage() {
   const { profile, pageRecord, headerContent, footerContent, parseContent } = usePublicPageData("about");
   const content = parseContent<AboutContent>({
-    eyebrow: "About the ERP platform",
+    eyebrow: "About the Uabindia ERP platform",
     title: `${profile.companyName} runs operations with ${profile.brandName}`,
     subtitle:
-      "A unified ERP experience for enterprise teams, delivering secure workflows, compliance, and operational clarity across HR, finance, and procurement.",
+      "A unified Uabindia ERP experience for enterprise teams, delivering secure workflows, compliance, and operational clarity across HR, finance, and procurement.",
     missionTitle: "Our mission",
     missionBody:
-      "Create a dependable ERP system that empowers business leaders and operations teams with real-time insight, automated approvals, and audit-ready controls.",
-    governanceTitle: "How we govern ERP",
+      "Create a dependable Uabindia ERP system that empowers business leaders and operations teams with real-time insight, automated approvals, and audit-ready controls.",
+    governanceTitle: "How we govern Uabindia ERP",
     governanceBody:
       "We align platform access, data ownership, and approval workflows so every team can move faster with confidence and accountability.",
     ctaLabel: "Contact our team",

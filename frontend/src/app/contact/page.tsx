@@ -19,7 +19,7 @@ type ContactContent = {
 };
 
 const supportAreas = [
-  "ERP access",
+  "Uabindia ERP access",
   "Payroll",
   "HR operations",
   "Finance workflows",
@@ -40,7 +40,7 @@ export default function ContactPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const content = parseContent<ContactContent>({
     eyebrow: "Contact",
-    title: `Reach the ${profile.companyName} ERP support team`,
+    title: `Reach the ${profile.companyName} Uabindia ERP support team`,
     subtitle:
       "Submit your request for onboarding, payroll support, finance workflows, or platform configuration and receive a clear next step within one business day.",
     submitLabel: "Send Request",
@@ -111,7 +111,7 @@ export default function ContactPage() {
               </div>
               <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Coverage</p>
-                <p className="mt-3 text-3xl font-semibold text-slate-900">ERP + HR</p>
+                <p className="mt-3 text-3xl font-semibold text-slate-900">Uabindia ERP + HR</p>
               </div>
               <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Trusted by</p>
@@ -123,7 +123,7 @@ export default function ContactPage() {
           <div className={`${publicPanelClassName} p-8`}>
             <h2 className="text-lg font-semibold text-slate-900">Platform support</h2>
             <p className="mt-4 text-sm leading-7 text-slate-600">
-              A dedicated team for secure ERP, finance, payroll, and HR workflows across regulated enterprises.
+              A dedicated team for secure Uabindia ERP, finance, payroll, and HR workflows across regulated enterprises.
             </p>
             <div className="mt-8 grid gap-4">
               <div className="rounded-3xl bg-slate-50 p-5">
@@ -194,7 +194,7 @@ export default function ContactPage() {
                 Subject
                 <input
                   className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 focus:border-(--erp-primary) focus:outline-none focus:ring-2 focus:ring-(--erp-ring)"
-                  placeholder="Support, onboarding, payroll, ERP workflow"
+                  placeholder="Support, onboarding, payroll, Uabindia ERP workflow"
                   value={formData.subject}
                   onChange={(event) => handleChange("subject", event.target.value)}
                 />
@@ -205,7 +205,7 @@ export default function ContactPage() {
                 <textarea
                   className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 focus:border-(--erp-primary) focus:outline-none focus:ring-2 focus:ring-(--erp-ring)"
                   rows={4}
-                  placeholder="Tell us about your ERP or SaaS requirement"
+                  placeholder="Tell us about your Uabindia ERP or SaaS requirement"
                   value={formData.message}
                   onChange={(event) => handleChange("message", event.target.value)}
                   required

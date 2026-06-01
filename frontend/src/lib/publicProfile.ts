@@ -40,11 +40,10 @@ const normalizeTenantName = (value?: string | null): string | undefined => {
 };
 
 export const getBaseClientProfile = (tenantSubdomain?: string): ClientProfile => {
-  const tenantName = normalizeTenantName(tenantSubdomain);
   return {
     ...baseProfile,
-    companyName: tenantName ?? baseProfile.companyName,
-    brandName: tenantName ?? baseProfile.brandName,
+    companyName: baseProfile.companyName,
+    brandName: baseProfile.brandName,
   };
 };
 
@@ -64,7 +63,7 @@ export const buildClientProfile = (
   return {
     ...baseProfile,
     companyName: firstNonEmpty(company?.name, tenant?.name, baseProfile.companyName) ?? baseProfile.companyName,
-    brandName: firstNonEmpty(branding.brandName, company?.name, tenant?.name, baseProfile.brandName) ?? baseProfile.brandName,
+    brandName: firstNonEmpty(branding.brandName, baseProfile.brandName) ?? baseProfile.brandName,
     industry: firstNonEmpty(company?.industry, baseProfile.industry) ?? baseProfile.industry,
     headquarters: firstNonEmpty(headquarters, baseProfile.headquarters) ?? baseProfile.headquarters,
     supportEmail:

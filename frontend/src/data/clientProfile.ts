@@ -4,7 +4,7 @@ export const clientProfile = {
   industry: "Advanced SaaS ERP",
   headquarters: "City, State, Country",
   employeeCount: "250+",
-  supportEmail: "operations@clientcompany.com",
+  supportEmail: "operations@uabindia.com",
   supportPhone: "+91 00 0000 0000",
   supportHours: "Mon-Sat | 9:00 AM - 6:30 PM",
   supportTier: "Premium (24x6)",
@@ -33,7 +33,7 @@ export const clientProfile = {
       body: "Share current openings for client teams and the ERP, operations, or SAP-style skills required to join them.",
     },
   ],
-  servicesInUse: ["ERP Core", "HRMS", "Payroll", "Finance", "Inventory", "SaaS Platform", "SAP Workflow"],
+  servicesInUse: ["Uabindia ERP Core", "HRMS", "Payroll", "Finance", "Inventory", "SaaS Platform", "SAP Workflow"],
   overview:
     "This profile is designed for client companies to present their details, service coverage, SaaS platform capabilities, and ERP ownership for internal teams and stakeholders.",
   cultureNote:

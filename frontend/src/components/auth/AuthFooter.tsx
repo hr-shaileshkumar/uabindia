@@ -10,12 +10,12 @@ export default function AuthFooter() {
       <div className="mx-auto max-w-7xl px-5 py-16 lg:px-6">
         <div className="grid gap-10 xl:grid-cols-[1.6fr_1fr_1fr_1fr]">
           <div className="space-y-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">UAB India tenant portal</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Uabindia ERP portal</p>
             <p className="max-w-xl text-sm leading-7 text-slate-300">
-              Modern ERP for HRMS, payroll, finance, and operational teams with secure tenant controls.
+              Modern Uabindia ERP for HRMS, payroll, finance, and operational teams with secure tenant controls.
             </p>
             <div className="flex flex-wrap gap-2">
-              {['ERP Core', 'HRMS', 'Payroll', 'Finance', 'Inventory'].map((item) => (
+              {['Uabindia ERP Core', 'HRMS', 'Payroll', 'Finance', 'Inventory'].map((item) => (
                 <span key={item} className="rounded-full border border-slate-700 bg-slate-900/70 px-3 py-1 text-xs font-medium text-slate-300">
                   {item}
                 </span>
@@ -43,7 +43,7 @@ export default function AuthFooter() {
           <div className="space-y-4 text-sm text-slate-300">
             <p className="text-sm font-semibold text-white">Contact</p>
             <div className="space-y-2">
-              <p className="font-semibold text-slate-100">UAB India</p>
+              <p className="font-semibold text-slate-100">Uabindia ERP</p>
               <p>City, State, Country</p>
               <p>operations@uabindia.com</p>
               <p>+91 9798490879</p>
@@ -52,7 +52,7 @@ export default function AuthFooter() {
         </div>
 
         <div className="border-t border-slate-800 pt-6 text-center text-xs text-slate-500">
-          © {currentYear} Uabindia. All rights reserved.
+          © {currentYear} Uabindia ERP. All rights reserved.
         </div>
       </div>
     </footer>

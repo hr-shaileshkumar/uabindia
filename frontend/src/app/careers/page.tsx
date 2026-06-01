@@ -51,7 +51,7 @@ const hiringFilters = ["All", "Finance", "HR", "Operations", "Compliance"];
 
 const joinBenefits = [
   { title: "Career growth", description: "Structured learning pathways for enterprise professionals." },
-  { title: "Modern ERP", description: "Work on a secure, live tenant-based ERP platform." },
+  { title: "Modern Uabindia ERP", description: "Work on a secure, live tenant-based Uabindia ERP platform." },
   { title: "Collaborative culture", description: "Cross-functional teams aligned to business outcomes." },
 ];
 
@@ -63,7 +63,7 @@ export default function CareersPage() {
     eyebrow: "Careers",
     title: `Build your career with ${profile.companyName}`,
     subtitle:
-      "Open roles for ERP, finance, HR, operations, and compliance teams working across modern enterprise workflows.",
+      "Open roles for Uabindia ERP, finance, HR, operations, and compliance teams working across modern enterprise workflows.",
     applyLabel: "Apply now",
     emptyTitle: "No openings published yet",
     emptySubtitle: "We will publish recruitment opportunities here once the team publishes openings.",
@@ -124,7 +124,7 @@ export default function CareersPage() {
               </div>
               <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Teams hiring</p>
-                <p className="mt-4 text-3xl font-semibold text-slate-900">ERP</p>
+                <p className="mt-4 text-3xl font-semibold text-slate-900">Uabindia ERP</p>
               </div>
               <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Work style</p>
@@ -136,7 +136,7 @@ export default function CareersPage() {
           <div className={`${publicPanelClassName} p-8`}>
             <h2 className="text-lg font-semibold text-slate-900">Why join us</h2>
             <p className="mt-4 text-sm leading-7 text-slate-600">
-              Join a platform-focused team delivering ERP value across finance, HR, and operations.
+              Join a platform-focused team delivering Uabindia ERP value across finance, HR, and operations.
             </p>
             <div className="mt-8 grid gap-4">
               {joinBenefits.map((item) => (
@@ -183,7 +183,7 @@ export default function CareersPage() {
                   </span>
                 </div>
                 <p className="mt-4 text-sm leading-6 text-slate-600">
-                  Deliver ERP impact across workflows and support teams with a blend of process and product experience.
+                  Deliver Uabindia ERP impact across workflows and support teams with a blend of process and product experience.
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-500">
                   <span className="rounded-full bg-slate-100 px-3 py-1">{item.location}</span>

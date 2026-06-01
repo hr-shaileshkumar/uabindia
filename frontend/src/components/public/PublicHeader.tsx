@@ -21,7 +21,7 @@ return (
            <Link href="/" className="flex items-center gap-3">
              {(() => {
                const tenantLogo = profile.logoUrl;
-               const brandingAlt = profile.brandName || profile.companyName || "ERP Tenant Portal";
+               const brandingAlt = profile.brandName || profile.companyName || "Uabindia ERP Tenant Portal";
                if (tenantLogo && tenantLogo !== "/logo.png" && !logoLoadFailed) {
                  return (
                    <>
@@ -38,7 +38,7 @@ return (
                }
                return (
                  <img
-                   src="/logo.png?v=erp-20260205"
+                   src="/logo.png?v=uabindia-20260205"
                    alt={brandingAlt}
                    width={140}
                    height={40}

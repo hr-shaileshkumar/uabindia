@@ -6,8 +6,8 @@ import { buildClientProfile } from "@/lib/publicProfile";
 import { publicApi } from "@/services/publicApi";
 
 export default function AuthHeader() {
-  const [brandName, setBrandName] = useState("ERP Tenant Portal");
-  const [subtitle, setSubtitle] = useState("Tenant portal");
+  const [brandName, setBrandName] = useState("Uabindia ERP Tenant Portal");
+  const [subtitle, setSubtitle] = useState("Uabindia ERP portal");
   const [logoUrl, setLogoUrl] = useState("/logo.png");
 
   useEffect(() => {
@@ -20,14 +20,12 @@ export default function AuthHeader() {
 
         const profile = buildClientProfile(response.data);
         setLogoUrl(profile.logoUrl || "/logo.png");
-        setBrandName(profile.brandName || "ERP Tenant Portal");
-        setSubtitle(`${profile.companyName || "Tenant"} portal`);
+        setBrandName(profile.brandName || "Uabindia ERP Tenant Portal");
+        setSubtitle(`${profile.companyName || "Uabindia ERP"} portal`);
       } catch {
         if (!active) return;
-        const hostname = window.location.hostname.toLowerCase();
-        const tenantName = hostname.split(".")[0] || "Tenant";
-        setBrandName(tenantName.replace(/[-_.]+/g, " ").trim() || "ERP Tenant Portal");
-        setSubtitle("Tenant portal");
+        setBrandName("Uabindia ERP Tenant Portal");
+        setSubtitle("Uabindia ERP portal");
       }
     };
 

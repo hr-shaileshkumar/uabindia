@@ -658,7 +658,7 @@ export function Topbar({
             {(() => {
               const selectedCompanyData = selectedCompany ? companies.find((c) => c.id === selectedCompany) : null;
               const logoUrl = selectedCompanyData?.logoUrl;
-              const defaultBrandAlt = "ERP Tenant Portal";
+              const defaultBrandAlt = "Uabindia ERP Tenant Portal";
               if (logoUrl && logoUrl !== "/logo.png") {
                 return (
                   <img
@@ -676,7 +676,7 @@ export function Topbar({
               if (logoLoadFailed) {
                 return (
                   <img
-                    src="/logo.png?v=erp-20260205"
+                    src="/logo.png?v=uabindia-20260205"
                     alt={defaultBrandAlt}
                     className="h-6 w-auto object-contain"
                   />
@@ -684,7 +684,7 @@ export function Topbar({
               }
               return (
                 <img
-                  src="/logo.png?v=erp-20260205"
+                  src="/logo.png?v=uabindia-20260205"
                   alt={defaultBrandAlt}
                   className="h-6 w-auto object-contain"
                 />

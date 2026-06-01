@@ -27,7 +27,7 @@ const resolveSafeNextPath = (value: string | null): string | null => {
 export default function LoginPage() {
   const pageContent: LoginPageContent = {
     title: "Welcome Back",
-    subtitle: "Login to your ERP account to continue",
+    subtitle: "Login to your Uabindia ERP account to continue",
     loginButtonLabel: "Login",
   };
   const { profile, headerContent, footerContent } = usePublicPageData("login");
@@ -46,8 +46,8 @@ export default function LoginPage() {
             <div className="space-y-6">
               <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-linear-to-br from-slate-900 to-slate-700 shadow-xl">
                 <img
-                  src={profile.logoUrl || "/logo.png?v=erp-20260205"}
-                  alt={`${profile.brandName || "ERP Tenant Portal"} logo`}
+                  src={profile.logoUrl || "/logo.png?v=uabindia-20260205"}
+                  alt={`${profile.brandName || "Uabindia ERP"} logo`}
                   width={56}
                   height={56}
                   className="h-8 w-8 object-contain"
@@ -56,10 +56,10 @@ export default function LoginPage() {
 
               <div className="space-y-4">
                 <h2 className="text-4xl font-bold tracking-tight text-slate-900">
-                  {profile.brandName || "ERP Tenant Portal"}
+                  {profile.brandName || "Uabindia ERP"}
                 </h2>
                 <p className="text-lg text-slate-600 leading-relaxed">
-                  Streamline your business operations with our comprehensive ERP solution. Manage projects, resources, and workflows efficiently.
+                  Streamline your business operations with our comprehensive Uabindia ERP solution. Manage projects, resources, and workflows efficiently.
                 </p>
               </div>
 
@@ -79,7 +79,7 @@ export default function LoginPage() {
 
             <div className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur p-6 space-y-3">
               <p className="text-sm text-slate-700 italic">
-                &quot;This ERP system has transformed how we manage our operations.&quot;
+                &quot;This Uabindia ERP system has transformed how we manage our operations.&quot;
               </p>
               <p className="text-sm font-semibold text-slate-900">Shailesh Kumar</p>
               <p className="text-xs text-slate-500">Operations Director</p>
@@ -90,14 +90,14 @@ export default function LoginPage() {
             <div className="md:hidden mb-8 flex items-center justify-center gap-3">
               <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-linear-to-br from-slate-900 to-slate-700 shadow-xl">
                 <img
-                  src={profile.logoUrl || "/logo.png?v=erp-20260205"}
-                  alt={`${profile.brandName || "ERP Portal"} logo`}
+                  src={profile.logoUrl || "/logo.png?v=uabindia-20260205"}
+                  alt={`${profile.brandName || "Uabindia ERP"} logo`}
                   width={56}
                   height={56}
                   className="h-8 w-8 object-contain"
                 />
               </div>
-              <span className="text-xl font-bold text-slate-900">{profile.brandName || "ERP Tenant Portal"}</span>
+              <span className="text-xl font-bold text-slate-900">{profile.brandName || "Uabindia ERP"}</span>
             </div>
 
             <div className="mb-8 text-center md:text-left">

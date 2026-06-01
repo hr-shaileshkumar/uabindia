@@ -33,8 +33,8 @@ export default function RegisterPage() {
             <div className="space-y-6">
               <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-linear-to-br from-green-600 to-emerald-700 shadow-xl">
                 <img
-                  src={profile.logoUrl || "/logo.png?v=erp-20260205"}
-                  alt={`${profile.brandName || "ERP Tenant Portal"} logo`}
+                  src={profile.logoUrl || "/logo.png?v=uabindia-20260205"}
+                  alt={`${profile.brandName || "Uabindia ERP Tenant Portal"} logo`}
                   width={56}
                   height={56}
                   className="h-8 w-8 object-contain"
@@ -43,10 +43,10 @@ export default function RegisterPage() {
 
               <div className="space-y-4">
                 <h2 className="text-4xl font-bold tracking-tight text-slate-900">
-                  Join {profile.brandName || "ERP Platform"}
+                  Join {profile.brandName || "Uabindia ERP"}
                 </h2>
                 <p className="text-lg text-slate-600 leading-relaxed">
-                  Create your account to streamline business operations with our comprehensive ERP solution.
+                  Create your account to streamline business operations with our comprehensive Uabindia ERP solution.
                 </p>
               </div>
 
@@ -80,14 +80,14 @@ export default function RegisterPage() {
             <div className="md:hidden mb-8 flex items-center justify-center gap-3">
               <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-linear-to-br from-green-600 to-emerald-700 shadow-xl">
                 <img
-                  src={profile.logoUrl || "/logo.png?v=erp-20260205"}
-                  alt={`${profile.brandName || "ERP Portal"} logo`}
+                  src={profile.logoUrl || "/logo.png?v=uabindia-20260205"}
+                  alt={`${profile.brandName || "Uabindia ERP Tenant Portal"} logo`}
                   width={56}
                   height={56}
                   className="h-8 w-8 object-contain"
                 />
               </div>
-              <span className="text-xl font-bold text-slate-900">{profile.brandName || "ERP Platform"}</span>
+              <span className="text-xl font-bold text-slate-900">{profile.brandName || "Uabindia ERP"}</span>
             </div>
 
             <div className="mb-8 text-center md:text-left">
