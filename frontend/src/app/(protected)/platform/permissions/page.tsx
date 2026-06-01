@@ -21,21 +21,6 @@ interface Permission {
   description?: string;
 }
 
-const MODULE_COLORS: Record<string, string> = {
-  platform:  "bg-violet-100 text-violet-700",
-  security:  "bg-red-100 text-red-700",
-  licensing: "bg-amber-100 text-amber-700",
-  hrms:      "bg-green-100 text-green-700",
-  payroll:   "bg-blue-100 text-blue-700",
-  reports:   "bg-sky-100 text-sky-700",
-  erp:       "bg-orange-100 text-orange-700",
-};
-
-function moduleBadge(module: string) {
-  const cls = MODULE_COLORS[module] ?? "bg-slate-100 text-slate-600";
-  return <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold ${cls}`}>{module}</span>;
-}
-
 export default function PermissionsPage() {
   const { confirm, confirmDialog } = useConfirmDialog();
   const [perms, setPerms]       = useState<Permission[]>([]);

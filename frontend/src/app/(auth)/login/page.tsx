@@ -109,7 +109,7 @@ export default function LoginPage() {
               </p>
             </div>
 
-            <LoginForm profile={profile} pageContent={pageContent} />
+            <LoginForm pageContent={pageContent} />
           </div>
         </div>
       </div>
@@ -117,7 +117,7 @@ export default function LoginPage() {
   );
 }
 
-function LoginForm({ profile, pageContent }: { profile: ReturnType<typeof usePublicPageData>["profile"]; pageContent: LoginPageContent }) {
+function LoginForm({ pageContent }: { pageContent: LoginPageContent }) {
   const [userId, setUserId] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);

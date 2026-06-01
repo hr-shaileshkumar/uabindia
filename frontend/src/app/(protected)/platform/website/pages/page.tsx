@@ -42,11 +42,7 @@ export default function WebsitePagesPage() {
   const [loading, setLoading] = useState(true);
   const [editingPage, setEditingPage] = useState<WebsitePage | null>(null);
 
-  useEffect(() => {
-    loadPages();
-  }, []);
-
-  const loadPages = async () => {
+  async function loadPages() {
     try {
       const response = await fetch("/api/v1/website/pages");
       if (response.ok) {
@@ -65,7 +61,11 @@ export default function WebsitePagesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }
+
+  useEffect(() => {
+    void loadPages();
+  }, []);
 
   const handlePublish = async (page: WebsitePage, publish: boolean) => {
     try {

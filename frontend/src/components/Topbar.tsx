@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { AxiosError } from "axios";
 import { User, Company, Project, FinancialYear, Module } from "@/types";
 import { hrApi } from "@/services/hrApi";
 import apiClient from "@/services/apiClient";
@@ -25,16 +24,6 @@ export interface TopbarProps {
   onOpenSidebar?: () => void;
   onSearchChange?: (query: string) => void;
 }
-
-type NotificationItem = {
-  id: string;
-  title: string;
-  message: string;
-  isRead: boolean;
-  createdAt?: string;
-  readAt?: string;
-  type?: string;
-};
 
 export function Topbar({
   user,
@@ -80,8 +69,6 @@ export function Topbar({
   } = useOrgContext();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [showNotificationDropdown, setShowNotificationDropdown] = useState(false);
-  const [showQuickActionsMenu, setShowQuickActionsMenu] = useState(false);
   const [showMobileSearchDrawer, setShowMobileSearchDrawer] = useState(false);
   const [showMobileContextDrawer, setShowMobileContextDrawer] = useState(false);
   const [topbarSearch, setTopbarSearch] = useState("");
@@ -98,20 +85,14 @@ export function Topbar({
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
   const [isLoadingFinancialYears, setIsLoadingFinancialYears] = useState(false);
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
-  const [_companiesError, setCompaniesError] = useState<string | null>(null);
+  const [, setCompaniesError] = useState<string | null>(null);
   const [projectsError, setProjectsError] = useState<string | null>(null);
   const [financialYearsError, setFinancialYearsError] = useState<string | null>(null);
   const [logoLoadFailed, setLogoLoadFailed] = useState(false);
   const [showCompanyPicker, setShowCompanyPicker] = useState(false);
   const [showProjectPicker, setShowProjectPicker] = useState(false);
   const [showFYPicker, setShowFYPicker] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [notificationsLoading, setNotificationsLoading] = useState(false);
-  const [notificationsError, setNotificationsError] = useState<string | null>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
-  const notificationMenuRef = useRef<HTMLDivElement>(null);
-  const quickActionsMenuRef = useRef<HTMLDivElement>(null);
   const manualProjectLoadRef = useRef<string | null>(null);
   const selectedProjectRef = useRef<string>(ctxProjectId || "");
   const contextRef = useRef({
@@ -140,8 +121,6 @@ export function Topbar({
 
   const closeAllMenus = useCallback(() => {
     setShowProfileMenu(false);
-    setShowNotificationDropdown(false);
-    setShowQuickActionsMenu(false);
     setShowMobileSearchDrawer(false);
     setShowMobileContextDrawer(false);
     setShowCompanyPicker(false);
@@ -308,41 +287,6 @@ export function Topbar({
     }
   }, [ctxFinancialYearKey, setFinancialYear]);
 
-  const loadUnreadCount = useCallback(async () => {
-    try {
-      const res = await hrApi.notifications.unreadCount({ suppressGlobalError: true });
-      setUnreadCount(Math.max(0, res.data?.unread || 0));
-    } catch (error) {
-      const status = (error as AxiosError)?.response?.status;
-      if (status === 403) {
-        setUnreadCount(0);
-        return;
-      }
-      // Optional UI only; keep silent to avoid noisy UX
-    }
-  }, []);
-
-  const loadNotifications = useCallback(async () => {
-    try {
-      setNotificationsLoading(true);
-      setNotificationsError(null);
-      const res = await hrApi.notifications.listMine({ take: 12 }, { suppressGlobalError: true });
-      const data = Array.isArray(res.data) ? (res.data as NotificationItem[]) : [];
-      setNotifications(data);
-    } catch (error) {
-      const status = (error as AxiosError)?.response?.status;
-      if (status === 403) {
-        setNotifications([]);
-        setNotificationsError(null);
-        return;
-      }
-      setNotificationsError("Unable to load notifications");
-      // Suppress toast for notification load failures — non-critical
-    } finally {
-      setNotificationsLoading(false);
-    }
-  }, []);
-
   // Fetch companies on mount
   useEffect(() => {
     loadCompanies();
@@ -363,17 +307,6 @@ export function Topbar({
     loadFinancialYears();
   }, [loadFinancialYears]);
 
-  useEffect(() => {
-    void loadUnreadCount();
-    const id = window.setInterval(() => {
-      void loadUnreadCount();
-    }, 30000);
-
-    return () => {
-      window.clearInterval(id);
-    };
-  }, [loadUnreadCount]);
-
   // Handle click outside profile/admin menus
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -381,14 +314,6 @@ export function Topbar({
 
       if (profileMenuRef.current && !profileMenuRef.current.contains(target)) {
         setShowProfileMenu(false);
-      }
-
-      if (notificationMenuRef.current && !notificationMenuRef.current.contains(target)) {
-        setShowNotificationDropdown(false);
-      }
-
-      if (quickActionsMenuRef.current && !quickActionsMenuRef.current.contains(target)) {
-        setShowQuickActionsMenu(false);
       }
 
       if (companyPickerRef.current && !companyPickerRef.current.contains(target)) {
@@ -415,23 +340,6 @@ export function Topbar({
       document.removeEventListener("keydown", handleEscClose);
     };
   }, [closeAllMenus]);
-
-  const markNotificationAsRead = useCallback(async (id: string) => {
-    try {
-      await hrApi.notifications.markRead(id, { suppressGlobalError: true });
-      setNotifications((prev) =>
-        prev.map((notification) =>
-          notification.id === id
-            ? { ...notification, isRead: true, readAt: new Date().toISOString() }
-            : notification
-        )
-      );
-      setUnreadCount((prev) => Math.max(0, prev - 1));
-    } catch (error) {
-      // Suppress toast — unread badge is non-critical
-      void error;
-    }
-  }, []);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -559,85 +467,8 @@ export function Topbar({
 
   const selectedFinancialYearLabel =
     financialYears.find((y) => y.key === selectedFinancialYear)?.label || "Financial Year";
-  const getControlClass = (active = false) =>
-    active ? "erp-shell-control erp-shell-control-active" : "erp-shell-control";
-  const getIconControlClass = (active = false) =>
-    `${getControlClass(active)} erp-shell-control-icon`;
-  const getContextOptionClass = (active = false) =>
-    active ? "erp-shell-context-option erp-shell-context-option-active" : "erp-shell-context-option";
-
-  const getPlatformShortcutPath = useCallback(
-    (keywords: string[], fallbackPath: string) => {
-      const platformModule = modules.find((module) => module.key === "platform");
-      const subModules = platformModule?.subModules || [];
-
-      const normalizedKeywords = keywords.map((keyword) => keyword.toLowerCase());
-      for (const subModule of subModules) {
-        const haystack = `${subModule.key} ${subModule.name} ${subModule.path}`.toLowerCase();
-        if (normalizedKeywords.some((keyword) => haystack.includes(keyword))) {
-          return subModule.path;
-        }
-      }
-
-      return fallbackPath;
-    },
-    [modules]
-  );
-
-  const platformCompaniesPath = getPlatformShortcutPath(["company", "companies"], ROUTES.PLATFORM_COMPANIES);
-  const platformProjectsPath = getPlatformShortcutPath(["project", "projects"], ROUTES.PLATFORM_PROJECTS);
-  const platformUsersPath = getPlatformShortcutPath(["user", "users"], ROUTES.PLATFORM_USERS);
-  const platformRolesPath = getPlatformShortcutPath(["role", "roles"], ROUTES.PLATFORM_ROLES);
-  const platformTenantsPath = getPlatformShortcutPath(["tenant", "tenants"], ROUTES.PLATFORM_TENANTS);
-  const platformRecycleBinPath = getPlatformShortcutPath(["recycle", "bin", "deleted"], ROUTES.PLATFORM_RECYCLE_BIN);
-
-  const quickActions = [
-    {
-      key: "create-sales-order",
-      label: "Create Sales Order",
-      description: "Sales > Orders",
-      path: ROUTES.SALES_ORDERS,
-      visible:
-        variant === "admin" || variant === "superadmin" ||
-        hasPermission([PERMISSIONS.SALES_ORDERS_VIEW, "erp.sales_orders.create", "salesorders.create", "erp.*"]),
-    },
-    {
-      key: "add-customer",
-      label: "Add Customer",
-      description: "Operations > Customers",
-      path: ROUTES.CUSTOMERS,
-      visible:
-        variant === "admin" || variant === "superadmin" ||
-        hasPermission([PERMISSIONS.CUSTOMER_VIEW, "customer.create", "erp.*"]),
-    },
-    {
-      key: "create-purchase-order",
-      label: "Create Purchase Order",
-      description: "Operations > Purchase",
-      path: ROUTES.PURCHASE_ORDERS,
-      visible:
-        variant === "admin" || variant === "superadmin" ||
-        hasPermission([PERMISSIONS.PURCHASE_ORDERS_VIEW, "purchaseorders.create", "erp.*"]),
-    },
-    {
-      key: "add-employee",
-      label: "Add Employee",
-      description: "HRMS > Employees",
-      path: ROUTES.EMPLOYEES,
-      visible:
-        variant === "admin" || variant === "superadmin" ||
-        hasPermission([PERMISSIONS.EMPLOYEE_CREATE, PERMISSIONS.EMPLOYEE_VIEW, "hrms.*"]),
-    },
-    {
-      key: "run-payroll",
-      label: "Run Payroll",
-      description: "Payroll > Runs",
-      path: ROUTES.PAYROLL_RUNS,
-      visible:
-        variant === "admin" || variant === "superadmin" ||
-        hasPermission([PERMISSIONS.PAYROLL_RUNS_VIEW, "payroll.run", "payroll.*"]),
-    },
-  ].filter((action) => action.visible);
+  const platformUsersPath = ROUTES.PLATFORM_USERS;
+  const searchPlaceholder = modules.length > 0 ? `Search ${modules.length} enabled modules...` : "Search...";
 
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 px-3 py-1.5 backdrop-blur-sm sm:px-4">
@@ -711,7 +542,7 @@ export function Topbar({
               setTopbarSearch(event.target.value);
               onSearchChange?.(event.target.value);
             }}
-            placeholder="Search..."
+            placeholder={searchPlaceholder}
             className="h-8 w-full rounded-lg border border-slate-200 bg-white pl-8 pr-3 text-xs text-slate-800 shadow-sm outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
           />
         </div>
@@ -995,6 +826,7 @@ export function Topbar({
                   <div className="min-w-0">
                     <p className="truncate text-xs font-semibold text-slate-900">{displayName}</p>
                     <p className="truncate text-[11px] text-slate-500">{user.email}</p>
+                    <p className="truncate text-[10px] uppercase tracking-wide text-slate-400">v{appVersion}</p>
                   </div>
                 </div>
 

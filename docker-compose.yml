@@ -57,13 +57,13 @@ services:
     container_name: hrms-frontend
     working_dir: /app
     volumes:
-      - ./Frontend:/app
+      - ./frontend:/app
     ports:
       - "3000:3000"
     environment:
-      VITE_API_URL: "http://api:5000"
+      NEXT_PUBLIC_API_URL: "http://api:5000"
       NODE_ENV: "development"
-    command: npm run dev
+    command: sh -c "npm install --legacy-peer-deps && npm run dev -- --hostname 0.0.0.0"
     networks:
       - hrms-network
 

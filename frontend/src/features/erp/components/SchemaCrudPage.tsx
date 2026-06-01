@@ -262,7 +262,7 @@ export default function SchemaCrudPage({
     } finally {
       setLoading(false);
     }
-  }, [api, confirm, editingId, fetchRows, formData, resetForm, schema?.title, validateForm]);
+  }, [api, confirm, editingId, fallbackTitle, fetchRows, formData, resetForm, schema?.title, validateForm]);
 
   const handleDelete = useCallback(async (id: string) => {
     const ok = await confirm({
@@ -280,7 +280,7 @@ export default function SchemaCrudPage({
       const message = err instanceof Error ? err.message : "Failed to delete record";
       setError(message);
     }
-  }, [api, fetchRows]);
+  }, [api, confirm, fetchRows]);
 
   if (schemaLoading) {
     return (

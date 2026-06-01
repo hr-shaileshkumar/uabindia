@@ -54,11 +54,7 @@ export default function ChartOfAccountsPage() {
     description: "",
   });
 
-  useEffect(() => {
-    fetchAccounts();
-  }, []);
-
-  const fetchAccounts = async () => {
+  async function fetchAccounts() {
     try {
       setLoading(true);
       const response = await hrApi.erp.chartOfAccounts.getAll();
@@ -70,7 +66,11 @@ export default function ChartOfAccountsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }
+
+  useEffect(() => {
+    void fetchAccounts();
+  }, []);
 
   const handleTypeChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const { value } = e.target;

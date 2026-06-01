@@ -5,7 +5,7 @@ import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { useAuth } from "@/context/AuthContext";
 import { hrApi } from "@/services/hrApi";
 import { useOrgContext } from "@/context/OrgContext";
-import { getApiErrorMessage, getApiErrorPayload } from "@/lib/api-errors";
+import { getApiErrorMessage } from "@/lib/api-errors";
 import { isSuperAdminRole } from "@/lib/auth/role-utils";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
@@ -31,6 +31,7 @@ type QuickCompanyEditState = {
 };
 
 const PAGE_SIZE = 100;
+const EMPTY_COMPANIES: CompanyRecord[] = [];
 const EMPTY_TENANTS: TenantSummary[] = [];
 
 const createEmptyCompanyForm = (): CompanyDraft => ({
@@ -101,8 +102,7 @@ export default function CompaniesPage() {
   const tenantsQuery = useTenants(isSuperAdmin);
   const { createCompanyMutation, updateCompanyMutation, deleteCompanyMutation } = useCompanyMutations();
 
-  const companies = companiesQuery.data?.companies ?? [];
-  const total = companiesQuery.data?.total ?? 0;
+  const companies = companiesQuery.data?.companies ?? EMPTY_COMPANIES;
   const tenants = tenantsQuery.data?.tenants ?? EMPTY_TENANTS;
 
   const filteredCompanies = useMemo(() => {

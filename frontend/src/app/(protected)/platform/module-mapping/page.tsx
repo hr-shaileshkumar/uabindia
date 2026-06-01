@@ -96,7 +96,7 @@ export default function ModuleMappingPage() {
       persistModuleMappingOverrides(normalizedDraft);
       setSavedOverrides(normalizedDraft);
       notifySuccess("Module mappings saved. Sidebar updated immediately.");
-    } catch (err) {
+    } catch {
       notifyError("Failed to save module mappings.");
     } finally {
       setSaving(false);

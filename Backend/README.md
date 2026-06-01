@@ -37,7 +37,15 @@ Environment variables (important):
 - `Jwt__Key` or `JWT_KEY` — JWT signing key (required)
 - `Jwt__Issuer` or `JWT_ISSUER` — JWT issuer (required)
 - `Jwt__Audience` or `JWT_AUDIENCE` — JWT audience (required)
-- `ConnectionStrings__DefaultConnection` — SQL Server connection string (optional; appsettings default provided)
+- `Encryption__Key` or `ENCRYPTION_KEY` — encryption key for protected fields (required outside development)
+- `ConnectionStrings__DefaultConnection` — SQL Server connection string
+- `Cors__AllowedOrigins` — comma-separated frontend origins for production
+
+Production deployment notes
+
+- Do not deploy this backend to Vercel. This repository’s Vercel configuration is for the Next.js frontend only.
+- Use Docker, Azure App Service, Render, Railway, or another .NET-capable host for `Backend/src/UabIndia.Api`.
+- A production settings template is available at `Backend/src/UabIndia.Api/appsettings.Production.json.example`.
 
 Health and readiness
 

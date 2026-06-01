@@ -174,35 +174,6 @@ const fmtCurrency = (amount?: number, code = "INR") =>
     ? new Intl.NumberFormat("en-IN", { style: "currency", currency: code, maximumFractionDigits: 0 }).format(amount)
     : "—";
 
-const parseFinancialYearRange = (financialYearLabel?: string | null): { start: Date; end: Date } | null => {
-  if (!financialYearLabel) return null;
-  const match = financialYearLabel.match(/(\d{4})\s*[-/]\s*(\d{2,4})/);
-  if (!match) return null;
-  const startYear = Number.parseInt(match[1], 10);
-  if (Number.isNaN(startYear)) return null;
-
-  // India financial year convention: Apr 1 to Mar 31
-  const start = new Date(startYear, 3, 1, 0, 0, 0, 0);
-  const end = new Date(startYear + 1, 2, 31, 23, 59, 59, 999);
-  return { start, end };
-};
-
-const isProjectInFinancialYear = (project: ProjectRow, financialYearLabel?: string | null): boolean => {
-  const range = parseFinancialYearRange(financialYearLabel);
-  if (!range) return true;
-
-  const startDateRaw = project.startDate ? new Date(project.startDate) : null;
-  const endDateRaw = project.endDate ? new Date(project.endDate) : null;
-
-  if (!startDateRaw && !endDateRaw) return true;
-
-  const projectStart = startDateRaw || endDateRaw;
-  const projectEnd = endDateRaw || startDateRaw;
-  if (!projectStart || !projectEnd) return true;
-
-  return projectStart <= range.end && projectEnd >= range.start;
-};
-
 export default function ProjectsPage() {
   const { confirm, confirmDialog } = useConfirmDialog();
   const { isSuperAdmin } = usePermissions();

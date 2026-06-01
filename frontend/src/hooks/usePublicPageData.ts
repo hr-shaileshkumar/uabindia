@@ -26,9 +26,7 @@ type UsePublicPageDataResult = {
 };
 
 export const usePublicPageData = (pageType: string): UsePublicPageDataResult => {
-  const [profile, setProfile] = useState<ClientProfile>(
-    getBaseClientProfile(getTenantSubdomain() ?? undefined)
-  );
+  const [profile, setProfile] = useState<ClientProfile>(getBaseClientProfile());
   const [pageRecord, setPageRecord] = useState<PublicPageRecord | null>(null);
   const [headerRecord, setHeaderRecord] = useState<PublicPageRecord | null>(null);
   const [footerRecord, setFooterRecord] = useState<PublicPageRecord | null>(null);
@@ -38,7 +36,7 @@ export const usePublicPageData = (pageType: string): UsePublicPageDataResult => 
     const tenant = getTenantSubdomain();
     if (!tenant) return;
     setProfile((currentProfile) => {
-      const fallbackProfile = getBaseClientProfile(tenant);
+      const fallbackProfile = getBaseClientProfile();
       if (currentProfile.companyName === fallbackProfile.companyName && currentProfile.brandName === fallbackProfile.brandName) {
         return currentProfile;
       }

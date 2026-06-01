@@ -59,7 +59,7 @@ export default function SuperAdminDashboard() {
           companies: Array.isArray(companiesRes.data?.companies) ? companiesRes.data.companies.length : 0,
           projects: Array.isArray(projectsRes.data?.projects) ? projectsRes.data.projects.length : 0,
         });
-      } catch (exc) {
+      } catch {
         if (!active) return;
         setError("Unable to load SuperAdmin summary. Please refresh the page.");
       } finally {

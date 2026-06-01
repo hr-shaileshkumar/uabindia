@@ -26,26 +26,13 @@ const parseBranding = (payload?: string | null): BrandingPayload => {
 const firstNonEmpty = (...values: Array<string | null | undefined>): string | undefined =>
   values.find((value) => typeof value === "string" && value.trim().length > 0)?.trim();
 
-const normalizeTenantName = (value?: string | null): string | undefined => {
-  if (!value) return undefined;
-  const cleaned = value
-    .replace(/[-_.]+/g, " ")
-    .trim()
-    .replace(/\s+/g, " ");
-  if (!cleaned) return undefined;
-  return cleaned
-    .split(" ")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(" ");
-};
-
 const isGenericBrandName = (value?: string | null): boolean => {
   if (!value) return false;
   const normalized = value.trim().toLowerCase();
   return ["erp", "portal", "tenant", "client", "company", "www", "app"].includes(normalized);
 };
 
-export const getBaseClientProfile = (tenantSubdomain?: string): ClientProfile => {
+export const getBaseClientProfile = (): ClientProfile => {
   return {
     ...baseProfile,
     companyName: baseProfile.companyName,

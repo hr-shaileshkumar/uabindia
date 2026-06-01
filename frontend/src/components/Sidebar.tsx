@@ -25,8 +25,6 @@ type SidebarShortcut = { key: string; label: string; href: string; icon: "star" 
 const MODULE_ORDER = ["operations", "hrms", "payroll", "reports", "platform", "licensing", "security", "integrations", "helpdesk", "communication"] as const;
 const SIDEBAR_COLLAPSED_STORAGE_KEY = "erp.sidebar.collapsed";
 const RECENT_ITEMS_STORAGE_KEY = "erp.sidebar.recent-items";
-const SIDEBAR_EXPANDED_WIDTH = 240;
-const SIDEBAR_COLLAPSED_WIDTH = 64;
 
 function sortModules(list: Module[]): Module[] {
   const rank = new Map<string, number>(MODULE_ORDER.map((k, i) => [k, i]));
@@ -226,22 +224,10 @@ export function Sidebar({
     isActive
       ? "erp-shell-sidebar-compact-link erp-shell-sidebar-compact-link-active"
       : "erp-shell-sidebar-compact-link";
-  const getModuleRowClass = (isActive: boolean) =>
-    isActive
-      ? "sidebar-item erp-shell-sidebar-module erp-shell-sidebar-module-active"
-      : "sidebar-item erp-shell-sidebar-module";
-  const getModuleToggleClass = (isActive: boolean, isExpanded: boolean) =>
-    isActive
-      ? `flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-slate-900 transition-colors ${isExpanded ? "font-semibold" : "font-medium"}`
-      : "flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-slate-700 transition-colors hover:text-slate-900";
   const getSubmoduleLinkClass = (isActive: boolean) =>
     isActive
       ? "erp-shell-sidebar-subitem erp-shell-sidebar-subitem-active"
       : "erp-shell-sidebar-subitem";
-  const getStandaloneModuleClass = (isActive: boolean) =>
-    isActive
-      ? "flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-semibold text-sky-800"
-      : "flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-slate-700 transition-colors hover:text-slate-900";
   const getIconSlotClass = (isActive: boolean) =>
     isActive ? "erp-shell-sidebar-icon-slot erp-shell-sidebar-icon-slot-active" : "erp-shell-sidebar-icon-slot";
 

@@ -120,7 +120,7 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
 
   const setFinancialYear = useCallback((financialYearKey: string | null, financialYearLabel: string | null) => {
     setContext({ financialYearKey, financialYearLabel });
-  }, []);
+  }, [setContext]);
 
   const clearContext = useCallback(() => {
     setContext({
@@ -134,10 +134,6 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
   const clearFinancialYear = useCallback(() => {
     setContext({ financialYearKey: null, financialYearLabel: null });
   }, [setContext]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -174,20 +170,29 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
     return () => window.removeEventListener("storage", syncFromStorage);
   }, []);
 
+  const {
+    companyId,
+    companyName,
+    projectId,
+    projectName,
+    financialYearKey,
+    financialYearLabel,
+  } = state;
+
   useEffect(() => {
     const validateContext = async () => {
       if (!user) return;
 
       try {
-        if (!state.companyId) {
-          if (state.projectId) {
+        if (!companyId) {
+          if (projectId) {
             const next: OrgContextState = {
               companyId: null,
               companyName: null,
               projectId: null,
               projectName: null,
-              financialYearKey: state.financialYearKey,
-              financialYearLabel: state.financialYearLabel,
+              financialYearKey,
+              financialYearLabel,
             };
             setState(next);
             persistState(next);
@@ -203,7 +208,7 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
           ? await apiClient.get("/companies/all")
           : await apiClient.get("/companies?page=1&limit=200");
         const companies = Array.isArray(companyRes.data?.companies) ? companyRes.data.companies : [];
-        const selectedCompany = companies.find((c: { id?: string; name?: string }) => c.id === state.companyId);
+        const selectedCompany = companies.find((c: { id?: string; name?: string }) => c.id === companyId);
 
         if (!selectedCompany) {
           const cleared: OrgContextState = {
@@ -211,16 +216,16 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
             companyName: null,
             projectId: null,
             projectName: null,
-            financialYearKey: state.financialYearKey,
-            financialYearLabel: state.financialYearLabel,
+            financialYearKey,
+            financialYearLabel,
           };
           setState(cleared);
           persistState(cleared);
           return;
         }
 
-        if (!state.projectId) {
-          if (state.companyName !== (selectedCompany.name || null)) {
+        if (!projectId) {
+          if (companyName !== (selectedCompany.name || null)) {
             const next: OrgContextState = {
               ...state,
               companyName: selectedCompany.name || null,
@@ -231,32 +236,32 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
           return;
         }
 
-        const projectsRes = await apiClient.get(`/projects?companyId=${state.companyId}`);
+        const projectsRes = await apiClient.get(`/projects?companyId=${companyId}`);
         const projects = Array.isArray(projectsRes.data?.projects) ? projectsRes.data.projects : [];
-        const selectedProject = projects.find((p: { id?: string; name?: string }) => p.id === state.projectId);
+        const selectedProject = projects.find((p: { id?: string; name?: string }) => p.id === projectId);
 
         if (!selectedProject) {
           const next: OrgContextState = {
-            companyId: state.companyId,
+            companyId,
             companyName: selectedCompany.name || null,
             projectId: null,
             projectName: null,
-            financialYearKey: state.financialYearKey,
-            financialYearLabel: state.financialYearLabel,
+            financialYearKey,
+            financialYearLabel,
           };
           setState(next);
           persistState(next);
           return;
         }
 
-        if (state.companyName !== (selectedCompany.name || null) || state.projectName !== (selectedProject.name || null)) {
+        if (companyName !== (selectedCompany.name || null) || projectName !== (selectedProject.name || null)) {
           const next: OrgContextState = {
-            companyId: state.companyId,
+            companyId,
             companyName: selectedCompany.name || null,
-            projectId: state.projectId,
+            projectId,
             projectName: selectedProject.name || null,
-            financialYearKey: state.financialYearKey,
-            financialYearLabel: state.financialYearLabel,
+            financialYearKey,
+            financialYearLabel,
           };
           setState(next);
           persistState(next);
@@ -267,7 +272,7 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
     };
 
     void validateContext();
-  }, [user, state.companyId, state.projectId]);
+  }, [companyId, companyName, financialYearKey, financialYearLabel, projectId, projectName, state, user]);
 
   useEffect(() => {
     const signature = [

@@ -8,7 +8,6 @@ import { TableActionMenu, type ActionMenuItem } from "@/components/table/TableAc
 import { hrApi } from "@/services/hrApi";
 import { ROUTES } from "@/constants/routes";
 import { PERMISSIONS } from "@/constants/permissions";
-import { useAuth } from "@/context/AuthContext";
 import { usePermissions } from "@/context/PermissionContext";
 
 export type Employee = {
@@ -70,11 +69,7 @@ export default function EmployeeList() {
   }, [fetchEmployees]);
 
   const router = useRouter();
-  const { user } = useAuth();
   const { hasPermission, isSuperAdmin } = usePermissions();
-
-  const userRoles = user?.roles ?? [];
-  const isHrManager = userRoles.some((role) => /hr/i.test(role ?? ""));
 
   const canCreateEmployee = isSuperAdmin || hasPermission([PERMISSIONS.EMPLOYEE_CREATE]);
   const canEditEmployee = isSuperAdmin || hasPermission([PERMISSIONS.EMPLOYEE_EDIT]);

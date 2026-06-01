@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Space_Grotesk, IBM_Plex_Sans } from "next/font/google";
 import { useRouter } from "next/navigation";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { hrApi } from "@/services/hrApi";
@@ -129,9 +128,6 @@ type TenantForm = {
   customDomain: string;
   whiteLabelEnabled: boolean;
 };
-
-const headingFont = Space_Grotesk({ subsets: ["latin"], weight: ["400", "600", "700"] });
-const bodyFont = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "500", "600"] });
 
 const moduleOptions = [
   { key: "operations", label: "Operations", desc: "Dashboard, approvals, notifications, documents" },
@@ -482,21 +478,6 @@ export default function TenantsPage() {
       return matchesKeyword && matchesStatus && matchesPlan;
     });
   }, [tenants, showDeleted, search, statusFilter, planFilter, ctxCompanyId, companyTenantMap]);
-
-  const stats = useMemo(() => {
-    let active = 0;
-    let trial = 0;
-    let suspended = 0;
-
-    filteredTenants.forEach((t) => {
-      const status = t.status || (t.isActive ? "active" : "inactive");
-      if (status === "active") active += 1;
-      if (status === "trial") trial += 1;
-      if (status === "suspended") suspended += 1;
-    });
-
-    return { total: filteredTenants.length, active, trial, suspended };
-  }, [filteredTenants]);
 
   const load = async (includeDeletedFlag?: boolean) => {
     try {
@@ -1267,7 +1248,7 @@ export default function TenantsPage() {
   };
 
   return (
-    <div className={bodyFont.className}>
+    <div>
       {confirmDialog}
       <StandardPageLayout
         title="Tenant Management"
