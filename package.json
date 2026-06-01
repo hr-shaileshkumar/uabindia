@@ -1,12 +1,8 @@
 {
   "private": true,
-  "version": "0.0.0",
-  "workspaces": [
-    "frontend"
-  ],
   "scripts": {
     "dev": "cd frontend && npm run dev",
-    "build": "cd frontend && npm install --legacy-peer-deps --no-workspaces && npm run build",
+    "build": "cd frontend && npm run build",
     "start": "cd frontend && npm run start",
     "lint": "cd frontend && npm run lint"
   }
