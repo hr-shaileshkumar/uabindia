@@ -39,6 +39,12 @@ const normalizeTenantName = (value?: string | null): string | undefined => {
     .join(" ");
 };
 
+const isGenericBrandName = (value?: string | null): boolean => {
+  if (!value) return false;
+  const normalized = value.trim().toLowerCase();
+  return ["erp", "portal", "tenant", "client", "company", "www", "app"].includes(normalized);
+};
+
 export const getBaseClientProfile = (tenantSubdomain?: string): ClientProfile => {
   return {
     ...baseProfile,
@@ -60,10 +66,19 @@ export const buildClientProfile = (
     .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
     .join(" | ");
 
+  const safeBrandName = !isGenericBrandName(branding.brandName)
+    ? branding.brandName
+    : baseProfile.brandName;
+
   return {
     ...baseProfile,
-    companyName: firstNonEmpty(company?.name, tenant?.name, baseProfile.companyName) ?? baseProfile.companyName,
-    brandName: firstNonEmpty(branding.brandName, baseProfile.brandName) ?? baseProfile.brandName,
+    companyName:
+      firstNonEmpty(
+        !isGenericBrandName(company?.name) ? company?.name : undefined,
+        !isGenericBrandName(tenant?.name) ? tenant?.name : undefined,
+        baseProfile.companyName
+      ) ?? baseProfile.companyName,
+    brandName: firstNonEmpty(safeBrandName, baseProfile.brandName) ?? baseProfile.brandName,
     industry: firstNonEmpty(company?.industry, baseProfile.industry) ?? baseProfile.industry,
     headquarters: firstNonEmpty(headquarters, baseProfile.headquarters) ?? baseProfile.headquarters,
     supportEmail:

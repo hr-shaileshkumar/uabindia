@@ -28,11 +28,23 @@ const supportAreas = [
 
 export default function ContactPage() {
   const { profile, pageRecord, headerContent, footerContent, parseContent } = usePublicPageData("contact");
+  const normalizedCompanyName = profile.companyName?.trim().toLowerCase() ?? "";
+  const invalidCompanyName =
+    !normalizedCompanyName ||
+    ["client company name", "erp", "portal", "tenant", "company", "www", "app"].includes(normalizedCompanyName);
+  const normalizedBrandName = profile.brandName?.trim().toLowerCase() ?? "";
+  const resolvedBrandName =
+    normalizedBrandName &&
+    !["erp", "portal", "tenant", "client", "company", "www", "app"].includes(normalizedBrandName)
+      ? profile.brandName
+      : "Uabindia ERP";
+  const formCompanyName = invalidCompanyName ? "" : profile.companyName;
+  const contactTitleName = invalidCompanyName ? resolvedBrandName : profile.companyName;
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phoneNumber: "",
-    companyName: profile.companyName,
+    companyName: formCompanyName,
     subject: "",
     message: "",
   });
@@ -40,7 +52,7 @@ export default function ContactPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const content = parseContent<ContactContent>({
     eyebrow: "Contact",
-    title: `Reach the ${profile.companyName} Uabindia ERP support team`,
+    title: `Reach the ${contactTitleName} Uabindia ERP support team`,
     subtitle:
       "Submit your request for onboarding, payroll support, finance workflows, or platform configuration and receive a clear next step within one business day.",
     submitLabel: "Send Request",

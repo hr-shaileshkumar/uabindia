@@ -12,6 +12,15 @@ type PublicFooterProps = {
 export default function PublicFooter({ profile, footerContent }: PublicFooterProps) {
   const productLinks = footerContent.footerLinks.slice(0, 3);
   const companyLinks = footerContent.footerLinks.slice(3);
+  const normalizedBrandName = profile.brandName?.trim().toLowerCase() ?? "";
+  const resolvedBrandName =
+    normalizedBrandName && !["erp", "portal", "tenant", "client", "company", "www", "app"].includes(normalizedBrandName)
+      ? profile.brandName
+      : "Uabindia ERP";
+  const contactName =
+    profile.companyName && profile.companyName.trim().length > 0 && !["erp", "portal", "tenant", "client", "company", "www", "app"].includes(profile.companyName.trim().toLowerCase())
+      ? profile.companyName
+      : resolvedBrandName;
 
   return (
     <footer className="mt-auto border-t border-slate-200 bg-slate-950 text-slate-200">
@@ -59,7 +68,7 @@ export default function PublicFooter({ profile, footerContent }: PublicFooterPro
           <div className="space-y-4 text-sm text-slate-300">
             <p className="text-sm font-semibold text-white">Contact</p>
             <div className="space-y-2">
-              <p className="font-semibold text-slate-100">{profile.companyName}</p>
+              <p className="font-semibold text-slate-100">{contactName}</p>
               <p>{profile.headquarters}</p>
               <p>{profile.supportEmail}</p>
               <p>{profile.supportPhone}</p>
