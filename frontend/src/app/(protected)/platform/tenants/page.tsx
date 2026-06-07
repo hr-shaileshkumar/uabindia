@@ -130,7 +130,11 @@ type TenantForm = {
 };
 
 const moduleOptions = [
-  { key: "operations", label: "Operations", desc: "Dashboard, approvals, notifications, documents" },
+  { key: "operations", label: "Workspace", desc: "Dashboard, approvals, notifications, and documents" },
+  { key: "erp_finance", label: "Finance", desc: "Accounting, payments, invoices, and tax" },
+  { key: "erp_procurement", label: "Procurement", desc: "Vendors, requests, orders, and GRN" },
+  { key: "erp_sales", label: "Sales & CRM", desc: "Customers, quotations, orders, and returns" },
+  { key: "erp_inventory", label: "Inventory", desc: "Items, warehouses, stock, adjustments, and transfers" },
   { key: "hrms", label: "HRMS", desc: "Employee, attendance, leave" },
   { key: "payroll", label: "Payroll", desc: "Salary, statutory, payslips" },
   { key: "reports", label: "Reports", desc: "Cross-module analytics" },
@@ -147,8 +151,8 @@ type PlanPolicy = {
 
 const planPolicies: Record<"Basic" | "Premium" | "Enterprise", PlanPolicy> = {
   Basic: { name: "Basic", maxUsers: 10, maxStorageGb: 25, allowedModules: ["hrms"] },
-  Premium: { name: "Premium", maxUsers: 100, maxStorageGb: 200, allowedModules: ["hrms", "payroll", "reports"] },
-  Enterprise: { name: "Enterprise", maxUsers: 1000, maxStorageGb: 1000, allowedModules: ["hrms", "payroll", "reports", "operations"] },
+  Premium: { name: "Premium", maxUsers: 100, maxStorageGb: 200, allowedModules: ["hrms", "payroll", "reports", "operations"] },
+  Enterprise: { name: "Enterprise", maxUsers: 1000, maxStorageGb: 1000, allowedModules: ["operations", "erp_finance", "erp_procurement", "erp_sales", "erp_inventory", "hrms", "payroll", "reports"] },
 };
 
 const getPlanPolicy = (plan: string) => {
@@ -1386,8 +1390,8 @@ export default function TenantsPage() {
                           {openMenuId === tenant.id && (
                             <div
                               id={`tenant-action-menu-${tenant.id}`}
-                              className="fixed z-90 w-44 rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
-                              style={{ top: menuPosition.top, left: menuPosition.left }}
+                              className="fixed w-44 rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+                              style={{ top: menuPosition.top, left: menuPosition.left, zIndex: 9999 }}
                               onPointerDown={(event) => event.stopPropagation()}
                             >
                               {!tenant.isDeleted ? (

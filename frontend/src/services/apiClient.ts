@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from "axios";
+import { getClientApiV1BaseUrl } from "@/lib/api-base-url";
 
 /**
  * Unified API Client for ERP Frontend
@@ -6,9 +7,7 @@ import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from "ax
  * Frontend: Request/response interceptors, token management, error handling
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
-const normalizedApiBase = API_BASE_URL.replace(/\/+$/, "");
-const apiBaseUrl = normalizedApiBase ? `${normalizedApiBase}/api/v1` : "/api/v1";
+const apiBaseUrl = getClientApiV1BaseUrl();
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: apiBaseUrl,
@@ -56,12 +55,16 @@ export const getTenantSubdomain = (): string | null => {
 
   const hostname = window.location.hostname.toLowerCase();
   const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
+  const queryTenant = new URLSearchParams(window.location.search).get("tenant");
 
   if (hostname.endsWith(".localhost") && !isLocalhost) {
     return hostname.split(".")[0] || tenantFromEnv;
   }
 
-  const queryTenant = new URLSearchParams(window.location.search).get("tenant");
+  if (isLocalhost) {
+    return queryTenant;
+  }
+
   return queryTenant || tenantFromEnv;
 };
 

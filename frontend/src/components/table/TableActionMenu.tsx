@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
 
 export interface ActionMenuItem {
   label: string;
@@ -25,15 +25,29 @@ export function TableActionMenu({ items, label = "Actions" }: TableActionMenuPro
   const btnRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  const calculatePosition = useCallback(() => {
+    if (!btnRef.current) return;
+
+    const rect = btnRef.current.getBoundingClientRect();
+    const menuWidth = 176;
+    const menuHeight = 200;
+    const viewportPadding = 12;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const top = spaceBelow < menuHeight
+      ? Math.max(viewportPadding, rect.top - menuHeight - 4)
+      : Math.min(window.innerHeight - menuHeight - viewportPadding, rect.bottom + 4);
+    const left = Math.min(
+      Math.max(viewportPadding, rect.left),
+      window.innerWidth - menuWidth - viewportPadding
+    );
+
+    setPosition({ top, left });
+  }, []);
+
   const handleOpen = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    if (!btnRef.current) return;
-    const rect = btnRef.current.getBoundingClientRect();
-    const menuH = 200;
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const top = spaceBelow < menuH ? rect.top - menuH + window.scrollY : rect.bottom + window.scrollY + 4;
-    setPosition({ top, left: rect.left + window.scrollX });
+    calculatePosition();
     setOpen((v) => !v);
   };
 
@@ -48,8 +62,17 @@ export function TableActionMenu({ items, label = "Actions" }: TableActionMenuPro
         setOpen(false);
       }
     };
+    const handleViewportChange = () => setOpen(false);
+
     document.addEventListener("pointerdown", handler);
-    return () => document.removeEventListener("pointerdown", handler);
+    window.addEventListener("resize", handleViewportChange);
+    window.addEventListener("scroll", handleViewportChange, true);
+
+    return () => {
+      document.removeEventListener("pointerdown", handler);
+      window.removeEventListener("resize", handleViewportChange);
+      window.removeEventListener("scroll", handleViewportChange, true);
+    };
   }, [open]);
 
   return (

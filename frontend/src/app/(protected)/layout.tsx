@@ -145,6 +145,34 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
     if (canonicalPath.startsWith("/erp/hrms") || canonicalPath.startsWith("/hrms")) return "hrms";
     if (canonicalPath.startsWith("/erp/payroll") || canonicalPath.startsWith("/payroll")) return "payroll";
     if (canonicalPath.startsWith("/erp/reports") || canonicalPath.startsWith("/reports")) return "reports";
+    if (
+      canonicalPath.startsWith("/erp/chart-of-accounts") ||
+      canonicalPath.startsWith("/erp/journal-entries") ||
+      canonicalPath.startsWith("/erp/payments") ||
+      canonicalPath.startsWith("/erp/invoices") ||
+      canonicalPath.startsWith("/erp/expenses") ||
+      canonicalPath.startsWith("/erp/tax-management") ||
+      canonicalPath.startsWith("/erp/bank-reconciliation")
+    ) return "erp_finance";
+    if (
+      canonicalPath.startsWith("/erp/vendors") ||
+      canonicalPath.startsWith("/erp/purchase-requests") ||
+      canonicalPath.startsWith("/erp/purchase-orders") ||
+      canonicalPath.startsWith("/erp/grn")
+    ) return "erp_procurement";
+    if (
+      canonicalPath.startsWith("/erp/customers") ||
+      canonicalPath.startsWith("/erp/quotations") ||
+      canonicalPath.startsWith("/erp/sales-orders") ||
+      canonicalPath.startsWith("/erp/returns")
+    ) return "erp_sales";
+    if (
+      canonicalPath.startsWith("/erp/items") ||
+      canonicalPath.startsWith("/erp/warehouses") ||
+      canonicalPath.startsWith("/erp/stock-movements") ||
+      canonicalPath.startsWith("/erp/inventory-adjustments") ||
+      canonicalPath.startsWith("/erp/inventory-transfers")
+    ) return "erp_inventory";
     if (canonicalPath.startsWith("/superadmin")) return "platform";
     if (canonicalPath.startsWith("/platform")) return "platform";
     if (
@@ -328,6 +356,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
     path: string;
     icon?: string;
     group?: string;
+    order?: number;
   };
 
   type BackendModule = {
@@ -379,16 +408,17 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
         modulesData.forEach((module) => {
           const normalizedKey = resolveModuleNavigationKey(module.key);
           const normalizedSubModules = getSubModulesForModule(normalizedKey);
+          const fallbackMeta = MODULE_FALLBACK_META[normalizedKey];
 
           const existing = transformedModulesMap.get(normalizedKey);
           if (!existing) {
             transformedModulesMap.set(normalizedKey, {
               key: normalizedKey,
-              name: module.name,
-              displayName: module.displayName,
-              icon: MODULE_FALLBACK_META[normalizedKey]?.icon || "grid",
-              description: module.description,
-              basePath: module.basePath,
+              name: fallbackMeta?.name || module.displayName || module.name,
+              displayName: fallbackMeta?.displayName || module.displayName || module.name,
+              icon: fallbackMeta?.icon || "grid",
+              description: fallbackMeta?.description || module.description || "",
+              basePath: fallbackMeta?.basePath || module.basePath || normalizedSubModules[0]?.path || ROUTES.DASHBOARD,
               isEnabled: true,
               order: module.sortOrder,
               subModules: normalizedSubModules,
@@ -403,10 +433,11 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
 
           transformedModulesMap.set(normalizedKey, {
             ...existing,
-            displayName: existing.displayName || module.displayName,
-            description: existing.description || module.description,
-            basePath: existing.basePath || module.basePath,
-            icon: existing.icon || MODULE_FALLBACK_META[normalizedKey]?.icon || "grid",
+            name: fallbackMeta?.name || existing.name || module.displayName || module.name,
+            displayName: fallbackMeta?.displayName || existing.displayName || module.displayName || module.name,
+            description: fallbackMeta?.description || existing.description || module.description || "",
+            basePath: fallbackMeta?.basePath || existing.basePath || module.basePath,
+            icon: fallbackMeta?.icon || existing.icon || "grid",
             order: Math.min(existing.order ?? Number.MAX_SAFE_INTEGER, module.sortOrder ?? Number.MAX_SAFE_INTEGER),
             subModules: mergedSubModules,
           });
@@ -489,14 +520,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
       .filter((module) => (module.subModules?.length ?? 0) > 0 || !module.subModules?.length);
   }, [modules, isSidebarModuleAllowed, isSidebarPageAllowed]);
 
-  const shellModules = useMemo(() => {
-    if (shellVariant === "admin" || shellVariant === "superadmin") {
-      return visibleModules;
-    }
-
-    const userAllowedModuleKeys = new Set(["operations", "hrms", "payroll", "reports"]);
-    return visibleModules.filter((module) => userAllowedModuleKeys.has(module.key));
-  }, [visibleModules, shellVariant]);
+  const shellModules = useMemo(() => visibleModules, [visibleModules]);
 
   const pageAccessAllowed = useMemo(() => {
     if (!user || loading || permissionsLoading) return true;
@@ -580,7 +604,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
   if (modulesLoading || configLoading || schemaLoading || guardBlocked) return null;
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex h-screen flex-col overflow-hidden bg-background">
       {/* Global Topbar */}
       <Topbar
         user={user}
@@ -633,9 +657,9 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
       )}
 
       {/* App Shell: Sidebar + Content */}
-      <div className="flex min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
         {isBusinessRoute && (
-          <div className="hidden lg:block">
+          <div className="hidden h-full shrink-0 lg:block">
             <Sidebar
               modules={shellModules}
               isLoading={modulesLoading}

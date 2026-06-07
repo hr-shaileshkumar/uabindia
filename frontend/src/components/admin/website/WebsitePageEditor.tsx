@@ -1,8 +1,12 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Copy, FileJson, RotateCcw } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getBaseClientProfile } from "@/lib/publicProfile";
+import { getWebsitePageTemplate } from "@/lib/publicSiteContent";
+import { notifySuccess } from "@/lib/notifications";
 
 interface WebsitePageEditorProps {
   pageType: string;
@@ -23,6 +27,16 @@ export default function WebsitePageEditor({
   const [content, setContent] = useState(initialContent !== "{}" ? initialContent : "");
   const [saving, setSaving] = useState(false);
 
+  const template = useMemo(
+    () => getWebsitePageTemplate(pageType, getBaseClientProfile()),
+    [pageType]
+  );
+
+  const templateJson = useMemo(
+    () => JSON.stringify(template.sample, null, 2),
+    [template.sample]
+  );
+
   useEffect(() => {
     setTitle(initialTitle);
     setContent(initialContent !== "{}" ? initialContent : "");
@@ -31,22 +45,39 @@ export default function WebsitePageEditor({
   const handleSave = async () => {
     setSaving(true);
     try {
-      await onSave(title, content);
+      await onSave(title, content.trim().length > 0 ? content : "{}");
     } finally {
       setSaving(false);
     }
   };
 
+  const handleCopyTemplate = async () => {
+    await navigator.clipboard.writeText(templateJson);
+    notifySuccess("Template JSON copied");
+  };
+
+  const handleResetToTemplate = () => {
+    setContent(templateJson);
+    if (!title.trim()) {
+      setTitle(template.title);
+    }
+  };
+
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit {pageType.charAt(0).toUpperCase() + pageType.slice(1)} Page</DialogTitle>
+          <DialogTitle>Edit {template.title}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm font-semibold text-slate-900">Content guidance</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">{template.description}</p>
+          </div>
+
           <div>
-            <Label htmlFor="title">Page Title</Label>
+            <Label htmlFor="title">Page title</Label>
             <Input
               id="title"
               value={title}
@@ -55,15 +86,49 @@ export default function WebsitePageEditor({
             />
           </div>
 
-          <div>
-            <Label htmlFor="content">Page Content</Label>
-            <textarea
-              id="content"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Enter page content or HTML here"
-              className="min-h-75 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
-            />
+          <div className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
+            <div>
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <Label htmlFor="content">Page content JSON or HTML</Label>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={handleCopyTemplate}>
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copy Template
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" onClick={handleResetToTemplate}>
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    Use Template
+                  </Button>
+                </div>
+              </div>
+              <textarea
+                id="content"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Enter JSON content or HTML here"
+                className="min-h-95 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm text-slate-900 shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+              />
+            </div>
+
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="flex items-center gap-2">
+                  <FileJson className="h-4 w-4 text-slate-500" />
+                  <p className="text-sm font-semibold text-slate-900">Suggested schema</p>
+                </div>
+                <pre className="mt-3 overflow-x-auto rounded-xl bg-slate-950 p-4 text-xs leading-6 text-slate-100">
+                  {templateJson}
+                </pre>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-sm font-semibold text-slate-900">Editing tips</p>
+                <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-600">
+                  <li>Use JSON for structured editable sections.</li>
+                  <li>Use raw HTML only when you want a fully custom free-form block.</li>
+                  <li>Keep key names unchanged so the public template can render your content correctly.</li>
+                </ul>
+              </div>
+            </div>
           </div>
 
           <div className="flex justify-end gap-2">

@@ -33,6 +33,8 @@ const PAGE_TYPES = [
   { key: "contact", label: "Contact Page" },
   { key: "career", label: "Career Page" },
   { key: "login", label: "Login Page" },
+  { key: "forgot-password", label: "Forgot Password" },
+  { key: "reset-password", label: "Reset Password" },
   { key: "footer", label: "Footer" },
 ];
 

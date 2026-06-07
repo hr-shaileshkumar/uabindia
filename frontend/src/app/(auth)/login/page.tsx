@@ -3,17 +3,24 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Eye, EyeOff, Lock, Mail, ArrowRight } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
-import apiClient from "@/services/apiClient";
-import { ROUTES } from "@/constants/routes";
+import { ArrowRight, Eye, EyeOff, Lock, Mail, ShieldCheck } from "lucide-react";
+import PublicAuthShell from "@/components/public/PublicAuthShell";
 import PublicSiteFrame from "@/components/public/PublicSiteFrame";
+import { publicMutedPanelClassName, publicPanelClassName } from "@/components/public/publicStyles";
+import { ROUTES } from "@/constants/routes";
+import { useAuth } from "@/context/AuthContext";
 import { usePublicPageData } from "@/hooks/usePublicPageData";
+import { getApiErrorMessage, getApiErrorStatus, isApiConnectivityError } from "@/lib/api-errors";
+import apiClient from "@/services/apiClient";
 
 type LoginPageContent = {
   title: string;
   subtitle: string;
   loginButtonLabel: string;
+  authEyebrow: string;
+  authAsideTitle: string;
+  authAsideBody: string;
+  authBadges: string[];
 };
 
 const resolveSafeNextPath = (value: string | null): string | null => {
@@ -25,94 +32,36 @@ const resolveSafeNextPath = (value: string | null): string | null => {
 };
 
 export default function LoginPage() {
-  const pageContent: LoginPageContent = {
-    title: "Welcome Back",
-    subtitle: "Login to your Uabindia ERP account to continue",
-    loginButtonLabel: "Login",
-  };
-  const { profile, headerContent, footerContent } = usePublicPageData("login");
+  const { profile, headerContent, footerContent, parseContent } = usePublicPageData("login");
+  const pageContent = parseContent<LoginPageContent>({
+    title: "Sign in to your workspace",
+    subtitle: "Access ERP, payroll, HR, and operational workflows from one secure tenant-aware entry point.",
+    loginButtonLabel: "Sign in",
+    authEyebrow: "Secure access",
+    authAsideTitle: "Built for controlled access",
+    authAsideBody:
+      "Use this page to present a secure, trustworthy handoff into the tenant workspace while preserving brand tone.",
+    authBadges: ["Audit-aware login", "Tenant-scoped access", "Modern workspace"],
+  });
 
   return (
     <PublicSiteFrame profile={profile} headerContent={headerContent} footerContent={footerContent}>
-      <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-(--erp-canvas) px-4 py-16 sm:px-6">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 h-96 w-96 rounded-full bg-blue-100 mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" />
-          <div className="absolute -bottom-32 -left-32 h-80 w-80 rounded-full bg-indigo-100 mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{ animationDelay: "2s" }} />
-          <div className="absolute top-1/2 left-1/2 h-72 w-72 rounded-full bg-purple-100 mix-blend-multiply filter blur-3xl opacity-10" />
-        </div>
-
-        <div className="relative w-full max-w-6xl grid md:grid-cols-2 gap-8 lg:gap-12 items-center">
-          <div className="hidden md:flex flex-col justify-center space-y-8">
-            <div className="space-y-6">
-              <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-linear-to-br from-slate-900 to-slate-700 shadow-xl">
-                <img
-                  src={profile.logoUrl || "/logo.png?v=uabindia-20260205"}
-                  alt={`${profile.brandName || "Uabindia ERP"} logo`}
-                  width={56}
-                  height={56}
-                  className="h-8 w-8 object-contain"
-                />
-              </div>
-
-              <div className="space-y-4">
-                <h2 className="text-4xl font-bold tracking-tight text-slate-900">
-                  {profile.brandName || "Uabindia ERP"}
-                </h2>
-                <p className="text-lg text-slate-600 leading-relaxed">
-                  Streamline your business operations with our comprehensive Uabindia ERP solution. Manage projects, resources, and workflows efficiently.
-                </p>
-              </div>
-
-              <div className="space-y-3 pt-4">
-                {[
-                  { label: "Real-time Analytics", icon: "📊" },
-                  { label: "Team Collaboration", icon: "👥" },
-                  { label: "Secure & Reliable", icon: "🔒" },
-                ].map((feature) => (
-                  <div key={feature.label} className="flex items-center gap-3">
-                    <span className="text-xl">{feature.icon}</span>
-                    <span className="text-sm font-medium text-slate-700">{feature.label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur p-6 space-y-3">
-              <p className="text-sm text-slate-700 italic">
-                &quot;This Uabindia ERP system has transformed how we manage our operations.&quot;
-              </p>
-              <p className="text-sm font-semibold text-slate-900">Shailesh Kumar</p>
-              <p className="text-xs text-slate-500">Operations Director</p>
-            </div>
-          </div>
-
-          <div className="w-full max-w-sm">
-            <div className="md:hidden mb-8 flex items-center justify-center gap-3">
-              <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-linear-to-br from-slate-900 to-slate-700 shadow-xl">
-                <img
-                  src={profile.logoUrl || "/logo.png?v=uabindia-20260205"}
-                  alt={`${profile.brandName || "Uabindia ERP"} logo`}
-                  width={56}
-                  height={56}
-                  className="h-8 w-8 object-contain"
-                />
-              </div>
-              <span className="text-xl font-bold text-slate-900">{profile.brandName || "Uabindia ERP"}</span>
-            </div>
-
-            <div className="mb-8 text-center md:text-left">
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900">
-                {pageContent.title}
-              </h1>
-              <p className="mt-3 text-base text-slate-600">
-                {pageContent.subtitle}
-              </p>
-            </div>
-
-            <LoginForm pageContent={pageContent} />
-          </div>
-        </div>
-      </div>
+      <PublicAuthShell
+        profile={profile}
+        eyebrow={pageContent.authEyebrow}
+        title={pageContent.title}
+        subtitle={pageContent.subtitle}
+        badges={pageContent.authBadges}
+        asideTitle={pageContent.authAsideTitle}
+        asideBody={pageContent.authAsideBody}
+        metrics={[
+          { label: "Support", value: profile.supportTier || "Premium" },
+          { label: "Coverage", value: profile.supportHours },
+          { label: "Security", value: "Role-based" },
+        ]}
+      >
+        <LoginForm pageContent={pageContent} />
+      </PublicAuthShell>
     </PublicSiteFrame>
   );
 }
@@ -175,28 +124,39 @@ function LoginForm({ pageContent }: { pageContent: LoginPageContent }) {
         setError(res.data?.message || "Login failed");
       }
     } catch (err: unknown) {
-      const message =
-        typeof err === "object" &&
-        err !== null &&
-        "message" in err &&
-        typeof err.message === "string"
-          ? err.message
-          : "Login failed";
-      setError(message);
+      const status = getApiErrorStatus(err);
+
+      setError(
+        isApiConnectivityError(err)
+          ? "Login service is unreachable. Configure API_BASE_URL or BACKEND_INTERNAL_URL for this environment, or run the backend on localhost:5000 in local development."
+          : status === 401
+            ? getApiErrorMessage(err, "Invalid email or password.")
+            : getApiErrorMessage(err, "Login failed. Please check your credentials and API connection.")
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white shadow-2xl p-8 space-y-6">
+    <div className={`${publicPanelClassName} p-7 sm:p-8`}>
+      <div className="mb-7 flex items-center gap-3">
+        <div className="inline-flex h-11 w-11 items-center justify-center rounded-[1rem] bg-[linear-gradient(135deg,#0b4f8c,#0f6fa8)] text-white shadow-[0_14px_30px_rgba(11,79,140,0.2)]">
+          <ShieldCheck className="h-5 w-5" />
+        </div>
+        <div>
+          <h2 className="text-xl font-semibold tracking-[-0.03em] text-slate-950">Workspace sign-in</h2>
+          <p className="text-sm text-slate-600">Use your assigned business email and password.</p>
+        </div>
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="space-y-2">
           <label htmlFor="email" className="block text-sm font-semibold text-slate-900">
-            Email Address
+            Email address
           </label>
           <div className="relative group">
-            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-slate-900 transition" />
+            <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-900 transition" />
             <input
               id="email"
               name="email"
@@ -205,7 +165,7 @@ function LoginForm({ pageContent }: { pageContent: LoginPageContent }) {
               onChange={(e) => setUserId(e.target.value)}
               placeholder="you@company.com"
               autoComplete="email"
-              className="w-full rounded-lg border border-slate-300 bg-white pl-12 pr-4 py-3 text-slate-900 placeholder-slate-400 transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 hover:border-slate-400"
+              className="w-full rounded-[1.15rem] border border-slate-300 bg-white pl-12 pr-4 py-3 text-slate-900 placeholder-slate-400 transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
               disabled={isLoading}
             />
           </div>
@@ -216,7 +176,7 @@ function LoginForm({ pageContent }: { pageContent: LoginPageContent }) {
             Password
           </label>
           <div className="relative group">
-            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-slate-900 transition" />
+            <Lock className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-900 transition" />
             <input
               id="password"
               name="password"
@@ -225,25 +185,21 @@ function LoginForm({ pageContent }: { pageContent: LoginPageContent }) {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
               autoComplete="current-password"
-              className="w-full rounded-lg border border-slate-300 bg-white pl-12 pr-12 py-3 text-slate-900 placeholder-slate-400 transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 hover:border-slate-400"
+              className="w-full rounded-[1.15rem] border border-slate-300 bg-white pl-12 pr-12 py-3 text-slate-900 placeholder-slate-400 transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
               disabled={isLoading}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-900 transition"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-900"
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
-              {showPassword ? (
-                <EyeOff className="h-5 w-5" />
-              ) : (
-                <Eye className="h-5 w-5" />
-              )}
+              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
             </button>
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               id="remember"
@@ -256,24 +212,22 @@ function LoginForm({ pageContent }: { pageContent: LoginPageContent }) {
             />
             <span className="text-sm font-medium text-slate-700">Remember me</span>
           </label>
-          <Link href="/forgot-password" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition">
+          <Link href="/forgot-password" className="text-sm font-semibold text-(--erp-primary) transition hover:text-(--erp-primary-hover)">
             Forgot password?
           </Link>
         </div>
 
-        {error && (
-          <div className="rounded-lg border border-red-300 bg-red-50 p-4 animate-shake">
-            <p className="flex items-center gap-2 text-sm text-red-700 font-medium">
-              <span className="shrink-0">⚠️</span>
-              {error}
-            </p>
+        {error ? (
+          <div className="rounded-[1.15rem] border border-rose-200 bg-rose-50 p-4">
+            <p className="text-sm font-medium text-rose-700">{error}</p>
           </div>
-        )}
+        ) : null}
 
+        <div className="flex justify-center pt-1">
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full rounded-lg bg-linear-to-r from-slate-900 to-slate-800 py-3 px-4 font-semibold text-white shadow-lg transition hover:shadow-xl hover:from-slate-800 hover:to-slate-700 disabled:opacity-70 disabled:cursor-not-allowed active:scale-[0.98] flex items-center justify-center gap-2 group"
+          className="inline-flex min-w-[14rem] items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#0b4f8c,#0f6fa8)] px-8 py-3 font-semibold text-white shadow-[0_16px_40px_rgba(11,79,140,0.2)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {isLoading ? (
             <>
@@ -283,15 +237,19 @@ function LoginForm({ pageContent }: { pageContent: LoginPageContent }) {
           ) : (
             <>
               {pageContent.loginButtonLabel}
-              <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition" />
+              <ArrowRight className="h-4 w-4" />
             </>
           )}
         </button>
+        </div>
       </form>
 
-      <p className="mt-6 text-center text-xs text-slate-500 flex items-center justify-center gap-1">
-        🔒 This is a secure system. Unauthorized access is prohibited.
-      </p>
+      <div className={`${publicMutedPanelClassName} mt-6 p-4`}>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Security note</p>
+        <p className="mt-2 text-sm leading-6 text-slate-600">
+          This is a controlled enterprise system. Authentication activity may be logged and reviewed.
+        </p>
+      </div>
     </div>
   );
 }

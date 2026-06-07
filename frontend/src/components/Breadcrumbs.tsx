@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { ROUTES } from "@/constants/routes";
 
 const LABEL_MAP: Record<string, string> = {
-  erp: "Operations",
+  erp: "Workspace",
   hrms: "HR",
   payroll: "Payroll",
   reports: "Analytics & Reports",

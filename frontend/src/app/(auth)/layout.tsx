@@ -1,7 +1,8 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { getServerApiV1BaseUrl } from "@/lib/api-base-url";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_BASE_URL = getServerApiV1BaseUrl();
 
 const getHostname = async () => {
   const host = (await headers()).get("host") || "";
@@ -31,7 +32,7 @@ export default async function AuthLayout({
 
     try {
       const res = await fetch(
-        `${API_BASE_URL}/api/v1/tenants/resolve?subdomain=${encodeURIComponent(subdomain)}`,
+        `${API_BASE_URL}/tenants/resolve?subdomain=${encodeURIComponent(subdomain)}`,
         { cache: "no-store" }
       );
 

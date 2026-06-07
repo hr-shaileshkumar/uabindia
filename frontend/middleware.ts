@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { getServerApiV1BaseUrl } from "@/lib/api-base-url";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_BASE_URL = getServerApiV1BaseUrl();
 const PROTECTED_PREFIXES = [
   "/erp",
   "/platform",
@@ -79,7 +80,7 @@ export async function middleware(request: NextRequest) {
     }
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/tenants/resolve?subdomain=${encodeURIComponent(subdomain)}`);
+      const res = await fetch(`${API_BASE_URL}/tenants/resolve?subdomain=${encodeURIComponent(subdomain)}`);
       if (!res.ok) {
         return NextResponse.redirect(new URL("/tenant-not-found", request.url));
       }

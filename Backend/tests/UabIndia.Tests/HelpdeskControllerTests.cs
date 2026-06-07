@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Security.Claims;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -47,7 +48,7 @@ namespace UabIndia.Tests
 
             var list = await controller.ListTickets(limit: 10);
             var ok = Assert.IsType<OkObjectResult>(list);
-            var payload = ok.Value?.ToString();
+            var payload = JsonSerializer.Serialize(ok.Value);
             Assert.NotNull(payload);
             Assert.Contains("VPN access issue", payload, StringComparison.Ordinal);
         }

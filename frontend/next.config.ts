@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
+import { getServerApiOrigin } from "./src/lib/server-api-base-url";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-const normalizedApiBase = API_BASE_URL.replace(/\/+$/, "");
+const normalizedApiBase = getServerApiOrigin();
 
 const nextConfig: NextConfig = {
   turbopack: {
@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/api/:path*",
-        destination: `${normalizedApiBase}/api/:path*`,
+        destination: normalizedApiBase ? `${normalizedApiBase}/api/:path*` : "http://localhost:5000/api/:path*",
       },
     ];
   },

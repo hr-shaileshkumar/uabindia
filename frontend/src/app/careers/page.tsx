@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { BriefcaseBusiness, MapPin, Users } from "lucide-react";
 import PublicButtonLink from "@/components/public/PublicButtonLink";
 import PublicPageIntro from "@/components/public/PublicPageIntro";
 import PublicSiteFrame from "@/components/public/PublicSiteFrame";
-import { publicPanelClassName } from "@/components/public/publicStyles";
+import { publicMutedPanelClassName, publicPanelClassName, publicSectionClassName } from "@/components/public/publicStyles";
 import { clientJobs } from "@/data/clientProfile";
 import { usePublicPageData } from "@/hooks/usePublicPageData";
 import { getRawMarkupContent } from "@/lib/publicSiteContent";
@@ -15,7 +16,6 @@ type JobCard = {
   company: string;
   location: string;
   type: string;
-  salary?: string;
 };
 
 type CareersContent = {
@@ -35,41 +35,18 @@ const formatJobType = (jobType?: string) => {
   return spaced.replace(/\s+/g, " ").trim();
 };
 
-const formatSalaryRange = (job: PublicJobPosting) => {
-  if (typeof job.minSalary === "number" && typeof job.maxSalary === "number") {
-    return `INR ${job.minSalary.toLocaleString()} - ${job.maxSalary.toLocaleString()}`;
-  }
-
-  if (typeof job.minSalary === "number") {
-    return `INR ${job.minSalary.toLocaleString()}+`;
-  }
-
-  return undefined;
-};
-
-const hiringFilters = ["All", "Finance", "HR", "Operations", "Compliance"];
-
-const joinBenefits = [
-  { title: "Career growth", description: "Structured learning pathways for enterprise professionals." },
-  { title: "Modern Uabindia ERP", description: "Work on a secure, live tenant-based Uabindia ERP platform." },
-  { title: "Collaborative culture", description: "Cross-functional teams aligned to business outcomes." },
-];
-
 export default function CareersPage() {
   const { profile, pageRecord, headerContent, footerContent, parseContent } = usePublicPageData("career");
   const [jobs, setJobs] = useState<JobCard[]>(clientJobs);
-  const [activeFilter, setActiveFilter] = useState("All");
   const content = parseContent<CareersContent>({
     eyebrow: "Careers",
-    title: `Build your career with ${profile.companyName}`,
-    subtitle:
-      "Open roles for Uabindia ERP, finance, HR, operations, and compliance teams working across modern enterprise workflows.",
+    title: `Build your next chapter with ${profile.companyName}`,
+    subtitle: "Open roles across ERP delivery, finance, HR operations, and platform support.",
     applyLabel: "Apply now",
     emptyTitle: "No openings published yet",
-    emptySubtitle: "We will publish recruitment opportunities here once the team publishes openings.",
-    processTitle: "Recruitment process",
-    processBody:
-      "Our application process includes screening, live interviews, role approvals, and onboarding readiness—all aligned with enterprise standards.",
+    emptySubtitle: "This page is ready as soon as the team publishes active roles.",
+    processTitle: "Hiring process",
+    processBody: "Screening, interviews, and onboarding are handled with clear steps and business alignment.",
   });
   const rawMarkup = getRawMarkupContent(pageRecord?.contentJson);
 
@@ -88,7 +65,6 @@ export default function CareersPage() {
             company: profile.companyName,
             location: job.location || "Remote",
             type: formatJobType(job.jobType),
-            salary: formatSalaryRange(job),
           }))
         );
       })
@@ -99,120 +75,75 @@ export default function CareersPage() {
     };
   }, [profile.companyName]);
 
-  const visibleJobs = useMemo(
-    () =>
-      jobs.filter((job) => {
-        if (activeFilter === "All") return true;
-        return (
-          job.type.toLowerCase().includes(activeFilter.toLowerCase()) ||
-          job.location.toLowerCase().includes(activeFilter.toLowerCase())
-        );
-      }),
-    [activeFilter, jobs]
-  );
+  const visibleJobs = useMemo(() => jobs, [jobs]);
 
   return (
     <PublicSiteFrame profile={profile} headerContent={headerContent} footerContent={footerContent}>
-      <section className="mx-auto max-w-7xl px-5 py-16 lg:px-6">
-        <div className="grid gap-14 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="space-y-8">
+      <section className="py-18 sm:py-22">
+        <div className={`${publicSectionClassName} grid gap-8 lg:grid-cols-[1.05fr_0.95fr]`}>
+          <div className="space-y-7">
             <PublicPageIntro eyebrow={content.eyebrow} title={content.title} subtitle={content.subtitle} />
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Immediate roles</p>
-                <p className="mt-4 text-3xl font-semibold text-slate-900">{visibleJobs.length}</p>
-              </div>
-              <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Teams hiring</p>
-                <p className="mt-4 text-3xl font-semibold text-slate-900">Uabindia ERP</p>
-              </div>
-              <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Work style</p>
-                <p className="mt-4 text-3xl font-semibold text-slate-900">Hybrid</p>
-              </div>
-            </div>
           </div>
 
-          <div className={`${publicPanelClassName} p-8`}>
-            <h2 className="text-lg font-semibold text-slate-900">Why join us</h2>
-            <p className="mt-4 text-sm leading-7 text-slate-600">
-              Join a platform-focused team delivering Uabindia ERP value across finance, HR, and operations.
-            </p>
-            <div className="mt-8 grid gap-4">
-              {joinBenefits.map((item) => (
-                <div key={item.title} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                  <p className="text-sm font-semibold text-slate-900">{item.title}</p>
-                  <p className="mt-2 text-sm text-slate-600">{item.description}</p>
-                </div>
+          <div className={`${publicMutedPanelClassName} p-7`}>
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">{content.processTitle}</p>
+            <p className="mt-3 text-sm leading-7 text-slate-600">{content.processBody}</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="pb-18 sm:pb-22">
+        <div className={publicSectionClassName}>
+          {visibleJobs.length > 0 ? (
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {visibleJobs.map((item) => (
+                <article key={`${item.role}-${item.location}`} className={`${publicPanelClassName} flex h-full flex-col p-6`}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h2 className="text-xl font-semibold tracking-[-0.03em] text-slate-950">{item.role}</h2>
+                      <p className="mt-1 text-sm text-slate-600">{item.company}</p>
+                    </div>
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
+                      {item.type}
+                    </span>
+                  </div>
+
+                  <div className="mt-5 grid gap-2 text-sm text-slate-600">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-slate-400" />
+                      <span>{item.location}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <BriefcaseBusiness className="h-4 w-4 text-slate-400" />
+                      <span>{item.type}</span>
+                    </div>
+                  </div>
+
+                  <PublicButtonLink href="/contact" className="mt-6 w-full justify-center">
+                    {content.applyLabel}
+                  </PublicButtonLink>
+                </article>
               ))}
             </div>
-          </div>
+          ) : (
+            <div className={`${publicPanelClassName} p-10 text-center`}>
+              <Users className="mx-auto h-10 w-10 text-slate-400" />
+              <h2 className="mt-4 text-2xl font-semibold tracking-[-0.03em] text-slate-950">{content.emptyTitle}</h2>
+              <p className="mt-3 text-sm leading-7 text-slate-600">{content.emptySubtitle}</p>
+            </div>
+          )}
         </div>
-
-        <div className="mt-10 rounded-[1.75rem] border border-slate-200 bg-slate-50 p-6">
-          <div className="flex flex-wrap items-center gap-3 text-sm leading-6 text-slate-600">
-            <span className="font-semibold text-slate-900">Filter by</span>
-            {hiringFilters.map((filter) => (
-              <button
-                key={filter}
-                type="button"
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                  activeFilter === filter
-                    ? "bg-(--erp-primary) text-white"
-                    : "bg-white text-slate-700 shadow-sm"
-                }`}
-                onClick={() => setActiveFilter(filter)}
-              >
-                {filter}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {visibleJobs.length > 0 ? (
-          <div className="mt-8 grid gap-6 md:grid-cols-2">
-            {visibleJobs.map((item) => (
-              <div key={`${item.role}-${item.location}`} className={`${publicPanelClassName} p-6`}>
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-lg font-semibold text-slate-900">{item.role}</h2>
-                    <p className="mt-1 text-sm text-slate-600">{item.company}</p>
-                  </div>
-                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
-                    {item.type}
-                  </span>
-                </div>
-                <p className="mt-4 text-sm leading-6 text-slate-600">
-                  Deliver Uabindia ERP impact across workflows and support teams with a blend of process and product experience.
-                </p>
-                <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-500">
-                  <span className="rounded-full bg-slate-100 px-3 py-1">{item.location}</span>
-                  {item.salary ? <span className="rounded-full bg-slate-100 px-3 py-1">{item.salary}</span> : null}
-                </div>
-                <PublicButtonLink href="/contact" variant="primary" className="mt-4 w-full text-center">
-                  {content.applyLabel}
-                </PublicButtonLink>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="mt-8 rounded-[1.75rem] border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm">
-            <h2 className="text-xl font-semibold text-slate-900">{content.emptyTitle}</h2>
-            <p className="mt-3 text-sm text-slate-600">{content.emptySubtitle}</p>
-          </div>
-        )}
-
-        <div className={`${publicPanelClassName} mt-10 p-6`}>
-          <h2 className="text-lg font-semibold text-slate-900">{content.processTitle}</h2>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">{content.processBody}</p>
-        </div>
-
-        {rawMarkup && (
-          <div className={`prose mt-10 max-w-none p-8 ${publicPanelClassName}`}>
-            <div dangerouslySetInnerHTML={{ __html: rawMarkup }} />
-          </div>
-        )}
       </section>
+
+      {rawMarkup ? (
+        <section className="py-12">
+          <div className={publicSectionClassName}>
+            <div className={`prose max-w-none p-8 ${publicPanelClassName}`}>
+              <div dangerouslySetInnerHTML={{ __html: rawMarkup }} />
+            </div>
+          </div>
+        </section>
+      ) : null}
     </PublicSiteFrame>
   );
 }

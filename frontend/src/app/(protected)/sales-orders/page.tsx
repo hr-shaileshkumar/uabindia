@@ -186,7 +186,7 @@ export default function SalesOrdersPage() {
     <StandardPageLayout
       title="Sales Orders"
       subtitle="Manage customer commitments, fulfillment readiness, and commercial order value with one standardized transaction workspace."
-      eyebrow="Operations / Commercial Orders"
+      eyebrow="Sales & CRM / Sales Orders"
       icon="briefcase"
       actions={
         canCreateSalesOrder ? (

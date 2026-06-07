@@ -119,7 +119,7 @@ export default function DocumentsPage() {
       <StandardPageLayout
         title="Documents"
         subtitle="Employee, project, and report artifacts in one controlled workspace."
-        eyebrow="Operations / Document Control"
+        eyebrow="Workspace / Document Control"
         icon="file"
         actions={
           <button

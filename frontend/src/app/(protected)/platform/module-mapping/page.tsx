@@ -107,7 +107,7 @@ export default function ModuleMappingPage() {
     clearModuleMappingOverrides();
     setSavedOverrides({});
     setDraftOverrides({});
-    notifySuccess("Reset to default ERP registry.");
+    notifySuccess("Reset to default navigation registry.");
   };
 
   const selectedLabel =

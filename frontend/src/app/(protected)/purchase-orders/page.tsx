@@ -183,7 +183,7 @@ export default function PurchaseOrdersPage() {
     <StandardPageLayout
       title="Purchase Orders"
       subtitle="Run procurement transactions with a clean Fiori-style workspace for monitoring, approval, and receipt status."
-      eyebrow="Operations / Procurement"
+      eyebrow="Procurement / Purchase Orders"
       icon="box"
       actions={
         canCreatePurchaseOrder ? (

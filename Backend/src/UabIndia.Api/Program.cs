@@ -151,11 +151,23 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("default", policy =>
     {
-        var origins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
-        policy.WithOrigins(origins)
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
+        var origins = GetAllowedCorsOrigins(configuration);
+        if (builder.Environment.IsDevelopment())
+        {
+            policy.SetIsOriginAllowed(origin =>
+                    origins.Any(allowed => string.Equals(allowed, origin, StringComparison.OrdinalIgnoreCase)) ||
+                    IsAllowedDevelopmentOrigin(origin))
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
+        }
+        else
+        {
+            policy.WithOrigins(origins)
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
+        }
     });
 });
 
@@ -499,9 +511,17 @@ if (!app.Environment.IsEnvironment("Test"))
 
     try
     {
-        await migrationDb.Database.MigrateAsync();
-        await EnsureSchemaCompatibilityAsync(migrationDb, migrationLogger);
-        migrationLogger.LogInformation("Database migrations applied successfully at startup.");
+        if (migrationDb.Database.IsRelational())
+        {
+            await migrationDb.Database.MigrateAsync();
+            await EnsureSchemaCompatibilityAsync(migrationDb, migrationLogger);
+            migrationLogger.LogInformation("Database migrations applied successfully at startup.");
+        }
+        else
+        {
+            migrationLogger.LogInformation("Skipping relational database migrations for provider {ProviderName}.",
+                migrationDb.Database.ProviderName);
+        }
     }
     catch (Exception ex)
     {
@@ -974,24 +994,29 @@ app.Use(async (context, next) =>
     
     if (isStateChanging)
     {
-        var allowedOrigins = new[]
-        {
-            "http://localhost:3000",   // Development frontend
-            "http://localhost:5173",   // Vite dev server
-            "https://hrms.uabindia.com", // Production domain
-            builder.Configuration["CORS:AllowedOrigin"] ?? ""
-        };
+        var allowedOrigins = GetAllowedCorsOrigins(builder.Configuration);
+        var legacyAllowedOrigin = builder.Configuration["CORS:AllowedOrigin"];
 
         var origin = context.Request.Headers["Origin"].ToString();
         var referer = context.Request.Headers["Referer"].ToString();
+
+        if (string.IsNullOrWhiteSpace(origin) && string.IsNullOrWhiteSpace(referer))
+        {
+            await next();
+            return;
+        }
         
         // Check if origin matches allowed origins
-        var isValidOrigin = !string.IsNullOrEmpty(origin) && 
-                           allowedOrigins.Any(allowed => origin.StartsWith(allowed, StringComparison.OrdinalIgnoreCase));
+        var isValidOrigin = !string.IsNullOrEmpty(origin) &&
+                           (allowedOrigins.Any(allowed => string.Equals(origin, allowed, StringComparison.OrdinalIgnoreCase)) ||
+                            (!string.IsNullOrWhiteSpace(legacyAllowedOrigin) && string.Equals(origin, legacyAllowedOrigin, StringComparison.OrdinalIgnoreCase)) ||
+                            (app.Environment.IsDevelopment() && IsAllowedDevelopmentOrigin(origin)));
         
         // Fallback to referer check if origin is missing (some API clients don't send Origin)
         var isValidReferer = string.IsNullOrEmpty(origin) && !string.IsNullOrEmpty(referer) &&
-                            allowedOrigins.Any(allowed => referer.StartsWith(allowed, StringComparison.OrdinalIgnoreCase));
+                            (allowedOrigins.Any(allowed => referer.StartsWith(allowed, StringComparison.OrdinalIgnoreCase)) ||
+                             (!string.IsNullOrWhiteSpace(legacyAllowedOrigin) && referer.StartsWith(legacyAllowedOrigin, StringComparison.OrdinalIgnoreCase)) ||
+                             (app.Environment.IsDevelopment() && IsAllowedDevelopmentOrigin(referer)));
         
         if (!isValidOrigin && !isValidReferer)
         {
@@ -1010,8 +1035,8 @@ app.UseMiddleware<CsrfValidationMiddleware>();
 // File upload validation (size/type limits)
 app.UseMiddleware<FileUploadValidationMiddleware>();
 
-// Structured request logging
-app.UseMiddleware<RequestLoggingMiddleware>();
+// Structured request/response logging
+app.UseMiddleware<RequestResponseLoggingMiddleware>();
 
 app.UseRateLimiter();
 
@@ -1486,6 +1511,12 @@ app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.Health
     Predicate = check => check.Tags.Contains("db")
 });
 
+if (app.Environment.IsDevelopment())
+{
+    app.MapGet("/", () => Results.Redirect("http://localhost:3000"));
+    app.MapGet("/login", () => Results.Redirect("http://localhost:3000/login"));
+}
+
 app.MapControllers();
 
 app.Run();
@@ -1575,6 +1606,59 @@ END;";
     {
         logger.LogInformation("Schema compatibility check completed.");
     }
+}
+
+static bool IsAllowedDevelopmentOrigin(string originOrReferer)
+{
+    if (string.IsNullOrWhiteSpace(originOrReferer))
+    {
+        return false;
+    }
+
+    if (!Uri.TryCreate(originOrReferer, UriKind.Absolute, out var uri))
+    {
+        return false;
+    }
+
+    if (!string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
+        !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+    {
+        return false;
+    }
+
+    var host = uri.Host.ToLowerInvariant();
+    if (host is "localhost" or "127.0.0.1" or "0.0.0.0" or "::1" || host.EndsWith(".localhost"))
+    {
+        return true;
+    }
+
+    if (System.Net.IPAddress.TryParse(host, out var ip) &&
+        ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+    {
+        var bytes = ip.GetAddressBytes();
+        return bytes[0] == 10 ||
+               (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31) ||
+               (bytes[0] == 192 && bytes[1] == 168);
+    }
+
+    return false;
+}
+
+static string[] GetAllowedCorsOrigins(ConfigurationManager configuration)
+{
+    var configuredOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+    var csvOrigins = configuration["Cors:AllowedOriginsCsv"]
+        ?? configuration["Cors__AllowedOriginsCsv"]
+        ?? configuration["CORS_ALLOWED_ORIGINS"];
+
+    var combinedOrigins = configuredOrigins
+        .Concat((csvOrigins ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        .Where(origin => !string.IsNullOrWhiteSpace(origin))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
+
+    return combinedOrigins;
 }
 
 public partial class Program

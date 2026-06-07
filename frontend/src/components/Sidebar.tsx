@@ -6,6 +6,7 @@ import { useLayoutEffect, useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import ModuleIcon from "@/components/ModuleIcon";
 import { ROUTES } from "@/constants/routes";
+import { FALLBACK_MODULE_META } from "@/config/fallback-module-registry";
 
 export interface SidebarProps {
   modules: Module[];
@@ -22,9 +23,12 @@ export interface SidebarProps {
 type GroupedSubModules = { label: string; items: NonNullable<Module["subModules"]> };
 type SidebarShortcut = { key: string; label: string; href: string; icon: "star" | "clock" | "file" | "users" | "wallet" | "chart" | "grid" | "shield" | "layers" };
 
-const MODULE_ORDER = ["operations", "hrms", "payroll", "reports", "platform", "licensing", "security", "integrations", "helpdesk", "communication"] as const;
+const MODULE_ORDER = FALLBACK_MODULE_META.map((module) => module.key);
 const SIDEBAR_COLLAPSED_STORAGE_KEY = "erp.sidebar.collapsed";
 const RECENT_ITEMS_STORAGE_KEY = "erp.sidebar.recent-items";
+const MODULE_META_MAP = new Map<string, (typeof FALLBACK_MODULE_META)[number]>(
+  FALLBACK_MODULE_META.map((module) => [module.key, module])
+);
 
 function sortModules(list: Module[]): Module[] {
   const rank = new Map<string, number>(MODULE_ORDER.map((k, i) => [k, i]));
@@ -36,37 +40,13 @@ function sortModules(list: Module[]): Module[] {
 }
 
 function getDisplayModuleName(module: Module): string {
+  const fallbackLabel = MODULE_META_MAP.get(module.key)?.label?.trim();
+  if (fallbackLabel) return fallbackLabel;
+
   const displayName = module.displayName?.trim();
-  const normalizedDisplayName = displayName?.toLowerCase().replace(/\s+/g, " ");
-
-  if (module.key === "operations") {
-    if (!displayName || ["operations", "erp", "erp workspace", "erp dashboard"].includes(normalizedDisplayName || "")) {
-      return "Workspace";
-    }
-    return displayName;
-  }
-
   if (displayName) return displayName;
   if (module.name?.trim()) return module.name;
-
-  switch (module.key) {
-    case "operations":
-      return "Workspace";
-    case "hrms":
-      return "HRMS";
-    case "payroll":
-      return "Finance";
-    case "reports":
-      return "Analytics & Reports";
-    case "platform":
-      return "Admin";
-    case "licensing":
-      return "Licensing";
-    case "security":
-      return "Security";
-    default:
-      return module.name;
-  }
+  return MODULE_META_MAP.get(module.key)?.label || module.key;
 }
 
 function getDefaultGroupLabel(moduleKey: string): string {
@@ -76,15 +56,23 @@ function getDefaultGroupLabel(moduleKey: string): string {
     case "hrms":
       return "HRMS";
     case "payroll":
-      return "Finance";
+      return "Payroll";
     case "reports":
       return "Analytics & Reports";
     case "platform":
-      return "Admin";
+      return "Admin Console";
     case "licensing":
       return "Product";
     case "security":
       return "Security";
+    case "erp_finance":
+      return "Finance";
+    case "erp_procurement":
+      return "Procurement";
+    case "erp_sales":
+      return "Sales & CRM";
+    case "erp_inventory":
+      return "Inventory";
     default:
       return "Overview";
   }
@@ -155,6 +143,14 @@ function getModuleHomeHref(module: Module): string {
   }
 }
 
+function getResolvedModuleDescription(module: Module): string {
+  return module.description?.trim() || MODULE_META_MAP.get(module.key)?.description || getModuleDescription(module.key);
+}
+
+function getResolvedModuleHomeHref(module: Module): string {
+  return module.basePath?.trim() || MODULE_META_MAP.get(module.key)?.homeHref || getModuleHomeHref(module);
+}
+
 function isNavActive(pathname: string, href: string): boolean {
   if (pathname === href) return true;
   if (href.length > 1 && pathname.startsWith(`${href}/`)) return true;
@@ -180,7 +176,7 @@ export function Sidebar({
 
   const isCompact = !mobileMode && isCollapsed && !isHoverExpanded;
   const sidebarPanelClass = [
-    "erp-shell-sidebar erp-shell-sidebar-panel flex shrink-0 flex-col bg-white border-r border-slate-200",
+    "erp-shell-sidebar erp-shell-sidebar-panel flex h-full shrink-0 flex-col bg-white border-r border-slate-200",
     mobileMode
       ? "erp-shell-sidebar-mobile"
       : isCompact
@@ -289,13 +285,8 @@ export function Sidebar({
   }, [pathname]);
 
   const businessModulesAll = useMemo(() => {
-    if (variant === "user") {
-      const userAllowedModuleKeys = new Set<string>(["operations", "hrms", "payroll", "reports"]);
-      return sortModules(modules.filter((m) => userAllowedModuleKeys.has(m.key)));
-    }
-
     return sortModules(modules);
-  }, [modules, variant]);
+  }, [modules]);
 
   const isSearching = navQuery.trim().length > 0;
 
@@ -305,7 +296,7 @@ export function Sidebar({
     return businessModulesAll.filter((m) => {
       const name = getDisplayModuleName(m).toLowerCase();
       if (name.includes(q)) return true;
-      const desc = getModuleDescription(m.key).toLowerCase();
+      const desc = getResolvedModuleDescription(m).toLowerCase();
       if (desc.includes(q)) return true;
       const subMods = m.subModules || [];
       return subMods.some((sub) => sub.name.toLowerCase().includes(q) || (sub.group ?? "").toLowerCase().includes(q));
@@ -317,10 +308,8 @@ export function Sidebar({
   const getRenderableSubModules = useMemo(
     () => (moduleEntry: Module) => {
       const subModules = moduleEntry.subModules || [];
-      if (moduleEntry.key === "operations") {
-        return subModules.filter((sub) => sub.path !== ROUTES.DASHBOARD);
-      }
-      return subModules;
+      const homeHref = getResolvedModuleHomeHref(moduleEntry);
+      return subModules.filter((sub) => sub.path !== homeHref);
     },
     []
   );
@@ -340,7 +329,7 @@ export function Sidebar({
         return moduleEntry.key;
       }
 
-      const homeHref = getModuleHomeHref(moduleEntry);
+      const homeHref = getResolvedModuleHomeHref(moduleEntry);
       if (moduleEntry.key !== "operations" && isNavActive(pathname, homeHref)) {
         return moduleEntry.key;
       }
@@ -553,7 +542,7 @@ export function Sidebar({
   };
 
   const renderModule = (module: Module) => {
-    const homeHref = getModuleHomeHref(module);
+    const homeHref = getResolvedModuleHomeHref(module);
     const subModules = getRenderableSubModules(module);
     const hasSubModules = subModules.length > 0;
     const hasActiveSubModule = subModules.some((sub) => isNavActive(pathname, sub.path));

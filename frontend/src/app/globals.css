@@ -4,6 +4,8 @@
 :root {
   --background: #eef2f7;
   --foreground: #0f172a;
+  --font-space-grotesk: "Aptos Display", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-jetbrains-mono: "Cascadia Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 
   --erp-canvas: #eef2f7;
   --erp-surface: #ffffff;
@@ -1594,6 +1596,7 @@ body {
 
 .erp-shell-sidebar {
   width: auto;
+  height: 100%;
   max-width: min(26rem, 100vw);
   background: #ffffff;
   color: var(--erp-sidebar-text);
@@ -1861,7 +1864,7 @@ body {
 }
 
 .erp-shell-main {
-  @apply flex-1 min-w-0 overflow-y-auto border-l border-slate-200/70 bg-(--erp-canvas);
+  @apply flex-1 min-h-0 min-w-0 overflow-y-auto border-l border-slate-200/70 bg-(--erp-canvas);
 }
 
 .erp-shell-content-wrap {
