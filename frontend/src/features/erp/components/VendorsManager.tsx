@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import { hrApi } from "@/services/hrApi";
 
 type Vendor = {
   id: string;
@@ -26,12 +27,10 @@ type VendorForm = {
   creditLimit: number;
 };
 
-type VendorsManagerProps = {
-  api: any;
-};
+const vendorsApi = hrApi.erp.vendors;
 
-export default function VendorsManager({ api }: VendorsManagerProps) {
-    const { confirm, confirmDialog } = useConfirmDialog();
+export default function VendorsManager() {
+  const { confirm, confirmDialog } = useConfirmDialog();
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +48,7 @@ export default function VendorsManager({ api }: VendorsManagerProps) {
   const fetchVendors = async () => {
     try {
       setLoading(true);
-      const response = await api.getAll();
+      const response = await vendorsApi.getAll();
       setVendors(response.data?.data || []);
       setError(null);
     } catch (err: unknown) {
@@ -64,7 +63,7 @@ export default function VendorsManager({ api }: VendorsManagerProps) {
     const load = async () => {
       try {
         setLoading(true);
-        const response = await api.getAll();
+        const response = await vendorsApi.getAll();
         setVendors(response.data?.data || []);
         setError(null);
       } catch (err: unknown) {
@@ -76,7 +75,7 @@ export default function VendorsManager({ api }: VendorsManagerProps) {
     };
 
     void load();
-  }, [api]);
+  }, []);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -106,9 +105,9 @@ export default function VendorsManager({ api }: VendorsManagerProps) {
     try {
       setLoading(true);
       if (editingId) {
-        await api.update(editingId, formData);
+        await vendorsApi.update(editingId, formData);
       } else {
-        await api.create(formData);
+        await vendorsApi.create(formData);
       }
       setActiveTab("list");
       setEditingId(null);
@@ -145,7 +144,7 @@ export default function VendorsManager({ api }: VendorsManagerProps) {
     });
     if (!ok) return;
     try {
-      await api.delete(id);
+      await vendorsApi.delete(id);
       await fetchVendors();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to delete vendor";

@@ -203,7 +203,8 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
         const roles = Array.isArray((user as { roles?: unknown[] }).roles)
           ? ((user as { roles?: unknown[] }).roles as unknown[])
           : [];
-        const isSuperAdmin = roles.some((role) => isSuperAdminRole(role));
+        const roleCandidates = [...roles, (user as { role?: unknown }).role];
+        const isSuperAdmin = roleCandidates.some((role) => isSuperAdminRole(role));
         const companyRes = isSuperAdmin
           ? await apiClient.get("/companies/all")
           : await apiClient.get("/companies?page=1&limit=200");

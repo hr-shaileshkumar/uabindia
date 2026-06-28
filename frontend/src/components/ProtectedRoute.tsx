@@ -3,7 +3,8 @@
 import { useEffect, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { usePermissions } from "@/context/PermissionContext";
-import { canonicalizeProtectedPath, getRoutePermissionKeys, getRoutePermissionRule } from "@/config/route-permissions.config";
+import { useUiSchema } from "@/context/UiSchemaContext";
+import { getEffectiveRoutePermissionKeys } from "@/lib/erp/route-access";
 
 type ProtectedRouteProps = {
   allowed?: boolean;
@@ -23,6 +24,7 @@ export default function ProtectedRoute({
   const router = useRouter();
   const pathname = usePathname();
   const { hasPermission, loading: permissionLoading, fetchFailed: permissionFetchFailed } = usePermissions();
+  const { routeRules, loading: schemaLoading } = useUiSchema();
 
   const permissionKeys = permission
     ? Array.isArray(permission)
@@ -30,28 +32,28 @@ export default function ProtectedRoute({
       : [permission]
     : [];
 
-  const fallbackRouteKeys = useMemo(() => {
-    const canonicalPath = canonicalizeProtectedPath(pathname);
-    const rule = getRoutePermissionRule(canonicalPath);
-    return getRoutePermissionKeys(canonicalPath, rule?.moduleKey ?? null);
-  }, [pathname]);
+  const routePermissionKeys = useMemo(
+    () => getEffectiveRoutePermissionKeys(pathname, routeRules.rules) ?? [],
+    [pathname, routeRules.rules]
+  );
 
-  const permissionAllowed = permissionKeys.length > 0
-    ? hasPermission(permissionKeys) || hasPermission(fallbackRouteKeys)
-    : true;
-  const finalAllowed = permissionFetchFailed
-    ? true
-    : (typeof allowed === "boolean" ? allowed : permissionAllowed);
-  const finalLoading = loading || (permissionKeys.length > 0 && permissionLoading);
+  const combinedPermissionKeys = permissionKeys.length > 0
+    ? [...new Set([...permissionKeys, ...routePermissionKeys])]
+    : routePermissionKeys;
+  const permissionAllowed = combinedPermissionKeys.length > 0
+    ? hasPermission(combinedPermissionKeys)
+    : false;
+  const finalAllowed = typeof allowed === "boolean" ? allowed : permissionAllowed;
+  const finalLoading = loading || permissionLoading || schemaLoading;
 
   useEffect(() => {
     if (finalLoading) return;
-    if (!finalAllowed) {
+    if (permissionFetchFailed || !finalAllowed) {
       router.replace(redirectTo);
     }
-  }, [finalAllowed, finalLoading, redirectTo, router]);
+  }, [finalAllowed, finalLoading, permissionFetchFailed, redirectTo, router]);
 
   if (finalLoading) return null;
-  if (!finalAllowed) return null;
+  if (permissionFetchFailed || !finalAllowed) return null;
   return <>{children}</>;
 }

@@ -1,10 +1,8 @@
-"use client";
-
 import ProtectedRoute from "@/components/ProtectedRoute";
-import EmployeeForm from "@/features/hrms/components/EmployeeForm";
 import { PERMISSIONS } from "@/constants/permissions";
+import EmployeeForm from "@/features/hrms/components/EmployeeForm";
 
-export default function NewEmployeePage() {
+export default function EmployeeNewPage() {
   return (
     <ProtectedRoute permission={PERMISSIONS.EMPLOYEE_CREATE}>
       <EmployeeForm title="Add Employee" />

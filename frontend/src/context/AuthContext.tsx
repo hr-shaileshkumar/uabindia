@@ -1,9 +1,16 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 import apiClient from "@/services/apiClient";
 import type { User } from "@/types";
 import { isSuperAdminRole } from "@/lib/auth/role-utils";
+import {
+  AUTH_PATH_PREFIXES,
+  BUSINESS_PATH_PREFIXES,
+  OWNER_PATH_PREFIXES,
+  matchesAnyPrefix,
+} from "@/lib/erp/route-config";
 
 export type AuthUser = User & {
   id?: string;
@@ -66,6 +73,7 @@ const normalizeAuthUser = (payload: unknown): AuthUser | null => {
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
+const AUTH_CONTEXT_REQUIRED_PREFIXES = [...BUSINESS_PATH_PREFIXES, ...OWNER_PATH_PREFIXES, "/context"] as const;
 
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
@@ -76,25 +84,53 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const pathname = usePathname();
+  const currentPath = pathname || "/";
+  const requiresAuthBootstrap =
+    !matchesAnyPrefix(currentPath, AUTH_PATH_PREFIXES) &&
+    matchesAnyPrefix(currentPath, AUTH_CONTEXT_REQUIRED_PREFIXES);
+
+  useLayoutEffect(() => {
+    if (requiresAuthBootstrap) {
+      setLoading(true);
+    }
+  }, [requiresAuthBootstrap]);
 
   useEffect(() => {
+    let isActive = true;
+
     const load = async () => {
-      if (typeof window !== "undefined" && window.location.pathname.startsWith("/login")) {
-        setLoading(false);
+      if (!requiresAuthBootstrap) {
+        if (isActive) {
+          setLoading(false);
+        }
         return;
       }
+
+      if (isActive) {
+        setLoading(true);
+      }
+
       try {
         const res = await apiClient.get("/auth/me");
+        if (!isActive) return;
         setUser(normalizeAuthUser(res.data));
       } catch {
+        if (!isActive) return;
         setUser(null);
       } finally {
-        setLoading(false);
+        if (isActive) {
+          setLoading(false);
+        }
       }
     };
 
-    load();
-  }, []);
+    void load();
+
+    return () => {
+      isActive = false;
+    };
+  }, [requiresAuthBootstrap, pathname]);
 
   const refreshUser = async () => {
     try {
@@ -117,7 +153,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const isSuperAdmin = !!user?.roles?.some((role) => isSuperAdminRole(role));
+  const isSuperAdmin = !![...(user?.roles || []), user?.role].some((role) => isSuperAdminRole(role));
 
   const value = useMemo(
     () => ({

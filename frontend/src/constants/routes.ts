@@ -59,8 +59,6 @@ export const ROUTES = {
 
   // ── Admin Console (Platform) ─────────────────────────────────────────────────
   PLATFORM_HOME: "/platform",
-  SUPERADMIN_HOME: "/superadmin",
-  SUPERADMIN_DASHBOARD: "/superadmin/dashboard",
   // Tenant Management
   PLATFORM_COMPANIES: "/platform/companies",
   PLATFORM_TENANTS: "/platform/tenants",
@@ -116,6 +114,7 @@ export const ROUTES = {
   APPROVALS: "/erp/approvals",
   NOTIFICATIONS: "/erp/notifications",
   DOCUMENTS: "/erp/documents",
+  PROFILE: "/erp/profile",
 
   // ── Licensing ───────────────────────────────────────────────────────────────
   LICENSING_HOME: "/erp/licensing",

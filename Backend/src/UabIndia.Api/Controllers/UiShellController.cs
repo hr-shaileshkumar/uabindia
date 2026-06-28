@@ -24,11 +24,6 @@ namespace UabIndia.Api.Controllers
     [Authorize]
     public class UiShellController : ControllerBase
     {
-        private static readonly HashSet<string> FrozenModuleKeys = new(StringComparer.OrdinalIgnoreCase)
-        {
-            "erp", "hrms", "payroll", "reports", "platform", "licensing", "security"
-        };
-
         private readonly IUiSchemaService _schemaService;
         private readonly ITenantAccessor _tenantAccessor;
 
@@ -50,7 +45,7 @@ namespace UabIndia.Api.Controllers
             var richModules = await _schemaService.GetRichEnabledModulesAsync(tenantId);
 
             var enabledKeys = new HashSet<string>(
-                richModules.Select(m => m.Key).Where(k => FrozenModuleKeys.Contains(k)),
+                richModules.Select(m => m.Key),
                 StringComparer.OrdinalIgnoreCase);
 
             var schema = await _schemaService.GetNavigationSchemaAsync(enabledKeys);
@@ -81,7 +76,7 @@ namespace UabIndia.Api.Controllers
             var tenantId = _tenantAccessor.GetTenantId();
             var richModules = await _schemaService.GetRichEnabledModulesAsync(tenantId);
             var enabledKeys = new HashSet<string>(
-                richModules.Select(m => m.Key).Where(k => FrozenModuleKeys.Contains(k)),
+                richModules.Select(m => m.Key),
                 StringComparer.OrdinalIgnoreCase);
 
             var schema = await _schemaService.GetDashboardSchemaAsync(enabledKeys);

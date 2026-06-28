@@ -4,6 +4,7 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using System.Text.Json;
+using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using UabIndia.Application.Interfaces;
 using UabIndia.Infrastructure.Data;
@@ -17,6 +18,26 @@ namespace UabIndia.Api.Middleware
     /// </summary>
     public class AuditMiddleware
     {
+        private const int MaxCapturedBodyLength = 4000;
+
+        private static readonly HashSet<string> SensitiveJsonKeys = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "password",
+            "newPassword",
+            "confirmPassword",
+            "token",
+            "resetToken",
+            "passwordResetToken",
+            "refreshToken",
+            "access_token",
+            "refresh_token",
+            "authorization",
+            "cookie",
+            "secret",
+            "apiKey",
+            "clientSecret"
+        };
+
         private readonly RequestDelegate _next;
         private readonly ILogger<AuditMiddleware> _logger;
 
@@ -37,11 +58,8 @@ namespace UabIndia.Api.Middleware
                 return;
             }
 
-            // Skip audit for login, health check, and audit-log management endpoints
-            // (auditing the audit system itself causes recursive meta-audit entries)
-            var path = context.Request.Path.ToString().ToLower();
-            if (path.Contains("/auth/login") || path.Contains("/health") || path.Contains("/swagger")
-                || path.Contains("/auditlogs"))
+            var path = context.Request.Path.ToString();
+            if (ShouldSkipAudit(path))
             {
                 await _next(context);
                 return;
@@ -83,6 +101,16 @@ namespace UabIndia.Api.Middleware
         {
             try
             {
+                if (request.ContentLength is > MaxCapturedBodyLength)
+                {
+                    return $"[request body omitted: exceeds {MaxCapturedBodyLength} bytes]";
+                }
+
+                if (IsBinaryOrMultipartContent(request.ContentType))
+                {
+                    return $"[request body omitted: {request.ContentType}]";
+                }
+
                 request.EnableBuffering();
                 var buffer = new byte[Convert.ToInt32(request.ContentLength ?? 0)];
                 await request.Body.ReadAsync(buffer, 0, buffer.Length);
@@ -101,6 +129,12 @@ namespace UabIndia.Api.Middleware
             try
             {
                 responseStream.Position = 0;
+                if (responseStream.Length > MaxCapturedBodyLength)
+                {
+                    responseStream.Position = 0;
+                    return $"[response body omitted: exceeds {MaxCapturedBodyLength} bytes]";
+                }
+
                 var text = await new StreamReader(responseStream).ReadToEndAsync();
                 responseStream.Position = 0; // Reset for copying
                 return text;
@@ -138,14 +172,17 @@ namespace UabIndia.Api.Middleware
                     performedBy = parsedUserId;
                 }
 
+                var sanitizedRequestBody = SanitizePayload(requestBody, context.Request.ContentType);
+                var sanitizedResponseBody = SanitizePayload(responseBody, context.Response.ContentType);
+
                 var auditLog = new AuditLog
                 {
                     TenantId = tenantId,
                     EntityName = entityName,
                     EntityId = entityId,
                     Action = MapHttpMethodToAction(method),
-                    OldValue = method == "PUT" || method == "DELETE" ? requestBody : null,
-                    NewValue = method == "POST" || method == "PUT" ? responseBody : null,
+                    OldValue = method == "PUT" || method == "DELETE" ? sanitizedRequestBody : null,
+                    NewValue = method == "POST" || method == "PUT" ? sanitizedResponseBody : null,
                     PerformedBy = performedBy,
                     PerformedAt = DateTime.UtcNow,
                     Ip = context.Connection.RemoteIpAddress?.ToString()
@@ -172,7 +209,12 @@ namespace UabIndia.Api.Middleware
             var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
             if (segments.Length >= 3)
             {
-                var entity = segments[2]; // Usually api/v1/{controller}
+                var entitySegmentIndex = segments.Length >= 4 &&
+                    string.Equals(segments[2], "iam", StringComparison.OrdinalIgnoreCase)
+                    ? 3
+                    : 2;
+
+                var entity = segments[entitySegmentIndex];
                 return char.ToUpper(entity[0]) + entity.Substring(1); // Capitalize
             }
             return "Unknown";
@@ -224,6 +266,108 @@ namespace UabIndia.Api.Middleware
                 "DELETE" => "Deleted",
                 _ => method
             };
+        }
+
+        private static bool ShouldSkipAudit(string path)
+        {
+            var normalizedPath = path.ToLowerInvariant();
+
+            return normalizedPath.Contains("/health")
+                || normalizedPath.Contains("/swagger")
+                || normalizedPath.Contains("/auditlogs")
+                || normalizedPath.Contains("/auth/")
+                || normalizedPath.Contains("/iam/auth/");
+        }
+
+        private static bool IsBinaryOrMultipartContent(string? contentType)
+        {
+            if (string.IsNullOrWhiteSpace(contentType))
+            {
+                return false;
+            }
+
+            return contentType.Contains("multipart/form-data", StringComparison.OrdinalIgnoreCase)
+                || contentType.Contains("application/octet-stream", StringComparison.OrdinalIgnoreCase)
+                || contentType.Contains("image/", StringComparison.OrdinalIgnoreCase)
+                || contentType.Contains("video/", StringComparison.OrdinalIgnoreCase)
+                || contentType.Contains("audio/", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string? SanitizePayload(string? payload, string? contentType)
+        {
+            if (string.IsNullOrWhiteSpace(payload))
+            {
+                return null;
+            }
+
+            if (payload.StartsWith("[request body omitted:", StringComparison.Ordinal) ||
+                payload.StartsWith("[response body omitted:", StringComparison.Ordinal))
+            {
+                return payload;
+            }
+
+            if (IsBinaryOrMultipartContent(contentType))
+            {
+                return $"[payload omitted: {contentType}]";
+            }
+
+            var trimmedPayload = payload.Length > MaxCapturedBodyLength
+                ? payload[..MaxCapturedBodyLength]
+                : payload;
+
+            try
+            {
+                using var document = JsonDocument.Parse(trimmedPayload);
+                var sanitized = SanitizeElement(document.RootElement);
+                return JsonSerializer.Serialize(sanitized);
+            }
+            catch
+            {
+                return trimmedPayload;
+            }
+        }
+
+        private static object? SanitizeElement(JsonElement element)
+        {
+            return element.ValueKind switch
+            {
+                JsonValueKind.Object => SanitizeObject(element),
+                JsonValueKind.Array => SanitizeArray(element),
+                JsonValueKind.String => element.GetString(),
+                JsonValueKind.Number => element.TryGetInt64(out var longValue)
+                    ? longValue
+                    : element.TryGetDecimal(out var decimalValue)
+                        ? decimalValue
+                        : element.GetRawText(),
+                JsonValueKind.True => true,
+                JsonValueKind.False => false,
+                JsonValueKind.Null => null,
+                _ => element.GetRawText()
+            };
+        }
+
+        private static Dictionary<string, object?> SanitizeObject(JsonElement element)
+        {
+            var result = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+            foreach (var property in element.EnumerateObject())
+            {
+                result[property.Name] = SensitiveJsonKeys.Contains(property.Name)
+                    ? "[redacted]"
+                    : SanitizeElement(property.Value);
+            }
+
+            return result;
+        }
+
+        private static List<object?> SanitizeArray(JsonElement element)
+        {
+            var result = new List<object?>();
+            foreach (var item in element.EnumerateArray())
+            {
+                result.Add(SanitizeElement(item));
+            }
+
+            return result;
         }
     }
 }

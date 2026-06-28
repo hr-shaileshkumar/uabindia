@@ -16,17 +16,6 @@ namespace UabIndia.Api.Controllers
     [Authorize]
     public class ModulesController : ControllerBase
     {
-        private static readonly HashSet<string> FrozenModuleKeys = new(StringComparer.OrdinalIgnoreCase)
-        {
-            "erp",
-            "hrms",
-            "payroll",
-            "reports",
-            "platform",
-            "licensing",
-            "security"
-        };
-
         private readonly ApplicationDbContext _db;
         private readonly ITenantAccessor _tenantAccessor;
 
@@ -43,12 +32,23 @@ namespace UabIndia.Api.Controllers
 
             var data = await _db.TenantModules
                 .AsNoTracking()
-                .Where(tm => tm.TenantId == tenantId && tm.IsEnabled && !tm.IsDeleted && FrozenModuleKeys.Contains(tm.ModuleKey))
-                .Join(_db.Modules.AsNoTracking().Where(m => m.IsEnabled && FrozenModuleKeys.Contains(m.ModuleKey)),
+                .Where(tm => tm.TenantId == tenantId && tm.IsEnabled && !tm.IsDeleted)
+                .Join(_db.Modules.AsNoTracking().Where(m => m.IsEnabled),
                     tm => tm.ModuleKey,
                     m => m.ModuleKey,
-                    (tm, m) => new { key = m.ModuleKey, name = m.Name })
-                .OrderBy(m => m.key)
+                    (tm, m) => new
+                    {
+                        key = m.ModuleKey,
+                        name = m.Name,
+                        displayName = string.IsNullOrWhiteSpace(m.DisplayName) ? m.Name : m.DisplayName,
+                        icon = m.Icon,
+                        description = m.Description,
+                        basePath = m.BasePath,
+                        isEnabled = tm.IsEnabled,
+                        order = m.SortOrder
+                    })
+                .OrderBy(m => m.order)
+                .ThenBy(m => m.key)
                 .ToListAsync();
 
             return Ok(new { modules = data });
@@ -60,7 +60,7 @@ namespace UabIndia.Api.Controllers
         {
             var data = await _db.Modules
                 .AsNoTracking()
-                .Where(m => FrozenModuleKeys.Contains(m.ModuleKey))
+                .Where(m => m.IsEnabled)
                 .Select(m => new
                 {
                     key = m.ModuleKey,
@@ -82,7 +82,7 @@ namespace UabIndia.Api.Controllers
 
             var data = await _db.TenantModules
                 .AsNoTracking()
-                .Where(tm => tm.TenantId == tenantId && !tm.IsDeleted && FrozenModuleKeys.Contains(tm.ModuleKey))
+                .Where(tm => tm.TenantId == tenantId && !tm.IsDeleted)
                 .Select(tm => new
                 {
                     moduleKey = tm.ModuleKey,
@@ -114,12 +114,12 @@ namespace UabIndia.Api.Controllers
 
             var validModules = await _db.Modules
                 .AsNoTracking()
-                .Where(m => m.IsEnabled && FrozenModuleKeys.Contains(m.ModuleKey))
+                .Where(m => m.IsEnabled)
                 .Select(m => m.ModuleKey)
                 .ToListAsync();
 
             var existing = await _db.TenantModules
-                .Where(tm => tm.TenantId == tenantId && FrozenModuleKeys.Contains(tm.ModuleKey))
+                .Where(tm => tm.TenantId == tenantId)
                 .ToListAsync();
 
             foreach (var sub in requested)

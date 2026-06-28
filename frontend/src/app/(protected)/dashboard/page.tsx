@@ -1,1 +1,7 @@
-export { default } from "@/features/dashboard/components/ERPDashboardPage";
+"use client";
+
+import { DashboardPage } from "@/components/erp/dashboard-page";
+
+export default function ERPDashboardRoute() {
+  return <DashboardPage />;
+}

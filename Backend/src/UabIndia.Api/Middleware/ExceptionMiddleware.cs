@@ -2,6 +2,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Sentry;
+using UabIndia.Api.Models;
 
 namespace UabIndia.Api.Middleware
 {
@@ -43,16 +44,12 @@ namespace UabIndia.Api.Middleware
                 SentrySdk.CaptureException(ex);
                 
                 context.Response.StatusCode = 500;
-                await context.Response.WriteAsJsonAsync(new
+                await context.Response.WriteAsJsonAsync(new ApiErrorResponse
                 {
-                    success = false,
-                    error = new
-                    {
-                        code = "server_error",
-                        message = "An error occurred",
-                        traceId = traceId,
-                        correlationId = correlationId
-                    }
+                    Message = "An error occurred.",
+                    Code = "server_error",
+                    TraceId = traceId,
+                    CorrelationId = correlationId
                 });
             }
         }

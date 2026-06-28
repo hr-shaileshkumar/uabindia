@@ -1,14 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 using UabIndia.Api.Models;
 using UabIndia.Api.Services;
 using UabIndia.Application.Interfaces;
-using UabIndia.Core.Entities;
-using UabIndia.Infrastructure.Data;
 
 namespace UabIndia.Api.Controllers
 {
@@ -17,170 +13,102 @@ namespace UabIndia.Api.Controllers
     [AllowAnonymous]
     public class PublicController : ControllerBase
     {
-        private readonly ApplicationDbContext _db;
         private readonly ITenantAccessor _tenantAccessor;
-        private readonly InputSanitizer _sanitizer;
+        private readonly IWebsiteContentService _websiteContentService;
 
-        public PublicController(ApplicationDbContext db, ITenantAccessor tenantAccessor, InputSanitizer sanitizer)
+        public PublicController(
+            ITenantAccessor tenantAccessor,
+            IWebsiteContentService websiteContentService)
         {
-            _db = db;
             _tenantAccessor = tenantAccessor;
-            _sanitizer = sanitizer;
+            _websiteContentService = websiteContentService;
         }
 
         [HttpGet("company-profile")]
-        public async Task<IActionResult> GetCompanyProfile()
+        public async Task<IActionResult> GetCompanyProfile([FromQuery] string? audience = null)
         {
-            var tenantId = _tenantAccessor.GetTenantId();
-            if (tenantId == Guid.Empty)
+            var normalizedAudience = string.Equals(audience, "platform", StringComparison.OrdinalIgnoreCase)
+                ? "platform"
+                : "tenant";
+            var response = await _websiteContentService.GetCompanyProfileAsync(normalizedAudience);
+            if (response == null)
             {
                 return NotFound(new { message = "Tenant not resolved" });
             }
 
-            var tenant = await _db.Tenants
-                .AsNoTracking()
-                .Where(t => t.Id == tenantId)
-                .Select(t => new TenantDto
-                {
-                    Id = t.Id,
-                    Name = t.Name ?? string.Empty,
-                    Subdomain = t.Subdomain ?? string.Empty,
-                    IsActive = t.IsActive
-                })
-                .FirstOrDefaultAsync();
+            return Ok(response);
+        }
 
-            var company = await _db.Companies
-                .AsNoTracking()
-                .Where(c => c.TenantId == tenantId && c.IsActive && !c.IsDeleted)
-                .OrderBy(c => c.CreatedAt)
-                .Select(c => new PublicCompanyProfileDto
-                {
-                    Id = c.Id,
-                    Name = c.Name ?? string.Empty,
-                    LegalName = c.LegalName,
-                    WebsiteUrl = c.WebsiteUrl,
-                    LogoUrl = c.LogoUrl,
-                    Industry = c.Industry,
-                    CompanySize = c.CompanySize,
-                    Email = c.Email,
-                    PhoneNumber = c.PhoneNumber,
-                    ContactPersonName = c.ContactPersonName,
-                    ContactPersonEmail = c.ContactPersonEmail,
-                    ContactPersonPhone = c.ContactPersonPhone,
-                    HRPersonName = c.HR_PersonName,
-                    HRPersonEmail = c.HR_PersonEmail,
-                    City = c.City,
-                    State = c.State,
-                    Country = c.Country
-                })
-                .FirstOrDefaultAsync();
-
-            string brandingJson;
-            try
+        [HttpGet("site-data")]
+        public async Task<IActionResult> GetSiteData([FromQuery] string? audience = null)
+        {
+            var normalizedAudience = string.Equals(audience, "platform", StringComparison.OrdinalIgnoreCase)
+                ? "platform"
+                : "tenant";
+            var response = await _websiteContentService.GetPublicSiteDataAsync(normalizedAudience);
+            if (response == null)
             {
-                brandingJson = await _db.TenantConfigs
-                    .AsNoTracking()
-                    .Where(c => c.TenantId == tenantId)
-                    .Select(c => c.BrandingJson)
-                    .FirstOrDefaultAsync() ?? "{}";
+                return NotFound(new { message = "Tenant not resolved" });
             }
-            catch (Exception ex) when (ex is Microsoft.Data.SqlClient.SqlException || ex.Message.Contains("TenantConfigs", StringComparison.OrdinalIgnoreCase))
-            {
-                brandingJson = "{}";
-            }
-
-            var response = new PublicCompanyProfileResponse
-            {
-                Tenant = tenant,
-                Company = company,
-                BrandingJson = brandingJson
-            };
 
             return Ok(response);
         }
 
         [HttpGet("website-pages/{pageType}")]
-        public async Task<IActionResult> GetWebsitePage(string pageType)
+        public async Task<IActionResult> GetWebsitePage(string pageType, [FromQuery] string? audience = null)
         {
-            var tenantId = _tenantAccessor.GetTenantId();
-            if (tenantId == Guid.Empty)
-            {
-                return NotFound(new { message = "Tenant not resolved" });
-            }
-
-            var page = await _db.WebsitePages
-                .AsNoTracking()
-                .Where(p => p.TenantId == tenantId && p.PageType == pageType && p.IsPublished && p.IsDeleted == false)
-                .Select(p => new
-                {
-                    p.PageType,
-                    p.Title,
-                    p.ContentJson
-                })
-                .FirstOrDefaultAsync();
-
+            var normalizedAudience = string.Equals(audience, "platform", StringComparison.OrdinalIgnoreCase)
+                ? "platform"
+                : "tenant";
+            var page = await _websiteContentService.GetPublicWebsitePageAsync(pageType, normalizedAudience);
             if (page == null)
             {
-                // Return default content if no published page
-                return Ok(new
-                {
-                    PageType = pageType,
-                    Title = GetDefaultTitle(pageType),
-                    ContentJson = GetDefaultContent(pageType)
-                });
+                return NotFound(new { message = "Tenant not resolved or page type is unsupported" });
             }
 
             return Ok(page);
         }
 
-        private string GetDefaultTitle(string pageType)
+        [HttpGet("site-manifest")]
+        public async Task<IActionResult> GetSiteManifest([FromQuery] string? audience = null)
         {
-            return pageType switch
-            {
-                "home" => "Welcome",
-                "header" => "Header",
-                "about" => "About Us",
-                "contact" => "Contact Us",
-                "career" => "Careers",
-                "login" => "Login",
-                "footer" => "Footer",
-                _ => "Page"
-            };
-        }
-
-        private string GetDefaultContent(string pageType)
-        {
-            // Return basic JSON structure for default content
-            return "{}";
+            var manifest = await _websiteContentService.GetPublicSiteManifestAsync(audience ?? "tenant");
+            return Ok(manifest);
         }
 
         [HttpPost("contact")]
-        public async Task<IActionResult> SubmitContact([FromBody] PublicContactRequestDto dto)
+        public async Task<IActionResult> SubmitContact(
+            [FromBody] PublicContactRequestDto dto,
+            [FromQuery] string? audience = null,
+            [FromQuery] string? context = null)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var tenantId = _tenantAccessor.GetTenantId();
-            if (tenantId == Guid.Empty)
+            var normalizedAudience = string.Equals(audience, "platform", StringComparison.OrdinalIgnoreCase)
+                ? "platform"
+                : "tenant";
+            var requestTenantId = _tenantAccessor.GetTenantId();
+            var normalizedContext = string.Equals(context, "request-access", StringComparison.OrdinalIgnoreCase)
+                ? "request-access"
+                : "contact";
+            var source = normalizedAudience == "platform" || requestTenantId == Guid.Empty
+                ? "public-platform"
+                : "public";
+            if (!string.Equals(normalizedContext, "contact", StringComparison.Ordinal))
+            {
+                source = $"{source}:{normalizedContext}";
+            }
+
+            var submissionId = await _websiteContentService.SubmitPublicContactAsync(
+                dto,
+                source,
+                normalizedAudience);
+            if (!submissionId.HasValue)
             {
                 return NotFound(new { message = "Tenant not resolved" });
             }
 
-            var submission = new ContactSubmission
-            {
-                TenantId = tenantId,
-                Name = _sanitizer.Sanitize(dto.Name) ?? dto.Name,
-                Email = _sanitizer.Sanitize(dto.Email) ?? dto.Email,
-                PhoneNumber = _sanitizer.Sanitize(dto.PhoneNumber),
-                CompanyName = _sanitizer.Sanitize(dto.CompanyName),
-                Subject = _sanitizer.Sanitize(dto.Subject),
-                Message = _sanitizer.Sanitize(dto.Message) ?? dto.Message,
-                Source = "public"
-            };
-
-            _db.ContactSubmissions.Add(submission);
-            await _db.SaveChangesAsync();
-
-            return Ok(new { message = "Thanks for reaching out", id = submission.Id });
+            return Ok(new { message = "Thanks for reaching out", id = submissionId.Value });
         }
     }
 }

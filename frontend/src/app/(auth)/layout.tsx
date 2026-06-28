@@ -10,11 +10,15 @@ const getHostname = async () => {
 };
 
 const isLocalhost = (hostname: string) => hostname === "localhost" || hostname === "127.0.0.1";
+const RESERVED_HOST_LABELS = new Set(["app", "api", "www"]);
 
 const getSubdomain = (hostname: string) => {
   if (!hostname.endsWith(".localhost")) return null;
   const parts = hostname.split(".");
-  return parts.length >= 2 ? parts[0] : null;
+  const candidate = parts.length >= 2 ? parts[0] : null;
+  if (!candidate) return null;
+  if (RESERVED_HOST_LABELS.has(candidate)) return null;
+  return candidate;
 };
 
 export default async function AuthLayout({
@@ -27,7 +31,7 @@ export default async function AuthLayout({
   if (hostname.endsWith(".localhost") && !isLocalhost(hostname)) {
     const subdomain = getSubdomain(hostname);
     if (!subdomain) {
-      redirect("/tenant-not-found");
+      return <>{children}</>;
     }
 
     try {

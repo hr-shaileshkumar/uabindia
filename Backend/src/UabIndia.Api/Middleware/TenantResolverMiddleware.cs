@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
@@ -10,6 +11,7 @@ namespace UabIndia.Api.Middleware
 {
     public class TenantResolverMiddleware
     {
+        private static readonly string[] ReservedHostLabels = { "app", "api", "www" };
         private readonly RequestDelegate _next;
         private readonly IMemoryCache _cache;
 
@@ -21,9 +23,14 @@ namespace UabIndia.Api.Middleware
 
         public async Task Invoke(HttpContext context, ITenantAccessor tenantAccessor, ApplicationDbContext db, Microsoft.Extensions.Hosting.IHostEnvironment env)
         {
-            // Allow explicit tenant override via header only for local/dev testing
-            if (env.IsDevelopment()
-                && context.Request.Headers.TryGetValue("X-Tenant", out var headerTenant)
+            if (HttpMethods.IsOptions(context.Request.Method) || ShouldAlwaysBypassTenantResolution(context.Request.Path))
+            {
+                await _next(context);
+                return;
+            }
+
+            // Accept explicit tenant override via header for shared-host and subdomainless flows.
+            if (context.Request.Headers.TryGetValue("X-Tenant", out var headerTenant)
                 && !string.IsNullOrWhiteSpace(headerTenant))
             {
                 var headerValue = headerTenant.ToString();
@@ -55,22 +62,14 @@ namespace UabIndia.Api.Middleware
             var subdomain = ExtractSubdomain(host);
             if (string.IsNullOrWhiteSpace(subdomain))
             {
-                // In Development allow a default tenant (Guid.Empty) so local testing works without subdomains
-                if (env.IsDevelopment())
+                if (AllowsAnonymousWithoutTenant(context.Request.Path))
                 {
-                    var defaultTenant = await db.Tenants.FirstOrDefaultAsync(t => t.Subdomain == "api")
-                        ?? await db.Tenants.FirstOrDefaultAsync();
-                    if (defaultTenant != null)
-                    {
-                        tenantAccessor.SetTenantId(defaultTenant.Id);
-                        tenantAccessor.SetTenantSchema(BuildSchemaName(defaultTenant.Subdomain, defaultTenant.Id));
-                        await _next(context);
-                        return;
-                    }
+                    await _next(context);
+                    return;
                 }
 
                 context.Response.StatusCode = 400;
-                await context.Response.WriteAsync("Tenant subdomain missing");
+                await context.Response.WriteAsync("Tenant context missing");
                 return;
             }
 
@@ -98,11 +97,72 @@ namespace UabIndia.Api.Middleware
             if (string.IsNullOrWhiteSpace(host)) return null;
             var parts = host.Split('.');
             // Accept tenant.localhost (2 parts) for local development AND tenant.example.com (3+ parts)
-            if (parts.Length >= 2)
+            if (host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase) && parts.Length >= 2)
             {
-                return parts[0];
+                var candidate = parts[0];
+                if (!ReservedHostLabels.Contains(candidate, StringComparer.OrdinalIgnoreCase))
+                {
+                    return candidate;
+                }
+
+                return null;
             }
+
+            if (parts.Length >= 3)
+            {
+                var candidate = parts[0];
+                if (!ReservedHostLabels.Contains(candidate, StringComparer.OrdinalIgnoreCase))
+                {
+                    return candidate;
+                }
+            }
+
             return null;
+        }
+
+        private static bool ShouldAlwaysBypassTenantResolution(PathString path)
+        {
+            var value = path.Value ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return true;
+            }
+
+            if (value == "/" || value == "/login" || value.StartsWith("/swagger", StringComparison.OrdinalIgnoreCase) || value.StartsWith("/hangfire", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (value.Equals("/health", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/health/live", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/health/ready", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool AllowsAnonymousWithoutTenant(PathString path)
+        {
+            var value = path.Value ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
+            return value.Equals("/api/v1/public/site-manifest", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/v1/public/company-profile", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/v1/public/contact", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/v1/recruitment/job-postings/active", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/v1/auth/login", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/v1/tenants/resolve", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/v1/auth/refresh", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/v1/auth/csrf-token", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/v1/iam/auth/login", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/v1/iam/auth/refresh", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/v1/iam/auth/csrf-token", StringComparison.OrdinalIgnoreCase)
+                || value.StartsWith("/api/v1/public/website-pages/", StringComparison.OrdinalIgnoreCase);
         }
 
         private static string BuildSchemaName(string? subdomain, Guid tenantId)

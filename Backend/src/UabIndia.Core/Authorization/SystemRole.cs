@@ -24,17 +24,35 @@ namespace UabIndia.Core.Authorization
             new Dictionary<string, SystemRole>(StringComparer.OrdinalIgnoreCase)
             {
                 ["employee"] = SystemRole.Employee,
+                ["staff"] = SystemRole.Employee,
+                ["ess"] = SystemRole.Employee,
+                ["client"] = SystemRole.Employee,
+                ["customer"] = SystemRole.Employee,
+                ["vendor"] = SystemRole.Employee,
+                ["supportagent"] = SystemRole.Employee,
+                ["helpdeskagent"] = SystemRole.Employee,
 
                 ["manager"] = SystemRole.Manager,
                 ["reportingmanager"] = SystemRole.Manager,
                 ["projectmanager"] = SystemRole.Manager,
+                ["supervisor"] = SystemRole.Manager,
+                ["lead"] = SystemRole.Manager,
 
                 ["admin"] = SystemRole.Admin,
                 ["administrator"] = SystemRole.Admin,
                 ["tenantadmin"] = SystemRole.Admin,
+                ["companyadmin"] = SystemRole.Admin,
+                ["businessowner"] = SystemRole.Admin,
+                ["tenantowner"] = SystemRole.Admin,
+                ["companyowner"] = SystemRole.Admin,
+                ["hr"] = SystemRole.Admin,
+                ["finance"] = SystemRole.Admin,
+                ["auditor"] = SystemRole.Admin,
 
                 ["superadmin"] = SystemRole.SuperAdmin,
                 ["systemadmin"] = SystemRole.SuperAdmin,
+                ["platformowner"] = SystemRole.SuperAdmin,
+                ["softwareowner"] = SystemRole.SuperAdmin,
             };
 
         public static string ToCanonicalRoleName(SystemRole role)

@@ -2,14 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import { hrApi } from "@/services/hrApi";
 
 type TabKey = "policies" | "balances" | "requests" | "approvals" | "holidays" | "allocations" | "types";
 
-type LeaveManagerProps = {
-  api: any;
-};
+const leaveApi = hrApi.hrms.leave;
 
-export default function LeaveManager({ api }: LeaveManagerProps) {
+export default function LeaveManager() {
   const [activeTab, setActiveTab] = useState<TabKey>("requests");
   const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
   const [policies, setPolicies] = useState<any[]>([]);
@@ -35,7 +34,7 @@ export default function LeaveManager({ api }: LeaveManagerProps) {
   const fetchRequests = async () => {
     try {
       setLoadingRequests(true);
-      const res = await api.list(1, 50);
+      const res = await leaveApi.list(1, 50);
       setRequests(res.data || []);
     } catch (err: any) {
       setError(err.message || "Failed to load leave requests");
@@ -47,7 +46,7 @@ export default function LeaveManager({ api }: LeaveManagerProps) {
   const fetchApprovals = async () => {
     try {
       setLoadingApprovals(true);
-      const res = await api.approvals.list("Pending");
+      const res = await leaveApi.approvals.list("Pending");
       setApprovals(res.data || []);
     } catch (err: any) {
       setError(err.message || "Failed to load leave approvals");
@@ -76,13 +75,13 @@ export default function LeaveManager({ api }: LeaveManagerProps) {
           holidaysRes,
           allocationsRes,
         ] = await Promise.all([
-          api.types.list(),
-          api.policies.list(),
-          api.list(1, 50),
-          api.approvals.list("Pending"),
-          api.balances.list(),
-          api.holidays.list(new Date().getFullYear()),
-          api.allocations.list({ year: new Date().getFullYear() }),
+          leaveApi.types.list(),
+          leaveApi.policies.list(),
+          leaveApi.list(1, 50),
+          leaveApi.approvals.list("Pending"),
+          leaveApi.balances.list(),
+          leaveApi.holidays.list(new Date().getFullYear()),
+          leaveApi.allocations.list({ year: new Date().getFullYear() }),
         ]);
 
         setLeaveTypes(typesRes.data || []);
@@ -106,7 +105,7 @@ export default function LeaveManager({ api }: LeaveManagerProps) {
     };
 
     void loadAll();
-  }, [api]);
+  }, []);
 
   useEffect(() => {
     setError(null);
@@ -115,7 +114,7 @@ export default function LeaveManager({ api }: LeaveManagerProps) {
   const handleApproveRequest = async (id: string) => {
     setError(null);
     try {
-      await api.approveLeave(id);
+      await leaveApi.approveLeave(id);
       await fetchApprovals();
       await fetchRequests();
     } catch (err: any) {
@@ -126,7 +125,7 @@ export default function LeaveManager({ api }: LeaveManagerProps) {
   const handleRejectRequest = async (id: string) => {
     setError(null);
     try {
-      await api.rejectLeave(id);
+      await leaveApi.rejectLeave(id);
       await fetchApprovals();
       await fetchRequests();
     } catch (err: any) {
@@ -218,7 +217,7 @@ export default function LeaveManager({ api }: LeaveManagerProps) {
                     <div>
                       <div className="font-medium">{req.employeeName || req.employeeId}</div>
                       <div className="text-xs text-gray-500">
-                        {req.fromDate} → {req.toDate} ({req.days} days)
+                        {req.fromDate} to {req.toDate} ({req.days} days)
                       </div>
                     </div>
                     <div className="flex gap-2">

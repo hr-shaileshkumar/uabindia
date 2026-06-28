@@ -3,18 +3,20 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using UabIndia.Api.Models;
 using UabIndia.Application.Interfaces;
+using UabIndia.Core.Authorization;
 using UabIndia.Infrastructure.Data;
 
 namespace UabIndia.Api.Services
 {
     /// <summary>
     /// Parses TenantConfig.UiSchemaJson / WorkflowJson, merges with Module
-    /// entity metadata, and filters output by enabled modules.
-    /// All methods are read-only and tenant-scoped.
+    /// entity metadata, and filters output by enabled modules and the current
+    /// authenticated user's backend permissions.
     /// </summary>
     public class UiSchemaService : IUiSchemaService
     {
@@ -24,28 +26,29 @@ namespace UabIndia.Api.Services
         };
 
         private readonly ApplicationDbContext _db;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ITenantAccessor _tenantAccessor;
         private readonly ILogger<UiSchemaService> _logger;
 
+        private sealed record PermissionSnapshot(bool IsSuperAdmin, HashSet<string> GrantedPermissions);
+
         public UiSchemaService(
             ApplicationDbContext db,
+            IHttpContextAccessor httpContextAccessor,
             ITenantAccessor tenantAccessor,
             ILogger<UiSchemaService> logger)
         {
             _db = db;
+            _httpContextAccessor = httpContextAccessor;
             _tenantAccessor = tenantAccessor;
             _logger = logger;
         }
 
-        // ─────────────────────────────────────────────────────────────────────
-        // Navigation schema
-        // ─────────────────────────────────────────────────────────────────────
-
         public async Task<NavigationSchemaDto> GetNavigationSchemaAsync(ISet<string> enabledModuleKeys)
         {
             var tenantId = _tenantAccessor.GetTenantId();
+            var permissionSnapshot = await GetCurrentPermissionSnapshotAsync(tenantId);
 
-            // Fetch enabled module entities (rich metadata)
             var modules = await _db.Modules
                 .AsNoTracking()
                 .Where(m => m.IsEnabled && enabledModuleKeys.Contains(m.ModuleKey))
@@ -53,16 +56,31 @@ namespace UabIndia.Api.Services
                 .ThenBy(m => m.ModuleKey)
                 .ToListAsync();
 
-            // Try to load tenant-specific nav overrides from UiSchemaJson
             var tenantNavGroups = await TryGetTenantNavGroupsAsync(tenantId);
-
             var navModules = new List<NavModuleDto>();
 
             foreach (var module in modules)
             {
-                // Use tenant override groups if present, otherwise produce empty groups.
-                // The frontend fallback will fill in the hardcoded sidebar items.
-                var groups = tenantNavGroups.TryGetValue(module.ModuleKey, out var g) ? g : new List<NavGroupDto>();
+                var groups = tenantNavGroups.TryGetValue(module.ModuleKey, out var tenantGroups) && tenantGroups.Count > 0
+                    ? tenantGroups
+                    : DefaultUiSchemaCatalog.GetNavigationGroups(module.ModuleKey);
+
+                var filteredGroups = groups
+                    .Select(group => new NavGroupDto
+                    {
+                        Label = group.Label,
+                        SortOrder = group.SortOrder,
+                        Items = group.Items
+                            .Where(item => HasRequiredPermission(item.RequiredPermissions, permissionSnapshot))
+                            .ToList(),
+                    })
+                    .Where(group => group.Items.Count > 0)
+                    .ToList();
+
+                if (filteredGroups.Count == 0)
+                {
+                    continue;
+                }
 
                 navModules.Add(new NavModuleDto
                 {
@@ -71,7 +89,7 @@ namespace UabIndia.Api.Services
                     Icon = module.Icon,
                     HomeHref = module.BasePath,
                     SortOrder = module.SortOrder,
-                    Groups = groups,
+                    Groups = filteredGroups,
                 });
             }
 
@@ -82,16 +100,26 @@ namespace UabIndia.Api.Services
             };
         }
 
-        // ─────────────────────────────────────────────────────────────────────
-        // Route rules schema
-        // ─────────────────────────────────────────────────────────────────────
-
         public async Task<RouteRulesDto> GetRouteRulesAsync()
         {
             var tenantId = _tenantAccessor.GetTenantId();
+            var permissionSnapshot = await GetCurrentPermissionSnapshotAsync(tenantId);
+            var enabledModuleKeys = new HashSet<string>(
+                (await GetRichEnabledModulesAsync(tenantId)).Select(module => module.Key),
+                StringComparer.OrdinalIgnoreCase);
 
-            // Try to load tenant-specific route rules from UiSchemaJson
             var rules = await TryGetTenantRouteRulesAsync(tenantId);
+            if (rules.Count == 0)
+            {
+                rules = DefaultUiSchemaCatalog.GetRouteRules();
+            }
+
+            rules = rules
+                .Where(rule => enabledModuleKeys.Contains(rule.ModuleKey))
+                .Where(rule => HasRequiredPermission(rule.PermissionKeys, permissionSnapshot))
+                .GroupBy(rule => rule.PathPattern, StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.First())
+                .ToList();
 
             return new RouteRulesDto
             {
@@ -100,45 +128,57 @@ namespace UabIndia.Api.Services
             };
         }
 
-        // ─────────────────────────────────────────────────────────────────────
-        // Dashboard schema
-        // ─────────────────────────────────────────────────────────────────────
-
         public async Task<DashboardSchemaDto> GetDashboardSchemaAsync(ISet<string> enabledModuleKeys)
         {
             var tenantId = _tenantAccessor.GetTenantId();
+            var permissionSnapshot = await GetCurrentPermissionSnapshotAsync(tenantId);
 
-            // Try to load tenant-specific dashboard from UiSchemaJson
             var schema = await TryGetTenantDashboardSchemaAsync(tenantId);
             if (schema != null)
             {
-                // Filter widgets to those whose module is enabled
                 foreach (var section in schema.Sections)
                 {
                     section.Widgets = section.Widgets
-                        .Where(w => string.IsNullOrEmpty(w.ModuleKey) || enabledModuleKeys.Contains(w.ModuleKey))
+                        .Where(widget => string.IsNullOrWhiteSpace(widget.ModuleKey) || enabledModuleKeys.Contains(widget.ModuleKey))
+                        .Where(widget => HasRequiredPermission(widget.RequiredPermissions, permissionSnapshot))
                         .ToList();
                 }
+
+                schema.Sections = schema.Sections.Where(section => section.Widgets.Count > 0).ToList();
                 return schema;
             }
 
-            // Return empty schema; frontend will use fallback hardcoded dashboard
-            return new DashboardSchemaDto { SchemaVersion = "1", Sections = new List<DashboardSectionDto>() };
-        }
+            var defaultSchema = DefaultUiSchemaCatalog.GetDashboardSchema(enabledModuleKeys);
+            foreach (var section in defaultSchema.Sections)
+            {
+                section.Widgets = section.Widgets
+                    .Where(widget => HasRequiredPermission(widget.RequiredPermissions, permissionSnapshot))
+                    .ToList();
+            }
 
-        // ─────────────────────────────────────────────────────────────────────
-        // Page schema
-        // ─────────────────────────────────────────────────────────────────────
+            defaultSchema.Sections = defaultSchema.Sections.Where(section => section.Widgets.Count > 0).ToList();
+            return defaultSchema;
+        }
 
         public async Task<PageSchemaDto?> GetPageSchemaAsync(string pageKey)
         {
             var tenantId = _tenantAccessor.GetTenantId();
-            return await TryGetTenantPageSchemaAsync(tenantId, pageKey);
-        }
+            var permissionSnapshot = await GetCurrentPermissionSnapshotAsync(tenantId);
+            var schema = await TryGetTenantPageSchemaAsync(tenantId, pageKey);
+            if (schema == null)
+            {
+                return null;
+            }
 
-        // ─────────────────────────────────────────────────────────────────────
-        // Enabled modules (rich metadata)
-        // ─────────────────────────────────────────────────────────────────────
+            schema.Tabs = schema.Tabs
+                .Where(tab => HasRequiredPermission(tab.RequiredPermissions, permissionSnapshot))
+                .ToList();
+            schema.Actions = schema.Actions
+                .Where(action => HasRequiredPermission(action.RequiredPermissions, permissionSnapshot))
+                .ToList();
+
+            return schema;
+        }
 
         public async Task<List<ModuleMetaDto>> GetRichEnabledModulesAsync(Guid tenantId)
         {
@@ -166,9 +206,172 @@ namespace UabIndia.Api.Services
             return result;
         }
 
-        // ─────────────────────────────────────────────────────────────────────
-        // Private helpers: parse UiSchemaJson safely
-        // ─────────────────────────────────────────────────────────────────────
+        private async Task<PermissionSnapshot> GetCurrentPermissionSnapshotAsync(Guid tenantId)
+        {
+            var principal = _httpContextAccessor.HttpContext?.User;
+            if (principal?.Identity?.IsAuthenticated != true)
+            {
+                return new PermissionSnapshot(false, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+            }
+
+            var userIdClaim = principal.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value
+                ?? principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                ?? principal.FindFirst("nameidentifier")?.Value
+                ?? principal.FindFirst("sub")?.Value;
+
+            if (string.IsNullOrWhiteSpace(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return new PermissionSnapshot(false, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+            }
+
+            var user = await _db.Users
+                .AsNoTracking()
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(record => record.Id == userId);
+
+            if (user == null)
+            {
+                return new PermissionSnapshot(false, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+            }
+
+            var effectiveTenantId = user.TenantId == Guid.Empty ? tenantId : user.TenantId;
+            var roleRows = await _db.UserRoles
+                .AsNoTracking()
+                .IgnoreQueryFilters()
+                .Where(ur => ur.UserId == userId && ur.TenantId == effectiveTenantId && !ur.IsDeleted)
+                .Join(
+                    _db.Roles.AsNoTracking().IgnoreQueryFilters(),
+                    ur => ur.RoleId,
+                    role => role.Id,
+                    (_, role) => new { role.Id, role.Name })
+                .ToListAsync();
+
+            var isSuperAdmin = user.IsSystemAdmin || RoleCatalog.HasAnyRole(roleRows.Select(role => role.Name), SystemRole.SuperAdmin);
+            if (isSuperAdmin)
+            {
+                return new PermissionSnapshot(true, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "*" });
+            }
+
+            var roleIds = roleRows.Select(role => role.Id).Distinct().ToList();
+            if (roleIds.Count == 0)
+            {
+                return new PermissionSnapshot(false, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+            }
+
+            var permissionPairs = await _db.RolePermissions
+                .AsNoTracking()
+                .IgnoreQueryFilters()
+                .Where(rp => roleIds.Contains(rp.RoleId) && rp.TenantId == effectiveTenantId && !rp.IsDeleted)
+                .Join(
+                    _db.Permissions.AsNoTracking().IgnoreQueryFilters().Where(permission => !permission.IsDeleted),
+                    rp => rp.PermissionId,
+                    permission => permission.Id,
+                    (_, permission) => new { permission.Module, permission.Action })
+                .Distinct()
+                .ToListAsync();
+
+            var grantedPermissions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var permission in permissionPairs)
+            {
+                if (string.IsNullOrWhiteSpace(permission.Module))
+                {
+                    continue;
+                }
+
+                var moduleKey = permission.Module.Trim();
+                grantedPermissions.Add($"module:{moduleKey}");
+                grantedPermissions.Add($"{moduleKey}.*");
+
+                if (!string.IsNullOrWhiteSpace(permission.Action))
+                {
+                    var actionKey = permission.Action.Trim();
+                    grantedPermissions.Add($"{moduleKey}.{actionKey}");
+                    grantedPermissions.Add($"resource:{moduleKey}.{actionKey}");
+                }
+            }
+
+            return new PermissionSnapshot(false, grantedPermissions);
+        }
+
+        private static bool HasRequiredPermission(IReadOnlyCollection<string>? requiredPermissions, PermissionSnapshot permissionSnapshot)
+        {
+            if (permissionSnapshot.IsSuperAdmin || permissionSnapshot.GrantedPermissions.Contains("*"))
+            {
+                return true;
+            }
+
+            if (requiredPermissions == null || requiredPermissions.Count == 0)
+            {
+                return true;
+            }
+
+            foreach (var key in requiredPermissions)
+            {
+                var normalized = NormalizePermissionKey(key);
+                if (string.IsNullOrWhiteSpace(normalized))
+                {
+                    continue;
+                }
+
+                if (permissionSnapshot.GrantedPermissions.Contains(normalized))
+                {
+                    return true;
+                }
+
+                if (normalized.EndsWith(".*", StringComparison.Ordinal))
+                {
+                    var prefix = normalized[..^2];
+                    if (permissionSnapshot.GrantedPermissions.Any(granted => granted.StartsWith($"{prefix}.", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        return true;
+                    }
+                }
+
+                var moduleScope = InferModuleScope(normalized);
+                if (string.IsNullOrWhiteSpace(moduleScope))
+                {
+                    continue;
+                }
+
+                if (permissionSnapshot.GrantedPermissions.Contains($"module:{moduleScope}") ||
+                    permissionSnapshot.GrantedPermissions.Contains($"{moduleScope}.*") ||
+                    permissionSnapshot.GrantedPermissions.Contains($"{moduleScope}.access") ||
+                    permissionSnapshot.GrantedPermissions.Contains($"{moduleScope}.view") ||
+                    permissionSnapshot.GrantedPermissions.Contains($"resource:{moduleScope}.access") ||
+                    permissionSnapshot.GrantedPermissions.Contains($"resource:{moduleScope}.view"))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static string NormalizePermissionKey(string value)
+        {
+            return (value ?? string.Empty).Trim().ToLowerInvariant();
+        }
+
+        private static string? InferModuleScope(string permissionKey)
+        {
+            if (permissionKey.StartsWith("module:", StringComparison.Ordinal))
+            {
+                return permissionKey["module:".Length..].Split('.')[0];
+            }
+
+            if (permissionKey.StartsWith("resource:", StringComparison.Ordinal))
+            {
+                return permissionKey["resource:".Length..].Split(new[] { '.', ':' }, 2)[0];
+            }
+
+            if (permissionKey.StartsWith("page:", StringComparison.Ordinal) || permissionKey.StartsWith("path:", StringComparison.Ordinal))
+            {
+                var scope = permissionKey[(permissionKey.IndexOf(':') + 1)..];
+                return scope.Split(new[] { '.', ':' }, 2)[0];
+            }
+
+            return permissionKey.Split('.')[0];
+        }
 
         private async Task<Dictionary<string, List<NavGroupDto>>> TryGetTenantNavGroupsAsync(Guid tenantId)
         {
@@ -179,53 +382,66 @@ namespace UabIndia.Api.Services
                     .FirstOrDefaultAsync(c => c.TenantId == tenantId && !c.IsDeleted);
 
                 if (config == null || string.IsNullOrWhiteSpace(config.UiSchemaJson) || config.UiSchemaJson == "{}")
+                {
                     return new Dictionary<string, List<NavGroupDto>>();
+                }
 
                 using var doc = JsonDocument.Parse(config.UiSchemaJson);
-                if (!doc.RootElement.TryGetProperty("navigation", out var nav))
+                if (!doc.RootElement.TryGetProperty("navigation", out var nav) ||
+                    !nav.TryGetProperty("modules", out var modulesEl))
+                {
                     return new Dictionary<string, List<NavGroupDto>>();
-
-                if (!nav.TryGetProperty("modules", out var modulesEl))
-                    return new Dictionary<string, List<NavGroupDto>>();
+                }
 
                 var result = new Dictionary<string, List<NavGroupDto>>(StringComparer.OrdinalIgnoreCase);
 
                 foreach (var moduleEl in modulesEl.EnumerateArray())
                 {
-                    if (!moduleEl.TryGetProperty("key", out var keyEl)) continue;
-                    var key = keyEl.GetString() ?? "";
-                    if (string.IsNullOrEmpty(key)) continue;
+                    if (!moduleEl.TryGetProperty("key", out var keyEl))
+                    {
+                        continue;
+                    }
+
+                    var key = keyEl.GetString() ?? string.Empty;
+                    if (string.IsNullOrWhiteSpace(key))
+                    {
+                        continue;
+                    }
 
                     var groups = new List<NavGroupDto>();
-
                     if (moduleEl.TryGetProperty("groups", out var groupsEl))
                     {
-                        int gSort = 0;
+                        var groupSort = 0;
                         foreach (var groupEl in groupsEl.EnumerateArray())
                         {
-                            var label = groupEl.TryGetProperty("label", out var lEl) ? (lEl.GetString() ?? "") : "";
+                            var label = groupEl.TryGetProperty("label", out var labelEl) ? (labelEl.GetString() ?? string.Empty) : string.Empty;
                             var items = new List<NavItemDto>();
 
                             if (groupEl.TryGetProperty("items", out var itemsEl))
                             {
-                                int iSort = 0;
+                                var itemSort = 0;
                                 foreach (var itemEl in itemsEl.EnumerateArray())
                                 {
                                     items.Add(new NavItemDto
                                     {
-                                        Key = itemEl.TryGetProperty("key", out var kEl) ? (kEl.GetString() ?? "") : "",
-                                        Name = itemEl.TryGetProperty("name", out var nEl) ? (nEl.GetString() ?? "") : "",
-                                        Path = itemEl.TryGetProperty("path", out var pEl) ? (pEl.GetString() ?? "") : "",
-                                        Icon = itemEl.TryGetProperty("icon", out var iEl) ? iEl.GetString() : null,
-                                        SortOrder = iSort++,
-                                        RequiredPermissions = itemEl.TryGetProperty("requiredPermissions", out var rpEl)
-                                            ? rpEl.EnumerateArray().Select(x => x.GetString() ?? "").Where(x => !string.IsNullOrEmpty(x)).ToList()
+                                        Key = itemEl.TryGetProperty("key", out var keyValue) ? (keyValue.GetString() ?? string.Empty) : string.Empty,
+                                        Name = itemEl.TryGetProperty("name", out var nameEl) ? (nameEl.GetString() ?? string.Empty) : string.Empty,
+                                        Path = itemEl.TryGetProperty("path", out var pathEl) ? (pathEl.GetString() ?? string.Empty) : string.Empty,
+                                        Icon = itemEl.TryGetProperty("icon", out var iconEl) ? iconEl.GetString() : null,
+                                        SortOrder = itemSort++,
+                                        RequiredPermissions = itemEl.TryGetProperty("requiredPermissions", out var permissionsEl)
+                                            ? permissionsEl.EnumerateArray().Select(entry => entry.GetString() ?? string.Empty).Where(entry => !string.IsNullOrWhiteSpace(entry)).ToList()
                                             : new List<string>(),
                                     });
                                 }
                             }
 
-                            groups.Add(new NavGroupDto { Label = label, SortOrder = gSort++, Items = items });
+                            groups.Add(new NavGroupDto
+                            {
+                                Label = label,
+                                SortOrder = groupSort++,
+                                Items = items,
+                            });
                         }
                     }
 
@@ -250,24 +466,29 @@ namespace UabIndia.Api.Services
                     .FirstOrDefaultAsync(c => c.TenantId == tenantId && !c.IsDeleted);
 
                 if (config == null || string.IsNullOrWhiteSpace(config.UiSchemaJson) || config.UiSchemaJson == "{}")
+                {
                     return new List<RoutePermissionRuleDto>();
+                }
 
                 using var doc = JsonDocument.Parse(config.UiSchemaJson);
                 if (!doc.RootElement.TryGetProperty("routeRules", out var rulesEl))
+                {
                     return new List<RoutePermissionRuleDto>();
+                }
 
                 var rules = new List<RoutePermissionRuleDto>();
                 foreach (var ruleEl in rulesEl.EnumerateArray())
                 {
                     rules.Add(new RoutePermissionRuleDto
                     {
-                        PathPattern = ruleEl.TryGetProperty("pathPattern", out var ppEl) ? (ppEl.GetString() ?? "") : "",
-                        ModuleKey = ruleEl.TryGetProperty("moduleKey", out var mkEl) ? (mkEl.GetString() ?? "") : "",
-                        PermissionKeys = ruleEl.TryGetProperty("permissionKeys", out var pkEl)
-                            ? pkEl.EnumerateArray().Select(x => x.GetString() ?? "").Where(x => !string.IsNullOrEmpty(x)).ToList()
+                        PathPattern = ruleEl.TryGetProperty("pathPattern", out var pathPatternEl) ? (pathPatternEl.GetString() ?? string.Empty) : string.Empty,
+                        ModuleKey = ruleEl.TryGetProperty("moduleKey", out var moduleKeyEl) ? (moduleKeyEl.GetString() ?? string.Empty) : string.Empty,
+                        PermissionKeys = ruleEl.TryGetProperty("permissionKeys", out var permissionKeysEl)
+                            ? permissionKeysEl.EnumerateArray().Select(entry => entry.GetString() ?? string.Empty).Where(entry => !string.IsNullOrWhiteSpace(entry)).ToList()
                             : new List<string>(),
                     });
                 }
+
                 return rules;
             }
             catch (Exception ex)
@@ -286,13 +507,17 @@ namespace UabIndia.Api.Services
                     .FirstOrDefaultAsync(c => c.TenantId == tenantId && !c.IsDeleted);
 
                 if (config == null || string.IsNullOrWhiteSpace(config.UiSchemaJson) || config.UiSchemaJson == "{}")
+                {
                     return null;
+                }
 
                 using var doc = JsonDocument.Parse(config.UiSchemaJson);
-                if (!doc.RootElement.TryGetProperty("dashboard", out var dashEl))
+                if (!doc.RootElement.TryGetProperty("dashboard", out var dashboardEl))
+                {
                     return null;
+                }
 
-                return JsonSerializer.Deserialize<DashboardSchemaDto>(dashEl.GetRawText(), _jsonOpts);
+                return JsonSerializer.Deserialize<DashboardSchemaDto>(dashboardEl.GetRawText(), _jsonOpts);
             }
             catch (Exception ex)
             {
@@ -310,14 +535,16 @@ namespace UabIndia.Api.Services
                     .FirstOrDefaultAsync(c => c.TenantId == tenantId && !c.IsDeleted);
 
                 if (config == null || string.IsNullOrWhiteSpace(config.UiSchemaJson) || config.UiSchemaJson == "{}")
+                {
                     return null;
+                }
 
                 using var doc = JsonDocument.Parse(config.UiSchemaJson);
-                if (!doc.RootElement.TryGetProperty("pages", out var pagesEl))
+                if (!doc.RootElement.TryGetProperty("pages", out var pagesEl) ||
+                    !pagesEl.TryGetProperty(pageKey, out var pageEl))
+                {
                     return null;
-
-                if (!pagesEl.TryGetProperty(pageKey, out var pageEl))
-                    return null;
+                }
 
                 return JsonSerializer.Deserialize<PageSchemaDto>(pageEl.GetRawText(), _jsonOpts);
             }

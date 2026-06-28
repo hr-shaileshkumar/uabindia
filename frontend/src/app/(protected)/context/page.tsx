@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ROUTES } from "@/constants/routes";
 import { usePermissions } from "@/context/PermissionContext";
 import { useUiSchema } from "@/context/UiSchemaContext";
-import { getFirstAccessibleRoute, getRoutePermissionRule, getRoutePermissionKeys, type ModuleKey } from "@/config/route-permissions.config";
+import { getSchemaRouteRule } from "@/lib/erp/route-access";
+
+const PLATFORM_SETUP_ROUTE = "/platform/module-mapping";
 
 const resolveSafeNextPath = (value: string | null): string | null => {
   if (!value) return null;
@@ -18,119 +19,85 @@ const resolveSafeNextPath = (value: string | null): string | null => {
 export default function ContextSelectionPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { hasPermission, loading: permissionsLoading } = usePermissions();
-  const { routeRules, navigation, loading: schemaLoading } = useUiSchema();
+  const { hasPermission, loading: permissionsLoading, isSuperAdmin } = usePermissions();
+  const {
+    routeRules,
+    navigation,
+    enabledModules,
+    loading: schemaLoading,
+    navigationReady,
+    routeRulesReady,
+  } = useUiSchema();
   const nextPath = resolveSafeNextPath(searchParams.get("next"));
 
-  const canonicalizePath = (path: string) => {
-    const stripped = path.split("?")[0].split("#")[0];
-    if (!stripped || stripped === "/") return "/";
-    return stripped.replace(/\/+$/, "") || "/";
-  };
+  const canManageWorkspaceSetup =
+    isSuperAdmin ||
+    hasPermission(["module:platform", "platform.*", "platform.access", "platform.view"]);
+  const enabledModuleKeys = useMemo(
+    () => new Set(enabledModules.map((module) => module.key.toLowerCase())),
+    [enabledModules]
+  );
 
-  const toFeatureKey = (path: string) =>
-    path
-      .replace(/^\/+/, "")
-      .replace(/\/+/g, ".")
-      .replace(/[^a-zA-Z0-9._-]/g, "")
-      .toLowerCase();
-
-  const getBackendRouteRule = useCallback((path: string) => {
-    const canonicalPath = canonicalizePath(path);
-    let bestMatch: { pathPattern: string; moduleKey: string; permissionKeys: string[] } | undefined;
-
-    for (const rule of routeRules.rules) {
-      const rulePath = canonicalizePath(rule.pathPattern);
-      const exact = canonicalPath === rulePath;
-      const nested = canonicalPath.startsWith(`${rulePath}/`);
-      if (!exact && !nested) continue;
-
-      if (!bestMatch || rulePath.length > bestMatch.pathPattern.length) {
-        bestMatch = rule;
-      }
+  const routeHasAccess = useCallback((path: string) => {
+    const rule = getSchemaRouteRule(path, routeRules.rules);
+    if (!rule) {
+      return false;
     }
 
-    return bestMatch;
-  }, [routeRules.rules]);
+    return enabledModuleKeys.has(rule.moduleKey.toLowerCase());
+  }, [enabledModuleKeys, routeRules.rules]);
 
-  const getBackendPermissionKeys = useCallback((path: string) => {
-    const canonicalPath = canonicalizePath(path);
-    const backendRule = getBackendRouteRule(canonicalPath);
-    if (!backendRule) return null;
+  const firstAccessibleNavigationPath = useMemo(() => {
+    const modules = navigation.modules
+      .slice()
+      .sort((left, right) => left.sortOrder - right.sortOrder || left.displayName.localeCompare(right.displayName));
 
-    const normalizedPath = toFeatureKey(canonicalPath);
-    return [...new Set([
-      ...backendRule.permissionKeys,
-      `page:${normalizedPath}`,
-      `path:${normalizedPath}`,
-      normalizedPath,
-      `resource:${normalizedPath}.view`,
-      `module:${backendRule.moduleKey}`,
-      `${backendRule.moduleKey}.*`,
-      `${backendRule.moduleKey}.view`,
-      `resource:${backendRule.moduleKey}.view`,
-    ])];
-  }, [getBackendRouteRule]);
+    for (const navModule of modules) {
+      const groups = navModule.groups
+        .slice()
+        .sort((left, right) => left.sortOrder - right.sortOrder || left.label.localeCompare(right.label));
 
-  const getFirstAccessibleSchemaRoute = useCallback(() => {
-    const navModules = navigation.modules.slice().sort((a, b) => a.sortOrder - b.sortOrder);
-    for (const navModule of navModules) {
-      const groups = navModule.groups.slice().sort((a, b) => a.sortOrder - b.sortOrder);
       for (const group of groups) {
-        const items = group.items.slice().sort((a, b) => a.sortOrder - b.sortOrder);
+        const items = group.items
+          .slice()
+          .sort((left, right) => left.sortOrder - right.sortOrder || left.name.localeCompare(right.name));
+
         for (const item of items) {
-          const path = canonicalizePath(item.path);
-          if (!path || path === "/") continue;
-
-          const backendKeys = getBackendPermissionKeys(path);
-          if (backendKeys && hasPermission(backendKeys)) {
-            return path;
-          }
-
-          const fallbackKeys = getRoutePermissionKeys(path, navModule.key as ModuleKey);
-          if (hasPermission(fallbackKeys)) {
-            return path;
-          }
+          return item.path;
         }
       }
     }
 
     return null;
-  }, [getBackendPermissionKeys, hasPermission, navigation.modules]);
+  }, [navigation.modules]);
 
   useEffect(() => {
     if (permissionsLoading || schemaLoading) return;
 
-    if (nextPath) {
-      const backendKeys = getBackendPermissionKeys(nextPath);
-      if (backendKeys ? hasPermission(backendKeys) : (() => {
-        const rule = getRoutePermissionRule(nextPath);
-        return !rule || hasPermission(getRoutePermissionKeys(nextPath, rule.moduleKey));
-      })()) {
-        router.replace(nextPath);
-        return;
-      }
-    }
-
-    const schemaFirstAllowed = getFirstAccessibleSchemaRoute();
-    if (schemaFirstAllowed) {
-      router.replace(schemaFirstAllowed);
+    if (nextPath && routeRulesReady && routeHasAccess(nextPath)) {
+      router.replace(nextPath);
       return;
     }
 
-    const firstAllowed = getFirstAccessibleRoute(hasPermission);
-    if (firstAllowed) {
-      router.replace(firstAllowed);
+    if (navigationReady && firstAccessibleNavigationPath) {
+      router.replace(firstAccessibleNavigationPath);
       return;
     }
 
-    router.replace(ROUTES.NOT_AUTHORIZED);
+    if ((!navigationReady || !routeRulesReady) && canManageWorkspaceSetup) {
+      router.replace(PLATFORM_SETUP_ROUTE);
+      return;
+    }
+
+    router.replace("/not-authorized?reason=access-not-configured");
   }, [
-    getFirstAccessibleSchemaRoute,
-    getBackendPermissionKeys,
-    hasPermission,
+    canManageWorkspaceSetup,
+    firstAccessibleNavigationPath,
+    navigationReady,
     nextPath,
     permissionsLoading,
+    routeHasAccess,
+    routeRulesReady,
     router,
     schemaLoading,
   ]);

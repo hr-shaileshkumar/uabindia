@@ -1,409 +1,180 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Eye, EyeOff, Lock, Mail, User, ArrowRight, CheckCircle2 } from "lucide-react";
-import apiClient from "@/services/apiClient";
-import PublicSiteFrame from "@/components/public/PublicSiteFrame";
+import { useMemo, useState, type FormEvent } from "react";
+import { useSearchParams } from "next/navigation";
+import LoginCard from "@/components/auth/LoginCard";
+import PublicAudiencePageFrame from "@/components/public/PublicAudiencePageFrame";
+import PublicAuthShell from "@/components/public/PublicAuthShell";
 import { usePublicPageData } from "@/hooks/usePublicPageData";
-
-type RegisterFormData = {
-  fullName: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-  agreeToTerms: boolean;
-};
+import { getApiErrorMessage } from "@/lib/api-errors";
+import {
+  hasExplicitPublicTenantContext,
+  resolvePublicAudience,
+  withPublicAudience,
+  type PublicAudience,
+} from "@/lib/public-audience";
+import type { ClientProfile } from "@/lib/publicProfile";
+import { publicApi } from "@/services/modules";
+import { getTenantSubdomain } from "@/services/apiClient";
 
 export default function RegisterPage() {
-  const { profile, headerContent, footerContent } = usePublicPageData("register");
+  const searchParams = useSearchParams();
+  const isTenantContext = hasExplicitPublicTenantContext();
+  const audience = useMemo(
+    () => resolvePublicAudience(searchParams.get("audience"), isTenantContext),
+    [isTenantContext, searchParams]
+  );
+  const { profile, headerContent, footerContent, allowedPaths, pageVisible, parseContent } = usePublicPageData("register", audience);
+  const content = parseContent({
+    title: "Request workspace access",
+    subtitle:
+      "New users are provisioned by an administrator. Share your details and access request here.",
+    authEyebrow: "Invite-first access",
+    authAsideTitle: "",
+    authAsideBody: "",
+    authBadges: ["Admin managed", "Clean onboarding"],
+    submitLabel: "Request access",
+  });
 
   return (
-    <PublicSiteFrame profile={profile} headerContent={headerContent} footerContent={footerContent}>
-      <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-(--erp-canvas) px-4 py-16 sm:px-6">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 h-96 w-96 rounded-full bg-green-100 mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" />
-          <div className="absolute -bottom-32 -left-32 h-80 w-80 rounded-full bg-emerald-100 mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{ animationDelay: "2s" }} />
-          <div className="absolute top-1/2 left-1/2 h-72 w-72 rounded-full bg-teal-100 mix-blend-multiply filter blur-3xl opacity-10" />
-        </div>
-
-        <div className="relative w-full max-w-6xl grid md:grid-cols-2 gap-8 lg:gap-12 items-center">
-          <div className="hidden md:flex flex-col justify-center space-y-8">
-            <div className="space-y-6">
-              <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-linear-to-br from-green-600 to-emerald-700 shadow-xl">
-                <img
-                  src={profile.logoUrl || "/logo.png?v=uabindia-20260205"}
-                  alt={`${profile.brandName || "Uabindia ERP Tenant Portal"} logo`}
-                  width={56}
-                  height={56}
-                  className="h-8 w-8 object-contain"
-                />
-              </div>
-
-              <div className="space-y-4">
-                <h2 className="text-4xl font-bold tracking-tight text-slate-900">
-                  Join {profile.brandName || "Uabindia ERP"}
-                </h2>
-                <p className="text-lg text-slate-600 leading-relaxed">
-                  Create your account to streamline business operations with our comprehensive Uabindia ERP solution.
-                </p>
-              </div>
-
-              <div className="space-y-3 pt-4">
-                {[
-                  { label: "14-day free trial", icon: "🎁" },
-                  { label: "No credit card required", icon: "💳" },
-                  { label: "24/7 support", icon: "📞" },
-                ].map((benefit) => (
-                  <div key={benefit.label} className="flex items-center gap-3">
-                    <span className="text-xl">{benefit.icon}</span>
-                    <span className="text-sm font-medium text-slate-700">{benefit.label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur p-4 space-y-1">
-                <p className="text-2xl font-bold text-slate-900">5000+</p>
-                <p className="text-sm text-slate-600">Active Users</p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur p-4 space-y-1">
-                <p className="text-2xl font-bold text-slate-900">99.9%</p>
-                <p className="text-sm text-slate-600">Uptime</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="w-full max-w-sm">
-            <div className="md:hidden mb-8 flex items-center justify-center gap-3">
-              <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-linear-to-br from-green-600 to-emerald-700 shadow-xl">
-                <img
-                  src={profile.logoUrl || "/logo.png?v=uabindia-20260205"}
-                  alt={`${profile.brandName || "Uabindia ERP Tenant Portal"} logo`}
-                  width={56}
-                  height={56}
-                  className="h-8 w-8 object-contain"
-                />
-              </div>
-              <span className="text-xl font-bold text-slate-900">{profile.brandName || "Uabindia ERP"}</span>
-            </div>
-
-            <div className="mb-8 text-center md:text-left">
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900">
-                Create Account
-              </h1>
-              <p className="mt-3 text-base text-slate-600">
-                Sign up for free to get started
-              </p>
-            </div>
-
-            <RegisterForm />
-          </div>
-        </div>
-      </div>
-    </PublicSiteFrame>
+    <PublicAudiencePageFrame audience={audience} profile={profile} headerContent={headerContent} footerContent={footerContent} allowedPaths={allowedPaths} pageVisible={pageVisible} footerVariant="full">
+      <PublicAuthShell>
+        <RegisterAccessRequestForm
+          audience={audience}
+          profile={profile}
+          profileName={profile.companyName || profile.brandName}
+          submitLabel={content.submitLabel}
+        />
+      </PublicAuthShell>
+    </PublicAudiencePageFrame>
   );
 }
 
-function RegisterForm() {
-  const [formData, setFormData] = useState<RegisterFormData>({
-    fullName: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    agreeToTerms: false,
-  });
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
+function RegisterAccessRequestForm({
+  audience,
+  profile,
+  profileName,
+  submitLabel,
+}: {
+  audience: PublicAudience;
+  profile: ClientProfile;
+  profileName: string;
+  submitLabel: string;
+}) {
+  const detectedTenant = getTenantSubdomain() ?? "";
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [state, setState] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [feedback, setFeedback] = useState("");
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const hostname = window.location.hostname.toLowerCase();
-    const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (state === "submitting") return;
 
-    if (!hostname.endsWith(".localhost") && !isLocalhost) {
-      const subdomain = hostname.split(".")[0];
-      if (!subdomain) {
-        router.replace("/tenant-not-found");
-        return;
-      }
-
-      const validateTenant = async () => {
-        try {
-          const res = await fetch(`/api/v1/tenants/resolve?subdomain=${encodeURIComponent(subdomain)}`);
-          if (!res.ok) {
-            router.replace("/tenant-not-found");
-            return;
-          }
-          const data = await res.json();
-          if (!data?.exists) {
-            router.replace("/tenant-not-found");
-          }
-        } catch {
-          router.replace("/tenant-not-found");
-        }
-      };
-
-      validateTenant();
-    }
-  }, [router]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-    setError("");
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-
-    if (!formData.fullName || !formData.email || !formData.password || !formData.confirmPassword) {
-      setError("Please fill in all fields.");
+    if (!fullName.trim() || !email.trim() || !message.trim()) {
+      setState("error");
+      setFeedback("Name, email, and request details are required.");
       return;
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
+    setState("submitting");
+    setFeedback("");
 
-    if (formData.password.length < 8) {
-      setError("Password must be at least 8 characters long.");
-      return;
-    }
-
-    if (!formData.agreeToTerms) {
-      setError("You must agree to the terms and conditions.");
-      return;
-    }
-
-    setIsLoading(true);
     try {
-      const res = await apiClient.post("/auth/register", {
-        fullName: formData.fullName,
-        email: formData.email,
-        password: formData.password,
-      });
+      const response = await publicApi.submitContact({
+        name: fullName.trim(),
+        email: email.trim(),
+        companyName: detectedTenant ? profileName : undefined,
+        subject: "Portal access request",
+        message: message.trim(),
+      }, audience, "request-access");
 
-      if (res.status === 200 || res.status === 201) {
-        setSuccess(true);
-        setTimeout(() => {
-          router.push("/login");
-        }, 2000);
-      } else {
-        setError(res.data?.message || "Registration failed");
-      }
-    } catch (err: unknown) {
-      const message =
-        typeof err === "object" &&
-        err !== null &&
-        "message" in err &&
-        typeof err.message === "string"
-          ? err.message
-          : "Registration failed";
-      setError(message);
-    } finally {
-      setIsLoading(false);
+      setState("success");
+      setFeedback(response.data?.message || "Your access request has been routed to the support desk.");
+      setFullName("");
+      setEmail("");
+      setMessage("");
+    } catch (error: unknown) {
+      setState("error");
+      setFeedback(getApiErrorMessage(error, "Unable to submit the access request right now."));
     }
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white shadow-2xl p-8 space-y-6">
-      {success ? (
-        <div className="space-y-4 text-center py-6">
-          <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-            <CheckCircle2 className="h-8 w-8 text-green-600" />
-          </div>
-          <h3 className="text-xl font-bold text-slate-900">Account Created!</h3>
-          <p className="text-sm text-slate-600">Redirecting to login page...</p>
-        </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="space-y-2">
-            <label htmlFor="fullName" className="block text-sm font-semibold text-slate-900">
-              Full Name
-            </label>
-            <div className="relative group">
-              <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-slate-900 transition" />
-              <input
-                id="fullName"
-                name="fullName"
-                type="text"
-                value={formData.fullName}
-                onChange={handleChange}
-                placeholder="John Doe"
-                className="w-full rounded-lg border border-slate-300 bg-white pl-12 pr-4 py-3 text-slate-900 placeholder-slate-400 transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 hover:border-slate-400"
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="email" className="block text-sm font-semibold text-slate-900">
-              Email Address
-            </label>
-            <div className="relative group">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-slate-900 transition" />
-              <input
-                id="email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="you@company.com"
-                autoComplete="email"
-                className="w-full rounded-lg border border-slate-300 bg-white pl-12 pr-4 py-3 text-slate-900 placeholder-slate-400 transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 hover:border-slate-400"
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="password" className="block text-sm font-semibold text-slate-900">
-              Password
-            </label>
-            <div className="relative group">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-slate-900 transition" />
-              <input
-                id="password"
-                name="password"
-                type={showPassword ? "text" : "password"}
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="Enter your password"
-                className="w-full rounded-lg border border-slate-300 bg-white pl-12 pr-12 py-3 text-slate-900 placeholder-slate-400 transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 hover:border-slate-400"
-                disabled={isLoading}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-900 transition"
-              >
-                {showPassword ? (
-                  <EyeOff className="h-5 w-5" />
-                ) : (
-                  <Eye className="h-5 w-5" />
-                )}
-              </button>
-            </div>
-            <p className="text-xs text-slate-500 mt-1">At least 8 characters</p>
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="confirmPassword" className="block text-sm font-semibold text-slate-900">
-              Confirm Password
-            </label>
-            <div className="relative group">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-slate-900 transition" />
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type={showConfirmPassword ? "text" : "password"}
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                placeholder="Confirm your password"
-                className="w-full rounded-lg border border-slate-300 bg-white pl-12 pr-12 py-3 text-slate-900 placeholder-slate-400 transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 hover:border-slate-400"
-                disabled={isLoading}
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-900 transition"
-              >
-                {showConfirmPassword ? (
-                  <EyeOff className="h-5 w-5" />
-                ) : (
-                  <Eye className="h-5 w-5" />
-                )}
-              </button>
-            </div>
-          </div>
-
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              name="agreeToTerms"
-              type="checkbox"
-              checked={formData.agreeToTerms}
-              onChange={handleChange}
-              className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900/20 mt-1"
-              disabled={isLoading}
-            />
-            <span className="text-sm text-slate-700">
-              I agree to the{" "}
-              <Link href="#" className="font-semibold text-slate-900 hover:text-slate-700 transition">
-                terms and conditions
-              </Link>{" "}
-              and{" "}
-              <Link href="#" className="font-semibold text-slate-900 hover:text-slate-700 transition">
-                privacy policy
-              </Link>
-            </span>
-          </label>
-
-          {error && (
-            <div className="rounded-lg border border-red-300 bg-red-50 p-4 animate-shake">
-              <p className="flex items-center gap-2 text-sm text-red-700 font-medium">
-                <span className="shrink-0">⚠️</span>
-                {error}
-              </p>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full rounded-lg bg-linear-to-r from-green-600 to-emerald-600 py-3 px-4 font-semibold text-white shadow-lg transition hover:shadow-xl hover:from-green-700 hover:to-emerald-700 disabled:opacity-70 disabled:cursor-not-allowed active:scale-[0.98] flex items-center justify-center gap-2 group"
+    <LoginCard
+      profile={profile}
+      title="Request access"
+      subtitle={detectedTenant ? "Share your details for admin approval." : "Share your details and the platform team will route the access request."}
+      footer={
+        <p className="text-center text-sm text-slate-500">
+          Already have an account?{" "}
+          <Link
+            href={withPublicAudience("/login", audience)}
+            className="font-medium text-[color:var(--erp-primary)]"
           >
-            {isLoading ? (
-              <>
-                <div className="h-4 w-4 rounded-full border-2 border-slate-300 border-t-white animate-spin" />
-                Creating account...
-              </>
-            ) : (
-              <>
-                Create Account
-                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition" />
-              </>
-            )}
-          </button>
-        </form>
-      )}
+            Sign in
+          </Link>
+        </p>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <label className="block text-sm font-semibold text-slate-900">
+          Full name
+          <input
+            type="text"
+            value={fullName}
+            onChange={(event) => setFullName(event.target.value)}
+            placeholder="Ananya Sharma"
+            className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+            required
+          />
+        </label>
 
-      {!success && (
-        <>
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-200" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="bg-white px-2 text-slate-500">Already have an account?</span>
-            </div>
+        <label className="block text-sm font-semibold text-slate-900">
+          Work email
+          <input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="you@company.com"
+            className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+            required
+          />
+        </label>
+
+        <label className="block text-sm font-semibold text-slate-900">
+          Request details
+          <textarea
+            value={message}
+            onChange={(event) => setMessage(event.target.value)}
+            placeholder="Mention your role, department, and any access approvals needed."
+            className="mt-2 min-h-32 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+            required
+          />
+        </label>
+
+        {feedback ? (
+          <div
+            className={`rounded-xl border px-4 py-3 text-sm ${
+              state === "error"
+                ? "border-rose-200 bg-rose-50 text-rose-700"
+                : "border-emerald-200 bg-emerald-50 text-emerald-700"
+            }`}
+          >
+            {feedback}
           </div>
+        ) : null}
 
-          <p className="text-center text-sm text-slate-600">
-            <Link
-              href="/login"
-              className="font-semibold text-slate-900 hover:text-slate-700 transition"
-            >
-              Sign in here
-            </Link>
-          </p>
-        </>
-      )}
-
-      <p className="mt-6 text-center text-xs text-slate-500 flex items-center justify-center gap-1">
-        🔒 Your data is secure and encrypted
-      </p>
-    </div>
+        <button
+          type="submit"
+          disabled={state === "submitting"}
+          className="inline-flex w-full items-center justify-center rounded-xl bg-[color:var(--erp-primary)] px-4 py-3 text-sm font-semibold text-white shadow-[0_14px_32px_rgba(11,79,140,0.18)] transition hover:bg-[color:var(--erp-primary-hover)] disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {state === "submitting" ? "Submitting..." : submitLabel}
+        </button>
+      </form>
+    </LoginCard>
   );
 }

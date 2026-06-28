@@ -26,6 +26,7 @@ export default function WebsitePageEditor({
   const [title, setTitle] = useState(initialTitle);
   const [content, setContent] = useState(initialContent !== "{}" ? initialContent : "");
   const [saving, setSaving] = useState(false);
+  const [validationMessage, setValidationMessage] = useState("");
 
   const template = useMemo(
     () => getWebsitePageTemplate(pageType, getBaseClientProfile()),
@@ -43,9 +44,20 @@ export default function WebsitePageEditor({
   }, [initialTitle, initialContent]);
 
   const handleSave = async () => {
+    const normalizedContent = content.trim();
+    if (normalizedContent.length > 0) {
+      try {
+        JSON.parse(normalizedContent);
+      } catch {
+        setValidationMessage("Content must be valid JSON. Raw HTML blocks are no longer supported for public pages.");
+        return;
+      }
+    }
+
+    setValidationMessage("");
     setSaving(true);
     try {
-      await onSave(title, content.trim().length > 0 ? content : "{}");
+      await onSave(title.trim() || template.title, normalizedContent.length > 0 ? normalizedContent : "{}");
     } finally {
       setSaving(false);
     }
@@ -58,6 +70,7 @@ export default function WebsitePageEditor({
 
   const handleResetToTemplate = () => {
     setContent(templateJson);
+    setValidationMessage("");
     if (!title.trim()) {
       setTitle(template.title);
     }
@@ -89,7 +102,7 @@ export default function WebsitePageEditor({
           <div className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
             <div>
               <div className="mb-2 flex items-center justify-between gap-3">
-                <Label htmlFor="content">Page content JSON or HTML</Label>
+                <Label htmlFor="content">Page content JSON</Label>
                 <div className="flex flex-wrap gap-2">
                   <Button type="button" variant="outline" size="sm" onClick={handleCopyTemplate}>
                     <Copy className="mr-2 h-4 w-4" />
@@ -105,9 +118,12 @@ export default function WebsitePageEditor({
                 id="content"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="Enter JSON content or HTML here"
+                placeholder="Enter JSON content here"
                 className="min-h-95 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm text-slate-900 shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
               />
+              {validationMessage ? (
+                <p className="mt-2 text-sm font-medium text-rose-600">{validationMessage}</p>
+              ) : null}
             </div>
 
             <div className="space-y-4">
@@ -124,7 +140,7 @@ export default function WebsitePageEditor({
                 <p className="text-sm font-semibold text-slate-900">Editing tips</p>
                 <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-600">
                   <li>Use JSON for structured editable sections.</li>
-                  <li>Use raw HTML only when you want a fully custom free-form block.</li>
+                  <li>Only supported page routes and structured JSON content should be published.</li>
                   <li>Keep key names unchanged so the public template can render your content correctly.</li>
                 </ul>
               </div>

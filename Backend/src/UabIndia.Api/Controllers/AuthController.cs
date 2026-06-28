@@ -11,15 +11,17 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.RateLimiting;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
-using System.Text.Json;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using UabIndia.Infrastructure.Data;
 using UabIndia.Core.Entities;
 using UabIndia.Core.Authorization;
+using UabIndia.Api.Models;
 
 namespace UabIndia.Api.Controllers
 {
     [ApiController]
     [Route("api/v1/[controller]")]
+    [Route("api/v1/iam/auth")]
     public class AuthController : ControllerBase
     {
         private readonly JwtService _jwt;
@@ -51,21 +53,6 @@ namespace UabIndia.Api.Controllers
             {
                 if (_env.IsDevelopment())
                 {
-                    // Attempt to log the raw request body and bound values for debugging.
-                    try
-                    {
-                        Request.EnableBuffering();
-                        Request.Body.Position = 0;
-                        using var sr = new StreamReader(Request.Body, leaveOpen: true);
-                        var raw = await sr.ReadToEndAsync();
-                        Request.Body.Position = 0;
-                        _logger.LogDebug("Raw login request body: {Body}", raw);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogDebug(ex, "Failed to read raw request body for debugging.");
-                    }
-
                     _logger.LogDebug("Bound LoginRequest values: Email={Email}, Password=(redacted), DeviceId={DeviceId}", req?.Email, req?.DeviceId);
                     _logger.LogDebug("ModelState IsValid={IsValid}", ModelState.IsValid);
                 }
@@ -80,39 +67,62 @@ namespace UabIndia.Api.Controllers
                             _logger.LogWarning("ModelState error for {Field}: {Errors}", kv.Key, string.Join("; ", kv.Value.Errors.Select(e => e.ErrorMessage)));
                         }
                     }
-                    return BadRequest(ModelState);
+                    return ValidationError("Login request is invalid.");
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected error while inspecting login request.");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Server error while processing request." });
+                return StatusCode(StatusCodes.Status500InternalServerError, Error("Server error while processing request.", "server_error"));
             }
 
             if (req == null)
             {
-                return BadRequest(new { message = "Invalid request body." });
+                return BadRequest(Error("Invalid request body.", "invalid_request"));
             }
 
             if (string.IsNullOrWhiteSpace(req.Email) || string.IsNullOrWhiteSpace(req.Password))
             {
-                return BadRequest(new { message = "Email and password are required." });
+                return BadRequest(Error("Email and password are required.", "validation_error"));
             }
 
             if (string.IsNullOrWhiteSpace(req.DeviceId))
             {
-                return BadRequest(new { message = "DeviceId is required." });
+                return BadRequest(Error("DeviceId is required.", "validation_error"));
             }
 
-            // Use IgnoreQueryFilters so users from any tenant can authenticate regardless of the
-            // request-context tenant resolved by TenantResolverMiddleware from the host/header.
-            var user = await _db.Users
+            var requestedTenantId = _tenantAccessor.GetTenantId();
+
+            var userQuery = _db.Users
                 .IgnoreQueryFilters()
-                .FirstOrDefaultAsync(u => u.Email == req.Email && u.IsActive && !u.IsDeleted);
-            if (user == null) return Unauthorized(new { message = "Invalid credentials" });
+                .Where(u => u.Email == req.Email && u.IsActive && !u.IsDeleted);
+
+            var requiresTenantWorkspace = false;
+            if (requestedTenantId != Guid.Empty)
+            {
+                userQuery = userQuery.Where(u => u.TenantId == requestedTenantId);
+            }
+            else
+            {
+                userQuery = userQuery.Where(u => u.IsSystemAdmin);
+                requiresTenantWorkspace = await _db.Users
+                    .IgnoreQueryFilters()
+                    .AnyAsync(u => u.Email == req.Email && u.IsActive && !u.IsDeleted && !u.IsSystemAdmin);
+            }
+
+            var user = await userQuery.FirstOrDefaultAsync();
+            if (user == null)
+            {
+                if (requiresTenantWorkspace)
+                {
+                    return Unauthorized(Error("Open your company tenant URL to sign in to this workspace.", "tenant_context_required"));
+                }
+
+                return Unauthorized(Error("Invalid credentials", "invalid_credentials"));
+            }
 
             var verify = _hasher.VerifyHashedPassword(user, user.PasswordHash, req.Password);
-            if (verify == PasswordVerificationResult.Failed) return Unauthorized(new { message = "Invalid credentials" });
+            if (verify == PasswordVerificationResult.Failed) return Unauthorized(Error("Invalid credentials", "invalid_credentials"));
 
             var userId = user.Id;
             // Always use the user's own tenant, not the request-context tenant
@@ -145,7 +155,7 @@ namespace UabIndia.Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to save refresh token for user {UserId} on device {DeviceId} (tenant {Tenant})", userId, req.DeviceId, tenantId);
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Failed to persist refresh token." });
+                return StatusCode(StatusCodes.Status500InternalServerError, Error("Failed to persist refresh token.", "server_error"));
             }
 
             SetAuthCookies(access, refresh, expires);
@@ -179,21 +189,23 @@ namespace UabIndia.Api.Controllers
         [EnableRateLimiting("auth-login")]
         public async Task<IActionResult> Refresh([FromBody] RefreshRequest req)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (!ModelState.IsValid) return ValidationError("Refresh request is invalid.");
 
             var incomingRefresh = string.IsNullOrWhiteSpace(req.RefreshToken)
                 ? Request.Cookies["refresh_token"]
                 : req.RefreshToken;
 
-            if (string.IsNullOrWhiteSpace(incomingRefresh)) return BadRequest();
+            if (string.IsNullOrWhiteSpace(incomingRefresh)) return BadRequest(Error("Refresh token is required.", "validation_error"));
 
             var presentedHash = _refresh.HashToken(incomingRefresh);
             // Find the token across all tenants — the token's TenantId is the authoritative source.
-            var existing = await _db.RefreshTokens.FirstOrDefaultAsync(r => r.TokenHash == presentedHash);
+            var existing = await _db.RefreshTokens
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(r => r.TokenHash == presentedHash);
             if (existing == null)
             {
                 // token doesn't exist
-                return Unauthorized();
+                return Unauthorized(Error("Refresh token is invalid or expired.", "invalid_refresh_token"));
             }
 
             // Use the tenant stored in the refresh token itself, not the request-context tenant
@@ -204,7 +216,7 @@ namespace UabIndia.Api.Controllers
             {
                 // possible replay: revoke all tokens for user and require re-login
                 await _refreshRepo.RevokeAllForUserAsync(tenantId, userId);
-                return Unauthorized();
+                return Unauthorized(Error("Refresh token has been revoked.", "invalid_refresh_token"));
             }
 
             // enforce device binding
@@ -214,7 +226,7 @@ namespace UabIndia.Api.Controllers
                 existing.IsRevoked = true;
                 existing.RevokedAt = DateTime.UtcNow;
                 await _refreshRepo.UpdateRefreshTokenAsync(existing);
-                return Unauthorized();
+                return Unauthorized(Error("Refresh token device mismatch.", "invalid_refresh_token"));
             }
 
             // rotate: mark existing revoked and create new token linked to parent
@@ -264,7 +276,7 @@ namespace UabIndia.Api.Controllers
         [HttpPost("revoke-all")]
         public async Task<IActionResult> RevokeAll([FromBody] RevokeAllRequest req)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (!ModelState.IsValid) return ValidationError("Revoke-all request is invalid.");
             var tenantId = _tenantAccessor.GetTenantId();
             await _refreshRepo.RevokeAllForUserAsync(tenantId, req.UserId);
             return Ok();
@@ -281,12 +293,12 @@ namespace UabIndia.Api.Controllers
                 ?? User?.FindFirst("sub")?.Value;
             if (string.IsNullOrWhiteSpace(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
             {
-                return Unauthorized();
+                return Unauthorized(Error("User context is invalid.", "unauthorized"));
             }
 
             // IgnoreQueryFilters: user is already authenticated via JWT; find by ID only
             var user = await _db.Users.AsNoTracking().IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Id == userId);
-            if (user == null) return Unauthorized();
+            if (user == null) return Unauthorized(Error("User was not found.", "unauthorized"));
 
             var roles = await _db.UserRoles
                 .IgnoreQueryFilters()
@@ -316,7 +328,7 @@ namespace UabIndia.Api.Controllers
                 ?? User?.FindFirst("sub")?.Value;
             if (string.IsNullOrWhiteSpace(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
             {
-                return Unauthorized();
+                return Unauthorized(Error("User context is invalid.", "unauthorized"));
             }
 
             // Check if user is ERP Owner / Super Admin
@@ -422,12 +434,20 @@ namespace UabIndia.Api.Controllers
         [EnableRateLimiting("auth-forgot")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest req)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (!ModelState.IsValid) return ValidationError("Forgot-password request is invalid.");
 
             // Always return success to prevent email enumeration
-            var user = await _db.Users
+            var requestedTenantId = _tenantAccessor.GetTenantId();
+            var userQuery = _db.Users
                 .IgnoreQueryFilters()
-                .FirstOrDefaultAsync(u => u.Email == req.Email && u.IsActive && !u.IsDeleted);
+                .Where(u => u.Email == req.Email && u.IsActive && !u.IsDeleted);
+
+            if (requestedTenantId != Guid.Empty)
+            {
+                userQuery = userQuery.Where(u => u.TenantId == requestedTenantId);
+            }
+
+            var user = await userQuery.FirstOrDefaultAsync();
 
             if (user != null)
             {
@@ -443,8 +463,8 @@ namespace UabIndia.Api.Controllers
                 await _db.SaveChangesAsync();
 
                 // TODO: Send email with reset link
-                // For now, just log it
-                _logger.LogInformation("Password reset requested for user {UserId}. Token: {Token}", user.Id, resetToken);
+                // For now, log the event without sensitive material
+                _logger.LogInformation("Password reset requested for user {UserId}.", user.Id);
             }
 
             return Ok(new { message = "If an account with this email exists, you will receive password reset instructions." });
@@ -454,7 +474,7 @@ namespace UabIndia.Api.Controllers
         [EnableRateLimiting("auth-reset")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest req)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (!ModelState.IsValid) return ValidationError("Reset-password request is invalid.");
 
             var tokenHash = _refresh.HashToken(req.Token!);
 
@@ -468,7 +488,7 @@ namespace UabIndia.Api.Controllers
 
             if (user == null)
             {
-                return BadRequest(new { message = "Invalid or expired reset token." });
+                return BadRequest(Error("Invalid or expired reset token.", "invalid_reset_token"));
             }
 
             // Hash the new password
@@ -484,6 +504,38 @@ namespace UabIndia.Api.Controllers
             await _refreshRepo.RevokeAllForUserAsync(user.TenantId, user.Id);
 
             return Ok(new { message = "Password has been reset successfully." });
+        }
+
+        private IActionResult ValidationError(string message)
+        {
+            return BadRequest(new ApiErrorResponse
+            {
+                Message = message,
+                Code = "validation_error",
+                Errors = ToValidationErrors(ModelState),
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+
+        private ApiErrorResponse Error(string message, string code)
+        {
+            return new ApiErrorResponse
+            {
+                Message = message,
+                Code = code,
+                TraceId = HttpContext.TraceIdentifier
+            };
+        }
+
+        private static IDictionary<string, string[]> ToValidationErrors(ModelStateDictionary modelState)
+        {
+            return modelState
+                .Where(entry => entry.Value is { Errors.Count: > 0 })
+                .ToDictionary(
+                    entry => entry.Key,
+                    entry => entry.Value!.Errors
+                        .Select(error => string.IsNullOrWhiteSpace(error.ErrorMessage) ? "Invalid value." : error.ErrorMessage)
+                        .ToArray());
         }
 
         public class LoginRequest

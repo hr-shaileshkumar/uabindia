@@ -49,7 +49,8 @@ export const TenantConfigProvider = ({ children }: { children: React.ReactNode }
     }
 
     const roles = (user as AuthUser | null)?.roles || [];
-    const isAdmin = roles.some((role) => isAdminRole(role) || isSuperAdminRole(role));
+    const roleCandidates = [...roles, (user as AuthUser | null)?.role];
+    const isAdmin = roleCandidates.some((role) => isAdminRole(role) || isSuperAdminRole(role));
 
     if (!user) {
       setConfig(null);

@@ -8,6 +8,7 @@ import { OrgContextProvider } from "@/context/OrgContext";
 import { PermissionProvider } from "@/context/PermissionContext";
 import { UiSchemaProvider } from "@/context/UiSchemaContext";
 import AppNotificationToast from "@/components/AppNotificationToast";
+import { TenantPublicRedirect } from "@/components/public/TenantPublicRedirect";
 import { createQueryClient } from "@/lib/query-client";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
@@ -20,6 +21,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
           <OrgContextProvider>
             <PermissionProvider>
               <UiSchemaProvider>
+                <TenantPublicRedirect />
                 {children}
                 <AppNotificationToast />
               </UiSchemaProvider>

@@ -5,6 +5,7 @@ import { notifyError } from "@/lib/notifications";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { hrApi } from "@/services/hrApi";
+import type { Module } from "@/types";
 import {
   parseDashboardSchema,
   parseNavigationSchema,
@@ -18,13 +19,20 @@ import type {
   RouteRulesDto,
 } from "@/lib/ui-schema/types";
 
+type UiSchemaState = "ready" | "incomplete" | "error";
+
 type UiSchemaContextValue = {
   navigation: NavigationSchemaDto;
   routeRules: RouteRulesDto;
   dashboard: DashboardSchemaDto;
+  enabledModules: Module[];
   loading: boolean;
   schemaError: string | null;
-  usingFallback: boolean;
+  state: UiSchemaState;
+  navigationReady: boolean;
+  routeRulesReady: boolean;
+  dashboardReady: boolean;
+  requiresSetup: boolean;
   refresh: () => Promise<void>;
   getPageSchema: (pageKey: string) => Promise<PageSchemaDto | null>;
 };
@@ -46,6 +54,7 @@ export const UiSchemaProvider = ({ children }: { children: React.ReactNode }) =>
   const [navigation, setNavigation] = useState<NavigationSchemaDto>(EMPTY_NAV);
   const [routeRules, setRouteRules] = useState<RouteRulesDto>(EMPTY_RULES);
   const [dashboard, setDashboard] = useState<DashboardSchemaDto>(EMPTY_DASHBOARD);
+  const [enabledModules, setEnabledModules] = useState<Module[]>([]);
   const [loading, setLoading] = useState(true);
   const [schemaError, setSchemaError] = useState<string | null>(null);
 
@@ -54,6 +63,7 @@ export const UiSchemaProvider = ({ children }: { children: React.ReactNode }) =>
       setNavigation(EMPTY_NAV);
       setRouteRules(EMPTY_RULES);
       setDashboard(EMPTY_DASHBOARD);
+      setEnabledModules([]);
       setSchemaError(null);
       setLoading(false);
       return;
@@ -63,11 +73,16 @@ export const UiSchemaProvider = ({ children }: { children: React.ReactNode }) =>
       setLoading(true);
       setSchemaError(null);
 
-      const [navRes, rulesRes, dashboardRes] = await Promise.allSettled([
+      const [modulesRes, navRes, rulesRes, dashboardRes] = await Promise.allSettled([
+        hrApi.modules.getEnabled(),
         hrApi.uiShell.getNavigation(),
         hrApi.uiShell.getRouteRules(),
         hrApi.uiShell.getDashboard(),
       ]);
+
+      const moduleValue = modulesRes.status === "fulfilled" && Array.isArray(modulesRes.value.data?.modules)
+        ? modulesRes.value.data.modules
+        : [];
 
       const navValue = navRes.status === "fulfilled"
         ? parseNavigationSchema(navRes.value.data)
@@ -81,18 +96,25 @@ export const UiSchemaProvider = ({ children }: { children: React.ReactNode }) =>
         ? parseDashboardSchema(dashboardRes.value.data)
         : EMPTY_DASHBOARD;
 
+      setEnabledModules(moduleValue);
       setNavigation(navValue);
       setRouteRules(rulesValue);
       setDashboard(dashboardValue);
 
-      const hadFailures = [navRes, rulesRes, dashboardRes].some((result) => result.status === "rejected");
-      setSchemaError(hadFailures ? "Some UI schema endpoints failed; using fallback where needed." : null);
+      const navigationFailed = navRes.status === "rejected";
+      const routeRulesFailed = rulesRes.status === "rejected";
+      setSchemaError(
+        navigationFailed || routeRulesFailed
+          ? "Backend navigation or route rules could not be loaded."
+          : null
+      );
     } catch (error) {
-      notifyError(getApiErrorMessage(error, "Failed to load UI schema; using fallback configuration."), "UI Schema");
+      notifyError(getApiErrorMessage(error, "Failed to load backend workspace schema."), "UI Schema");
+      setEnabledModules([]);
       setNavigation(EMPTY_NAV);
       setRouteRules(EMPTY_RULES);
       setDashboard(EMPTY_DASHBOARD);
-      setSchemaError("Failed to load UI schema; using fallback configuration.");
+      setSchemaError("Failed to load backend workspace schema.");
     } finally {
       setLoading(false);
     }
@@ -111,20 +133,52 @@ export const UiSchemaProvider = ({ children }: { children: React.ReactNode }) =>
     }
   }, []);
 
-  const usingFallback = useMemo(() => {
-    return navigation.modules.length === 0 || routeRules.rules.length === 0;
-  }, [navigation.modules.length, routeRules.rules.length]);
+  const navigationReady = useMemo(
+    () => navigation.modules.some((module) => module.groups.some((group) => group.items.length > 0)),
+    [navigation.modules]
+  );
+
+  const routeRulesReady = routeRules.rules.length > 0;
+  const dashboardReady = useMemo(
+    () => dashboard.sections.some((section) => section.widgets.length > 0),
+    [dashboard.sections]
+  );
+  const requiresSetup = enabledModules.length > 0 && (!navigationReady || !routeRulesReady);
+  const state = useMemo<UiSchemaState>(() => {
+    if (schemaError) return "error";
+    if (enabledModules.length === 0 || requiresSetup) return "incomplete";
+    return "ready";
+  }, [enabledModules.length, requiresSetup, schemaError]);
 
   const value = useMemo<UiSchemaContextValue>(() => ({
     navigation,
     routeRules,
     dashboard,
+    enabledModules,
     loading,
     schemaError,
-    usingFallback,
+    state,
+    navigationReady,
+    routeRulesReady,
+    dashboardReady,
+    requiresSetup,
     refresh,
     getPageSchema,
-  }), [navigation, routeRules, dashboard, loading, schemaError, usingFallback, refresh, getPageSchema]);
+  }), [
+    navigation,
+    routeRules,
+    dashboard,
+    enabledModules,
+    loading,
+    schemaError,
+    state,
+    navigationReady,
+    routeRulesReady,
+    dashboardReady,
+    requiresSetup,
+    refresh,
+    getPageSchema,
+  ]);
 
   return <UiSchemaContext.Provider value={value}>{children}</UiSchemaContext.Provider>;
 };

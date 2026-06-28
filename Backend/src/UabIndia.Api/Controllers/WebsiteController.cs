@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
 using UabIndia.Api.Models;
+using UabIndia.Api.Services;
 using UabIndia.Core.Authorization;
 using UabIndia.Core.Entities;
 using UabIndia.Infrastructure.Data;
@@ -18,14 +18,14 @@ namespace UabIndia.Api.Controllers
     [Authorize(Policy = "Module:platform")]
     public class WebsiteController : ControllerBase
     {
-        private readonly ApplicationDbContext _db;
+        private readonly IWebsiteContentService _websiteContentService;
         private readonly ILogger<WebsiteController> _logger;
 
         public WebsiteController(
-            ApplicationDbContext db,
+            IWebsiteContentService websiteContentService,
             ILogger<WebsiteController> logger)
         {
-            _db = db;
+            _websiteContentService = websiteContentService;
             _logger = logger;
         }
 
@@ -33,32 +33,8 @@ namespace UabIndia.Api.Controllers
         public async Task<IActionResult> GetPages()
         {
             var isSuperAdmin = IsSuperAdmin();
-            var query = _db.WebsitePages
-                .Where(p => !p.IsDeleted);
-
-            if (!isSuperAdmin)
-            {
-                var tenantId = GetCurrentTenantId();
-                query = query.Where(p => p.TenantId == tenantId);
-            }
-
-            var pages = await (from p in query
-                join t in _db.Tenants on p.TenantId equals t.Id
-                orderby t.Name, p.PageType
-                select new
-                {
-                    p.Id,
-                    p.PageType,
-                    p.Title,
-                    p.ContentJson,
-                    p.IsPublished,
-                    p.PublishedAt,
-                    p.CreatedAt,
-                    p.UpdatedAt,
-                    p.TenantId,
-                    TenantName = t.Name
-                })
-                .ToListAsync();
+            var tenantId = GetCurrentTenantId();
+            var pages = await _websiteContentService.GetManagedPagesAsync(isSuperAdmin, tenantId);
 
             if (isSuperAdmin)
             {
@@ -78,41 +54,17 @@ namespace UabIndia.Api.Controllers
         [HttpGet("pages/{pageType}")]
         public async Task<IActionResult> GetPage(string pageType)
         {
-            var isSuperAdmin = IsSuperAdmin();
-            var query = _db.WebsitePages
-                .Where(p => p.PageType == pageType && !p.IsDeleted);
-
-            if (!isSuperAdmin)
+            var tenantId = GetCurrentTenantId();
+            try
             {
-                var tenantId = GetCurrentTenantId();
-                query = query.Where(p => p.TenantId == tenantId);
+                var page = await _websiteContentService.GetManagedPageAsync(pageType, tenantId);
+                return Ok(page);
             }
-
-            var page = await query.FirstOrDefaultAsync();
-
-            if (page == null)
+            catch (InvalidOperationException ex)
             {
-                // Return default empty page
-                return Ok(new
-                {
-                    PageType = pageType,
-                    Title = GetDefaultTitle(pageType),
-                    ContentJson = "{}",
-                    IsPublished = false
-                });
+                _logger.LogWarning(ex, "Rejected website page read for unsupported page type {PageType}", pageType);
+                return BadRequest(new { message = ex.Message });
             }
-
-            return Ok(new
-            {
-                page.Id,
-                page.PageType,
-                page.Title,
-                page.ContentJson,
-                page.IsPublished,
-                page.PublishedAt,
-                page.CreatedAt,
-                page.UpdatedAt
-            });
         }
 
         [HttpPut("pages/{pageType}")]
@@ -136,39 +88,16 @@ namespace UabIndia.Api.Controllers
 
             var userId = GetCurrentUserId();
 
-            var page = await _db.WebsitePages
-                .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.PageType == pageType && !p.IsDeleted);
-
-            if (page == null)
+            try
             {
-                page = new WebsitePage
-                {
-                    TenantId = tenantId,
-                    PageType = pageType,
-                    Title = request.Title ?? GetDefaultTitle(pageType),
-                    ContentJson = request.ContentJson ?? "{}",
-                    IsPublished = false,
-                    CreatedBy = userId
-                };
-                _db.WebsitePages.Add(page);
+                var page = await _websiteContentService.SaveManagedPageAsync(pageType, request, tenantId, userId);
+                return Ok(page);
             }
-            else
+            catch (InvalidOperationException ex)
             {
-                page.Title = request.Title ?? page.Title;
-                page.ContentJson = request.ContentJson ?? page.ContentJson;
-                page.UpdatedAt = DateTime.UtcNow;
+                _logger.LogWarning(ex, "Rejected website page update for page type {PageType}", pageType);
+                return BadRequest(new { message = ex.Message });
             }
-
-            await _db.SaveChangesAsync();
-
-            return Ok(new
-            {
-                page.Id,
-                page.PageType,
-                page.Title,
-                page.ContentJson,
-                page.IsPublished
-            });
         }
 
         [HttpPost("pages/{pageType}/publish")]
@@ -177,21 +106,16 @@ namespace UabIndia.Api.Controllers
             var isSuperAdmin = IsSuperAdmin();
             var actualTenantId = isSuperAdmin && tenantId.HasValue ? tenantId.Value : GetCurrentTenantId();
             var userId = GetCurrentUserId();
-
-            var page = await _db.WebsitePages
-                .FirstOrDefaultAsync(p => p.TenantId == actualTenantId && p.PageType == pageType && !p.IsDeleted);
-
-            if (page == null)
-                return NotFound();
-
-            page.IsPublished = true;
-            page.PublishedAt = DateTime.UtcNow;
-            page.PublishedBy = userId;
-            page.UpdatedAt = DateTime.UtcNow;
-
-            await _db.SaveChangesAsync();
-
-            return Ok();
+            try
+            {
+                var updated = await _websiteContentService.SetPublishStateAsync(pageType, actualTenantId, userId, true);
+                return updated ? Ok() : NotFound();
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "Rejected publish for unsupported page type {PageType}", pageType);
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPost("pages/{pageType}/unpublish")]
@@ -199,21 +123,16 @@ namespace UabIndia.Api.Controllers
         {
             var isSuperAdmin = IsSuperAdmin();
             var actualTenantId = isSuperAdmin && tenantId.HasValue ? tenantId.Value : GetCurrentTenantId();
-
-            var page = await _db.WebsitePages
-                .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.PageType == pageType && !p.IsDeleted);
-
-            if (page == null)
-                return NotFound();
-
-            page.IsPublished = false;
-            page.PublishedAt = null;
-            page.PublishedBy = null;
-            page.UpdatedAt = DateTime.UtcNow;
-
-            await _db.SaveChangesAsync();
-
-            return Ok();
+            try
+            {
+                var updated = await _websiteContentService.SetPublishStateAsync(pageType, actualTenantId, GetCurrentUserId(), false);
+                return updated ? Ok() : NotFound();
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "Rejected unpublish for unsupported page type {PageType}", pageType);
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         private Guid GetCurrentTenantId()
@@ -236,26 +155,5 @@ namespace UabIndia.Api.Controllers
             return RoleCatalog.HasAnyRole(roleClaims, SystemRole.SuperAdmin);
         }
 
-        private string GetDefaultTitle(string pageType)
-        {
-            return pageType switch
-            {
-                "home" => "Welcome",
-                "header" => "Header",
-                "about" => "About Us",
-                "contact" => "Contact Us",
-                "career" => "Careers",
-                "login" => "Login",
-                "footer" => "Footer",
-                _ => "Page"
-            };
-        }
-    }
-
-    public class UpdateWebsitePageRequest
-    {
-        public string? Title { get; set; }
-        public string? ContentJson { get; set; }
-        public Guid? TenantId { get; set; }
     }
 }

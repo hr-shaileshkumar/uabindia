@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace UabIndia.Api.Models
@@ -29,6 +30,47 @@ namespace UabIndia.Api.Models
         public TenantDto? Tenant { get; set; }
         public PublicCompanyProfileDto? Company { get; set; }
         public string BrandingJson { get; set; } = "{}";
+    }
+
+    public class PublicSiteMetricDto
+    {
+        public string Label { get; set; } = string.Empty;
+        public string Value { get; set; } = string.Empty;
+        public string Helper { get; set; } = string.Empty;
+    }
+
+    public class PublicSiteStatDto
+    {
+        public double Value { get; set; }
+        public string Suffix { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string? Helper { get; set; }
+    }
+
+    public class PublicSiteCoverageDto
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Sector { get; set; } = string.Empty;
+        public string Mark { get; set; } = string.Empty;
+        public int Count { get; set; }
+    }
+
+    public class PublicSiteSocialProofDto
+    {
+        public bool ShowCustomerReferences { get; set; }
+        public bool ShowTestimonials { get; set; }
+        public string Note { get; set; } = string.Empty;
+    }
+
+    public class PublicSiteDataResponse
+    {
+        public string Audience { get; set; } = "tenant";
+        public DateTime GeneratedAtUtc { get; set; }
+        public List<PublicSiteMetricDto> HeroMetrics { get; set; } = new();
+        public List<PublicSiteMetricDto> DashboardMetrics { get; set; } = new();
+        public List<PublicSiteStatDto> SummaryStats { get; set; } = new();
+        public List<PublicSiteCoverageDto> IndustryCoverage { get; set; } = new();
+        public PublicSiteSocialProofDto SocialProof { get; set; } = new();
     }
 
     public class PublicContactRequestDto

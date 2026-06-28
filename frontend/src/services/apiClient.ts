@@ -1,5 +1,7 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from "axios";
 import { getClientApiV1BaseUrl } from "@/lib/api-base-url";
+import { withPublicAudience } from "@/lib/public-audience";
+import { OWNER_PATH_PREFIXES, matchesAnyPrefix } from "@/lib/erp/route-config";
 
 /**
  * Unified API Client for ERP Frontend
@@ -8,6 +10,8 @@ import { getClientApiV1BaseUrl } from "@/lib/api-base-url";
  */
 
 const apiBaseUrl = getClientApiV1BaseUrl();
+const TENANT_STORAGE_KEY = "erp.tenant.subdomain";
+const RESERVED_HOST_LABELS = new Set(["app", "api", "www"]);
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: apiBaseUrl,
@@ -26,7 +30,7 @@ const getCookie = (name: string): string | null => {
   return match ? decodeURIComponent(match[2]) : null;
 };
 
-const getDeviceId = (): string => {
+export const getDeviceId = (): string => {
   if (typeof window === "undefined") return "server-device";
   let d = window.localStorage.getItem("deviceId");
   if (!d) {
@@ -42,11 +46,31 @@ const ensureCsrfToken = async (): Promise<string | null> => {
   if (existing) return existing;
 
   try {
-    await axios.get(`${apiBaseUrl}/auth/csrf-token`, { withCredentials: true });
+    const tenant = getTenantHeader();
+    await axios.get(`${apiBaseUrl}/auth/csrf-token`, {
+      withCredentials: true,
+      headers: tenant ? { "X-Tenant": tenant } : undefined,
+    });
     return getCookie("csrf_token");
   } catch {
     return null;
   }
+};
+
+export const persistTenantSubdomain = (tenant: string | null | undefined) => {
+  if (typeof window === "undefined") return;
+  const normalized = tenant?.trim().toLowerCase();
+  if (!normalized) {
+    window.localStorage.removeItem(TENANT_STORAGE_KEY);
+    return;
+  }
+
+  window.localStorage.setItem(TENANT_STORAGE_KEY, normalized);
+};
+
+export const clearTenantSubdomain = () => {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(TENANT_STORAGE_KEY);
 };
 
 export const getTenantSubdomain = (): string | null => {
@@ -55,17 +79,30 @@ export const getTenantSubdomain = (): string | null => {
 
   const hostname = window.location.hostname.toLowerCase();
   const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
-  const queryTenant = new URLSearchParams(window.location.search).get("tenant");
+  const queryTenant = new URLSearchParams(window.location.search).get("tenant")?.trim().toLowerCase() || null;
+  const storedTenant = window.localStorage.getItem(TENANT_STORAGE_KEY);
+  const parts = hostname.split(".").filter(Boolean);
 
   if (hostname.endsWith(".localhost") && !isLocalhost) {
-    return hostname.split(".")[0] || tenantFromEnv;
+    const candidate = hostname.split(".")[0] || null;
+    if (!candidate || RESERVED_HOST_LABELS.has(candidate)) {
+      return null;
+    }
+    return candidate;
   }
 
   if (isLocalhost) {
-    return queryTenant;
+    return queryTenant || storedTenant || tenantFromEnv;
   }
 
-  return queryTenant || tenantFromEnv;
+  if (parts.length >= 3) {
+    const candidate = parts[0];
+    if (candidate && !RESERVED_HOST_LABELS.has(candidate)) {
+      return candidate;
+    }
+  }
+
+  return tenantFromEnv;
 };
 
 const getTenantHeader = (): string | null => {
@@ -137,11 +174,18 @@ const requestRefreshToken = async (): Promise<boolean> => {
   }
 
   isRefreshing = true;
+  const tenant = getTenantHeader();
   refreshPromise = axios
     .post(
       `${apiBaseUrl}/auth/refresh`,
       { deviceId: getDeviceId() },
-      { withCredentials: true, headers: { "Content-Type": "application/json" } }
+      {
+        withCredentials: true,
+        headers: {
+          "Content-Type": "application/json",
+          ...(tenant ? { "X-Tenant": tenant } : {}),
+        },
+      }
     )
     .then((res) => res.status === 200)
     .catch(() => false)
@@ -209,7 +253,8 @@ apiClient.interceptors.response.use(
       if (typeof window !== "undefined") {
         const path = window.location.pathname;
         if (!path.startsWith("/login")) {
-          window.location.href = "/login";
+          const audience = matchesAnyPrefix(path, OWNER_PATH_PREFIXES) ? "platform" : "tenant";
+          window.location.href = withPublicAudience("/login", audience);
         }
       }
     }

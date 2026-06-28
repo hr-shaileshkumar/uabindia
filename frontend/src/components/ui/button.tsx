@@ -14,26 +14,27 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
    */
   variant?: "default" | "outline" | "ghost" | "destructive" | "secondary" | "success" | "warning" | "ghost-danger";
   size?: "default" | "sm" | "lg" | "icon";
+  asChild?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className = "", variant = "default", size = "default", type = "button", ...props }, ref) => {
+  ({ className = "", variant = "default", size = "default", type = "button", asChild = false, children, ...props }, ref) => {
     const baseStyles =
       "inline-flex items-center justify-center rounded-xl border border-transparent font-semibold tracking-[0.01em] shadow-sm transition-[background-color,border-color,color,box-shadow,transform] hover:-translate-y-px active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0 disabled:pointer-events-none disabled:opacity-50 focus-visible:ring-[var(--erp-primary)]";
 
     const variants: Record<NonNullable<ButtonProps["variant"]>, string> = {
       /* ── Primary ──────────────────────────────────── */
       default:
-        "bg-[var(--erp-primary)] text-white shadow-sm hover:bg-[var(--erp-primary-hover)] focus-visible:ring-offset-0",
+        "border border-[#0d5f74]/50 bg-[linear-gradient(135deg,#163653,#0f6178_62%,#12808a)] text-white shadow-[0_14px_32px_rgba(15,54,83,0.18)] hover:brightness-105 focus-visible:ring-offset-0",
       /* ── Secondary ────────────────────────────────── */
       secondary:
-        "bg-slate-100 text-slate-800 shadow-sm hover:bg-slate-200 border border-slate-200/80 focus-visible:ring-slate-400",
+        "border border-[#d9e1e7] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(252,246,239,0.94))] text-[#173248] shadow-[0_10px_22px_rgba(15,23,42,0.06)] hover:border-[#bcc8d1] hover:bg-white focus-visible:ring-slate-400",
       /* ── Outline ──────────────────────────────────── */
       outline:
-        "border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 hover:border-slate-400 focus-visible:ring-offset-0",
+        "border border-[#d9e1e7] bg-white/92 text-[#173248] hover:border-[#bcc8d1] hover:bg-white focus-visible:ring-offset-0",
       /* ── Ghost / Tertiary ─────────────────────────── */
       ghost:
-        "border-transparent bg-transparent text-slate-700 shadow-none hover:bg-slate-100 hover:text-slate-900",
+        "border-transparent bg-transparent text-[#556574] shadow-none hover:bg-white/80 hover:text-[#11263a]",
       /* ── Destructive ──────────────────────────────── */
       destructive:
         "bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500 focus-visible:ring-offset-0",
@@ -56,14 +57,25 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       icon: "h-9 w-9 p-0 rounded-xl shadow-sm",
     };
 
+    const classes = `${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`;
+
+    if (asChild && React.isValidElement(children)) {
+      const child = children as React.ReactElement<{ className?: string }>;
+      return React.cloneElement(child, {
+        className: `${classes} ${String(child.props.className || "")}`.trim(),
+      });
+    }
+
     return (
       <button
         data-erp-button="true"
         type={type}
-        className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}
+        className={classes}
         ref={ref}
         {...props}
-      />
+      >
+        {children}
+      </button>
     );
   }
 );

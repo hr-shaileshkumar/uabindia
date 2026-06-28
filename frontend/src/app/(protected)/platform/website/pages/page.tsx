@@ -1,201 +1,186 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Edit, Eye, EyeOff } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Edit, Eye, EyeOff, RefreshCw } from "lucide-react";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { usePermissions } from "@/context/PermissionContext";
+import { WEBSITE_PAGE_DEFINITIONS } from "@/lib/website-page-config";
 import WebsitePageEditor from "@/components/admin/website/WebsitePageEditor";
+import { platformApi, type WebsitePagesResponse, type WebsitePageSummary, type WebsitePageTenantGroup } from "@/services/modules/platform";
 
-interface WebsitePage {
-  id: string;
-  pageType: string;
-  title: string;
-  contentJson: string;
-  isPublished: boolean;
-  tenantId?: string;
-  tenantName?: string;
-}
-
-type WebsiteTenantGroup = {
+type WebsitePageGroup = {
   tenant: string;
-  pages: WebsitePage[];
+  pages: WebsitePageSummary[];
 };
-
-type WebsitePagesResponse = WebsitePage[] | { tenants?: WebsiteTenantGroup[] };
-
-const PAGE_TYPES = [
-  { key: "header", label: "Header" },
-  { key: "home", label: "Home Page" },
-  { key: "about", label: "About Page" },
-  { key: "contact", label: "Contact Page" },
-  { key: "career", label: "Career Page" },
-  { key: "login", label: "Login Page" },
-  { key: "forgot-password", label: "Forgot Password" },
-  { key: "reset-password", label: "Reset Password" },
-  { key: "footer", label: "Footer" },
-];
 
 export default function WebsitePagesPage() {
   const { isSuperAdmin } = usePermissions();
-  const [pages, setPages] = useState<WebsitePage[]>([]);
+  const [pages, setPages] = useState<WebsitePageSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingPage, setEditingPage] = useState<WebsitePage | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [editingPage, setEditingPage] = useState<WebsitePageSummary | null>(null);
 
-  async function loadPages() {
+  const loadPages = async (mode: "initial" | "refresh" = "refresh") => {
+    if (mode === "initial") {
+      setLoading(true);
+    } else {
+      setRefreshing(true);
+    }
+
     try {
-      const response = await fetch("/api/v1/website/pages");
-      if (response.ok) {
-        const data = (await response.json()) as WebsitePagesResponse;
-        const pageList: WebsitePage[] = hasTenantGroups(data)
-          ? data.tenants.flatMap((tenantGroup) =>
-              tenantGroup.pages.map((page) => ({ ...page, tenantName: tenantGroup.tenant }))
-            )
-          : Array.isArray(data)
-            ? data
-            : [];
-        setPages(pageList);
-      }
+      const response = await platformApi.website.listPages();
+      const pageList = normalizeWebsitePages(response.data);
+      setPages(pageList);
     } catch {
-      notifyError("Failed to load website pages");
+      notifyError("Failed to load website pages.");
     } finally {
       setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    void loadPages();
-  }, []);
-
-  const handlePublish = async (page: WebsitePage, publish: boolean) => {
-    try {
-      const params = new URLSearchParams();
-      if (isSuperAdmin && page.tenantId) {
-        params.append('tenantId', page.tenantId);
-      }
-      const url = `${publish
-        ? `/api/v1/website/pages/${page.pageType}/publish`
-        : `/api/v1/website/pages/${page.pageType}/unpublish`}?${params.toString()}`;
-      const response = await fetch(url, { method: "POST" });
-      if (response.ok) {
-        setPages(prev => prev.map(p => p.id === page.id ? { ...p, isPublished: publish } : p));
-        notifySuccess(`Page ${publish ? "published" : "unpublished"}`);
-      } else {
-        notifyError("Failed to update publish status");
-      }
-    } catch {
-      notifyError("Failed to update publish status");
+      setRefreshing(false);
     }
   };
 
-  const handleSavePage = async (page: WebsitePage, title: string, contentJson: string) => {
+  useEffect(() => {
+    void loadPages("initial");
+  }, []);
+
+  const groupedPages = useMemo<WebsitePageGroup[]>(() => {
+    if (!isSuperAdmin) {
+      return [{ tenant: "Current Tenant", pages }];
+    }
+
+    const grouped = pages.reduce<Map<string, WebsitePageSummary[]>>((acc, page) => {
+      const key = page.tenantName || "Unknown Tenant";
+      const existing = acc.get(key) ?? [];
+      existing.push(page);
+      acc.set(key, existing);
+      return acc;
+    }, new Map());
+
+    return Array.from(grouped.entries()).map(([tenant, tenantPages]) => ({
+      tenant,
+      pages: tenantPages,
+    }));
+  }, [isSuperAdmin, pages]);
+
+  const handlePublish = async (page: WebsitePageSummary, publish: boolean) => {
     try {
-      const body: { title: string; contentJson: string; tenantId?: string } = { title, contentJson };
-      if (isSuperAdmin && page.tenantId) {
-        body.tenantId = page.tenantId;
-      }
-      const response = await fetch(`/api/v1/website/pages/${page.pageType}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (response.ok) {
-        setPages(prev => prev.map(p => p.id === page.id ? { ...p, title, contentJson } : p));
-        notifySuccess("Page saved successfully");
-        setEditingPage(null);
+      if (publish) {
+        await platformApi.website.publishPage(page.pageType, isSuperAdmin ? page.tenantId : undefined);
       } else {
-        notifyError("Failed to save page");
+        await platformApi.website.unpublishPage(page.pageType, isSuperAdmin ? page.tenantId : undefined);
       }
+
+      notifySuccess(`Page ${publish ? "published" : "unpublished"}.`);
+      await loadPages();
     } catch {
-      notifyError("Failed to save page");
+      notifyError(`Failed to ${publish ? "publish" : "unpublish"} page.`);
+    }
+  };
+
+  const handleSavePage = async (page: WebsitePageSummary, title: string, contentJson: string) => {
+    try {
+      await platformApi.website.updatePage(page.pageType, {
+        title,
+        contentJson,
+        ...(isSuperAdmin && page.tenantId ? { tenantId: page.tenantId } : {}),
+      });
+
+      notifySuccess("Page saved successfully.");
+      setEditingPage(null);
+      await loadPages();
+    } catch {
+      notifyError("Failed to save page.");
     }
   };
 
   if (loading) {
     return (
-      <StandardPageLayout title="Website Pages" subtitle="Manage your public website content">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">Loading...</div>
-        </div>
+      <StandardPageLayout title="Website Pages" subtitle="Manage public pages stored in the tenant database.">
+        <div className="flex h-64 items-center justify-center text-sm text-slate-500">Loading website pages...</div>
       </StandardPageLayout>
     );
   }
 
-  // Group pages by tenant if super admin
-  const groupedPages = isSuperAdmin
-    ? pages.reduce((acc, page) => {
-        const key = page.tenantName || "Unknown Tenant";
-        if (!acc[key]) acc[key] = [];
-        acc[key].push(page);
-        return acc;
-      }, {} as Record<string, WebsitePage[]>)
-    : { "Current Tenant": pages };
-
   return (
-    <StandardPageLayout title="Website Pages" subtitle="Manage your public website content">
-      {Object.entries(groupedPages).map(([tenantName, tenantPages]) => (
-        <div key={tenantName} className="mb-8">
-          {isSuperAdmin && <h3 className="text-lg font-semibold mb-4">{tenantName}</h3>}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {PAGE_TYPES.map(({ key, label }) => {
-              const page = tenantPages.find(p => p.pageType === key) || { id: `${key}-${tenantName}`, pageType: key, title: "", contentJson: "{}", isPublished: false };
+    <StandardPageLayout
+      title="Website Pages"
+      subtitle="Edit tenant-facing public content, publish it intentionally, and keep support and access pages aligned with the database."
+      actions={
+        <Button variant="outline" onClick={() => void loadPages()} disabled={refreshing}>
+          <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+          Refresh
+        </Button>
+      }
+    >
+      {groupedPages.map(({ tenant, pages: tenantPages }) => (
+        <section key={tenant} className="space-y-4">
+          {isSuperAdmin ? <h2 className="text-lg font-semibold text-slate-900">{tenant}</h2> : null}
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            {WEBSITE_PAGE_DEFINITIONS.map((definition) => {
+              const page = tenantPages.find((item) => item.pageType === definition.key) ?? {
+                id: `${tenant}-${definition.key}`,
+                pageType: definition.key,
+                title: "",
+                contentJson: "{}",
+                isPublished: false,
+                tenantName: tenant,
+              };
+
               return (
-                <Card key={`${key}-${tenantName}`}>
+                <Card key={`${tenant}-${definition.key}`}>
                   <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      {label}
-                      <span className={`rounded-full px-2 py-1 text-xs font-semibold ${page.isPublished ? "bg-slate-100 text-slate-700" : "bg-slate-100 text-slate-500"}`}>
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <CardTitle>{definition.label}</CardTitle>
+                        <CardDescription className="mt-2">{definition.description}</CardDescription>
+                      </div>
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          page.isPublished ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
+                        }`}
+                      >
                         {page.isPublished ? "Published" : "Draft"}
                       </span>
-                    </CardTitle>
+                    </div>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="font-medium">{page.title || "No title set"}</h4>
-                        <p className="text-sm text-gray-600 mt-1">
-                          {page.contentJson !== "{}" ? "Content configured" : "No content"}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setEditingPage(page)}
-                        >
-                          <Edit className="w-4 h-4 mr-2" />
-                          Edit
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handlePublish(page, !page.isPublished)}
-                        >
-                          {page.isPublished ? (
-                            <>
-                              <EyeOff className="w-4 h-4 mr-2" />
-                              Unpublish
-                            </>
-                          ) : (
-                            <>
-                              <Eye className="w-4 h-4 mr-2" />
-                              Publish
-                            </>
-                          )}
-                        </Button>
-                      </div>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <p className="font-medium text-slate-900">{page.title || "No title set"}</p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {page.contentJson !== "{}" ? "Content configured and ready for preview." : "No saved content yet. Use the template to seed this page."}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setEditingPage(page)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => void handlePublish(page, !page.isPublished)}>
+                        {page.isPublished ? (
+                          <>
+                            <EyeOff className="mr-2 h-4 w-4" />
+                            Unpublish
+                          </>
+                        ) : (
+                          <>
+                            <Eye className="mr-2 h-4 w-4" />
+                            Publish
+                          </>
+                        )}
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
               );
             })}
           </div>
-        </div>
+        </section>
       ))}
 
-      {editingPage && (
+      {editingPage ? (
         <WebsitePageEditor
           pageType={editingPage.pageType}
           initialTitle={editingPage.title || ""}
@@ -203,11 +188,18 @@ export default function WebsitePagesPage() {
           onSave={(title, content) => handleSavePage(editingPage, title, content)}
           onClose={() => setEditingPage(null)}
         />
-      )}
+      ) : null}
     </StandardPageLayout>
   );
 }
 
-function hasTenantGroups(data: WebsitePagesResponse): data is { tenants: WebsiteTenantGroup[] } {
-  return !Array.isArray(data) && Array.isArray(data.tenants);
+function normalizeWebsitePages(data: WebsitePagesResponse): WebsitePageSummary[] {
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  const tenants = Array.isArray(data.tenants) ? data.tenants : [];
+  return tenants.flatMap((tenantGroup: WebsitePageTenantGroup) =>
+    tenantGroup.pages.map((page) => ({ ...page, tenantName: tenantGroup.tenant }))
+  );
 }

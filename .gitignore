@@ -1,5 +1,5 @@
-# HRMS monorepo .gitignore
-# Covers: .NET 8 backend, React/Next frontend, Expo mobile app, and CI artifacts
+# HRMS / ERP monorepo .gitignore
+# .NET Backend + Next.js Frontend + Expo Mobile + CI artifacts
 
 ########################################################
 # Visual Studio / .NET
@@ -23,7 +23,13 @@ project.lock.json
 ########################################################
 .idea/
 *.iml
-.vscode/
+
+# VS Code - keep useful team settings
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/tasks.json
+!.vscode/launch.json
 
 ########################################################
 # Node / Frontend
@@ -44,9 +50,6 @@ out/
 build/
 public/build/
 
-# Vite cache
-.vite/
-
 ########################################################
 # Expo / React Native / Mobile
 ########################################################
@@ -66,6 +69,7 @@ ios/build/
 ########################################################
 logs/
 *.log
+install-errors.txt
 TestResults/
 coverage/
 coverage-final.json
@@ -88,7 +92,7 @@ secrets.*
 *.key
 /.secret
 
-## keep the example env in repo
+# Keep example env
 !/.env.example
 
 ########################################################
@@ -99,20 +103,56 @@ Thumbs.db
 desktop.ini
 
 ########################################################
-# Containers / Docker / local infra
+# Docker / local infra
 ########################################################
-# Ignore local docker compose overrides
 docker-compose.override.yml
 docker-compose.*.local.yml
 
 ########################################################
-# Misc tools & editors
+# Cache
 ########################################################
-.idea/
-/.history
-.sass-cache
 .cache/
-.terraform/
+.eslintcache
+.stylelintcache
+.turbo/
+.parcel-cache/
+.sass-cache
+
+########################################################
+# Temporary / generated folders
+########################################################
+temp/
+tmp/
+scratch/
+backup/
+archive/
+artifacts/
+screenshots/
+recordings/
+
+########################################################
+# Generated reports / old audit docs
+########################################################
+*_REPORT*.md
+*_SUMMARY*.md
+*_PLAN*.md
+*_AUDIT*.md
+*_TRACKER*.md
+*_FIX*.md
+
+########################################################
+# Generated files / backups
+########################################################
+*.zip
+*.7z
+*.rar
+*.bak
+*.backup
+*.db
+*.sqlite
+*.sqlite3
+*.orig
+*.rej
 
 ########################################################
 # Generated certificates, keys and build outputs
@@ -122,9 +162,18 @@ certs/
 *.cer
 
 ########################################################
-# GitHub Actions artifacts (local/emulator files)
+# GitHub Actions artifacts
+########################################################
 *.workflow-cache
 actions-runner/
+
+########################################################
+# Local tools / AI editors
+########################################################
+.cursor/
+.claude/
+.ai/
+.codex/
 
 # Local utility binaries / local packaging artifacts
 ngrok.exe
@@ -132,5 +181,11 @@ ngrok.zip
 backend_deployment.zip
 
 ########################################################
-# Keep migration SQL artifacts tracked (do not ignore)
-# Backend/migrations_scripts/* should be committed so CI can run migration scripts.
+# Keep migration SQL artifacts tracked
+########################################################
+# Backend/migrations_scripts/* should be committed
+cleanup-backup-*/
+node_modules/
+**/node_modules/
+
+cleanup-backup-*/

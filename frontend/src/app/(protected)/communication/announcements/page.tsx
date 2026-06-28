@@ -1,281 +1,211 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Plus, Megaphone, Users, Bell, Eye } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { hrApi } from "@/services/hrApi";
-import { notifyError } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
+import { hrApi } from "@/services/hrApi";
 
-type Announcement = {
+type AnnouncementRecord = {
   id: string;
-  title?: string;
-  content?: string;
-  audience?: string;
-  status?: string;
-  publishedAt?: string;
-  expiresAt?: string;
-  priority?: string;
-  viewCount?: number;
-  createdBy?: string;
-};
-
-type AnnouncementForm = {
   title: string;
-  content: string;
+  body: string;
   audience: string;
-  priority: string;
-  publishedAt: string;
-  expiresAt: string;
+  status: string;
+  updatedAt?: string;
 };
 
-const STATUS_CONFIG: Record<string, { chip: string; label: string }> = {
-  Published: { chip: "erp-chip erp-chip-success", label: "Published" },
-  Draft:     { chip: "erp-chip erp-chip-neutral", label: "Draft"     },
-  Scheduled: { chip: "erp-chip erp-chip-info",    label: "Scheduled" },
-  Expired:   { chip: "erp-chip erp-chip-warning", label: "Expired"   },
-  Archived:  { chip: "erp-chip erp-chip-neutral", label: "Archived"  },
+const formatDate = (value?: string) => {
+  if (!value) return "Not scheduled";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString();
 };
 
-const AUDIENCE_OPTIONS = ["All Employees", "Management", "HR Team", "Finance Team", "Operations", "Department Specific", "New Joiners", "All Admins"];
+const normalizeValue = (value: unknown, fallback: string) =>
+  typeof value === "string" && value.trim().length > 0 ? value : fallback;
 
 export default function AnnouncementsPage() {
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [announcements, setAnnouncements] = useState<AnnouncementRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [form, setForm] = useState<AnnouncementForm>({
-    title: "", content: "", audience: "All Employees", priority: "Normal",
-    publishedAt: new Date().toISOString().split("T")[0], expiresAt: "",
-  });
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [audienceFilter, setAudienceFilter] = useState("all");
 
-  const load = useCallback(async () => {
+  const loadAnnouncements = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await hrApi.communication.announcements.list({ page: 1, limit: 50 });
-      const raw = res.data;
-      const list = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
-      setAnnouncements(list);
-    } catch (err) {
-      // Backend endpoint not yet available - show empty state gracefully
-      setAnnouncements([]);
-      if (getApiErrorMessage(err, "").includes("404") === false) {
-        const msg = getApiErrorMessage(err, "Failed to load announcements.");
-        setError(msg);
-      }
+      const response = await hrApi.communication.announcements.list({ page: 1, limit: 24 });
+      const raw = response.data;
+      const items = Array.isArray(raw)
+        ? raw
+        : Array.isArray(raw?.announcements)
+          ? raw.announcements
+          : Array.isArray(raw?.records)
+            ? raw.records
+            : Array.isArray(raw?.data)
+              ? raw.data
+              : [];
+
+      setAnnouncements(
+        items.map((item: Record<string, unknown>, index: number) => ({
+          id: String(item.id ?? item.announcementId ?? index),
+          title: normalizeValue(item.title, "Untitled announcement"),
+          body: normalizeValue(item.body, normalizeValue(item.message, "No announcement body available.")),
+          audience: normalizeValue(item.audience, "All Employees"),
+          status: normalizeValue(item.status, "Draft"),
+          updatedAt:
+            typeof item.updatedAt === "string"
+              ? item.updatedAt
+              : typeof item.publishedAt === "string"
+                ? item.publishedAt
+                : typeof item.createdAt === "string"
+                  ? item.createdAt
+                  : undefined,
+        }))
+      );
+    } catch (loadError: unknown) {
+      setError(getApiErrorMessage(loadError, "Failed to load announcements."));
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void loadAnnouncements();
+  }, [loadAnnouncements]);
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.title || !form.content) return;
-    try {
-      setSaving(true);
-      await hrApi.communication.announcements.create({
-        title: form.title,
-        content: form.content,
-        audience: form.audience,
-        priority: form.priority,
-        publishedAt: form.publishedAt,
-        expiresAt: form.expiresAt || null,
-        status: "Published",
-      });
-      setShowForm(false);
-      setForm({ title: "", content: "", audience: "All Employees", priority: "Normal", publishedAt: new Date().toISOString().split("T")[0], expiresAt: "" });
-      void load();
-    } catch (err) {
-      notifyError(getApiErrorMessage(err, "Failed to create announcement."), "Announcement");
-    } finally {
-      setSaving(false);
-    }
-  };
+  const filteredAnnouncements = useMemo(() => {
+    return announcements.filter((announcement) => {
+      const matchesStatus = statusFilter === "all" || announcement.status.toLowerCase() === statusFilter;
+      const matchesAudience = audienceFilter === "all" || announcement.audience.toLowerCase() === audienceFilter;
+      return matchesStatus && matchesAudience;
+    });
+  }, [announcements, audienceFilter, statusFilter]);
 
-  const filtered = announcements.filter((a) => {
-    const q = search.toLowerCase();
-    const matchSearch = !q || (a.title || "").toLowerCase().includes(q);
-    const matchStatus = !statusFilter || a.status === statusFilter;
-    return matchSearch && matchStatus;
-  });
-
-  const published = filtered.filter((a) => a.status === "Published").length;
-  const drafts    = filtered.filter((a) => a.status === "Draft").length;
+  const availableAudiences = useMemo(() => {
+    const values = new Set(
+      announcements
+        .map((announcement) => announcement.audience.toLowerCase())
+        .filter((value) => value.length > 0)
+    );
+    return Array.from(values);
+  }, [announcements]);
 
   return (
     <StandardPageLayout
       title="Announcements"
-      subtitle="Broadcast company-wide or targeted announcements to employees and teams across all departments."
-      eyebrow="Communication / Broadcast"
-      icon="megaphone"
+      subtitle="Live communication records, audience targeting, and publication state in one workspace feed."
+      eyebrow="Workspace / Communication"
+      icon="notifications"
       actions={
-        <button type="button" onClick={() => setShowForm((p) => !p)} className="erp-action-btn erp-action-btn-primary">
-          <Plus className="h-4 w-4" />
-          Post Announcement
+        <button type="button" onClick={() => void loadAnnouncements()} className="erp-action-btn erp-action-btn-secondary">
+          Refresh feed
         </button>
       }
       filters={
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="flex-1 min-w-48">
-            <label className="erp-label">Search</label>
-            <input className="erp-input" placeholder="Search announcements…" value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
-            <label className="erp-label">Status</label>
-            <select className="erp-select w-36" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              <option value="">All Status</option>
-              <option value="Published">Published</option>
-              <option value="Draft">Draft</option>
-              <option value="Scheduled">Scheduled</option>
-              <option value="Expired">Expired</option>
+            <label className="erp-label">Publication status</label>
+            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="erp-select">
+              <option value="all">All</option>
+              <option value="published">Published</option>
+              <option value="draft">Draft</option>
+              <option value="scheduled">Scheduled</option>
             </select>
           </div>
-          {(search || statusFilter) && (
-            <button type="button" onClick={() => { setSearch(""); setStatusFilter(""); }} className="erp-action-btn erp-action-btn-secondary">Clear</button>
-          )}
+          <div>
+            <label className="erp-label">Audience</label>
+            <select value={audienceFilter} onChange={(event) => setAudienceFilter(event.target.value)} className="erp-select">
+              <option value="all">All</option>
+              {availableAudiences.map((audience) => (
+                <option key={audience} value={audience}>
+                  {audience
+                    .split(/[\s_-]+/)
+                    .filter(Boolean)
+                    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+                    .join(" ")}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       }
     >
       <div className="erp-kpi-grid">
         <div className="erp-kpi-card">
-          <p className="erp-kpi-label">Total</p>
-          <p className="erp-kpi-value">{filtered.length}</p>
-          <p className="erp-kpi-meta">All announcements</p>
+          <p className="erp-kpi-label">Visible Announcements</p>
+          <p className="erp-kpi-value">{filteredAnnouncements.length}</p>
+          <p className="erp-kpi-meta">Current communication feed</p>
         </div>
         <div className="erp-kpi-card erp-kpi-card-success">
           <p className="erp-kpi-label">Published</p>
-          <p className="erp-kpi-value erp-kpi-value-success">{published}</p>
-          <p className="erp-kpi-meta">Live announcements</p>
+          <p className="erp-kpi-value erp-kpi-value-success">
+            {filteredAnnouncements.filter((announcement) => announcement.status.toLowerCase() === "published").length}
+          </p>
+          <p className="erp-kpi-meta">Already visible to users</p>
         </div>
-        <div className="erp-kpi-card erp-kpi-card-neutral">
-          <p className="erp-kpi-label">Drafts</p>
-          <p className="erp-kpi-value">{drafts}</p>
-          <p className="erp-kpi-meta">Not yet published</p>
+        <div className="erp-kpi-card erp-kpi-card-warning">
+          <p className="erp-kpi-label">Draft</p>
+          <p className="erp-kpi-value">
+            {filteredAnnouncements.filter((announcement) => announcement.status.toLowerCase() === "draft").length}
+          </p>
+          <p className="erp-kpi-meta">Still awaiting release</p>
         </div>
         <div className="erp-kpi-card erp-kpi-card-info">
-          <p className="erp-kpi-label">Total Views</p>
-          <p className="erp-kpi-value">{filtered.reduce((s, a) => s + (a.viewCount || 0), 0).toLocaleString()}</p>
-          <p className="erp-kpi-meta">Cumulative employee reads</p>
+          <p className="erp-kpi-label">Audience Groups</p>
+          <p className="erp-kpi-value">{availableAudiences.length}</p>
+          <p className="erp-kpi-meta">Distinct target segments</p>
         </div>
       </div>
 
-      {error && <div className="erp-alert-error">{error}</div>}
+      {error ? <div className="erp-alert-error">{error}</div> : null}
 
-      {showForm && (
-        <div className="erp-panel">
-          <div className="erp-panel-header">
-            <div>
-              <h2 className="erp-panel-title">Create Announcement</h2>
-              <p className="mt-1 text-sm text-slate-500">Compose and publish a company-wide or targeted communication.</p>
+      {loading ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="h-5 w-2/3 animate-pulse rounded bg-slate-100" />
+              <div className="mt-4 h-4 w-full animate-pulse rounded bg-slate-100" />
+              <div className="mt-2 h-4 w-5/6 animate-pulse rounded bg-slate-100" />
             </div>
-          </div>
-          <div className="erp-panel-body">
-            <form onSubmit={handleSave} className="space-y-4">
-              <div>
-                <label className="erp-label">Title</label>
-                <input className="erp-input" placeholder="Announcement headline…" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
-              </div>
-              <div>
-                <label className="erp-label">Content</label>
-                <textarea className="erp-input" rows={4} placeholder="Full announcement text…" value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} required />
-              </div>
-              <div className="erp-form-grid erp-form-grid-2">
-                <div>
-                  <label className="erp-label">Audience</label>
-                  <select className="erp-select" value={form.audience} onChange={(e) => setForm({ ...form, audience: e.target.value })}>
-                    {AUDIENCE_OPTIONS.map((a) => <option key={a}>{a}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="erp-label">Priority</label>
-                  <select className="erp-select" value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}>
-                    <option value="Low">Low</option>
-                    <option value="Normal">Normal</option>
-                    <option value="High">High</option>
-                    <option value="Urgent">Urgent</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="erp-label">Publish Date</label>
-                  <input className="erp-input" type="date" value={form.publishedAt} onChange={(e) => setForm({ ...form, publishedAt: e.target.value })} required />
-                </div>
-                <div>
-                  <label className="erp-label">Expiry Date (optional)</label>
-                  <input className="erp-input" type="date" value={form.expiresAt} onChange={(e) => setForm({ ...form, expiresAt: e.target.value })} />
-                </div>
-              </div>
-              <div className="erp-form-actions">
-                <button type="button" onClick={() => setShowForm(false)} className="erp-action-btn erp-action-btn-secondary">Cancel</button>
-                <button type="submit" disabled={saving} className="erp-action-btn erp-action-btn-primary">{saving ? "Publishing…" : "Publish Announcement"}</button>
-              </div>
-            </form>
-          </div>
+          ))}
         </div>
-      )}
-
-      {/* Announcements Feed */}
-      {!loading && filtered.length === 0 ? (
-        <div className="erp-panel">
-          <div className="erp-panel-body py-16 text-center">
-            <div className="flex flex-col items-center gap-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50">
-                <Megaphone className="h-8 w-8 text-blue-500" />
-              </div>
-              <div>
-                <p className="font-semibold text-slate-900">No announcements yet</p>
-                <p className="mt-1 text-sm text-slate-500">Post your first company-wide announcement to engage employees.</p>
-              </div>
-              <button type="button" onClick={() => setShowForm(true)} className="erp-action-btn erp-action-btn-primary">Post Announcement</button>
-            </div>
-          </div>
+      ) : filteredAnnouncements.length === 0 ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500 shadow-sm">
+          No announcements match the selected filters.
         </div>
       ) : (
-        <div className="space-y-3">
-          {loading ? (
-            Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="erp-panel erp-panel-body">
-                <div className="space-y-2">
-                  <div className="h-5 w-1/3 animate-pulse rounded bg-slate-100" />
-                  <div className="h-4 w-full animate-pulse rounded bg-slate-100" />
-                  <div className="h-4 w-2/3 animate-pulse rounded bg-slate-100" />
+        <div className="grid gap-4 lg:grid-cols-2">
+          {filteredAnnouncements.map((announcement) => (
+            <article key={announcement.id} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-xl font-semibold tracking-[-0.03em] text-slate-950">{announcement.title}</h2>
+                  <p className="mt-2 text-sm leading-7 text-slate-600">{announcement.body}</p>
                 </div>
+                <span
+                  className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                    announcement.status.toLowerCase() === "published"
+                      ? "bg-emerald-100 text-emerald-700"
+                      : announcement.status.toLowerCase() === "scheduled"
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-slate-100 text-slate-600"
+                  }`}
+                >
+                  {announcement.status}
+                </span>
               </div>
-            ))
-          ) : (
-            filtered.map((a) => {
-              const cfg = STATUS_CONFIG[a.status || "Draft"] || STATUS_CONFIG.Draft;
-              const priorityColor = { Urgent: "bg-red-500", High: "bg-amber-500", Normal: "bg-blue-500", Low: "bg-slate-400" }[a.priority || "Normal"] || "bg-slate-400";
-              return (
-                <div key={a.id} className="erp-panel">
-                  <div className="erp-panel-body">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-3 flex-1">
-                        <div className={`mt-1 h-2.5 w-2.5 flex-shrink-0 rounded-full ${priorityColor}`} />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-bold text-slate-900">{a.title || "Untitled"}</h3>
-                            <span className={cfg.chip}>{cfg.label}</span>
-                          </div>
-                          <p className="mt-2 text-sm leading-relaxed text-slate-600 line-clamp-3">{a.content || "—"}</p>
-                          <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-slate-500">
-                            <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {a.audience || "All Employees"}</span>
-                            {a.publishedAt && <span className="flex items-center gap-1"><Bell className="h-3.5 w-3.5" /> {new Date(a.publishedAt).toLocaleDateString("en-IN")}</span>}
-                            {a.viewCount != null && <span className="flex items-center gap-1"><Eye className="h-3.5 w-3.5" /> {a.viewCount} views</span>}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          )}
+
+              <div className="mt-5 flex flex-wrap gap-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+                  Audience: {announcement.audience}
+                </span>
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+                  Updated: {formatDate(announcement.updatedAt)}
+                </span>
+              </div>
+            </article>
+          ))}
         </div>
       )}
     </StandardPageLayout>

@@ -138,6 +138,7 @@ if (env.IsDevelopment())
 }
 
 builder.Services.AddControllers();
+builder.Services.AddHttpContextAccessor();
 
 builder.Services.Configure<FormOptions>(options =>
 {
@@ -200,6 +201,7 @@ builder.Services.AddScoped<ITenantAccessor, TenantAccessor>();
 builder.Services.AddScoped<UabIndia.Api.Services.InputSanitizer>();
 builder.Services.AddScoped<TenantProvisioningService>();
 builder.Services.AddScoped<IUiSchemaService, UiSchemaService>();
+builder.Services.AddScoped<IWebsiteContentService, WebsiteContentService>();
 builder.Services.AddSingleton<RoleMappingResolver>();
 
 // Encryption service for PII

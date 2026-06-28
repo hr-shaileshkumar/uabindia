@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using UabIndia.Api.Models;
 
 namespace UabIndia.Api.Middleware
 {
@@ -17,6 +18,9 @@ namespace UabIndia.Api.Middleware
             "/api/v1/auth/login",
             "/api/v1/auth/refresh",
             "/api/v1/auth/csrf-token",
+            "/api/v1/iam/auth/login",
+            "/api/v1/iam/auth/refresh",
+            "/api/v1/iam/auth/csrf-token",
             "/health",
             "/health/live",
             "/health/ready"
@@ -51,7 +55,12 @@ namespace UabIndia.Api.Middleware
             {
                 _logger.LogWarning("CSRF validation failed for {Path}", path);
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                await context.Response.WriteAsJsonAsync(new { error = "csrf_validation_failed" });
+                await context.Response.WriteAsJsonAsync(new ApiErrorResponse
+                {
+                    Message = "CSRF validation failed.",
+                    Code = "csrf_validation_failed",
+                    TraceId = context.TraceIdentifier
+                });
                 return;
             }
 

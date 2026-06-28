@@ -7,6 +7,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using UabIndia.Api.Models;
+using UabIndia.Api.Services;
 using UabIndia.Application.Interfaces;
 using UabIndia.Core.Entities;
 using UabIndia.Core.Services;
@@ -23,17 +24,20 @@ namespace UabIndia.Api.Controllers
         private readonly ApplicationDbContext _db;
         private readonly ITenantAccessor _tenantAccessor;
         private readonly ICacheService _cache;
+        private readonly IWebsiteContentService _websiteContentService;
 
         public RecruitmentController(
             IRecruitmentRepository recruitmentRepo,
             ApplicationDbContext db,
             ITenantAccessor tenantAccessor,
-            ICacheService cache)
+            ICacheService cache,
+            IWebsiteContentService websiteContentService)
         {
             _recruitmentRepo = recruitmentRepo;
             _db = db;
             _tenantAccessor = tenantAccessor;
             _cache = cache;
+            _websiteContentService = websiteContentService;
         }
 
         #region Job Posting Endpoints
@@ -141,14 +145,29 @@ namespace UabIndia.Api.Controllers
         /// </summary>
         [HttpGet("job-postings/active")]
         [AllowAnonymous]
-        public async Task<IActionResult> GetActiveJobPostings([FromQuery] int page = 1, [FromQuery] int limit = 10)
+        public async Task<IActionResult> GetActiveJobPostings([FromQuery] int page = 1, [FromQuery] int limit = 10, [FromQuery] string? audience = null)
         {
             if (page < 1) page = 1;
             if (limit < 1) limit = 10;
             if (limit > 50) limit = 50;
 
-            var tenantId = _tenantAccessor.GetTenantId();
-            var cacheKey = $"active_job_postings_{tenantId}_{page}_{limit}";
+            var normalizedAudience = string.Equals(audience, "platform", StringComparison.OrdinalIgnoreCase)
+                ? "platform"
+                : "tenant";
+            var tenant = await _websiteContentService.ResolveTenantForPublicAudienceAsync(normalizedAudience);
+            if (tenant == null)
+            {
+                return Ok(new
+                {
+                    jobPostings = Array.Empty<JobPostingDto>(),
+                    total = 0,
+                    page,
+                    limit
+                });
+            }
+
+            var tenantId = tenant.Id;
+            var cacheKey = $"active_job_postings_{normalizedAudience}_{tenantId}_{page}_{limit}";
 
             var cached = await _cache.GetAsync<object>(cacheKey);
             if (cached != null)

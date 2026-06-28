@@ -1,307 +1,386 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { PERMISSIONS } from "@/constants/permissions";
-import { ROUTES } from "@/constants/routes";
-import { notifyError, notifySuccess } from "@/lib/notifications";
-import {
-  MODULE_META,
-  clearModuleMappingOverrides,
-  normalizeModuleMappingOverrides,
-  persistModuleMappingOverrides,
-  readModuleMappingOverrides,
-  resolvePageRegistry,
-  type ModuleMappingOverrides,
-  type PageRegistryItem,
-} from "@/lib/platform/page-registry";
-import type { ModuleKey } from "@/config/route-permissions.config";
+import { useUiSchema } from "@/context/UiSchemaContext";
 
-type PanelView = ModuleKey | "unmapped";
+type RegistryItem = {
+  key: string;
+  name: string;
+  path: string;
+  permissions: string[];
+  order: number;
+};
 
-const LOCKED_PATHS = new Set<string>([ROUTES.PLATFORM_MODULE_MAPPING]);
+type RegistryGroup = {
+  label: string;
+  items: RegistryItem[];
+  order: number;
+};
+
+type RegistryModule = {
+  key: string;
+  label: string;
+  groups: RegistryGroup[];
+  routeRules: Array<{ pathPattern: string; permissionKeys: string[] }>;
+  dashboardWidgets: Array<{ key: string; title: string; href?: string | null }>;
+  enabled: boolean;
+  order: number;
+};
+
+const filterModule = (module: RegistryModule | undefined, query: string): RegistryModule | null => {
+  if (!module) return null;
+
+  const normalizedQuery = query.trim().toLowerCase();
+  if (!normalizedQuery) {
+    return module;
+  }
+
+  const groups = module.groups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => {
+        const haystack = `${item.name} ${item.path} ${item.permissions.join(" ")}`.toLowerCase();
+        return haystack.includes(normalizedQuery);
+      }),
+    }))
+    .filter((group) => group.items.length > 0);
+
+  const routeRules = module.routeRules.filter((rule) =>
+    `${rule.pathPattern} ${rule.permissionKeys.join(" ")}`.toLowerCase().includes(normalizedQuery)
+  );
+
+  const dashboardWidgets = module.dashboardWidgets.filter((widget) =>
+    `${widget.title} ${widget.href || ""}`.toLowerCase().includes(normalizedQuery)
+  );
+
+  if (groups.length === 0 && routeRules.length === 0 && dashboardWidgets.length === 0) {
+    return null;
+  }
+
+  return {
+    ...module,
+    groups,
+    routeRules,
+    dashboardWidgets,
+  };
+};
 
 export default function ModuleMappingPage() {
-  const [selectedView, setSelectedView] = useState<PanelView>("platform");
+  const {
+    navigation,
+    routeRules,
+    dashboard,
+    enabledModules,
+    loading: schemaLoading,
+    refresh,
+    state,
+  } = useUiSchema();
+  const [selectedModule, setSelectedModule] = useState<string>("platform");
   const [search, setSearch] = useState("");
-  const [savedOverrides, setSavedOverrides] = useState<ModuleMappingOverrides>(() => readModuleMappingOverrides());
-  const [draftOverrides, setDraftOverrides] = useState<ModuleMappingOverrides>(() => readModuleMappingOverrides());
-  const [saving, setSaving] = useState(false);
 
-  const normalizedDraft = useMemo(() => normalizeModuleMappingOverrides(draftOverrides), [draftOverrides]);
-  const normalizedSaved = useMemo(() => normalizeModuleMappingOverrides(savedOverrides), [savedOverrides]);
+  const modules = useMemo<RegistryModule[]>(() => {
+    const enabledMap = new Map(
+      enabledModules.map((module, index) => [
+        module.key,
+        {
+          key: module.key,
+          label: module.displayName || module.name || module.key,
+          enabled: module.isEnabled !== false,
+          order: typeof module.order === "number" ? module.order : index,
+        },
+      ])
+    );
 
-  const allPages = useMemo(
-    () =>
-      resolvePageRegistry(normalizedDraft).map((page) =>
-        LOCKED_PATHS.has(page.path) ? { ...page, modules: ["platform" as ModuleKey] } : page
-      ),
-    [normalizedDraft]
-  );
+    const navigationMap = new Map(
+      navigation.modules.map((module, index) => [
+        module.key,
+        {
+          key: module.key,
+          label: module.displayName,
+          enabled: true,
+          order: typeof module.sortOrder === "number" ? module.sortOrder : index,
+          groups: module.groups
+            .slice()
+            .sort((left, right) => left.sortOrder - right.sortOrder || left.label.localeCompare(right.label))
+            .map((group, groupIndex) => ({
+              label: group.label?.trim() || "Pages",
+              order: typeof group.sortOrder === "number" ? group.sortOrder : groupIndex,
+              items: group.items
+                .slice()
+                .sort((left, right) => left.sortOrder - right.sortOrder || left.name.localeCompare(right.name))
+                .map((item, itemIndex) => ({
+                  key: item.key,
+                  name: item.name,
+                  path: item.path,
+                  permissions: item.requiredPermissions,
+                  order: typeof item.sortOrder === "number" ? item.sortOrder : itemIndex,
+                })),
+            })),
+        },
+      ])
+    );
 
-  const hasUnsavedChanges = JSON.stringify(normalizedDraft) !== JSON.stringify(normalizedSaved);
-
-  const unmappedPages = useMemo(() => allPages.filter((p) => p.modules.length === 0), [allPages]);
-
-  const moduleCounts = useMemo(
-    () =>
-      Object.fromEntries(
-        MODULE_META.map((m) => [m.key, allPages.filter((p) => p.modules.includes(m.key)).length])
-      ) as Record<ModuleKey, number>,
-    [allPages]
-  );
-
-  const visiblePages = useMemo(() => {
-    const pool = selectedView === "unmapped" ? unmappedPages : allPages;
-    const keyword = search.trim().toLowerCase();
-    const filtered = keyword
-      ? pool.filter(
-          (p) =>
-            p.name.toLowerCase().includes(keyword) ||
-            p.path.toLowerCase().includes(keyword) ||
-            (p.group ?? "").toLowerCase().includes(keyword)
-        )
-      : pool;
-
-    if (selectedView === "unmapped") return filtered;
-
-    // Sort: assigned to selected module first, then alphabetical
-    return [...filtered].sort((a, b) => {
-      const aHas = a.modules.includes(selectedView as ModuleKey) ? 1 : 0;
-      const bHas = b.modules.includes(selectedView as ModuleKey) ? 1 : 0;
-      if (aHas !== bHas) return bHas - aHas;
-      return a.name.localeCompare(b.name);
-    });
-  }, [selectedView, allPages, unmappedPages, search]);
-
-  const sidebarPreview = useMemo(
-    () => MODULE_META.map((m) => ({ ...m, pages: allPages.filter((p) => p.modules.includes(m.key)) })),
-    [allPages]
-  );
-
-  const togglePage = (page: PageRegistryItem) => {
-    if (LOCKED_PATHS.has(page.path) || selectedView === "unmapped") return;
-    const moduleKey = selectedView as ModuleKey;
-    const isAssigned = page.modules.includes(moduleKey);
-    const nextModules = isAssigned
-      ? page.modules.filter((m) => m !== moduleKey)
-      : [...page.modules, moduleKey];
-    setDraftOverrides((prev) => ({ ...prev, [page.path]: nextModules }));
-  };
-
-  const handleSave = async () => {
-    try {
-      setSaving(true);
-      persistModuleMappingOverrides(normalizedDraft);
-      setSavedOverrides(normalizedDraft);
-      notifySuccess("Module mappings saved. Sidebar updated immediately.");
-    } catch {
-      notifyError("Failed to save module mappings.");
-    } finally {
-      setSaving(false);
+    const dashboardWidgetsByModule = new Map<string, RegistryModule["dashboardWidgets"]>();
+    for (const section of dashboard.sections) {
+      for (const widget of section.widgets) {
+        const moduleKey = widget.moduleKey?.trim();
+        if (!moduleKey) continue;
+        const bucket = dashboardWidgetsByModule.get(moduleKey) ?? [];
+        bucket.push({
+          key: widget.key,
+          title: widget.title,
+          href: widget.href,
+        });
+        dashboardWidgetsByModule.set(moduleKey, bucket);
+      }
     }
-  };
 
-  const handleReset = () => {
-    clearModuleMappingOverrides();
-    setSavedOverrides({});
-    setDraftOverrides({});
-    notifySuccess("Reset to default navigation registry.");
-  };
+    const routeRulesByModule = new Map<string, RegistryModule["routeRules"]>();
+    for (const rule of routeRules.rules) {
+      const bucket = routeRulesByModule.get(rule.moduleKey) ?? [];
+      bucket.push({
+        pathPattern: rule.pathPattern,
+        permissionKeys: rule.permissionKeys,
+      });
+      routeRulesByModule.set(rule.moduleKey, bucket);
+    }
 
-  const selectedLabel =
-    selectedView === "unmapped"
-      ? `Unmapped Pages (${unmappedPages.length})`
-      : (MODULE_META.find((m) => m.key === selectedView)?.label ?? "");
+    const keys = new Set<string>([
+      ...enabledMap.keys(),
+      ...navigationMap.keys(),
+      ...routeRulesByModule.keys(),
+      ...dashboardWidgetsByModule.keys(),
+    ]);
+
+    return [...keys]
+      .map((key) => {
+        const enabled = enabledMap.get(key);
+        const nav = navigationMap.get(key);
+        return {
+          key,
+          label: nav?.label || enabled?.label || key,
+          enabled: enabled?.enabled ?? !!nav,
+          order: nav?.order ?? enabled?.order ?? Number.MAX_SAFE_INTEGER,
+          groups: nav?.groups ?? [],
+          routeRules: (routeRulesByModule.get(key) ?? []).sort((left, right) =>
+            left.pathPattern.localeCompare(right.pathPattern)
+          ),
+          dashboardWidgets: (dashboardWidgetsByModule.get(key) ?? []).sort((left, right) =>
+            left.title.localeCompare(right.title)
+          ),
+        };
+      })
+      .sort((left, right) => left.order - right.order || left.label.localeCompare(right.label));
+  }, [dashboard.sections, enabledModules, navigation.modules, routeRules.rules]);
+
+  useEffect(() => {
+    if (modules.length === 0) return;
+    if (modules.some((module) => module.key === selectedModule)) return;
+    setSelectedModule(modules[0]?.key ?? "platform");
+  }, [modules, selectedModule]);
+
+  const selectedModuleData = useMemo(
+    () => filterModule(modules.find((module) => module.key === selectedModule), search),
+    [modules, search, selectedModule]
+  );
+
+  const totalNavItems = useMemo(
+    () => navigation.modules.reduce((count, module) => count + module.groups.reduce((sum, group) => sum + group.items.length, 0), 0),
+    [navigation.modules]
+  );
+
+  const totalDashboardWidgets = useMemo(
+    () => dashboard.sections.reduce((count, section) => count + section.widgets.length, 0),
+    [dashboard.sections]
+  );
 
   return (
     <ProtectedRoute permission={PERMISSIONS.PLATFORM_SETTINGS_VIEW}>
       <StandardPageLayout
-        title="Module Mapping"
-        subtitle="Assign pages to modules. Sidebar auto-renders from this mapping — no hardcoding needed."
-        eyebrow="Administration / Navigation Architecture"
+        title="Navigation Registry"
+        subtitle="Backend-authoritative workspace registry. Frontend fallback page maps and role menu forks have been removed."
+        eyebrow="Administration / UI Shell"
         icon="grid"
-        actions={
-          <div className="flex items-center gap-2">
-            {hasUnsavedChanges && (
-              <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">
-                Unsaved changes
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={handleReset}
-              className="erp-action-btn erp-action-btn-secondary"
-            >
-              Reset Defaults
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={saving}
-              className="erp-action-btn erp-action-btn-primary"
-            >
-              {saving ? "Saving..." : "Save Mapping"}
-            </button>
-          </div>
-        }
       >
-        {/* 3-column layout: modules | page checklist | sidebar preview */}
-        <div className="grid min-h-0 grid-cols-1 gap-4 xl:grid-cols-[200px,1fr,240px]">
-
-          {/* ── Left: Module list ── */}
-          <aside className="rounded-2xl border border-slate-200 bg-white">
-            <div className="border-b border-slate-100 px-4 py-3">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Modules</span>
+        <div className="grid gap-4 xl:grid-cols-[280px,1fr]">
+          <aside className="space-y-4">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Backend State</p>
+              <div className="mt-4 grid gap-2 text-sm">
+                <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
+                  <span className="text-slate-600">Enabled modules</span>
+                  <span className="font-semibold text-slate-900">{enabledModules.length}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
+                  <span className="text-slate-600">Navigation items</span>
+                  <span className="font-semibold text-slate-900">{totalNavItems}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
+                  <span className="text-slate-600">Route rules</span>
+                  <span className="font-semibold text-slate-900">{routeRules.rules.length}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
+                  <span className="text-slate-600">Dashboard widgets</span>
+                  <span className="font-semibold text-slate-900">{totalDashboardWidgets}</span>
+                </div>
+              </div>
+              <div className="mt-4 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">
+                Current schema state: <span className="font-semibold uppercase">{state}</span>
+              </div>
             </div>
-            <nav className="flex flex-col gap-0.5 p-2">
-              {MODULE_META.map((m) => {
-                const active = selectedView === m.key;
-                return (
-                  <button
-                    key={m.key}
-                    type="button"
-                    onClick={() => { setSelectedView(m.key); setSearch(""); }}
-                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition ${
-                      active
-                        ? "bg-sky-50 text-sky-800"
-                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                    }`}
-                  >
-                    <span>{m.label}</span>
-                    <span className={`text-xs font-semibold ${active ? "text-sky-600" : "text-slate-400"}`}>
-                      {moduleCounts[m.key]}
-                    </span>
-                  </button>
-                );
-              })}
-              {/* Unmapped section */}
-              <div className="mt-1 border-t border-slate-100 pt-1">
-                <button
-                  type="button"
-                  onClick={() => { setSelectedView("unmapped"); setSearch(""); }}
-                  className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition ${
-                    selectedView === "unmapped"
-                      ? "bg-amber-50 text-amber-800"
-                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
-                  }`}
-                >
-                  <span>Unmapped</span>
-                  {unmappedPages.length > 0 && (
-                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
-                      {unmappedPages.length}
-                    </span>
-                  )}
-                </button>
-              </div>
-            </nav>
-          </aside>
 
-          {/* ── Centre: Page checklist ── */}
-          <div className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white">
-            {/* Header + search */}
-            <div className="border-b border-slate-100 p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <span className="text-sm font-semibold text-slate-800">{selectedLabel}</span>
-                {selectedView !== "unmapped" && (
-                  <span className="text-xs text-slate-400">
-                    {visiblePages.filter((p) => p.modules.includes(selectedView as ModuleKey)).length} assigned
-                  </span>
-                )}
-              </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <label htmlFor="registry-search" className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Search
+              </label>
               <input
+                id="registry-search"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search pages..."
-                className="erp-input"
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Find page, rule, widget..."
+                className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
               />
             </div>
 
-            {/* Unmapped info banner */}
-            {selectedView === "unmapped" && (
-              <div className="border-b border-amber-100 bg-amber-50 px-4 py-2.5 text-xs text-amber-700">
-                These pages are not assigned to any module. Select a module from the left panel and add them.
-              </div>
-            )}
-
-            {/* Page rows */}
-            <div className="flex-1 overflow-y-auto divide-y divide-slate-50">
-              {visiblePages.length === 0 ? (
-                <div className="erp-empty">
-                  {selectedView === "unmapped" ? "All pages are mapped." : "No pages found."}
-                </div>
-              ) : (
-                visiblePages.map((page) => {
-                  const locked = LOCKED_PATHS.has(page.path);
-                  const isAssigned = selectedView !== "unmapped" && page.modules.includes(selectedView as ModuleKey);
-                  const isShared = page.modules.length > 1;
-
+            <div className="rounded-2xl border border-slate-200 bg-white p-2">
+              <p className="px-2 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Modules</p>
+              <div className="space-y-1">
+                {modules.map((module) => {
+                  const active = module.key === selectedModule;
+                  const navCount = module.groups.reduce((count, group) => count + group.items.length, 0);
                   return (
-                    <label
-                      key={page.path}
-                      className={`flex cursor-pointer items-start gap-3 px-4 py-3 transition hover:bg-slate-50 ${
-                        locked ? "cursor-not-allowed opacity-60" : ""
+                    <button
+                      key={module.key}
+                      type="button"
+                      onClick={() => setSelectedModule(module.key)}
+                      className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition ${
+                        active ? "bg-sky-50 text-sky-900" : "text-slate-700 hover:bg-slate-50"
                       }`}
                     >
-                      {selectedView !== "unmapped" && (
-                        <input
-                          type="checkbox"
-                          checked={isAssigned}
-                          disabled={locked}
-                          onChange={() => togglePage(page)}
-                          className="mt-0.5 h-4 w-4 cursor-pointer accent-sky-600"
-                        />
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-sm font-medium text-slate-800">{page.name}</span>
-                          {page.group && (
-                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">
-                              {page.group}
-                            </span>
-                          )}
-                          {locked && (
-                            <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] text-violet-600">locked</span>
-                          )}
-                          {isShared && !locked && (
-                            <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[11px] text-sky-600">
-                              shared · {page.modules.length} modules
-                            </span>
-                          )}
-                        </div>
-                        <div className="mt-0.5 font-mono text-xs text-slate-400">{page.path}</div>
-                      </div>
-                    </label>
+                      <span>
+                        <span className="block font-semibold">{module.label}</span>
+                        <span className="block text-xs text-slate-500">
+                          {module.enabled ? "enabled" : "disabled"} | {navCount} pages
+                        </span>
+                      </span>
+                    </button>
                   );
-                })
-              )}
-            </div>
-          </div>
-
-          {/* ── Right: Sidebar preview ── */}
-          <aside className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white">
-            <div className="border-b border-slate-100 px-4 py-3">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Sidebar Preview</span>
-            </div>
-            <div className="flex-1 overflow-y-auto p-3 text-xs">
-              {sidebarPreview.map((m) => (
-                <div key={m.key} className="mb-3">
-                  <div className="mb-1 px-2 font-semibold text-slate-500">{m.label}</div>
-                  {m.pages.length === 0 ? (
-                    <div className="px-2 italic text-slate-300">No pages</div>
-                  ) : (
-                    m.pages.map((p) => (
-                      <div key={p.path} className="flex items-center gap-1.5 px-2 py-0.5 text-slate-600">
-                        <span className="text-slate-300">├</span>
-                        <span>{p.name}</span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              ))}
+                })}
+              </div>
             </div>
           </aside>
+
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
+              Sidebar visibility, protected route access, and dashboard entry points now come only from backend UI shell responses.
+            </div>
+
+            <section className="rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Selected Module</p>
+                  <h2 className="mt-1 text-lg font-semibold text-slate-900">
+                    {selectedModuleData?.label || modules.find((module) => module.key === selectedModule)?.label || "Module"}
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void refresh()}
+                  className="erp-action-btn erp-action-btn-secondary"
+                >
+                  Refresh backend schema
+                </button>
+              </div>
+
+              {schemaLoading ? (
+                <p className="py-6 text-sm text-slate-500">Loading backend schema...</p>
+              ) : !selectedModuleData ? (
+                <p className="py-6 text-sm text-slate-500">No backend records matched the current module and search filter.</p>
+              ) : (
+                <div className="mt-4 grid gap-4 xl:grid-cols-3">
+                  <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-semibold text-slate-900">Navigation</h3>
+                      <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700">
+                        {selectedModuleData.groups.reduce((count, group) => count + group.items.length, 0)}
+                      </span>
+                    </div>
+                    <div className="mt-4 space-y-4">
+                      {selectedModuleData.groups.length > 0 ? (
+                        selectedModuleData.groups.map((group) => (
+                          <div key={`${selectedModuleData.key}-${group.label}`}>
+                            {selectedModuleData.groups.length > 1 ? (
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{group.label}</p>
+                            ) : null}
+                            <div className="mt-2 space-y-2">
+                              {group.items.map((item) => (
+                                <div key={item.path} className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+                                  <p className="text-sm font-semibold text-slate-900">{item.name}</p>
+                                  <p className="mt-1 font-mono text-xs text-slate-500">{item.path}</p>
+                                  <p className="mt-2 text-xs text-slate-500">
+                                    {item.permissions.length > 0 ? item.permissions.join(", ") : "No explicit permissions"}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-slate-500">No navigation items were returned for this module.</p>
+                      )}
+                    </div>
+                  </section>
+
+                  <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-semibold text-slate-900">Route Rules</h3>
+                      <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700">
+                        {selectedModuleData.routeRules.length}
+                      </span>
+                    </div>
+                    <div className="mt-4 space-y-2">
+                      {selectedModuleData.routeRules.length > 0 ? (
+                        selectedModuleData.routeRules.map((rule) => (
+                          <div key={`${selectedModuleData.key}-${rule.pathPattern}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+                            <p className="font-mono text-xs text-slate-600">{rule.pathPattern}</p>
+                            <p className="mt-2 text-xs text-slate-500">
+                              {rule.permissionKeys.length > 0 ? rule.permissionKeys.join(", ") : "No explicit permissions"}
+                            </p>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-slate-500">No route rules were returned for this module.</p>
+                      )}
+                    </div>
+                  </section>
+
+                  <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-semibold text-slate-900">Dashboard Widgets</h3>
+                      <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700">
+                        {selectedModuleData.dashboardWidgets.length}
+                      </span>
+                    </div>
+                    <div className="mt-4 space-y-2">
+                      {selectedModuleData.dashboardWidgets.length > 0 ? (
+                        selectedModuleData.dashboardWidgets.map((widget) => (
+                          <div key={`${selectedModuleData.key}-${widget.key}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+                            <p className="text-sm font-semibold text-slate-900">{widget.title}</p>
+                            <p className="mt-1 font-mono text-xs text-slate-500">{widget.href || "No link target"}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-slate-500">No dashboard widgets were returned for this module.</p>
+                      )}
+                    </div>
+                  </section>
+                </div>
+              )}
+            </section>
+          </div>
         </div>
       </StandardPageLayout>
     </ProtectedRoute>

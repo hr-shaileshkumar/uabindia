@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import { hrApi } from "@/services/hrApi";
 
 type Item = {
   id: string;
@@ -34,11 +35,9 @@ type ItemForm = {
   reorderLevel: number;
 };
 
-type ItemsManagerProps = {
-  api: any;
-};
+const itemsApi = hrApi.erp.items;
 
-export default function ItemsManager({ api }: ItemsManagerProps) {
+export default function ItemsManager() {
   const { confirm, confirmDialog } = useConfirmDialog();
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(false);
@@ -61,7 +60,7 @@ export default function ItemsManager({ api }: ItemsManagerProps) {
   const fetchItems = async () => {
     try {
       setLoading(true);
-      const response = await api.getAll();
+      const response = await itemsApi.getAll();
       setItems(response.data?.data || []);
       setError(null);
     } catch (err: unknown) {
@@ -76,7 +75,7 @@ export default function ItemsManager({ api }: ItemsManagerProps) {
     const load = async () => {
       try {
         setLoading(true);
-        const response = await api.getAll();
+        const response = await itemsApi.getAll();
         setItems(response.data?.data || []);
         setError(null);
       } catch (err: unknown) {
@@ -88,7 +87,7 @@ export default function ItemsManager({ api }: ItemsManagerProps) {
     };
 
     void load();
-  }, [api]);
+  }, []);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -124,9 +123,9 @@ export default function ItemsManager({ api }: ItemsManagerProps) {
     try {
       setLoading(true);
       if (editingId) {
-        await api.update(editingId, formData);
+        await itemsApi.update(editingId, formData);
       } else {
-        await api.create(formData);
+        await itemsApi.create(formData);
       }
 
       setActiveTab("list");
@@ -168,7 +167,7 @@ export default function ItemsManager({ api }: ItemsManagerProps) {
     });
     if (!ok) return;
     try {
-      await api.delete(id);
+      await itemsApi.delete(id);
       await fetchItems();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to delete item";

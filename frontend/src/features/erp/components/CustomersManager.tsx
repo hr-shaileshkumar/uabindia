@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import { hrApi } from "@/services/hrApi";
 
 type Customer = {
   id: string;
@@ -36,17 +37,15 @@ type CustomerForm = {
   status: string;
 };
 
-type CustomersManagerProps = {
-  api: any;
-};
+const customersApi = hrApi.erp.customers;
 
 const getErrorMessage = (err: unknown, fallback: string) => {
   if (err instanceof Error) return err.message;
   return fallback;
 };
 
-export default function CustomersManager({ api }: CustomersManagerProps) {
-    const { confirm, confirmDialog } = useConfirmDialog();
+export default function CustomersManager() {
+  const { confirm, confirmDialog } = useConfirmDialog();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +68,7 @@ export default function CustomersManager({ api }: CustomersManagerProps) {
   const fetchCustomers = async () => {
     try {
       setLoading(true);
-      const response = await api.getAll();
+      const response = await customersApi.getAll();
       setCustomers(response.data?.data || []);
       setError(null);
     } catch (err) {
@@ -83,7 +82,7 @@ export default function CustomersManager({ api }: CustomersManagerProps) {
     const load = async () => {
       try {
         setLoading(true);
-        const response = await api.getAll();
+        const response = await customersApi.getAll();
         setCustomers(response.data?.data || []);
         setError(null);
       } catch (err) {
@@ -94,7 +93,7 @@ export default function CustomersManager({ api }: CustomersManagerProps) {
     };
 
     void load();
-  }, [api]);
+  }, []);
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -129,9 +128,9 @@ export default function CustomersManager({ api }: CustomersManagerProps) {
     try {
       setLoading(true);
       if (editingId) {
-        await api.update(editingId, formData);
+        await customersApi.update(editingId, formData);
       } else {
-        await api.create(formData);
+        await customersApi.create(formData);
       }
       setActiveTab("list");
       setEditingId(null);
@@ -172,7 +171,7 @@ export default function CustomersManager({ api }: CustomersManagerProps) {
     });
     if (!ok) return;
     try {
-      await api.delete(id);
+      await customersApi.delete(id);
       await fetchCustomers();
     } catch (err) {
       setError(getErrorMessage(err, "Failed to delete customer"));

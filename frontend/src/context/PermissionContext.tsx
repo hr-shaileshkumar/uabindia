@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import apiClient from "@/services/apiClient";
 import { useAuth } from "@/context/AuthContext";
 import { getNormalizedRoleSet, isSuperAdminRole } from "@/lib/auth/role-utils";
@@ -47,6 +47,22 @@ export const usePermissions = () => {
 
 const normalize = (value: string) => value.toLowerCase();
 
+const inferModuleScope = (permissionKey: string) => {
+  if (permissionKey.startsWith("module:")) {
+    return permissionKey.slice("module:".length).split(".")[0] || null;
+  }
+
+  if (permissionKey.startsWith("resource:")) {
+    return permissionKey.slice("resource:".length).split(/[.:]/)[0] || null;
+  }
+
+  if (permissionKey.startsWith("page:") || permissionKey.startsWith("path:")) {
+    return permissionKey.slice(permissionKey.indexOf(":") + 1).split(/[.:]/)[0] || null;
+  }
+
+  return permissionKey.split(".")[0] || null;
+};
+
 export const PermissionProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
   const [state, setState] = useState<PermissionState>({
@@ -60,6 +76,19 @@ export const PermissionProvider = ({ children }: { children: React.ReactNode }) 
   const userRoleSet = getNormalizedRoleSet([...(user?.roles || []), user?.role]);
   const userIsSuperAdmin = [...userRoleSet].some((role) => isSuperAdminRole(role));
 
+  useLayoutEffect(() => {
+    if (!user) {
+      setState({ permissions: new Set(), mode: "open", loading: false, fetchFailed: false, capabilities: defaultCapabilities });
+      return;
+    }
+
+    setState((prev) => ({
+      ...prev,
+      loading: true,
+      fetchFailed: false,
+    }));
+  }, [user]);
+
   const hasPermission = (keys: string[]) => {
     if (state.capabilities.isSuperAdmin || userIsSuperAdmin) return true;
     if (state.fetchFailed) return false;
@@ -67,6 +96,10 @@ export const PermissionProvider = ({ children }: { children: React.ReactNode }) 
     if (state.permissions.size === 0) return false;
     return keys.some((key) => {
       const normalized = normalize(key);
+      const moduleScope = inferModuleScope(normalized);
+
+      if (state.permissions.has(normalized)) return true;
+
       if (normalized.endsWith(".*")) {
         const prefix = normalized.slice(0, -2);
         for (const perm of state.permissions) {
@@ -74,7 +107,19 @@ export const PermissionProvider = ({ children }: { children: React.ReactNode }) 
         }
         return false;
       }
-      return state.permissions.has(normalized);
+
+      if (!moduleScope) {
+        return false;
+      }
+
+      return [
+        `module:${moduleScope}`,
+        `${moduleScope}.*`,
+        `${moduleScope}.access`,
+        `${moduleScope}.view`,
+        `resource:${moduleScope}.access`,
+        `resource:${moduleScope}.view`,
+      ].some((candidate) => state.permissions.has(candidate));
     });
   };
 
@@ -94,9 +139,6 @@ export const PermissionProvider = ({ children }: { children: React.ReactNode }) 
         ...(res.data?.capabilities && typeof res.data.capabilities === "object" ? res.data.capabilities : {}),
       } as BackendCapabilities;
       lastRefreshAt.current = Date.now();
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem("erp:capabilities", JSON.stringify(capabilities));
-      }
       const mode = capabilities.isSuperAdmin ? "open" : rawMode;
       setState({
         permissions: new Set(permissions.map((p: string) => normalize(p))),
@@ -106,9 +148,6 @@ export const PermissionProvider = ({ children }: { children: React.ReactNode }) 
         capabilities,
       });
     } catch {
-      if (typeof window !== "undefined") {
-        window.localStorage.removeItem("erp:capabilities");
-      }
       setState({ permissions: new Set(), mode: "enforced", loading: false, fetchFailed: true, capabilities: defaultCapabilities });
     }
   }, [user]);

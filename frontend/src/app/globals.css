@@ -2,12 +2,12 @@
 
 /* UABIndia ERP professional light theme */
 :root {
-  --background: #eef2f7;
+  --background: #f2f4f6;
   --foreground: #0f172a;
   --font-space-grotesk: "Aptos Display", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
   --font-jetbrains-mono: "Cascadia Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 
-  --erp-canvas: #eef2f7;
+  --erp-canvas: #f2f4f6;
   --erp-surface: #ffffff;
   --erp-surface-elevated: #ffffff;
   --erp-surface-muted: #f1f5f9;
@@ -57,6 +57,26 @@
   --erp-shadow-lg: 0 12px 40px rgba(15, 23, 42, 0.08);
 
   --sidebar-border: rgba(15, 23, 42, 0.12);
+
+  --public-brand-strong: #143a68;
+  --public-brand: #0b4f8c;
+  --public-brand-soft: #0f766e;
+  --public-brand-strong-rgb: 20 58 104;
+  --public-brand-rgb: 11 79 140;
+  --public-brand-soft-rgb: 15 118 110;
+  --public-sky-rgb: 37 99 235;
+  --public-indigo-rgb: 99 102 241;
+  --public-surface-soft: #f7f8fb;
+  --public-canvas-top: #fbfdff;
+  --public-canvas-mid: #f4f7fb;
+  --public-canvas-end: #edf3f8;
+  --public-panel-border: rgba(203, 213, 225, 0.76);
+  --public-panel-shadow: 0 26px 68px rgba(15, 23, 42, 0.08);
+  --public-border-strong: rgba(11, 79, 140, 0.28);
+  --public-shadow-brand: 0 18px 42px rgba(20, 58, 104, 0.22);
+  --public-shadow-brand-hover: 0 24px 56px rgba(20, 58, 104, 0.28);
+  --public-gradient-brand: linear-gradient(135deg, var(--public-brand-strong), var(--public-brand) 58%, var(--public-brand-soft));
+  --public-gradient-ink: linear-gradient(135deg, #0f172a, #12335c 56%, #0f5f8e);
 }
 
 @theme inline {
@@ -70,11 +90,20 @@
 body {
   background-color: var(--erp-canvas);
   background-image:
-    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(11, 79, 140, 0.06), transparent),
-    linear-gradient(180deg, #f8fafc 0%, var(--erp-canvas) 45%, #e8eef5 100%);
+    radial-gradient(ellipse 38% 28% at 14% 6%, rgba(210, 162, 86, 0.12), transparent 70%),
+    radial-gradient(ellipse 42% 30% at 86% 10%, rgba(15, 97, 120, 0.1), transparent 72%),
+    linear-gradient(180deg, #fbf7f1 0%, #f7fafb 28%, var(--erp-canvas) 58%, #ebf1f3 100%);
   color: var(--foreground);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+.dark body {
+  background-color: #020617;
+  background-image:
+    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(14, 165, 233, 0.18), transparent),
+    linear-gradient(180deg, #020617 0%, #0f172a 55%, #020617 100%);
+  color: #e2e8f0;
 }
 
 @layer components {
@@ -2282,11 +2311,70 @@ body {
   animation: none;
 }
 
+.public-gradient-brand {
+  background-image: var(--public-gradient-brand);
+}
+
+.public-gradient-ink {
+  background-image: var(--public-gradient-ink);
+}
+
+.public-gradient-text {
+  background-image: var(--public-gradient-brand);
+}
+
+.public-site-backdrop {
+  background-image:
+    radial-gradient(circle at 14% 10%, rgb(var(--public-sky-rgb) / 0.12), transparent 28%),
+    radial-gradient(circle at 88% 8%, rgb(var(--public-indigo-rgb) / 0.1), transparent 26%),
+    radial-gradient(circle at 72% 76%, rgb(var(--public-brand-soft-rgb) / 0.08), transparent 28%),
+    linear-gradient(180deg, var(--public-canvas-top) 0%, var(--public-canvas-mid) 42%, var(--public-canvas-end) 100%);
+}
+
+.public-hero-backdrop {
+  background-image:
+    radial-gradient(circle at 20% 15%, rgb(var(--public-sky-rgb) / 0.2), transparent 34%),
+    radial-gradient(circle at 78% 12%, rgb(var(--public-indigo-rgb) / 0.18), transparent 30%),
+    radial-gradient(circle at 70% 65%, rgb(var(--public-brand-soft-rgb) / 0.16), transparent 30%);
+}
+
 @keyframes sidebar-fade-in {
   to {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@keyframes public-float {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  50% {
+    transform: translate3d(0, -10px, 0);
+  }
+}
+
+@keyframes public-float-slow {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  50% {
+    transform: translate3d(0, -14px, 0);
+  }
+}
+
+.public-float {
+  animation: public-float 6s ease-in-out infinite;
+}
+
+.public-float-delayed {
+  animation: public-float 7s ease-in-out 0.8s infinite;
+}
+
+.public-float-slow {
+  animation: public-float-slow 8s ease-in-out 0.35s infinite;
 }
 
 @keyframes erp-spin {

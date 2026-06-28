@@ -1,64 +1,74 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { ArrowRight, LifeBuoy, MailCheck } from "lucide-react";
+import { useMemo, useState, type FormEvent } from "react";
+import { useSearchParams } from "next/navigation";
+import LoginCard from "@/components/auth/LoginCard";
+import PublicAudiencePageFrame from "@/components/public/PublicAudiencePageFrame";
 import PublicAuthShell from "@/components/public/PublicAuthShell";
-import PublicSiteFrame from "@/components/public/PublicSiteFrame";
-import { publicMutedPanelClassName, publicPanelClassName } from "@/components/public/publicStyles";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { usePublicPageData } from "@/hooks/usePublicPageData";
 import { getApiErrorMessage } from "@/lib/api-errors";
+import {
+  hasExplicitPublicTenantContext,
+  resolvePublicAudience,
+  withPublicAudience,
+} from "@/lib/public-audience";
 import apiClient from "@/services/apiClient";
 
+const schema = {
+  email: (value: string) => /\S+@\S+\.\S+/.test(value),
+};
+
+type ForgotPasswordContent = {
+  title: string;
+  subtitle: string;
+  authEyebrow: string;
+  authAsideTitle: string;
+  authAsideBody: string;
+  authBadges: string[];
+  submitLabel: string;
+};
+
 export default function ForgotPasswordPage() {
-  const { profile, headerContent, footerContent, parseContent } = usePublicPageData("forgot-password");
-  const content = parseContent({
-    title: "Recover access without contacting support first",
+  const searchParams = useSearchParams();
+  const isTenantContext = hasExplicitPublicTenantContext();
+  const audience = useMemo(
+    () => resolvePublicAudience(searchParams.get("audience"), isTenantContext),
+    [isTenantContext, searchParams]
+  );
+  const { profile, headerContent, footerContent, allowedPaths, pageVisible, parseContent } = usePublicPageData("forgot-password", audience);
+  const content = parseContent<ForgotPasswordContent>({
+    title: "Forgot password",
     subtitle:
-      "Submit your business email to request password reset instructions. The response is intentionally generic for account security.",
+      "Enter your work email and we will send reset instructions if the account exists.",
     authEyebrow: "Password recovery",
-    authAsideTitle: "How recovery works",
-    authAsideBody:
-      "Use this page to explain the recovery flow and reassure users that account security is preserved.",
-    authBadges: ["Recovery flow live", "Backend-connected", "Security-first messaging"],
+    authAsideTitle: "",
+    authAsideBody: "",
+    authBadges: ["Secure reset", "Email delivery"],
     submitLabel: "Send reset instructions",
   });
-
-  return (
-    <PublicSiteFrame profile={profile} headerContent={headerContent} footerContent={footerContent}>
-      <PublicAuthShell
-        profile={profile}
-        eyebrow={content.authEyebrow}
-        title={content.title}
-        subtitle={content.subtitle}
-        badges={content.authBadges}
-        asideTitle={content.authAsideTitle}
-        asideBody={content.authAsideBody}
-        metrics={[
-          { label: "Token window", value: "1 hour" },
-          { label: "Flow", value: "Email-based" },
-          { label: "Fallback", value: "Support desk" },
-        ]}
-      >
-        <ForgotPasswordForm submitLabel={content.submitLabel} />
-      </PublicAuthShell>
-    </PublicSiteFrame>
-  );
-}
-
-function ForgotPasswordForm({ submitLabel }: { submitLabel: string }) {
   const [email, setEmail] = useState("");
-  const [state, setState] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [state, setState] = useState<"idle" | "success" | "error" | "submitting">("idle");
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (state === "submitting") return;
+
+    const normalizedEmail = email.trim();
+
+    if (!schema.email(normalizedEmail)) {
+      setState("error");
+      setMessage("Enter a valid work email.");
+      return;
+    }
+
     setState("submitting");
     setMessage("");
 
     try {
-      const response = await apiClient.post("/auth/forgot-password", { email });
+      const response = await apiClient.post("/auth/forgot-password", { email: normalizedEmail });
       setState("success");
       setMessage(
         response.data?.message ||
@@ -66,74 +76,54 @@ function ForgotPasswordForm({ submitLabel }: { submitLabel: string }) {
       );
     } catch (error: unknown) {
       setState("error");
-      setMessage(getApiErrorMessage(error, "Unable to submit your reset request right now."));
+      setMessage(getApiErrorMessage(error, "Unable to start password recovery right now."));
     }
   };
 
   return (
-    <div className={`${publicPanelClassName} p-7 sm:p-8`}>
-      <div className="mb-7 flex items-center gap-3">
-        <div className="inline-flex h-11 w-11 items-center justify-center rounded-[1rem] bg-[linear-gradient(135deg,#0b4f8c,#0f6fa8)] text-white shadow-[0_14px_30px_rgba(11,79,140,0.2)]">
-          <MailCheck className="h-5 w-5" />
-        </div>
-        <div>
-          <h2 className="text-xl font-semibold tracking-[-0.03em] text-slate-950">Request reset instructions</h2>
-          <p className="text-sm text-slate-600">Enter the business email associated with your account.</p>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <label className="block text-sm font-semibold text-slate-900">
-          Work email
-          <input
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="you@company.com"
-            className="mt-2 w-full rounded-[1.15rem] border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
-            required
-          />
-        </label>
-
-        {message ? (
-          <div
-            className={`rounded-[1.15rem] border px-4 py-3 text-sm ${
-              state === "error"
-                ? "border-rose-200 bg-rose-50 text-rose-700"
-                : "border-emerald-200 bg-emerald-50 text-emerald-700"
-            }`}
-          >
-            {message}
-          </div>
-        ) : null}
-
-        <div className="flex justify-center pt-1">
-        <button
-          type="submit"
-          disabled={state === "submitting"}
-          className="inline-flex min-w-[16rem] items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#0b4f8c,#0f6fa8)] px-8 py-3 font-semibold text-white shadow-[0_16px_40px_rgba(11,79,140,0.2)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
+    <PublicAudiencePageFrame audience={audience} profile={profile} headerContent={headerContent} footerContent={footerContent} allowedPaths={allowedPaths} pageVisible={pageVisible} footerVariant="full">
+      <PublicAuthShell>
+        <LoginCard
+          profile={profile}
+          title="Reset your password"
+          subtitle={isTenantContext ? "We will send reset instructions to your work email." : "Use the email linked to your workspace account."}
+          footer={
+            <div className="text-center text-sm text-slate-500">
+              Back to{" "}
+              <Link href={withPublicAudience("/login", audience)} className="font-medium text-[color:var(--erp-primary)]">
+                login
+              </Link>
+            </div>
+          }
         >
-          {state === "submitting" ? "Submitting..." : submitLabel}
-          {state === "submitting" ? null : <ArrowRight className="h-4 w-4" />}
-        </button>
-        </div>
-      </form>
+          <form className="space-y-5" onSubmit={onSubmit}>
+            <div>
+              <label className="erp-label">Email address</label>
+              <Input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@company.com" type="email" />
+            </div>
 
-      <div className={`${publicMutedPanelClassName} mt-6 p-4`}>
-        <div className="flex items-start gap-3">
-          <LifeBuoy className="mt-0.5 h-4 w-4 text-slate-500" />
-          <p className="text-sm leading-6 text-slate-600">
-            If email delivery is not configured in your environment yet, support can still guide manual recovery.
-          </p>
-        </div>
-      </div>
+            {message ? (
+              <div
+                className={`rounded-xl border px-4 py-3 text-sm ${
+                  state === "error"
+                    ? "border-rose-200 bg-rose-50 text-rose-700"
+                    : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                }`}
+              >
+                {message}
+              </div>
+            ) : null}
 
-      <p className="mt-5 text-center text-sm text-slate-600">
-        Remembered your password?{" "}
-        <Link href="/login" className="font-semibold text-(--erp-primary) hover:text-(--erp-primary-hover)">
-          Back to login
-        </Link>
-      </p>
-    </div>
+            <p className="text-sm leading-6 text-slate-500">
+              If the account exists, the reset link will be delivered to the registered email.
+            </p>
+
+            <Button type="submit" disabled={state === "submitting"} className="w-full">
+              {state === "submitting" ? "Sending..." : content.submitLabel}
+            </Button>
+          </form>
+        </LoginCard>
+      </PublicAuthShell>
+    </PublicAudiencePageFrame>
   );
 }

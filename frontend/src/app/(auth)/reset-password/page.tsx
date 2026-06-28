@@ -2,52 +2,58 @@
 
 import { useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, KeyRound } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import LoginCard from "@/components/auth/LoginCard";
+import PublicAudiencePageFrame from "@/components/public/PublicAudiencePageFrame";
 import PublicAuthShell from "@/components/public/PublicAuthShell";
-import PublicSiteFrame from "@/components/public/PublicSiteFrame";
-import { publicMutedPanelClassName, publicPanelClassName } from "@/components/public/publicStyles";
 import { usePublicPageData } from "@/hooks/usePublicPageData";
 import { getApiErrorMessage } from "@/lib/api-errors";
+import {
+  hasExplicitPublicTenantContext,
+  resolvePublicAudience,
+  withPublicAudience,
+  type PublicAudience,
+} from "@/lib/public-audience";
+import type { ClientProfile } from "@/lib/publicProfile";
 import apiClient from "@/services/apiClient";
 
 export default function ResetPasswordPage() {
-  const { profile, headerContent, footerContent, parseContent } = usePublicPageData("reset-password");
+  const searchParams = useSearchParams();
+  const isTenantContext = hasExplicitPublicTenantContext();
+  const audience = useMemo(
+    () => resolvePublicAudience(searchParams.get("audience"), isTenantContext),
+    [isTenantContext, searchParams]
+  );
+  const { profile, headerContent, footerContent, allowedPaths, pageVisible, parseContent } = usePublicPageData("reset-password", audience);
   const content = parseContent({
-    title: "Finish the recovery flow with a new secure password",
+    title: "Set a new password",
     subtitle:
-      "Use the reset token from your recovery email. This page completes the frontend flow for the existing backend reset endpoint.",
+      "Enter the reset token from your email and choose a new password.",
     authEyebrow: "Set a new password",
-    authAsideTitle: "What happens next",
-    authAsideBody:
-      "Explain that active sessions are revoked and that the user should sign in again after a successful reset.",
-    authBadges: ["Reset token supported", "Revokes old sessions", "Enterprise-safe flow"],
+    authAsideTitle: "",
+    authAsideBody: "",
+    authBadges: ["Secure reset", "Sign in again"],
     submitLabel: "Reset password",
   });
 
   return (
-    <PublicSiteFrame profile={profile} headerContent={headerContent} footerContent={footerContent}>
-      <PublicAuthShell
-        profile={profile}
-        eyebrow={content.authEyebrow}
-        title={content.title}
-        subtitle={content.subtitle}
-        badges={content.authBadges}
-        asideTitle={content.authAsideTitle}
-        asideBody={content.authAsideBody}
-        metrics={[
-          { label: "Minimum", value: "8 characters" },
-          { label: "Session impact", value: "Revoked" },
-          { label: "Next step", value: "Sign in again" },
-        ]}
-      >
-        <ResetPasswordForm submitLabel={content.submitLabel} />
+    <PublicAudiencePageFrame audience={audience} profile={profile} headerContent={headerContent} footerContent={footerContent} allowedPaths={allowedPaths} pageVisible={pageVisible} footerVariant="full">
+      <PublicAuthShell>
+        <ResetPasswordForm audience={audience} profile={profile} submitLabel={content.submitLabel} />
       </PublicAuthShell>
-    </PublicSiteFrame>
+    </PublicAudiencePageFrame>
   );
 }
 
-function ResetPasswordForm({ submitLabel }: { submitLabel: string }) {
+function ResetPasswordForm({
+  audience,
+  profile,
+  submitLabel,
+}: {
+  audience: PublicAudience;
+  profile: ClientProfile;
+  submitLabel: string;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialToken = useMemo(() => searchParams.get("token") ?? "", [searchParams]);
@@ -81,7 +87,7 @@ function ResetPasswordForm({ submitLabel }: { submitLabel: string }) {
       });
       setState("success");
       setMessage(response.data?.message || "Password has been reset successfully.");
-      window.setTimeout(() => router.push("/login"), 1200);
+      window.setTimeout(() => router.push(withPublicAudience("/login", audience)), 1200);
     } catch (error: unknown) {
       setState("error");
       setMessage(getApiErrorMessage(error, "Unable to reset password. Check the token and try again."));
@@ -89,17 +95,22 @@ function ResetPasswordForm({ submitLabel }: { submitLabel: string }) {
   };
 
   return (
-    <div className={`${publicPanelClassName} p-7 sm:p-8`}>
-      <div className="mb-7 flex items-center gap-3">
-        <div className="inline-flex h-11 w-11 items-center justify-center rounded-[1rem] bg-[linear-gradient(135deg,#0b4f8c,#0f6fa8)] text-white shadow-[0_14px_30px_rgba(11,79,140,0.2)]">
-          <KeyRound className="h-5 w-5" />
-        </div>
-        <div>
-          <h2 className="text-xl font-semibold tracking-[-0.03em] text-slate-950">Create a new password</h2>
-          <p className="text-sm text-slate-600">Paste the token from your email and choose a new password.</p>
-        </div>
-      </div>
-
+    <LoginCard
+      profile={profile}
+      title="Create new password"
+      subtitle="Use the token from your email to complete password recovery."
+      footer={
+        <p className="text-center text-sm text-slate-500">
+          Need a new token?{" "}
+          <Link
+            href={withPublicAudience("/forgot-password", audience)}
+            className="font-medium text-[color:var(--erp-primary)]"
+          >
+            Request another reset email
+          </Link>
+        </p>
+      }
+    >
       <form onSubmit={handleSubmit} className="space-y-5">
         <label className="block text-sm font-semibold text-slate-900">
           Reset token
@@ -108,7 +119,7 @@ function ResetPasswordForm({ submitLabel }: { submitLabel: string }) {
             value={token}
             onChange={(event) => setToken(event.target.value)}
             placeholder="Paste your reset token"
-            className="mt-2 w-full rounded-[1.15rem] border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+            className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
             required
           />
         </label>
@@ -120,7 +131,7 @@ function ResetPasswordForm({ submitLabel }: { submitLabel: string }) {
             value={newPassword}
             onChange={(event) => setNewPassword(event.target.value)}
             placeholder="At least 8 characters"
-            className="mt-2 w-full rounded-[1.15rem] border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+            className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
             required
           />
         </label>
@@ -132,14 +143,14 @@ function ResetPasswordForm({ submitLabel }: { submitLabel: string }) {
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
             placeholder="Repeat the new password"
-            className="mt-2 w-full rounded-[1.15rem] border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+            className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
             required
           />
         </label>
 
         {message ? (
           <div
-            className={`rounded-[1.15rem] border px-4 py-3 text-sm ${
+            className={`rounded-xl border px-4 py-3 text-sm ${
               state === "error"
                 ? "border-rose-200 bg-rose-50 text-rose-700"
                 : "border-emerald-200 bg-emerald-50 text-emerald-700"
@@ -149,33 +160,14 @@ function ResetPasswordForm({ submitLabel }: { submitLabel: string }) {
           </div>
         ) : null}
 
-        <div className="flex justify-center pt-1">
         <button
           type="submit"
           disabled={state === "submitting"}
-          className="inline-flex min-w-[14rem] items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#0b4f8c,#0f6fa8)] px-8 py-3 font-semibold text-white shadow-[0_16px_40px_rgba(11,79,140,0.2)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
+          className="inline-flex w-full items-center justify-center rounded-xl bg-[color:var(--erp-primary)] px-4 py-3 font-semibold text-white shadow-[0_14px_32px_rgba(11,79,140,0.18)] transition hover:bg-[color:var(--erp-primary-hover)] disabled:cursor-not-allowed disabled:opacity-70"
         >
           {state === "submitting" ? "Resetting..." : submitLabel}
-          {state === "submitting" ? null : <ArrowRight className="h-4 w-4" />}
         </button>
-        </div>
       </form>
-
-      <div className={`${publicMutedPanelClassName} mt-6 p-4`}>
-        <div className="flex items-start gap-3">
-          <CheckCircle2 className="mt-0.5 h-4 w-4 text-slate-500" />
-          <p className="text-sm leading-6 text-slate-600">
-            Successful reset will invalidate active refresh sessions so the account can re-enter cleanly.
-          </p>
-        </div>
-      </div>
-
-      <p className="mt-5 text-center text-sm text-slate-600">
-        Need a new token?{" "}
-        <Link href="/forgot-password" className="font-semibold text-(--erp-primary) hover:text-(--erp-primary-hover)">
-          Request another reset email
-        </Link>
-      </p>
-    </div>
+    </LoginCard>
   );
 }
