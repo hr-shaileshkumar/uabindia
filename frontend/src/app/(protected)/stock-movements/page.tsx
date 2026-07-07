@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { hrApi } from "@/services/hrApi";
-import PageShell from "@/features/erp/components/PageShell";
+import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -98,7 +98,7 @@ export default function StockMovementsPage() {
   };
 
   return (
-    <PageShell
+    <StandardPageLayout
       title="Stock movements"
       subtitle="Goods in, out, and adjustments (updates item on-hand stock)"
     >
@@ -113,14 +113,14 @@ export default function StockMovementsPage() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="list">History</TabsTrigger>
-          <TabsTrigger value="new">New movement</TabsTrigger>
+        <TabsList className="erp-tabs-list">
+          <TabsTrigger value="list" className="erp-tab-trigger data-[state=active]:erp-tab-trigger-active">History</TabsTrigger>
+          <TabsTrigger value="new" className="erp-tab-trigger data-[state=active]:erp-tab-trigger-active">New movement</TabsTrigger>
         </TabsList>
 
         <TabsContent value="list">
-          <Card>
-            <CardHeader>
+          <Card className="erp-panel">
+            <CardHeader className="border-b border-slate-100 bg-white/75">
               <CardTitle>Movements</CardTitle>
             </CardHeader>
             <CardContent>
@@ -129,7 +129,7 @@ export default function StockMovementsPage() {
               ) : rows.length === 0 ? (
                 <div className="erp-empty">No movements yet.</div>
               ) : (
-                <div className="erp-table-wrap border-0 shadow-none">
+                <div className="erp-table-wrap border-0 bg-white/80 shadow-none">
                   <table className="erp-table">
                     <thead className="erp-thead">
                       <tr>
@@ -163,8 +163,8 @@ export default function StockMovementsPage() {
         </TabsContent>
 
         <TabsContent value="new">
-          <Card>
-            <CardHeader>
+          <Card className="erp-panel">
+            <CardHeader className="border-b border-slate-100 bg-white/75">
               <CardTitle>Record movement</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -247,6 +247,6 @@ export default function StockMovementsPage() {
           </Card>
         </TabsContent>
       </Tabs>
-    </PageShell>
+    </StandardPageLayout>
   );
 }

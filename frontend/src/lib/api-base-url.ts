@@ -1,4 +1,4 @@
-const LOCAL_API_FALLBACK = "http://localhost:5000";
+const LOCAL_API_FALLBACK = "http://127.0.0.1:5000";
 
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, "");
 

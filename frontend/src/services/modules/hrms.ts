@@ -1,16 +1,150 @@
 import apiClient from "@/services/apiClient";
+import type { ApiPayload } from "./shared";
 
 export const hrmsApi = {
-  getHrDashboard: () => apiClient.get("/hr/dashboard"),
-  getEmployees: (params?: { page?: number; limit?: number; search?: string }) =>
-    apiClient.get("/employees", { params }),
-  getEmployee: (id: string) => apiClient.get(`/employees/${id}`),
-  createEmployee: (payload: Record<string, unknown>) => apiClient.post("/employees", payload),
-  updateEmployee: (id: string, payload: Record<string, unknown>) => apiClient.put(`/employees/${id}`, payload),
-  getAttendance: (params?: Record<string, string | number>) => apiClient.get("/attendance", { params }),
-  getLeaveTypes: () => apiClient.get("/leave/types"),
-  getLeaveRequests: (params?: Record<string, string | number>) => apiClient.get("/leave/requests", { params }),
-  getShifts: () => apiClient.get("/shifts/shifts"),
-  getRecruitmentPostings: (params?: { page?: number; limit?: number }) =>
-    apiClient.get("/recruitment/job-postings", { params }),
+  dashboard: {
+    getStats: () => apiClient.get("/hr/dashboard"),
+  },
+  hrms: {
+    employees: {
+      list: (page = 1, limit = 10, params?: { companyId?: string; projectId?: string; search?: string; status?: string }) => {
+        const query = new URLSearchParams({ page: String(page), limit: String(limit) });
+        if (params?.companyId) query.append("companyId", params.companyId);
+        if (params?.projectId) query.append("projectId", params.projectId);
+        if (params?.search) query.append("search", params.search);
+        if (params?.status) query.append("status", params.status);
+        return apiClient.get(`/employees?${query}`);
+      },
+      getById: (id: string) => apiClient.get(`/employees/${id}`),
+      create: (data: ApiPayload) => apiClient.post("/employees", data),
+      update: (id: string, data: ApiPayload) => apiClient.put(`/employees/${id}`, data),
+      delete: (id: string) => apiClient.delete(`/employees/${id}`),
+    },
+    attendance: {
+      list: (page = 1, limit = 10, params?: { employeeId?: string }) => {
+        const query = new URLSearchParams({ page: String(page), limit: String(limit) });
+        if (params?.employeeId) query.append("employeeId", params.employeeId);
+        return apiClient.get(`/attendance?${query}`);
+      },
+      getById: (id: string) => apiClient.get(`/attendance/${id}`),
+      markAttendance: (data: ApiPayload) => apiClient.post("/attendance/punch", data),
+    },
+    leave: {
+      types: {
+        list: () => apiClient.get("/leave/types"),
+        create: (data: ApiPayload) => apiClient.post("/leave/types", data),
+      },
+      policies: {
+        list: () => apiClient.get("/leave/policies"),
+        create: (data: ApiPayload) => apiClient.post("/leave/policies", data),
+        rules: {
+          list: (policyId: string) => apiClient.get(`/leave/policies/${policyId}/rules`),
+          create: (policyId: string, data: ApiPayload) => apiClient.post(`/leave/policies/${policyId}/rules`, data),
+        },
+      },
+      list: (page = 1, limit = 10) => apiClient.get(`/leave/requests?page=${page}&limit=${limit}`),
+      getById: (id: string) => apiClient.get(`/leave/requests/${id}`),
+      requestLeave: (data: ApiPayload) => apiClient.post("/leave/requests", data),
+      approveLeave: (id: string) => apiClient.post(`/leave/requests/${id}/approve`, {}),
+      rejectLeave: (id: string) => apiClient.post(`/leave/requests/${id}/reject`, {}),
+      approvals: {
+        list: (status = "Pending") => apiClient.get(`/leave/approvals?status=${status}`),
+      },
+      balances: {
+        list: (employeeId?: string) => apiClient.get(`/leave/balances${employeeId ? `?employeeId=${employeeId}` : ""}`),
+      },
+      holidays: {
+        list: (year?: number) => apiClient.get(`/leave/holidays${year ? `?year=${year}` : ""}`),
+        create: (data: ApiPayload) => apiClient.post("/leave/holidays", data),
+      },
+      allocations: {
+        list: (params?: { employeeId?: string; year?: number }) => {
+          const query = new URLSearchParams();
+          if (params?.employeeId) query.append("employeeId", params.employeeId);
+          if (params?.year) query.append("year", params.year.toString());
+          return apiClient.get(`/leave/allocations${query.toString() ? `?${query}` : ""}`);
+        },
+        create: (data: ApiPayload) => apiClient.post("/leave/allocations", data),
+      },
+    },
+    overtime: {
+      requests: {
+        list: (params?: { skip?: number; take?: number }) => {
+          const query = new URLSearchParams();
+          if (typeof params?.skip === "number") query.append("skip", params.skip.toString());
+          if (typeof params?.take === "number") query.append("take", params.take.toString());
+          const suffix = query.toString() ? `?${query}` : "";
+          return apiClient.get(`/overtime/requests${suffix}`);
+        },
+        getById: (id: string) => apiClient.get(`/overtime/requests/${id}`),
+        byEmployee: (employeeId: string) => apiClient.get(`/overtime/requests/employee/${employeeId}`),
+        pending: () => apiClient.get("/overtime/requests/pending"),
+        create: (data: ApiPayload) => apiClient.post("/overtime/requests", data),
+        update: (id: string, data: ApiPayload) => apiClient.put(`/overtime/requests/${id}`, data),
+        delete: (id: string) => apiClient.delete(`/overtime/requests/${id}`),
+      },
+      approvals: {
+        byRequest: (requestId: string) => apiClient.get(`/overtime/approvals/request/${requestId}`),
+        pending: (approverId: string) => apiClient.get(`/overtime/approvals/pending/${approverId}`),
+        create: (data: ApiPayload) => apiClient.post("/overtime/approvals", data),
+      },
+      logs: {
+        list: (params?: { skip?: number; take?: number }) => {
+          const query = new URLSearchParams();
+          if (typeof params?.skip === "number") query.append("skip", params.skip.toString());
+          if (typeof params?.take === "number") query.append("take", params.take.toString());
+          const suffix = query.toString() ? `?${query}` : "";
+          return apiClient.get(`/overtime/logs${suffix}`);
+        },
+        byEmployee: (employeeId: string) => apiClient.get(`/overtime/logs/employee/${employeeId}`),
+        unprocessed: () => apiClient.get("/overtime/logs/unprocessed"),
+        create: (data: ApiPayload) => apiClient.post("/overtime/logs", data),
+      },
+      statistics: {
+        employee: (employeeId: string, params: { startDate: string; endDate: string }) =>
+          apiClient.get(`/overtime/statistics/employee/${employeeId}?startDate=${encodeURIComponent(params.startDate)}&endDate=${encodeURIComponent(params.endDate)}`),
+      },
+    },
+  },
+  screenings: {
+    getSchedule: (params?: { status?: string; fromDate?: string; toDate?: string; search?: string; page?: number; limit?: number }) => {
+      const q = new URLSearchParams();
+      if (params?.status) q.set("status", params.status);
+      if (params?.fromDate) q.set("fromDate", params.fromDate);
+      if (params?.toDate) q.set("toDate", params.toDate);
+      if (params?.search) q.set("search", params.search);
+      if (params?.page) q.set("page", String(params.page));
+      if (params?.limit) q.set("limit", String(params.limit));
+      return apiClient.get(`/screenings/schedule?${q}`);
+    },
+    getResults: (params?: { result?: string; fromDate?: string; toDate?: string; search?: string; page?: number; limit?: number }) => {
+      const q = new URLSearchParams();
+      if (params?.result) q.set("result", params.result);
+      if (params?.fromDate) q.set("fromDate", params.fromDate);
+      if (params?.toDate) q.set("toDate", params.toDate);
+      if (params?.search) q.set("search", params.search);
+      if (params?.page) q.set("page", String(params.page));
+      if (params?.limit) q.set("limit", String(params.limit));
+      return apiClient.get(`/screenings/results?${q}`);
+    },
+  },
+  training: {
+    getAssessments: (params?: { result?: string; assessmentType?: string; search?: string; page?: number; limit?: number }) => {
+      const q = new URLSearchParams();
+      if (params?.result) q.set("result", params.result);
+      if (params?.assessmentType) q.set("assessmentType", params.assessmentType);
+      if (params?.search) q.set("search", params.search);
+      if (params?.page) q.set("page", String(params.page));
+      if (params?.limit) q.set("limit", String(params.limit));
+      return apiClient.get(`/training/assessments?${q}`);
+    },
+    getCertificates: (params?: { expired?: boolean; search?: string; page?: number; limit?: number }) => {
+      const q = new URLSearchParams();
+      if (params?.expired !== undefined) q.set("expired", String(params.expired));
+      if (params?.search) q.set("search", params.search);
+      if (params?.page) q.set("page", String(params.page));
+      if (params?.limit) q.set("limit", String(params.limit));
+      return apiClient.get(`/training/certificates?${q}`);
+    },
+  },
 };

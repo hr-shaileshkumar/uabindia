@@ -18,9 +18,9 @@ type WorkspaceStatusPanelProps = {
 };
 
 const toneClasses: Record<NonNullable<WorkspaceStatusPanelProps["tone"]>, string> = {
-  warning: "border-amber-200 bg-amber-50 text-amber-950",
-  critical: "border-rose-200 bg-rose-50 text-rose-950",
-  neutral: "border-slate-200 bg-white text-slate-950",
+  warning: "border-amber-200/80 bg-[linear-gradient(180deg,rgba(255,251,235,0.98),rgba(255,255,255,0.98))] text-amber-950",
+  critical: "border-rose-200/80 bg-[linear-gradient(180deg,rgba(255,241,242,0.98),rgba(255,255,255,0.98))] text-rose-950",
+  neutral: "border-slate-200/90 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.98))] text-slate-950",
 };
 
 export function WorkspaceStatusPanel({
@@ -37,13 +37,13 @@ export function WorkspaceStatusPanel({
   return (
     <section
       className={cn(
-        "rounded-3xl border shadow-sm",
+        "rounded-3xl border shadow-[0_16px_40px_rgba(15,23,42,0.08)]",
         toneClasses[tone],
         compact ? "p-4" : "p-6 sm:p-7"
       )}
     >
       <div className={cn("flex gap-4", compact ? "items-start" : "items-start sm:items-center")}>
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/80 text-current shadow-sm">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/90 text-current shadow-[0_10px_24px_rgba(15,23,42,0.08)]">
           {tone === "critical" ? (
             <ShieldAlert className="h-5 w-5" />
           ) : tone === "warning" ? (

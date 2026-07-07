@@ -43,7 +43,7 @@ namespace UabIndia.Api.Services
         // Default modules that every tenant gets
         private static readonly (string Key, string Name)[] DefaultModules =
         {
-            ("erp",       "ERP"),
+            ("erp",       "ERP SaaS Platform"),
             ("hrms",      "HRMS"),
             ("payroll",   "Payroll"),
             ("reports",   "Reports"),
@@ -64,7 +64,7 @@ namespace UabIndia.Api.Services
             ("security",  "access", "Access Security & Identity management",     new[] { "SuperAdmin", "Admin" }),
 
             // ── Business modules — broader access ─────────────────────────────────
-            ("erp",     "access", "Access the ERP dashboard",     new[] { "SuperAdmin", "Admin", "HR Manager", "Manager", "Accountant", "Employee" }),
+            ("erp",     "access", "Access the ERP SaaS platform shell",     new[] { "SuperAdmin", "Admin", "HR Manager", "Manager", "Accountant", "Employee" }),
             ("hrms",    "access", "Access HRMS module",           new[] { "SuperAdmin", "Admin", "HR Manager", "Manager", "Employee" }),
             ("payroll", "access", "Access Payroll module",        new[] { "SuperAdmin", "Admin", "HR Manager", "Accountant" }),
             ("reports", "access", "Access Reports module",        new[] { "SuperAdmin", "Admin", "HR Manager", "Manager", "Accountant" }),

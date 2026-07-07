@@ -1,36 +1,100 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Uabindia ERP Frontend
 
-## Getting Started
+Next.js App Router frontend for the ERP, HRMS, payroll, finance, inventory, CRM, projects, and public marketing surfaces.
 
-First, run the development server:
+## Core Structure
+
+- `src/app/`: routes and route groups
+- `src/features/`: feature-owned UI
+- `src/components/`: shared UI primitives and shells
+- `src/services/`: runtime transport and legacy service wrappers
+- `src/lib/api/v1/`: production-facing module API facade
+- `src/context/`: auth, permission, org, and UI schema state
+- `docs/`: audits, page maps, and design references
+
+## API Layers
+
+The frontend now exposes two API layers by design:
+
+1. `src/services/apiClient.ts`
+   Owns Axios config, cookies, CSRF, tenant headers, org scope headers, refresh-token retries, and global API error dispatch.
+
+2. `src/lib/api/v1/*`
+   Owns the stable module-wise frontend contract for production work. Each file maps to a business domain and declares one of:
+   - `ready`
+   - `partial`
+   - `placeholder`
+
+Current module map:
+
+- `auth`
+- `tenants`
+- `companies`
+- `projects`
+- `users`
+- `roles`
+- `permissions`
+- `employees`
+- `attendance`
+- `leave`
+- `payroll`
+- `recruitment`
+- `assets`
+- `documents`
+- `reports`
+- `finance`
+- `inventory`
+- `crm`
+- `operations`
+- `settings`
+
+## Environment
+
+Use these files as the contract:
+
+- `.env.example`
+- `.env.production.example`
+
+Important rules:
+
+- Keep API origins at the backend host only
+- Do not append `/api/v1` to env values
+- `NEXT_PUBLIC_API_URL` is browser-visible
+- `API_BASE_URL` is used by server-side rewrites
+- `BACKEND_INTERNAL_URL` is optional for private production networking
+- `NEXT_PUBLIC_TENANT_SUBDOMAIN` is only a fallback for localhost or non-subdomain cases
+
+## Local Development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Frontend default URL:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```text
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Validation
 
-## Learn More
+Run from `frontend/`:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run lint
+npm run typecheck
+npm run build
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Production Readiness Notes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Existing pages still use `hrApi` and `publicApi` where already wired
+- New work should prefer `src/lib/api/v1/*`
+- The facade is additive and does not break current page routes
+- `assets` is intentionally a typed placeholder until backend endpoints exist
 
-## Deploy on Vercel
+## Reference Docs
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `docs/FRONTEND_PRODUCTION_AUDIT_2026-06-29.md`
+- `ARCHITECTURE.md`

@@ -14,8 +14,8 @@ export function EmptyState({
   ctaHref: string;
 }) {
   return (
-    <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
+    <div className="rounded-3xl border border-dashed border-slate-300 bg-[linear-gradient(180deg,rgba(248,250,252,0.95),rgba(255,255,255,0.98))] p-8 text-center shadow-[0_16px_36px_rgba(15,23,42,0.07)]">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white/95 text-[color:var(--erp-primary)] shadow-[0_10px_24px_rgba(15,23,42,0.08)]">
         <Inbox className="h-6 w-6" />
       </div>
       <h3 className="mt-4 text-xl font-semibold text-slate-950">{title}</h3>

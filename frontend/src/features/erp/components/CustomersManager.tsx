@@ -180,7 +180,7 @@ export default function CustomersManager() {
 
   return (
     <StandardPageLayout title="Customers" subtitle="Manage customer master and billing terms">
-      <div className="space-y-4 p-4">
+      <div className="space-y-4">
         {confirmDialog}
         {error && (
           <div className="erp-alert-error">
@@ -189,14 +189,14 @@ export default function CustomersManager() {
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="list">Customer List</TabsTrigger>
-            <TabsTrigger value="form">{editingId ? "Edit Customer" : "New Customer"}</TabsTrigger>
+          <TabsList className="erp-tabs-list">
+            <TabsTrigger value="list" className="erp-tab-trigger data-[state=active]:erp-tab-trigger-active">Customer List</TabsTrigger>
+            <TabsTrigger value="form" className="erp-tab-trigger data-[state=active]:erp-tab-trigger-active">{editingId ? "Edit Customer" : "New Customer"}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="list">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
+            <Card className="erp-panel">
+              <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 bg-white/75">
                 <CardTitle>Customer Directory</CardTitle>
                 <Button onClick={() => { setEditingId(null); resetForm(); setActiveTab("form"); }}>Add Customer</Button>
               </CardHeader>
@@ -206,7 +206,7 @@ export default function CustomersManager() {
                 ) : customers.length === 0 ? (
                   <div className="erp-empty">No customers found.</div>
                 ) : (
-                  <div className="erp-table-wrap border-0 shadow-none">
+                  <div className="erp-table-wrap border-0 bg-white/80 shadow-none">
                     <table className="erp-table">
                       <thead className="erp-thead">
                         <tr>
@@ -241,8 +241,8 @@ export default function CustomersManager() {
           </TabsContent>
 
           <TabsContent value="form">
-            <Card>
-              <CardHeader>
+            <Card className="erp-panel">
+              <CardHeader className="border-b border-slate-100 bg-white/75">
                 <CardTitle>{editingId ? "Edit Customer" : "Create Customer"}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">

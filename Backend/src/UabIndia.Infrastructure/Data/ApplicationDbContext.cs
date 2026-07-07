@@ -57,6 +57,7 @@ namespace UabIndia.Infrastructure.Data
         public DbSet<EntityFieldValue> EntityFieldValues { get; set; }
         public DbSet<DocumentRecord> DocumentRecords { get; set; }
         public DbSet<NotificationMessage> NotificationMessages { get; set; }
+        public DbSet<CommunicationTemplate> CommunicationTemplates { get; set; }
         public DbSet<HelpdeskTicket> HelpdeskTickets { get; set; }
         public DbSet<HelpdeskEscalation> HelpdeskEscalations { get; set; }
         public DbSet<HelpdeskFaqArticle> HelpdeskFaqArticles { get; set; }
@@ -149,10 +150,10 @@ namespace UabIndia.Infrastructure.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            if (!string.IsNullOrWhiteSpace(CurrentTenantSchema))
-            {
-                modelBuilder.HasDefaultSchema(CurrentTenantSchema);
-            }
+            // The live SQL deployment keeps application tables in dbo and enforces
+            // tenant isolation through TenantId filters. Provisioning services may
+            // still manage tenant schema metadata separately, but the EF model
+            // should not remap every entity to tenant_* schemas at runtime.
 
             // Apply a safe default precision for all decimal properties to prevent truncation warnings.
             foreach (var entityType in modelBuilder.Model.GetEntityTypes())
@@ -219,6 +220,7 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<EntityFieldValue>().ToTable("EntityFieldValues");
             modelBuilder.Entity<DocumentRecord>().ToTable("DocumentRecords");
             modelBuilder.Entity<NotificationMessage>().ToTable("NotificationMessages");
+            modelBuilder.Entity<CommunicationTemplate>().ToTable("CommunicationTemplates");
             modelBuilder.Entity<HelpdeskTicket>().ToTable("HelpdeskTickets");
             modelBuilder.Entity<HelpdeskEscalation>().ToTable("HelpdeskEscalations");
             modelBuilder.Entity<HelpdeskFaqArticle>().ToTable("HelpdeskFaqArticles");
@@ -409,6 +411,7 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<EntityFieldValue>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<DocumentRecord>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<NotificationMessage>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<CommunicationTemplate>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<HelpdeskTicket>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<HelpdeskEscalation>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<HelpdeskFaqArticle>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());

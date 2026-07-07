@@ -124,6 +124,7 @@ type TenantForm = {
   smtpHost: string;
   smtpPort: string;
   smtpUsername: string;
+  smtpPassword: string;
   smtpFromEmail: string;
   customDomain: string;
   whiteLabelEnabled: boolean;
@@ -194,6 +195,7 @@ const defaultForm = (): TenantForm => ({
   smtpHost: "",
   smtpPort: "",
   smtpUsername: "",
+  smtpPassword: "",
   smtpFromEmail: "",
   customDomain: "",
   whiteLabelEnabled: false,
@@ -681,6 +683,7 @@ export default function TenantsPage() {
     smtpHost: source.smtpHost || undefined,
     smtpPort: toNumberOrUndefined(source.smtpPort),
     smtpUsername: source.smtpUsername || undefined,
+    smtpPassword: source.smtpPassword || undefined,
     smtpFromEmail: source.smtpFromEmail || undefined,
     customDomain: source.customDomain || undefined,
     whiteLabelEnabled: source.whiteLabelEnabled,
@@ -717,6 +720,7 @@ export default function TenantsPage() {
       smtpHost: source.smtpHost || undefined,
       smtpPort: toNumberOrUndefined(source.smtpPort),
       smtpUsername: source.smtpUsername || undefined,
+      smtpPassword: source.smtpPassword || undefined,
       smtpFromEmail: source.smtpFromEmail || undefined,
       customDomain: source.customDomain || undefined,
       whiteLabelEnabled: source.whiteLabelEnabled,
@@ -863,6 +867,7 @@ export default function TenantsPage() {
       smtpHost: tenant.smtpHost || "",
       smtpPort: tenant.smtpPort ? String(tenant.smtpPort) : "",
       smtpUsername: tenant.smtpUsername || "",
+      smtpPassword: "",
       smtpFromEmail: tenant.smtpFromEmail || "",
       customDomain: tenant.customDomain || "",
       whiteLabelEnabled: !!tenant.whiteLabelEnabled,
@@ -1231,6 +1236,84 @@ export default function TenantsPage() {
       );
     }
 
+    if (wizardStep === 5) {
+      return (
+        <div className="space-y-5">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="md:col-span-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                <input type="checkbox" checked={form.whiteLabelEnabled} onChange={(e) => updateForm("whiteLabelEnabled", e.target.checked)} />
+                Enable white-label domain and branded email delivery
+              </label>
+              <p className="mt-2 text-xs text-slate-600">
+                Map your own domain for login and public pages, then use a matching sender address for tenant emails.
+              </p>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Custom domain</label>
+              <input
+                value={form.customDomain}
+                onChange={(e) => updateForm("customDomain", e.target.value)}
+                placeholder="portal.company.com or company.com"
+                className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+              />
+              <p className="mt-1 text-xs text-slate-500">Add the exact domain that points to this workspace. Root-domain and `www` access are both supported.</p>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">SMTP host</label>
+              <input value={form.smtpHost} onChange={(e) => updateForm("smtpHost", e.target.value)} placeholder="smtp.resend.com" className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">SMTP port</label>
+              <input value={form.smtpPort} onChange={(e) => updateForm("smtpPort", e.target.value)} placeholder="587" className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">SMTP username</label>
+              <input value={form.smtpUsername} onChange={(e) => updateForm("smtpUsername", e.target.value)} placeholder="apikey or mailbox username" className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">SMTP password</label>
+              <input
+                type="password"
+                value={form.smtpPassword}
+                onChange={(e) => updateForm("smtpPassword", e.target.value)}
+                placeholder={editingTenant ? "Leave blank to keep current password" : "SMTP password or API key"}
+                className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">From email</label>
+              <input value={form.smtpFromEmail} onChange={(e) => updateForm("smtpFromEmail", e.target.value)} placeholder="no-reply@company.com" className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+              <p className="mt-1 text-xs text-slate-500">Password-reset emails will use this sender when tenant mail delivery is configured.</p>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <h4 className="font-semibold text-slate-900">Review Summary</h4>
+            <div className="mt-3 grid gap-2 text-sm text-slate-700 md:grid-cols-2">
+              <p><span className="font-semibold">Company:</span> {form.name || "-"}</p>
+              <p><span className="font-semibold">Code:</span> {form.subdomain || "-"}</p>
+              <p><span className="font-semibold">Status:</span> {form.status}</p>
+              <p><span className="font-semibold">Plan:</span> {form.subscriptionPlan}</p>
+              <p><span className="font-semibold">Admin:</span> {form.adminName || "-"}</p>
+              <p><span className="font-semibold">Admin Email:</span> {form.adminEmail || "-"}</p>
+              <p><span className="font-semibold">Admin Role:</span> {form.adminRole}</p>
+              <p><span className="font-semibold">Initial Users:</span> 1 (Tenant Admin)</p>
+              <p><span className="font-semibold">Custom Domain:</span> {form.customDomain || "Not configured"}</p>
+              <p><span className="font-semibold">From Email:</span> {form.smtpFromEmail || "Platform default"}</p>
+              <p className="md:col-span-2"><span className="font-semibold">Modules:</span> {form.selectedModules.length ? form.selectedModules.join(", ") : "No modules selected"}</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-5">
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -1360,7 +1443,7 @@ export default function TenantsPage() {
                         label={`Select ${tenant.name}`}
                       />
                     </td>
-                    <td className="px-4 py-3"><p className="font-semibold text-slate-900">{tenant.name}</p><p className="text-xs text-slate-500">{tenant.subdomain}.yourdomain.com</p></td>
+                    <td className="px-4 py-3"><p className="font-semibold text-slate-900">{tenant.name}</p><p className="text-xs text-slate-500">{tenant.customDomain || `${tenant.subdomain}.yourdomain.com`}</p></td>
                     <td className="px-4 py-3"><span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${tenant.isDeleted ? "bg-red-100 text-red-700" : statusBadgeClass[status]}`}>{tenant.isDeleted ? "deleted" : status}</span></td>
                     <td className="px-4 py-3 text-slate-700">
                       <span className="inline-flex rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">{tenant.provisionStatus || "Pending"}</span>

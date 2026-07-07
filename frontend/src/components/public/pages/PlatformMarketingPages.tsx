@@ -17,7 +17,13 @@ import {
 import PublicAudiencePageFrame from "@/components/public/PublicAudiencePageFrame";
 import PublicStructuredData from "@/components/public/PublicStructuredData";
 import { MotionReveal } from "@/components/public/PublicMotion";
-import { publicButtonClassName, publicPanelClassName, publicSectionClassName } from "@/components/public/publicStyles";
+import {
+  publicButtonClassName,
+  publicPageSectionClassName,
+  publicPanelClassName,
+  publicSectionClassName,
+  publicSectionSpacingClassName,
+} from "@/components/public/publicStyles";
 import { ContactDemoForm } from "@/components/erp/contact-demo-form";
 import { usePublicPageData } from "@/hooks/usePublicPageData";
 import {
@@ -133,7 +139,7 @@ export function ProductsLandingPage({ audience }: { audience: PublicAudience }) 
         }}
       />
 
-      <section className="py-16 sm:py-20">
+      <section className={publicPageSectionClassName}>
         <div className={publicSectionClassName}>
           <MotionReveal>
             <SectionIntro
@@ -221,7 +227,7 @@ export function ProductDetailPageClient({
         }}
       />
 
-      <section className="py-16 sm:py-20">
+      <section className={publicPageSectionClassName}>
         <div className={`${publicSectionClassName} grid gap-6 xl:grid-cols-[1fr_1fr]`}>
           <MotionReveal>
             <div>
@@ -270,7 +276,7 @@ export function ProductDetailPageClient({
         subtitle="The strongest module rollouts create immediate operational gains while improving trust in the wider ERP program."
       />
 
-      <section className="pb-16 sm:pb-20">
+      <section className={publicSectionSpacingClassName}>
         <div className={`${publicSectionClassName} grid gap-6 xl:grid-cols-[0.92fr_1.08fr]`}>
           <MotionReveal>
             <div className={`${publicPanelClassName} p-8`}>
@@ -358,7 +364,7 @@ export function IndustriesLandingPage({ audience }: { audience: PublicAudience }
         }}
       />
 
-      <section className="py-16 sm:py-20">
+      <section className={publicPageSectionClassName}>
         <div className={publicSectionClassName}>
           <MotionReveal>
             <SectionIntro
@@ -430,7 +436,7 @@ export function IndustryDetailPageClient({
         }}
       />
 
-      <section className="py-16 sm:py-20">
+      <section className={publicPageSectionClassName}>
         <div className={`${publicSectionClassName} grid gap-6 xl:grid-cols-[1fr_1fr]`}>
           <MotionReveal>
             <div>
@@ -526,7 +532,7 @@ export function PricingLandingPage({ audience }: { audience: PublicAudience }) {
         }}
       />
 
-      <section className="py-16 sm:py-20">
+      <section className={publicPageSectionClassName}>
         <div className={publicSectionClassName}>
           <MotionReveal>
             <SectionIntro
@@ -538,7 +544,7 @@ export function PricingLandingPage({ audience }: { audience: PublicAudience }) {
         </div>
       </section>
 
-      <section className="pb-16 sm:pb-20">
+      <section className={publicSectionSpacingClassName}>
         <div className={`${publicSectionClassName} grid gap-5 xl:grid-cols-3`}>
           {pricingPlans.map((plan) => (
             <div
@@ -621,7 +627,7 @@ export function ResourcesLandingPage({ audience }: { audience: PublicAudience })
         }}
       />
 
-      <section className="py-16 sm:py-20">
+      <section className={publicPageSectionClassName}>
         <div className={publicSectionClassName}>
           <MotionReveal>
             <SectionIntro
@@ -671,7 +677,7 @@ export function BookDemoLandingPage({ audience }: { audience: PublicAudience }) 
         }}
       />
 
-      <section className="py-16 sm:py-20">
+      <section className={publicPageSectionClassName}>
         <div className={`${publicSectionClassName} grid gap-8 xl:grid-cols-[0.9fr_1.1fr]`}>
           <div className="space-y-6">
             <MotionReveal>
@@ -729,7 +735,7 @@ export function HelpSupportLandingPage({ audience }: { audience: PublicAudience 
         }}
       />
 
-      <section className="py-16 sm:py-20">
+      <section className={publicPageSectionClassName}>
         <div className={`${publicSectionClassName} grid gap-8 xl:grid-cols-[0.9fr_1.1fr]`}>
           <MotionReveal>
             <div>
@@ -799,7 +805,7 @@ export function LegalPublicPage({
         }}
       />
 
-      <section className="py-16 sm:py-20">
+      <section className={publicPageSectionClassName}>
         <div className={`${publicSectionClassName} max-w-4xl`}>
           <MotionReveal>
             <SectionIntro

@@ -1,8 +1,9 @@
+import { hasTenantScopedHost, isLocalhostHostname, normalizeHostname } from "@/lib/tenant-host";
+
 export type PublicAudience = "platform" | "tenant";
 export type PublicAudienceSearchParamValue = string | string[] | null | undefined;
 
 const AUDIENCE_QUERY_KEY = "audience";
-const RESERVED_HOST_LABELS = new Set(["app", "api", "www"]);
 
 const isAudienceScopedPath = (pathname: string) =>
   pathname === "/login" ||
@@ -47,20 +48,6 @@ const readSearchParamValue = (value: PublicAudienceSearchParamValue): string | n
   return value ?? null;
 };
 
-const normalizeHostname = (value: string | null | undefined): string => {
-  const host = (value || "").trim().toLowerCase();
-  if (!host) {
-    return "";
-  }
-
-  if (host.startsWith("[")) {
-    const closingBracketIndex = host.indexOf("]");
-    return closingBracketIndex >= 0 ? host.slice(1, closingBracketIndex) : host;
-  }
-
-  return host.split(":")[0];
-};
-
 export function hasPublicTenantContextForRequest({
   pathname: _pathname,
   host,
@@ -83,25 +70,11 @@ export function hasPublicTenantContextForRequest({
   }
 
   const hostname = normalizeHostname(host);
-  const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
-
-  if (hostname.endsWith(".localhost") && !isLocalhost) {
-    return true;
-  }
-
-  if (!hostname || isLocalhost) {
+  if (!hostname || isLocalhostHostname(hostname)) {
     return false;
   }
 
-  const parts = hostname.split(".").filter(Boolean);
-  if (parts.length >= 3) {
-    const candidate = parts[0];
-    if (candidate && !RESERVED_HOST_LABELS.has(candidate)) {
-      return true;
-    }
-  }
-
-  return false;
+  return hasTenantScopedHost(hostname);
 }
 
 export function resolvePublicAudienceFromRequest({

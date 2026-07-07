@@ -1068,7 +1068,7 @@ ORDER BY [CreatedAt] DESC;";
                         "hrms" => "HRMS",
                         "payroll" => "Payroll",
                         "reports" => "Reports",
-                        "erp" => "ERP",
+                        "erp" => "ERP SaaS Platform",
                         _ => key
                     },
                     ModuleType = key switch
@@ -2450,11 +2450,12 @@ EXEC(N'CREATE SCHEMA [' + @schema + N']');";
                 existing.StorageLimitGb = create.StorageLimitGb;
                 existing.SmsCredits = create.SmsCredits;
                 existing.WhatsAppIntegrationEnabled = create.WhatsAppIntegrationEnabled;
-                existing.SmtpHost = create.SmtpHost;
+                existing.SmtpHost = NormalizeOptionalText(create.SmtpHost);
                 existing.SmtpPort = create.SmtpPort;
-                existing.SmtpUsername = create.SmtpUsername;
-                existing.SmtpFromEmail = create.SmtpFromEmail;
-                existing.CustomDomain = create.CustomDomain;
+                existing.SmtpUsername = NormalizeOptionalText(create.SmtpUsername);
+                existing.SmtpPasswordEncrypted = EncryptOptionalSecret(create.SmtpPassword);
+                existing.SmtpFromEmail = NormalizeOptionalText(create.SmtpFromEmail);
+                existing.CustomDomain = NormalizeOptionalHost(create.CustomDomain);
                 existing.WhiteLabelEnabled = create.WhiteLabelEnabled;
                 existing.InviteFlowEnabled = create.SendInviteLink;
             }
@@ -2481,11 +2482,12 @@ EXEC(N'CREATE SCHEMA [' + @schema + N']');";
                 if (update.StorageLimitGb.HasValue) existing.StorageLimitGb = update.StorageLimitGb;
                 if (update.SmsCredits.HasValue) existing.SmsCredits = update.SmsCredits;
                 if (update.WhatsAppIntegrationEnabled.HasValue) existing.WhatsAppIntegrationEnabled = update.WhatsAppIntegrationEnabled.Value;
-                if (update.SmtpHost != null) existing.SmtpHost = update.SmtpHost;
+                if (update.SmtpHost != null) existing.SmtpHost = NormalizeOptionalText(update.SmtpHost);
                 if (update.SmtpPort.HasValue) existing.SmtpPort = update.SmtpPort;
-                if (update.SmtpUsername != null) existing.SmtpUsername = update.SmtpUsername;
-                if (update.SmtpFromEmail != null) existing.SmtpFromEmail = update.SmtpFromEmail;
-                if (update.CustomDomain != null) existing.CustomDomain = update.CustomDomain;
+                if (update.SmtpUsername != null) existing.SmtpUsername = NormalizeOptionalText(update.SmtpUsername);
+                if (update.SmtpPassword != null) existing.SmtpPasswordEncrypted = EncryptOptionalSecret(update.SmtpPassword);
+                if (update.SmtpFromEmail != null) existing.SmtpFromEmail = NormalizeOptionalText(update.SmtpFromEmail);
+                if (update.CustomDomain != null) existing.CustomDomain = NormalizeOptionalHost(update.CustomDomain);
                 if (update.WhiteLabelEnabled.HasValue) existing.WhiteLabelEnabled = update.WhiteLabelEnabled.Value;
             }
 
@@ -2546,6 +2548,28 @@ EXEC(N'CREATE SCHEMA [' + @schema + N']');";
             }
         }
 
+        private string? EncryptOptionalSecret(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            return _encryptionService.Encrypt(value);
+        }
+
+        private static string? NormalizeOptionalText(string? value)
+        {
+            var normalized = value?.Trim();
+            return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
+        }
+
+        private static string? NormalizeOptionalHost(string? value)
+        {
+            var normalized = TenantResolutionService.NormalizeHost(value);
+            return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
+        }
+
         private sealed class TenantProfileMetadata
         {
             public string? Status { get; set; }
@@ -2571,6 +2595,7 @@ EXEC(N'CREATE SCHEMA [' + @schema + N']');";
             public string? SmtpHost { get; set; }
             public int? SmtpPort { get; set; }
             public string? SmtpUsername { get; set; }
+            public string? SmtpPasswordEncrypted { get; set; }
             public string? SmtpFromEmail { get; set; }
             public string? CustomDomain { get; set; }
             public bool WhiteLabelEnabled { get; set; }

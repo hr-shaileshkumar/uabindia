@@ -86,7 +86,7 @@ export default function PayrollReportsPage() {
             <p className="mt-1 text-sm text-slate-500">Month-by-month payroll summary</p>
           </div>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto bg-white/80">
           <table className="erp-table">
             <thead className="erp-thead">
               <tr>

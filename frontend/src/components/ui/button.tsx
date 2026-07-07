@@ -20,15 +20,15 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className = "", variant = "default", size = "default", type = "button", asChild = false, children, ...props }, ref) => {
     const baseStyles =
-      "inline-flex items-center justify-center rounded-xl border border-transparent font-semibold tracking-[0.01em] shadow-sm transition-[background-color,border-color,color,box-shadow,transform] hover:-translate-y-px active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0 disabled:pointer-events-none disabled:opacity-50 focus-visible:ring-[var(--erp-primary)]";
+      "inline-flex items-center justify-center rounded-[0.95rem] border border-transparent font-semibold tracking-[0.01em] shadow-sm transition-[background-color,border-color,color,box-shadow,transform] hover:-translate-y-px active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0 disabled:pointer-events-none disabled:opacity-50 focus-visible:ring-[var(--erp-primary)]";
 
     const variants: Record<NonNullable<ButtonProps["variant"]>, string> = {
       /* ── Primary ──────────────────────────────────── */
       default:
-        "border border-[#0d5f74]/50 bg-[linear-gradient(135deg,#163653,#0f6178_62%,#12808a)] text-white shadow-[0_14px_32px_rgba(15,54,83,0.18)] hover:brightness-105 focus-visible:ring-offset-0",
+        "border border-[#0d5f74]/45 bg-[linear-gradient(135deg,#163653,#0f6178_62%,#12808a)] text-white shadow-[0_10px_22px_rgba(15,54,83,0.16)] hover:brightness-105 focus-visible:ring-offset-0",
       /* ── Secondary ────────────────────────────────── */
       secondary:
-        "border border-[#d9e1e7] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(252,246,239,0.94))] text-[#173248] shadow-[0_10px_22px_rgba(15,23,42,0.06)] hover:border-[#bcc8d1] hover:bg-white focus-visible:ring-slate-400",
+        "border border-[#d9e1e7] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(252,246,239,0.94))] text-[#173248] shadow-[0_8px_18px_rgba(15,23,42,0.05)] hover:border-[#bcc8d1] hover:bg-white focus-visible:ring-slate-400",
       /* ── Outline ──────────────────────────────────── */
       outline:
         "border border-[#d9e1e7] bg-white/92 text-[#173248] hover:border-[#bcc8d1] hover:bg-white focus-visible:ring-offset-0",
@@ -50,11 +50,11 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     };
 
     const sizes: Record<NonNullable<ButtonProps["size"]>, string> = {
-      default: "h-10 px-4 py-2 text-sm",
+      default: "h-9 px-3.5 py-2 text-sm",
       sm: "h-8 px-3 text-xs",
-      lg: "h-11 px-6 text-sm",
+      lg: "h-10 px-5 text-sm",
       /* Square icon-only button */
-      icon: "h-9 w-9 p-0 rounded-xl shadow-sm",
+      icon: "h-8.5 w-8.5 p-0 rounded-[0.9rem] shadow-sm",
     };
 
     const classes = `${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`;

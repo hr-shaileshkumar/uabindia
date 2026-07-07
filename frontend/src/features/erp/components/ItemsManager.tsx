@@ -177,7 +177,7 @@ export default function ItemsManager() {
 
   return (
     <StandardPageLayout title="Items" subtitle="Inventory and product master">
-      <div className="space-y-4 p-4">
+      <div className="space-y-4">
         {confirmDialog}
         {error && (
           <div className="erp-alert-error">

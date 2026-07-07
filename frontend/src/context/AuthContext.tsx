@@ -136,9 +136,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const res = await apiClient.get("/auth/me");
       setUser(normalizeAuthUser(res.data));
-    } catch {
+    } catch (error) {
       setUser(null);
       clearClientSessionArtifacts();
+      throw error;
     }
   };
 

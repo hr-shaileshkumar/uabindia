@@ -57,6 +57,10 @@ var env = builder.Environment;
 
 // Configuration
 var configuration = builder.Configuration;
+var sqlServerConnectionString = NormalizeSqlServerConnectionString(
+    configuration.GetConnectionString("DefaultConnection") ?? "Server=.;Database=UabIndia_HRMS;Trusted_Connection=True;",
+    env);
+configuration["ConnectionStrings:DefaultConnection"] = sqlServerConnectionString;
 
 // Sentry for error tracking and performance monitoring
 var sentryDsn = configuration["Sentry:Dsn"];
@@ -200,6 +204,8 @@ builder.Services.AddScoped<ITenantAccessor, TenantAccessor>();
 // Input sanitization service (XSS protection)
 builder.Services.AddScoped<UabIndia.Api.Services.InputSanitizer>();
 builder.Services.AddScoped<TenantProvisioningService>();
+builder.Services.AddScoped<TenantResolutionService>();
+builder.Services.AddScoped<TenantEmailService>();
 builder.Services.AddScoped<IUiSchemaService, UiSchemaService>();
 builder.Services.AddScoped<IWebsiteContentService, WebsiteContentService>();
 builder.Services.AddSingleton<RoleMappingResolver>();
@@ -217,8 +223,7 @@ builder.Services.AddHealthChecks()
 // DbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    var conn = configuration.GetConnectionString("DefaultConnection") ?? "Server=.;Database=UabIndia_HRMS;Trusted_Connection=True;";
-    options.UseSqlServer(conn);
+    options.UseSqlServer(sqlServerConnectionString);
     options.ReplaceService<IModelCacheKeyFactory, TenantModelCacheKeyFactory>();
 });
 
@@ -475,7 +480,7 @@ builder.Services.AddScoped<UabIndia.Application.Interfaces.IComplianceRepository
 // Hangfire for background jobs (skip in test environment)
 if (!env.IsEnvironment("Test"))
 {
-    var sqlServerConnection = configuration.GetConnectionString("DefaultConnection") ?? "Server=.;Database=UabIndia_HRMS;Trusted_Connection=True;";
+    var sqlServerConnection = sqlServerConnectionString;
     builder.Services.AddHangfire(config =>
     {
         config.UseSqlServerStorage(sqlServerConnection, new Hangfire.SqlServer.SqlServerStorageOptions
@@ -1064,9 +1069,8 @@ if (app.Environment.IsDevelopment())
     });
 }
 app.UseMiddleware<ExceptionMiddleware>();
-app.UseMiddleware<TenantResolverMiddleware>();
-
 app.UseAuthentication();
+app.UseMiddleware<TenantResolverMiddleware>();
 app.UseAuthorization();
 
 // Centralized backend-driven data visibility context (SuperAdmin: all tenants + deleted)
@@ -1661,6 +1665,24 @@ static string[] GetAllowedCorsOrigins(ConfigurationManager configuration)
         .ToArray();
 
     return combinedOrigins;
+}
+
+static string NormalizeSqlServerConnectionString(string connectionString, IWebHostEnvironment env)
+{
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        return connectionString;
+    }
+
+    var builder = new SqlConnectionStringBuilder(connectionString);
+
+    if (env.IsDevelopment())
+    {
+        builder.TrustServerCertificate = true;
+        builder.Encrypt = false;
+    }
+
+    return builder.ConnectionString;
 }
 
 public partial class Program

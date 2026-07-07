@@ -1,32 +1,93 @@
 "use client";
 
 import Link from "next/link";
-import { Search, X } from "lucide-react";
-import { useDeferredValue, useMemo, useState } from "react";
-import { usePathname } from "next/navigation";
+import { ChevronDown, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import ModuleIcon from "@/components/ModuleIcon";
-import { WorkspaceStatusPanel } from "@/components/erp/workspace-status-panel";
-import { Button } from "@/components/ui/button";
-import { usePermissions } from "@/context/PermissionContext";
+import { ROUTES } from "@/constants/routes";
+import { useAuth } from "@/context/AuthContext";
 import { useUiSchema } from "@/context/UiSchemaContext";
-import {
-  buildWorkspaceModules,
-  filterWorkspaceModules,
-  findWorkspaceModuleByPath,
-} from "@/lib/erp/navigation";
+import { buildWorkspaceModules } from "@/lib/erp/navigation";
 import { getPortalTheme } from "@/lib/erp/portals";
 import type { ERPRole } from "@/lib/erp/types";
 import { cn } from "@/lib/utils";
 
-const isActivePath = (pathname: string, href: string) =>
-  pathname === href || pathname.startsWith(`${href}/`);
+type NavChild = {
+  label: string;
+  href: string;
+  icon?: string | null;
+};
 
-const formatPathMeta = (path: string) =>
-  path
-    .replace(/^\/+/, "")
-    .split("/")
-    .filter(Boolean)
-    .join(" / ");
+type NavGroup = {
+  label: string;
+  children: NavChild[];
+};
+
+type NavModule = {
+  key: string;
+  label: string;
+  icon: string;
+  description?: string;
+  homeHref: string | null;
+  groups: NavGroup[];
+};
+
+const FALLBACK_MODULES: NavModule[] = [
+  { key: "dashboard", label: "Dashboard", icon: "dashboard", homeHref: ROUTES.DASHBOARD, groups: [{ label: "Pages", children: [{ label: "Home", href: ROUTES.DASHBOARD, icon: "dashboard" }] }] },
+  { key: "hrms", label: "HRMS", icon: "users", homeHref: ROUTES.HRMS_HOME, groups: [{ label: "Core HR", children: [{ label: "Dashboard", href: ROUTES.HRMS_HOME, icon: "dashboard" }] }] },
+  { key: "finance", label: "Finance", icon: "bank", homeHref: ROUTES.CHART_OF_ACCOUNTS, groups: [{ label: "Finance", children: [{ label: "Chart of Accounts", href: ROUTES.CHART_OF_ACCOUNTS, icon: "bank" }] }] },
+  { key: "inventory", label: "Inventory", icon: "box", homeHref: ROUTES.ITEMS, groups: [{ label: "Inventory", children: [{ label: "Items", href: ROUTES.ITEMS, icon: "box" }] }] },
+  { key: "procurement", label: "Procurement", icon: "shopping-cart", homeHref: ROUTES.VENDORS, groups: [{ label: "Procurement", children: [{ label: "Vendors", href: ROUTES.VENDORS, icon: "shopping-cart" }] }] },
+  { key: "crm", label: "CRM", icon: "contact-round", homeHref: ROUTES.CUSTOMERS, groups: [{ label: "CRM", children: [{ label: "Customers", href: ROUTES.CUSTOMERS, icon: "users" }] }] },
+  { key: "sales", label: "Sales", icon: "shopping-bag", homeHref: ROUTES.SALES_ORDERS, groups: [{ label: "Sales", children: [{ label: "Sales Orders", href: ROUTES.SALES_ORDERS, icon: "shopping-bag" }] }] },
+  { key: "projects", label: "Projects", icon: "folder", homeHref: ROUTES.PLATFORM_PROJECTS, groups: [{ label: "Projects", children: [{ label: "Project Registry", href: ROUTES.PLATFORM_PROJECTS, icon: "folder" }] }] },
+  { key: "assets", label: "Assets", icon: "monitor", homeHref: ROUTES.HR_ASSETS, groups: [{ label: "Assets", children: [{ label: "Asset Management", href: ROUTES.HR_ASSETS, icon: "monitor" }] }] },
+  { key: "reports", label: "Reports", icon: "bar-chart", homeHref: ROUTES.REPORTS_ERP, groups: [{ label: "Reports", children: [{ label: "Business Reports", href: ROUTES.REPORTS_ERP, icon: "bar-chart" }] }] },
+  { key: "workflow", label: "Workflow", icon: "git-branch", homeHref: ROUTES.APPROVALS, groups: [{ label: "Workflow", children: [{ label: "Approvals", href: ROUTES.APPROVALS, icon: "git-branch" }] }] },
+  { key: "administration", label: "Administration", icon: "settings", homeHref: ROUTES.DASHBOARD, groups: [{ label: "Administration", children: [{ label: "Users", href: ROUTES.PLATFORM_USERS, icon: "users" }] }] },
+];
+
+const COLLAPSED_STORAGE_KEY = "erp.shell.sidebar.collapsed";
+const isActivePath = (pathname: string, href: string) => pathname === href || pathname.startsWith(`${href}/`);
+
+const flattenModuleChildren = (module: NavModule) => module.groups.flatMap((group) => group.children);
+
+const inferPageIcon = (moduleKey: string, child: NavChild, moduleIcon: string) => {
+  if (child.icon) return child.icon;
+
+  const source = `${moduleKey} ${child.label} ${child.href}`.toLowerCase();
+  const keywordMap: Array<[string[], string]> = [
+    [["user", "employee", "team", "staff", "candidate"], "users"],
+    [["role", "permission", "access"], "shield"],
+    [["attendance", "shift", "timesheet", "time"], "clock"],
+    [["leave", "holiday"], "calendar-check"],
+    [["payroll", "payslip", "salary", "bonus", "arrear"], "wallet"],
+    [["invoice", "billing", "payment", "expense", "journal", "account"], "bank"],
+    [["warehouse", "stock"], "warehouse"],
+    [["item", "inventory", "catalog"], "box"],
+    [["vendor", "purchase", "procurement", "grn"], "shopping-cart"],
+    [["customer", "quotation", "sales", "return"], "shopping-bag"],
+    [["project", "task"], "folder"],
+    [["asset", "device"], "monitor"],
+    [["report", "analytics"], "bar-chart"],
+    [["ticket", "helpdesk", "support", "faq"], "ticket"],
+    [["notification", "alert"], "bell"],
+    [["template", "announcement", "message", "communication"], "megaphone"],
+    [["integration", "api", "webhook", "app"], "plug"],
+    [["security", "mfa", "session", "policy", "sso"], "shield"],
+    [["settings", "config"], "settings"],
+    [["document", "file"], "file-text"],
+  ];
+
+  for (const [keywords, icon] of keywordMap) {
+    if (keywords.some((keyword) => source.includes(keyword))) {
+      return icon;
+    }
+  }
+
+  return moduleIcon;
+};
 
 export function AppSidebar({
   role,
@@ -38,257 +99,225 @@ export function AppSidebar({
   onClose?: () => void;
 }) {
   const pathname = usePathname();
-  const theme = getPortalTheme(role);
-  const { hasPermission, isSuperAdmin } = usePermissions();
-  const {
-    navigation,
-    enabledModules,
-    navigationReady,
-    requiresSetup,
-    schemaError,
-    refresh,
-  } = useUiSchema();
-  const [search, setSearch] = useState("");
-  const deferredSearch = useDeferredValue(search);
+  const router = useRouter();
+  const { isSuperAdmin } = useAuth();
+  const { navigation, enabledModules } = useUiSchema();
+  const portal = useMemo(() => getPortalTheme(role), [role]);
 
-  const canManageWorkspaceSetup =
-    isSuperAdmin ||
-    hasPermission(["module:platform", "platform.*", "platform.access", "platform.view"]);
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(COLLAPSED_STORAGE_KEY) === "1";
+  });
+  const [expandedModule, setExpandedModule] = useState<string | null>(null);
 
-  const modules = useMemo(
-    () => buildWorkspaceModules(navigation.modules, enabledModules),
-    [enabledModules, navigation.modules]
+  const visibleModules = useMemo(() => {
+    const schemaModules = buildWorkspaceModules(navigation.modules, enabledModules)
+      .map<NavModule>((module) => ({
+        key: module.key,
+        label: module.label,
+        icon: module.icon || "grid",
+        description: module.description,
+        homeHref: module.homeHref,
+        groups: module.groups
+          .map((group) => ({
+            label: group.label,
+            children: group.items.map((item) => ({ label: item.name, href: item.path, icon: item.icon })),
+          }))
+          .filter((group) => group.children.length > 0),
+      }))
+      .filter((module) => flattenModuleChildren(module).length > 0);
+
+    const sourceModules = schemaModules.length > 0 ? schemaModules : FALLBACK_MODULES;
+    return sourceModules.filter((module) => (module.key === "administration" ? isSuperAdmin || role !== "employee" : true));
+  }, [enabledModules, isSuperAdmin, navigation.modules, role]);
+
+  const activeModule = useMemo(
+    () => visibleModules.find((module) => flattenModuleChildren(module).some((child) => isActivePath(pathname, child.href))) || null,
+    [pathname, visibleModules]
   );
 
-  const filteredModules = useMemo(
-    () => filterWorkspaceModules(modules, deferredSearch),
-    [deferredSearch, modules]
-  );
-
-  const activeModuleKey = useMemo(
-    () => findWorkspaceModuleByPath(modules, pathname)?.key,
-    [modules, pathname]
-  );
-
-  const emptyState = useMemo(() => {
-    if (schemaError) {
-      return (
-        <WorkspaceStatusPanel
-          compact
-          tone="critical"
-          title="Workspace navigation is unavailable"
-          description="The frontend could not load navigation or route rules from the backend APIs."
-          detail={schemaError}
-          onRetry={() => void refresh()}
-        />
-      );
+  useEffect(() => {
+    if (activeModule) {
+      setExpandedModule(activeModule.key);
     }
+  }, [activeModule]);
 
-    if (enabledModules.length === 0) {
-      return (
-        <WorkspaceStatusPanel
-          compact
-          tone="neutral"
-          title="No modules are enabled"
-          description="This tenant has no enabled workspace modules yet, so there is nothing to render in the sidebar."
-          detail="Enable modules in the backend tenant configuration before granting user access."
-        />
-      );
+  const persistCollapsed = (next: boolean) => {
+    setCollapsed(next);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(COLLAPSED_STORAGE_KEY, next ? "1" : "0");
     }
+  };
 
-    if (!navigationReady || requiresSetup) {
-      return canManageWorkspaceSetup ? (
-        <WorkspaceStatusPanel
-          compact
-          tone="warning"
-          title="Navigation setup is incomplete"
-          description="Backend navigation or route rules are missing the records needed to render this workspace."
-          detail={`Enabled modules: ${enabledModules.map((module) => module.displayName || module.name || module.key).join(", ")}`}
-          actionLabel="Review registry"
-          actionHref="/platform/module-mapping"
-          onRetry={() => void refresh()}
-        />
-      ) : (
-        <WorkspaceStatusPanel
-          compact
-          tone="warning"
-          title="Access is not configured"
-          description="Your account is authenticated, but backend navigation has not been configured for this tenant."
-          detail="Contact an administrator to seed menu configuration, route rules, and module visibility."
-        />
-      );
-    }
-
-    return (
-      <WorkspaceStatusPanel
-        compact
-        tone="warning"
-        title={search.trim() ? "No modules match this search" : "No accessible navigation items"}
-        description={
-          search.trim()
-            ? "Try a different module or page keyword."
-            : "The backend returned navigation, but none of the pages matched your current permissions."
-        }
-        detail={
-          search.trim()
-            ? "Search by module name, page name, or route path."
-            : "Review role-to-permission mapping and menu permissions for this user."
-        }
-        onRetry={() => void refresh()}
-      />
-    );
-  }, [canManageWorkspaceSetup, enabledModules, navigationReady, refresh, requiresSetup, schemaError, search]);
+  const openModuleHome = (module: NavModule) => {
+    const targetHref = module.homeHref || flattenModuleChildren(module)[0]?.href;
+    if (!targetHref) return;
+    router.push(targetHref);
+    onClose?.();
+  };
 
   const content = (
-    <div className="flex h-full flex-col">
-      <div className={cn("border-b px-5 py-4", theme.sidebarBorderClassName)}>
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className={cn("text-xs font-semibold uppercase tracking-[0.18em]", theme.sidebarTitleClassName)}>
-              UabIndia ERP
-            </p>
-            <h2 className="mt-1 text-lg font-semibold">{theme.label}</h2>
-            <p className="mt-1 text-xs leading-5 opacity-80">
-              Module hubs and child pages stay aligned with backend navigation.
-            </p>
+    <div className={cn("relative flex h-full flex-col overflow-hidden", portal.sidebarClassName)}>
+      {!onClose ? (
+        <div className="pointer-events-none absolute right-2 top-2 z-10 hidden lg:block">
+          <div className="pointer-events-auto">
+            <button
+              type="button"
+              onClick={() => persistCollapsed(!collapsed)}
+              className="inline-flex h-7.5 w-7.5 items-center justify-center rounded-lg border border-slate-200/85 bg-white/92 text-slate-500 shadow-[0_6px_14px_rgba(15,23,42,0.08)] transition hover:bg-slate-50 hover:text-slate-900"
+              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            </button>
           </div>
-          {onClose ? (
-            <Button variant="ghost" size="icon" className="lg:hidden" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
-          ) : null}
         </div>
+      ) : null}
+      {onClose ? (
+        <div className={cn("flex items-center justify-end border-b border-slate-200/70 px-2 py-1.5 lg:hidden", portal.sidebarBorderClassName)}>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-900"
+            aria-label="Close sidebar"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      ) : null}
 
-        <label className="mt-4 block">
-          <span className="sr-only">Search modules</span>
-          <span className="relative block">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-60" />
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search modules or pages"
+      <div className="flex-1 overflow-y-auto px-1.5 py-1.5">
+        <div className="space-y-1">
+          <Link
+            href={ROUTES.DASHBOARD}
+            onClick={onClose}
+            title="Dashboard"
+            className={cn(
+              "flex items-center gap-2 rounded-[0.95rem] px-2.25 py-2 transition",
+              isActivePath(pathname, ROUTES.DASHBOARD)
+                ? "bg-slate-950 text-white shadow-[0_14px_24px_rgba(15,23,42,0.18)]"
+                : "bg-white/78 text-slate-700 ring-1 ring-slate-200/80 hover:bg-white hover:shadow-sm"
+            )}
+          >
+            <span
               className={cn(
-                "w-full rounded-2xl border px-3 py-2.5 pl-10 text-sm outline-none transition",
-                theme.sidebarInactiveClassName,
-                theme.sidebarBorderClassName,
-                "bg-transparent"
+                "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[0.9rem] ring-1",
+                isActivePath(pathname, ROUTES.DASHBOARD)
+                  ? "bg-white/12 text-white ring-white/10"
+                  : "bg-slate-50 text-slate-500 ring-slate-200/80"
               )}
-            />
-          </span>
-        </label>
-      </div>
+            >
+              <ModuleIcon name="dashboard" className="h-3.5 w-3.5" />
+            </span>
+            {!collapsed ? <span className="truncate text-sm font-semibold">Dashboard</span> : null}
+          </Link>
 
-      <div className="flex-1 overflow-y-auto px-4 py-5">
-        {filteredModules.length === 0 ? (
-          emptyState
-        ) : (
-          <div className="space-y-4">
-            {filteredModules.map((module) => {
-              const moduleActive = module.key === activeModuleKey;
-              const moduleHref = module.homeHref || module.groups[0]?.items[0]?.path;
+          {visibleModules.map((module) => {
+            const active = module.key === activeModule?.key;
+            const expanded = !collapsed && expandedModule === module.key;
 
-              return (
-                <section
-                  key={module.key}
+            return (
+              <section key={module.key} className="space-y-1">
+                <div
                   className={cn(
-                    "rounded-3xl border p-3 transition",
-                    moduleActive
-                      ? cn(theme.sidebarActiveClassName, theme.sidebarBorderClassName)
-                      : cn("border-transparent", theme.sidebarInactiveClassName)
+                    "flex items-stretch gap-1 rounded-[0.95rem] p-1 transition",
+                    active
+                      ? "bg-slate-950 text-white shadow-[0_14px_24px_rgba(15,23,42,0.18)]"
+                      : "bg-white/78 text-slate-700 ring-1 ring-slate-200/80 hover:bg-white hover:shadow-sm"
                   )}
                 >
-                  <div className="flex items-start gap-3">
+                  <button
+                    type="button"
+                    title={module.label}
+                    onClick={() => openModuleHome(module)}
+                    className="flex min-w-0 flex-1 items-center gap-2 rounded-[0.82rem] px-1.5 py-1 text-left"
+                  >
                     <span
                       className={cn(
-                        "mt-0.5 inline-flex h-11 w-11 items-center justify-center rounded-2xl",
-                        moduleActive ? theme.sidebarIconActiveClassName : theme.sidebarIconInactiveClassName
+                        "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[0.9rem] ring-1",
+                        active ? "bg-white/12 text-white ring-white/10" : "bg-slate-50 text-slate-500 ring-slate-200/80"
                       )}
                     >
-                      <ModuleIcon name={module.icon} className="h-5 w-5" />
+                      <ModuleIcon name={module.icon} className="h-3.5 w-3.5" />
                     </span>
+                    {!collapsed ? (
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[0.88rem] font-semibold">{module.label}</span>
+                        {module.description ? (
+                          <span className={cn("block truncate text-[10px]", active ? "text-slate-200/80" : "text-slate-500")}>
+                            {module.description}
+                          </span>
+                        ) : null}
+                      </span>
+                    ) : null}
+                  </button>
 
-                    <div className="min-w-0 flex-1">
-                      {moduleHref ? (
-                        <Link
-                          href={moduleHref}
-                          onClick={onClose}
-                          className="block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-semibold">{module.label}</p>
-                              <p className="mt-1 line-clamp-2 text-xs leading-5 opacity-75">
-                                {module.description || `${module.pageCount} workspace pages`}
-                              </p>
-                            </div>
-                            <span className="rounded-full border border-current/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]">
-                              {module.pageCount} pages
-                            </span>
-                          </div>
-                        </Link>
-                      ) : (
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold">{module.label}</p>
-                            <p className="mt-1 line-clamp-2 text-xs leading-5 opacity-75">
-                              {module.description || `${module.pageCount} workspace pages`}
+                  {!collapsed ? (
+                    <button
+                      type="button"
+                      aria-label={expanded ? `Collapse ${module.label}` : `Expand ${module.label}`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setExpandedModule((current) => (current === module.key ? null : module.key));
+                      }}
+                      className={cn(
+                        "inline-flex w-8 shrink-0 items-center justify-center rounded-[0.82rem] transition",
+                        active ? "text-white/80 hover:bg-white/12 hover:text-white" : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                      )}
+                    >
+                      <ChevronDown className={cn("h-4 w-4 shrink-0 transition", expanded ? "rotate-180" : "rotate-0")} />
+                    </button>
+                  ) : null}
+                </div>
+
+                {expanded && !collapsed ? (
+                  <div className="rounded-[0.92rem] border border-slate-200/80 bg-white/90 p-1.5 shadow-[0_6px_16px_rgba(15,23,42,0.04)]">
+                    <div className="mb-1 px-2 pt-1">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">Submodules</p>
+                    </div>
+                    <div className="space-y-2">
+                      {module.groups.map((group) => (
+                        <section key={`${module.key}-${group.label}`} className="space-y-1">
+                          <div className="px-2">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                              {group.label}
                             </p>
                           </div>
-                          <span className="rounded-full border border-current/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]">
-                            {module.pageCount} pages
-                          </span>
-                        </div>
-                      )}
+                          <div className="space-y-1">
+                            {group.children.map((child) => {
+                              const childActive = isActivePath(pathname, child.href);
 
-                      <div className="mt-3 space-y-3">
-                        {module.groups.map((group) => (
-                          <div key={`${module.key}-${group.label}`}>
-                            {module.groups.length > 1 ? (
-                              <p className={cn("px-1 text-[11px] font-semibold uppercase tracking-[0.18em]", theme.sidebarSectionClassName)}>
-                                {group.label}
-                              </p>
-                            ) : null}
-                            <div className="mt-2 space-y-1.5">
-                              {group.items.map((item) => {
-                                const active = isActivePath(pathname, item.path);
-                                return (
-                                  <Link
-                                    key={item.path}
-                                    href={item.path}
-                                    onClick={onClose}
+                              return (
+                                <Link
+                                  key={child.href}
+                                  href={child.href}
+                                  onClick={onClose}
+                                  className={cn(
+                                    "flex items-center gap-2 rounded-[0.85rem] px-2 py-1.5 text-[0.82rem] transition",
+                                    childActive ? "bg-sky-50 text-sky-900" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                                  )}
+                                >
+                                  <span
                                     className={cn(
-                                      "flex items-start gap-3 rounded-2xl px-3 py-2.5 transition",
-                                      active ? theme.sidebarActiveClassName : theme.sidebarInactiveClassName
+                                      "inline-flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-lg ring-1",
+                                      childActive ? "bg-sky-100 text-sky-700 ring-sky-100" : "bg-white text-slate-500 ring-slate-200/80"
                                     )}
                                   >
-                                    <span
-                                      className={cn(
-                                        "mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-2xl",
-                                        active ? theme.sidebarIconActiveClassName : theme.sidebarIconInactiveClassName
-                                      )}
-                                    >
-                                      <ModuleIcon name={item.icon || module.icon} className="h-4 w-4" />
-                                    </span>
-                                    <span className="min-w-0 flex-1">
-                                      <span className="block text-sm font-semibold">{item.name}</span>
-                                      <span className="mt-0.5 block truncate text-[11px] uppercase tracking-[0.14em] opacity-65">
-                                        {formatPathMeta(item.path)}
-                                      </span>
-                                    </span>
-                                  </Link>
-                                );
-                              })}
-                            </div>
+                                    <ModuleIcon name={inferPageIcon(module.key, child, module.icon)} className="h-2.5 w-2.5" />
+                                  </span>
+                                  <span className="truncate">{child.label}</span>
+                                </Link>
+                              );
+                            })}
                           </div>
-                        ))}
-                      </div>
+                        </section>
+                      ))}
                     </div>
                   </div>
-                </section>
-              );
-            })}
-          </div>
-        )}
+                ) : null}
+              </section>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -297,22 +326,18 @@ export function AppSidebar({
     <>
       <aside
         className={cn(
-          "hidden h-screen w-[340px] shrink-0 border-r lg:block",
-          theme.sidebarClassName,
-          theme.sidebarBorderClassName
+          "hidden shrink-0 border-r border-slate-200/70 bg-white/72 shadow-[0_14px_28px_rgba(15,23,42,0.04)] backdrop-blur-xl lg:sticky lg:top-[var(--erp-topbar-height)] lg:block lg:h-[calc(100dvh-var(--erp-topbar-height))]",
+          collapsed ? "w-[4.25rem]" : "w-[clamp(12.75rem,14vw,14.5rem)]",
+          portal.sidebarClassName
         )}
       >
         {content}
       </aside>
 
       {mobileOpen ? (
-        <div className="fixed inset-0 z-50 bg-slate-950/40 lg:hidden" onClick={onClose}>
+        <div className="fixed inset-x-0 bottom-0 top-[var(--erp-topbar-height)] z-50 bg-slate-950/35 lg:hidden" onClick={onClose}>
           <aside
-            className={cn(
-              "h-full w-[90vw] max-w-[340px] border-r shadow-2xl",
-              theme.sidebarClassName,
-              theme.sidebarBorderClassName
-            )}
+            className="h-full w-[86vw] max-w-[20rem] border-r border-slate-200 bg-white shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             {content}

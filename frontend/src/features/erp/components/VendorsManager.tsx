@@ -154,7 +154,7 @@ export default function VendorsManager() {
 
   return (
     <StandardPageLayout title="Vendors" subtitle="Manage supplier and vendor records">
-      <div className="space-y-4 p-4">
+      <div className="space-y-4">
         {confirmDialog}
         {error && (
           <div className="erp-alert-error">

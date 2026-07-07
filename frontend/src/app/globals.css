@@ -2,16 +2,17 @@
 
 /* UABIndia ERP professional light theme */
 :root {
-  --background: #f2f4f6;
+  --erp-topbar-height: 6rem;
+  --background: #eef2f7;
   --foreground: #0f172a;
   --font-space-grotesk: "Aptos Display", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
   --font-jetbrains-mono: "Cascadia Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 
-  --erp-canvas: #f2f4f6;
-  --erp-surface: #ffffff;
-  --erp-surface-elevated: #ffffff;
-  --erp-surface-muted: #f1f5f9;
-  --erp-surface-header: #f8fafc;
+  --erp-canvas: #eef2f7;
+  --erp-surface: rgba(255, 255, 255, 0.94);
+  --erp-surface-elevated: rgba(255, 255, 255, 0.98);
+  --erp-surface-muted: #f4f7fb;
+  --erp-surface-header: rgba(248, 250, 252, 0.9);
 
   --erp-ink: #0f172a;
   --erp-ink-secondary: #334155;
@@ -19,13 +20,13 @@
   --erp-muted-soft: #94a3b8;
 
   /* Primary actions: corporate blue */
-  --erp-primary: #0b4f8c;
-  --erp-primary-hover: #083a66;
-  --erp-primary-muted: rgba(11, 79, 140, 0.1);
+  --erp-primary: #0f4a7d;
+  --erp-primary-hover: #08315a;
+  --erp-primary-muted: rgba(15, 74, 125, 0.1);
 
-  --erp-accent: #0369a1;
-  --erp-accent-soft: rgba(3, 105, 161, 0.12);
-  --erp-info: #0f5f9c;
+  --erp-accent: #0b6f8f;
+  --erp-accent-soft: rgba(11, 111, 143, 0.12);
+  --erp-info: #155e9a;
   --erp-info-bg: #eff6ff;
   --erp-info-border: #bfdbfe;
 
@@ -40,15 +41,15 @@
   --erp-border-strong: #cbd5e1;
   --erp-ring: rgba(11, 79, 140, 0.35);
 
-  --erp-sidebar-bg: #f4f7fb;
-  --erp-sidebar-bg-end: #eef3f8;
-  --erp-sidebar-surface: rgba(255, 255, 255, 0.68);
-  --erp-sidebar-surface-strong: rgba(255, 255, 255, 0.9);
+  --erp-sidebar-bg: #f5f8fc;
+  --erp-sidebar-bg-end: #edf3f8;
+  --erp-sidebar-surface: rgba(255, 255, 255, 0.72);
+  --erp-sidebar-surface-strong: rgba(255, 255, 255, 0.96);
   --erp-sidebar-border: rgba(203, 213, 225, 0.9);
   --erp-sidebar-text: #0f172a;
-  --erp-sidebar-text-muted: #64748b;
+  --erp-sidebar-text-muted: #5f7087;
   --erp-sidebar-accent: #0f5f9c;
-  --erp-sidebar-hover: rgba(255, 255, 255, 0.82);
+  --erp-sidebar-hover: rgba(255, 255, 255, 0.92);
   --erp-sidebar-icon-bg: rgba(148, 163, 184, 0.12);
   --erp-sidebar-icon-bg-active: rgba(14, 165, 233, 0.12);
 
@@ -58,18 +59,18 @@
 
   --sidebar-border: rgba(15, 23, 42, 0.12);
 
-  --public-brand-strong: #143a68;
-  --public-brand: #0b4f8c;
-  --public-brand-soft: #0f766e;
+  --public-brand-strong: #123b6a;
+  --public-brand: #0f4a7d;
+  --public-brand-soft: #0b7b73;
   --public-brand-strong-rgb: 20 58 104;
   --public-brand-rgb: 11 79 140;
   --public-brand-soft-rgb: 15 118 110;
   --public-sky-rgb: 37 99 235;
   --public-indigo-rgb: 99 102 241;
-  --public-surface-soft: #f7f8fb;
-  --public-canvas-top: #fbfdff;
-  --public-canvas-mid: #f4f7fb;
-  --public-canvas-end: #edf3f8;
+  --public-surface-soft: #f7f9fc;
+  --public-canvas-top: #fcfdff;
+  --public-canvas-mid: #f4f8fc;
+  --public-canvas-end: #ebf2f8;
   --public-panel-border: rgba(203, 213, 225, 0.76);
   --public-panel-shadow: 0 26px 68px rgba(15, 23, 42, 0.08);
   --public-border-strong: rgba(11, 79, 140, 0.28);
@@ -90,26 +91,19 @@
 body {
   background-color: var(--erp-canvas);
   background-image:
-    radial-gradient(ellipse 38% 28% at 14% 6%, rgba(210, 162, 86, 0.12), transparent 70%),
-    radial-gradient(ellipse 42% 30% at 86% 10%, rgba(15, 97, 120, 0.1), transparent 72%),
-    linear-gradient(180deg, #fbf7f1 0%, #f7fafb 28%, var(--erp-canvas) 58%, #ebf1f3 100%);
+    radial-gradient(ellipse 34% 26% at 12% 8%, rgba(15, 74, 125, 0.12), transparent 68%),
+    radial-gradient(ellipse 42% 30% at 88% 10%, rgba(11, 123, 115, 0.1), transparent 72%),
+    radial-gradient(ellipse 34% 28% at 70% 78%, rgba(37, 99, 235, 0.06), transparent 72%),
+    linear-gradient(180deg, #fbfdff 0%, #f4f8fc 32%, var(--erp-canvas) 64%, #e8eef4 100%);
   color: var(--foreground);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-.dark body {
-  background-color: #020617;
-  background-image:
-    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(14, 165, 233, 0.18), transparent),
-    linear-gradient(180deg, #020617 0%, #0f172a 55%, #020617 100%);
-  color: #e2e8f0;
-}
-
 @layer components {
   /* Page chrome */
   .erp-page {
-    @apply space-y-5;
+    @apply min-w-0 space-y-5;
   }
 
   .erp-page-header {
@@ -121,20 +115,20 @@ body {
   }
 
   .erp-page-title {
-    @apply text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl;
+    @apply text-xl font-semibold tracking-tight text-slate-900 sm:text-[1.85rem];
   }
 
   .erp-page-subtitle {
-    @apply mt-1 max-w-3xl text-sm leading-relaxed text-slate-600;
+    @apply mt-1 max-w-3xl text-sm leading-6 text-slate-600;
   }
 
   /* Panels & cards */
   .erp-panel {
-    @apply rounded-xl border border-slate-200/90 bg-white shadow-(--erp-shadow-sm);
+    @apply overflow-hidden rounded-[1.3rem] border border-slate-200/85 bg-linear-to-b from-white to-slate-50/70 shadow-[0_18px_42px_rgba(15,23,42,0.08)];
   }
 
   .erp-panel-header {
-    @apply flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4;
+    @apply flex flex-wrap items-center justify-between gap-3 border-b border-slate-100/90 bg-white/75 px-5 py-4;
   }
 
   .erp-panel-title {
@@ -142,7 +136,7 @@ body {
   }
 
   .erp-panel-body {
-    @apply p-4 sm:p-5;
+    @apply p-4;
   }
 
   /* Tables */
@@ -172,7 +166,7 @@ body {
 
   /* Form controls */
   .erp-input {
-    @apply w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-600/20;
+    @apply w-full rounded-xl border border-slate-200/90 bg-white/95 px-3 py-2 text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-600/20;
   }
 
   .erp-label {
@@ -180,7 +174,7 @@ body {
   }
 
   .erp-select {
-    @apply w-full cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-600/20;
+    @apply w-full cursor-pointer rounded-xl border border-slate-200/90 bg-white/95 px-3 py-2 text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-600/20;
   }
 
   /* Alerts (no @apply chaining: Tailwind v4 only resolves utilities here) */
@@ -197,7 +191,7 @@ body {
   }
 
   .erp-alert-info {
-    @apply rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900;
+    @apply rounded-xl border border-sky-200/85 bg-linear-to-r from-sky-50/90 to-cyan-50/70 px-4 py-3 text-sm text-sky-900;
   }
 
   /* Tabs (page-level) */
@@ -215,11 +209,11 @@ body {
 
   /* Empty / loading */
   .erp-empty {
-    @apply relative flex min-h-44 w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-linear-to-b from-slate-50 to-white px-5 py-8 text-center text-sm text-slate-500;
+    @apply relative flex min-h-44 w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-linear-to-b from-slate-50/95 to-white px-5 py-8 text-center text-sm text-slate-500 shadow-[0_12px_30px_rgba(15,23,42,0.06)];
   }
 
   .erp-loading {
-    @apply relative flex min-h-40 w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-linear-to-b from-slate-50 to-white px-5 py-8 text-center text-sm text-slate-500;
+    @apply relative flex min-h-40 w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-linear-to-b from-slate-50/95 to-white px-5 py-8 text-center text-sm text-slate-500 shadow-[0_12px_30px_rgba(15,23,42,0.06)];
   }
 
   /* Animations */
@@ -673,12 +667,13 @@ body {
 }
 
 .erp-action-btn-primary {
-  background: var(--erp-primary);
+  background: linear-gradient(135deg, #0f4a7d, #0b7b73);
   color: #ffffff;
+  box-shadow: 0 12px 30px rgba(15, 74, 125, 0.22);
 }
 
 .erp-action-btn-primary:hover {
-  background: var(--erp-primary-hover);
+  background: linear-gradient(135deg, #0b3f6b, #0a665f);
   color: #ffffff;
 }
 
@@ -850,9 +845,9 @@ body {
   overflow: hidden;
   border: 1px solid rgba(226, 232, 240, 0.7);
   border-radius: 1rem;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(248, 250, 252, 0.94));
-  padding: 1.25rem;
-  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(248, 250, 252, 0.96));
+  padding: 1.1rem 1.2rem;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.07);
 }
 
 .erp-kpi-card::before {
@@ -1164,7 +1159,6 @@ body {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.45rem;
-  margin-bottom: 1rem;
 }
 
 .erp-breadcrumb-sep {
@@ -1206,10 +1200,12 @@ body {
   position: relative;
   overflow: visible;
   isolation: isolate;
-  border-bottom: 1px solid rgba(226, 232, 240, 0.5);
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.72);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.92)),
+    rgba(255, 255, 255, 0.96);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.05);
+  backdrop-filter: blur(18px);
 }
 
 .erp-shell-kicker {
@@ -1627,10 +1623,10 @@ body {
   width: auto;
   height: 100%;
   max-width: min(26rem, 100vw);
-  background: #ffffff;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 249, 253, 0.98));
   color: var(--erp-sidebar-text);
-  border-right: 1px solid rgba(226, 232, 240, 0.5);
-  box-shadow: none;
+  border-right: 1px solid rgba(226, 232, 240, 0.7);
+  box-shadow: 18px 0 48px rgba(15, 23, 42, 0.05);
 }
 
 .erp-shell-sidebar-panel {
@@ -1656,8 +1652,8 @@ body {
 }
 
 .erp-shell-sidebar-header {
-  background: #ffffff;
-  border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92));
+  border-bottom: 1px solid rgba(226, 232, 240, 0.72);
 }
 
 .erp-shell-sidebar-brand-mark {
@@ -1893,15 +1889,160 @@ body {
 }
 
 .erp-shell-main {
-  @apply flex-1 min-h-0 min-w-0 overflow-y-auto border-l border-slate-200/70 bg-(--erp-canvas);
+  @apply min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-(--erp-canvas);
+  min-width: 0;
+  position: relative;
 }
 
 .erp-shell-content-wrap {
-  @apply mx-auto max-w-400 px-4 py-5 sm:px-6 sm:py-6;
+  @apply w-full py-2 sm:py-2.5;
+  max-width: 1600px;
+  margin-inline: auto;
+  padding-inline: clamp(0.45rem, 0.8vw, 0.8rem);
+  position: relative;
+}
+
+.erp-shell-content-wrap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 1.5rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(248, 250, 252, 0.42)),
+    radial-gradient(circle at top right, rgba(14, 116, 144, 0.06), transparent 24%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.erp-shell-content-wrap > * {
+  position: relative;
+  z-index: 1;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.8) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(148, 163, 184, 0.95), rgba(100, 116, 139, 0.95));
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.erp-page {
+  min-width: 0;
+}
+
+.erp-page [data-erp-card="true"] {
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
+}
+
+.erp-page :where(.grid) {
+  min-width: 0;
+}
+
+html[data-screen-fit="compact"] {
+  --erp-topbar-height: 4.65rem;
+}
+
+html[data-screen-fit="compact"] .erp-shell-content-wrap {
+  max-width: 1440px;
+  padding-inline: 0.5rem;
+}
+
+html[data-screen-fit="compact"] .erp-page {
+  gap: 0.875rem;
+}
+
+html[data-screen-fit="compact"] .erp-page [data-erp-card="true"] {
+  border-radius: 0.9rem;
+}
+
+html[data-screen-fit="compact"] .erp-content-surface {
+  border-radius: 0.9rem;
+  padding: 0.875rem;
+}
+
+html[data-screen-fit="compact"] .erp-page h1 {
+  font-size: clamp(1.7rem, 2.1vw, 2rem);
+}
+
+html[data-screen-fit="compact"] .erp-page h2 {
+  font-size: clamp(1.15rem, 1.5vw, 1.35rem);
+}
+
+html[data-screen-fit="compact"] .erp-page .text-5xl,
+html[data-screen-fit="compact"] .erp-page .text-4xl {
+  font-size: 2rem !important;
+  line-height: 1.05;
+}
+
+html[data-screen-fit="compact"] .erp-page .text-3xl {
+  font-size: 1.6rem !important;
+  line-height: 1.1;
+}
+
+html[data-screen-fit="compact"] .erp-page .grid.md\:grid-cols-2,
+html[data-screen-fit="compact"] .erp-page .grid.md\:grid-cols-3,
+html[data-screen-fit="compact"] .erp-page .grid.md\:grid-cols-4 {
+  gap: 0.75rem;
+}
+
+html[data-screen-fit="compact"] .erp-page .xl\:grid-cols-\[320px\,minmax\(0\,1fr\)\] {
+  grid-template-columns: 280px minmax(0, 1fr);
+}
+
+html[data-screen-fit="compact"] .public-site-shell .public-page-main {
+  font-size: 0.97rem;
+}
+
+html[data-screen-fit="compact"] .public-site-shell .public-hero-grid {
+  gap: 1.25rem;
+}
+
+html[data-screen-fit="compact"] .public-site-shell .public-hero-section h1 {
+  font-size: clamp(2.3rem, 4vw, 4.15rem);
+}
+
+html[data-screen-fit="compact"] .public-site-shell h2 {
+  font-size: clamp(1.8rem, 2.5vw, 2.85rem);
+}
+
+html[data-screen-fit="compact"] .public-site-shell .public-gradient-brand,
+html[data-screen-fit="compact"] .public-site-shell .public-page-main .rounded-\[1\.8rem\],
+html[data-screen-fit="compact"] .public-site-shell .public-page-main .rounded-\[2rem\] {
+  border-radius: 1.25rem;
+}
+
+html[data-screen-fit="cozy"] .erp-shell-content-wrap {
+  max-width: 1520px;
+}
+
+@media (max-width: 1023px) {
+  :root {
+    --erp-topbar-height: 5.5rem;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1600px) {
+  :root {
+    --erp-topbar-height: 4.9rem;
+  }
 }
 
 .erp-content-surface {
-  @apply mt-4 rounded-2xl border border-slate-200/80 bg-white/80 p-4 shadow-(--erp-shadow-sm) backdrop-blur-sm sm:p-5;
+  @apply rounded-[1rem] border border-slate-200/80 bg-white/92 p-3.5 shadow-(--erp-shadow-sm) backdrop-blur-sm;
 }
 
 .erp-content-surface :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]), select, textarea) {
@@ -2375,6 +2516,37 @@ body {
 
 .public-float-slow {
   animation: public-float-slow 8s ease-in-out 0.35s infinite;
+}
+
+.public-page-main > section {
+  padding-bottom: clamp(3rem, 4.5vw, 4rem);
+}
+
+.public-page-main > section[class*="py-16"],
+.public-page-main > section[class*="py-20"] {
+  padding-top: clamp(2.75rem, 4vw, 3.75rem);
+  padding-bottom: clamp(3rem, 4.5vw, 4rem);
+}
+
+.public-page-main > .public-hero-section {
+  padding-top: clamp(1.5rem, 3vw, 2.5rem);
+  padding-bottom: clamp(2.75rem, 4vw, 3.75rem);
+}
+
+.public-hero-grid {
+  align-items: start;
+}
+
+.public-hero-grid > :first-child {
+  padding-top: clamp(0.25rem, 1vw, 0.75rem);
+}
+
+@media (max-height: 860px) {
+  .public-hero-section .public-float,
+  .public-hero-section .public-float-delayed,
+  .public-hero-section .public-float-slow {
+    animation: none;
+  }
 }
 
 @keyframes erp-spin {

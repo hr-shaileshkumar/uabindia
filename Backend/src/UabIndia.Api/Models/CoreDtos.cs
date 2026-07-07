@@ -141,6 +141,9 @@ namespace UabIndia.Api.Models
         [System.ComponentModel.DataAnnotations.StringLength(200)]
         public string? SmtpUsername { get; set; }
 
+        [System.ComponentModel.DataAnnotations.StringLength(256)]
+        public string? SmtpPassword { get; set; }
+
         [System.ComponentModel.DataAnnotations.EmailAddress]
         [System.ComponentModel.DataAnnotations.StringLength(200)]
         public string? SmtpFromEmail { get; set; }
@@ -224,6 +227,9 @@ namespace UabIndia.Api.Models
 
         [System.ComponentModel.DataAnnotations.StringLength(200)]
         public string? SmtpUsername { get; set; }
+
+        [System.ComponentModel.DataAnnotations.StringLength(256)]
+        public string? SmtpPassword { get; set; }
 
         [System.ComponentModel.DataAnnotations.EmailAddress]
         [System.ComponentModel.DataAnnotations.StringLength(200)]

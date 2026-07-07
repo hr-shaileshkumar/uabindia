@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { usePermissions } from "@/context/PermissionContext";
 import { useUiSchema } from "@/context/UiSchemaContext";
 import { getSchemaRouteRule } from "@/lib/erp/route-access";
+import { canonicalizeProtectedPath } from "@/lib/erp/route-config";
 
 const PLATFORM_SETUP_ROUTE = "/platform/module-mapping";
 
@@ -63,7 +64,7 @@ export default function ContextSelectionPage() {
           .sort((left, right) => left.sortOrder - right.sortOrder || left.name.localeCompare(right.name));
 
         for (const item of items) {
-          return item.path;
+          return canonicalizeProtectedPath(item.path);
         }
       }
     }
@@ -75,7 +76,7 @@ export default function ContextSelectionPage() {
     if (permissionsLoading || schemaLoading) return;
 
     if (nextPath && routeRulesReady && routeHasAccess(nextPath)) {
-      router.replace(nextPath);
+      router.replace(canonicalizeProtectedPath(nextPath));
       return;
     }
 
@@ -103,8 +104,17 @@ export default function ContextSelectionPage() {
   ]);
 
   return (
-    <div className="flex min-h-[50vh] items-center justify-center px-6 py-10 text-sm font-medium text-slate-500">
-      Redirecting to your workspace...
+    <div className="flex min-h-[calc(100dvh-var(--erp-topbar-height)-4rem)] items-center justify-center">
+      <div className="max-w-xl rounded-[1.75rem] border border-slate-200/80 bg-white/92 px-8 py-10 text-center shadow-[0_24px_60px_rgba(15,23,42,0.08)] backdrop-blur-sm">
+        <div className="mx-auto mb-5 h-12 w-12 rounded-2xl bg-[linear-gradient(135deg,rgba(15,74,125,0.14),rgba(11,123,115,0.14))] p-3">
+          <div className="h-full w-full animate-pulse rounded-xl bg-[linear-gradient(135deg,#0f4a7d,#0b7b73)]" />
+        </div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">Workspace Routing</p>
+        <h1 className="mt-3 text-2xl font-semibold text-slate-950">Preparing your workspace</h1>
+        <p className="mt-3 text-sm leading-6 text-slate-500">
+          Loading the first accessible module, company context, and route permissions for this account.
+        </p>
+      </div>
     </div>
   );
 }

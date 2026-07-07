@@ -132,7 +132,12 @@ let optionalPublicReadRetryAt = 0;
 const shouldSilenceOptionalPublicRead = () => Date.now() < optionalPublicReadRetryAt;
 
 const isTransientConnectionError = (error: unknown) => {
-  if (!axios.isAxiosError(error) || error.response) return false;
+  if (!axios.isAxiosError(error)) return false;
+  const status = error.response?.status ?? 0;
+  if (status >= 500 && status <= 504) {
+    return true;
+  }
+  if (error.response) return false;
   const code = (error.code || "").toUpperCase();
   return code === "ERR_NETWORK" || code === "ECONNREFUSED" || code === "ECONNABORTED";
 };

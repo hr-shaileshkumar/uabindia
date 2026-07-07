@@ -1,13 +1,13 @@
 @echo off
-REM ERP Backend Build and Run Script
+REM ERP Backend Dev Run Script
+REM Uses dotnet watch so local startup stays incremental.
 
 echo.
 echo ========================================
-echo ERP Backend - Build and Run
+echo ERP Backend - Dev Run
 echo ========================================
 echo.
 
-REM Check if dotnet is installed
 where dotnet >nul 2>nul
 if errorlevel 1 (
     echo ERROR: dotnet CLI is not installed or not in PATH
@@ -19,20 +19,22 @@ echo Checking .NET version...
 dotnet --version
 
 echo.
-echo Step 1: Restoring dependencies...
-dotnet restore
+echo Checking for an existing backend process...
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$p = Get-Process UabIndia.Api -ErrorAction SilentlyContinue; " ^
+  "if ($p) { " ^
+  "  Write-Host 'Stopping existing UabIndia.Api process...' -ForegroundColor Yellow; " ^
+  "  $p | Stop-Process -Force; " ^
+  "  Start-Sleep -Seconds 2; " ^
+  "} else { " ^
+  "  Write-Host 'No existing backend process found.'; " ^
+  "}"
 
 echo.
-echo Step 2: Building solution...
-dotnet build UabIndia.sln -c Debug
-
-echo.
-echo Step 3: Starting Backend API...
-echo.
+echo Starting backend API in watch mode...
 echo API will be available at:
 echo   - http://localhost:5000
 echo   - https://localhost:5001
 echo.
 
-cd Backend\src\UabIndia.Api
-dotnet run --no-build
+dotnet watch run --project Backend\src\UabIndia.Api\UabIndia.Api.csproj

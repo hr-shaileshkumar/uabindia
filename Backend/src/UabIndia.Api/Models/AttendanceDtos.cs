@@ -22,8 +22,13 @@ namespace UabIndia.Api.Models
     {
         public Guid Id { get; set; }
         public Guid EmployeeId { get; set; }
+        public string? EmployeeCode { get; set; }
+        public string? EmployeeName { get; set; }
         public Guid? ProjectId { get; set; }
         public string PunchType { get; set; } = "IN";
         public DateTime Timestamp { get; set; }
+        public bool GeoValidated { get; set; }
+        public string? DeviceId { get; set; }
+        public string? Source { get; set; }
     }
 }

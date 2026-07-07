@@ -4,8 +4,10 @@ import type { ReactNode } from "react";
 import { PublicMetricGrid } from "@/components/public/PublicContentBlocks";
 import PublicPageIntro from "@/components/public/PublicPageIntro";
 import {
+  publicPageSectionClassName,
   publicPanelClassName,
   publicSectionClassName,
+  publicSectionContentGapClassName,
 } from "@/components/public/publicStyles";
 
 export type PublicHeroMetric = {
@@ -38,19 +40,19 @@ export default function PublicHeroSection({
   const hasMetrics = Array.isArray(metrics) && metrics.length > 0;
 
   return (
-    <section className="py-16 sm:py-20">
+    <section className={publicPageSectionClassName}>
       <div
-        className={`${publicSectionClassName} grid gap-8 ${
-          hasMetrics ? "lg:grid-cols-[1.05fr_0.95fr] lg:items-center" : ""
+        className={`${publicSectionClassName} grid gap-6 ${
+          hasMetrics ? "lg:grid-cols-[1.05fr_0.95fr] lg:items-start" : ""
         }`}
       >
         <div>
           <PublicPageIntro eyebrow={eyebrow} title={title} subtitle={subtitle} />
 
-          {actions ? <div className="mt-6 flex flex-wrap gap-3">{actions}</div> : null}
+          {actions ? <div className="mt-5 flex flex-wrap gap-3">{actions}</div> : null}
 
           {badges && badges.length > 0 ? (
-            <div className="mt-6 flex flex-wrap gap-2">
+            <div className={`${publicSectionContentGapClassName} flex flex-wrap gap-2`}>
               {badges.map((item) => (
                 <span
                   key={item}
@@ -64,7 +66,7 @@ export default function PublicHeroSection({
         </div>
 
         {hasMetrics ? (
-          <div className={`${publicPanelClassName} p-6 sm:p-7`}>
+          <div className={`${publicPanelClassName} self-start p-5 sm:p-6`}>
             {panelLabel ? (
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--erp-primary)]">
                 {panelLabel}

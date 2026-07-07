@@ -220,21 +220,17 @@ export default function SalesOrdersPage() {
         </div>
       </div>
 
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-          <p className="text-red-700 font-medium">{error}</p>
-        </div>
-      )}
+      {error ? <div className="erp-alert-error">{error}</div> : null}
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="list">Sales Order List</TabsTrigger>
-          <TabsTrigger value="form">{editingId ? "Edit Order" : "New Order"}</TabsTrigger>
+        <TabsList className="erp-tabs-list">
+          <TabsTrigger value="list" className="erp-tab-trigger data-[state=active]:erp-tab-trigger-active">Sales Order List</TabsTrigger>
+          <TabsTrigger value="form" className="erp-tab-trigger data-[state=active]:erp-tab-trigger-active">{editingId ? "Edit Order" : "New Order"}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="list">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+          <Card className="erp-panel">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 bg-white/75">
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <span className="erp-inline-icon" aria-hidden>
@@ -252,7 +248,7 @@ export default function SalesOrdersPage() {
               ) : orders.length === 0 ? (
                 <div className="erp-empty">No sales orders found.</div>
               ) : (
-                <div className="erp-table-wrap border-0 shadow-none">
+                <div className="erp-table-wrap border-0 bg-white/80 shadow-none">
                   <table className="erp-table">
                     <thead className="erp-thead">
                       <tr>
@@ -300,8 +296,8 @@ export default function SalesOrdersPage() {
         </TabsContent>
 
         <TabsContent value="form">
-          <Card>
-            <CardHeader>
+          <Card className="erp-panel">
+            <CardHeader className="border-b border-slate-100 bg-white/75">
               <CardTitle className="flex items-center gap-2">
                 <span className="erp-inline-icon" aria-hidden>
                   <ModuleIcon name="file" className="h-4 w-4" />

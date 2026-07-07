@@ -25,76 +25,72 @@ export function resolvePortalId(role: ERPRole): PortalId {
   return getGuardScope(role);
 }
 
+const lightShellBase = {
+  shellClassName: "bg-[var(--erp-canvas)] text-slate-950",
+  sidebarClassName: "bg-white/92 text-slate-900",
+  sidebarBorderClassName: "border-slate-200/80",
+  sidebarSectionClassName: "text-slate-400",
+  sidebarInactiveClassName: "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
+  sidebarIconInactiveClassName: "bg-slate-100 text-slate-500",
+  topbarClassName: "border-slate-200/80 bg-white/90 text-slate-950",
+} satisfies Omit<
+  PortalTheme,
+  | "id"
+  | "label"
+  | "subtitle"
+  | "sidebarTitleClassName"
+  | "sidebarActiveClassName"
+  | "sidebarIconActiveClassName"
+  | "accentClassName"
+  | "badgeClassName"
+>;
+
 const ownerTheme: PortalTheme = {
+  ...lightShellBase,
   id: "platform_owner",
   label: "Software Owner Console",
   subtitle: "Platform governance, tenants, billing, and global health",
-  shellClassName: "bg-[#0b1220] text-slate-100",
-  sidebarClassName: "bg-[#0b1220] text-slate-100",
-  sidebarBorderClassName: "border-violet-900/40",
-  sidebarTitleClassName: "text-violet-300",
-  sidebarSectionClassName: "text-violet-400/70",
-  sidebarActiveClassName: "bg-violet-500/15 text-violet-100 ring-1 ring-violet-500/30",
-  sidebarInactiveClassName: "text-slate-400 hover:bg-white/5 hover:text-white",
-  sidebarIconActiveClassName: "bg-violet-500/20 text-violet-200",
-  sidebarIconInactiveClassName: "bg-white/5 text-slate-400",
-  topbarClassName: "border-violet-900/30 bg-[#0f172a]/95 text-slate-100",
-  accentClassName: "text-violet-300",
-  badgeClassName: "bg-violet-500/20 text-violet-200 ring-1 ring-violet-500/30",
+  sidebarTitleClassName: "text-indigo-700",
+  sidebarActiveClassName: "bg-indigo-50 text-indigo-900 ring-1 ring-indigo-100",
+  sidebarIconActiveClassName: "bg-white text-indigo-700 shadow-sm",
+  accentClassName: "text-indigo-700",
+  badgeClassName: "bg-indigo-50 text-indigo-800 ring-1 ring-indigo-100",
 };
 
 const businessOwnerTheme: PortalTheme = {
+  ...lightShellBase,
   id: "business_owner",
   label: "Business Owner Portal",
   subtitle: "Company control, users, finance, HR, and operations",
-  shellClassName: "bg-slate-100 text-slate-950",
-  sidebarClassName: "bg-[#0c3f5c] text-white",
-  sidebarBorderClassName: "border-[#145a7d]",
-  sidebarTitleClassName: "text-sky-200",
-  sidebarSectionClassName: "text-sky-300/70",
-  sidebarActiveClassName: "bg-white/12 text-white ring-1 ring-white/15",
-  sidebarInactiveClassName: "text-sky-100/75 hover:bg-white/8 hover:text-white",
-  sidebarIconActiveClassName: "bg-white text-[#0c3f5c]",
-  sidebarIconInactiveClassName: "bg-white/10 text-sky-100",
-  topbarClassName: "border-slate-200 bg-white/95 text-slate-950",
-  accentClassName: "text-[#0c3f5c]",
-  badgeClassName: "bg-sky-100 text-sky-900 ring-1 ring-sky-200",
+  sidebarTitleClassName: "text-blue-700",
+  sidebarActiveClassName: "bg-blue-50 text-blue-900 ring-1 ring-blue-100",
+  sidebarIconActiveClassName: "bg-white text-blue-700 shadow-sm",
+  accentClassName: "text-blue-700",
+  badgeClassName: "bg-blue-50 text-blue-800 ring-1 ring-blue-100",
 };
 
 const businessTheme: PortalTheme = {
+  ...lightShellBase,
   id: "business",
   label: "Company Workspace",
   subtitle: "HR, payroll, finance, procurement, and daily operations",
-  shellClassName: "bg-slate-100 text-slate-950",
-  sidebarClassName: "bg-white text-slate-900",
-  sidebarBorderClassName: "border-slate-200",
   sidebarTitleClassName: "text-sky-700",
-  sidebarSectionClassName: "text-slate-400",
   sidebarActiveClassName: "bg-sky-50 text-sky-900 ring-1 ring-sky-100",
-  sidebarInactiveClassName: "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
-  sidebarIconActiveClassName: "bg-white text-sky-700",
-  sidebarIconInactiveClassName: "bg-slate-100 text-slate-500",
-  topbarClassName: "border-slate-200 bg-white/95 text-slate-950",
+  sidebarIconActiveClassName: "bg-white text-sky-700 shadow-sm",
   accentClassName: "text-sky-700",
   badgeClassName: "bg-slate-100 text-slate-700 ring-1 ring-slate-200",
 };
 
 const essTheme: PortalTheme = {
+  ...lightShellBase,
   id: "ess",
   label: "Employee Self Service",
   subtitle: "Attendance, leave, payslips, documents, and support",
-  shellClassName: "bg-[#f3fbf6] text-slate-950",
-  sidebarClassName: "bg-[#0f5f46] text-white",
-  sidebarBorderClassName: "border-emerald-800",
-  sidebarTitleClassName: "text-emerald-200",
-  sidebarSectionClassName: "text-emerald-300/70",
-  sidebarActiveClassName: "bg-white/12 text-white ring-1 ring-white/15",
-  sidebarInactiveClassName: "text-emerald-100/80 hover:bg-white/8 hover:text-white",
-  sidebarIconActiveClassName: "bg-white text-emerald-800",
-  sidebarIconInactiveClassName: "bg-white/10 text-emerald-100",
-  topbarClassName: "border-emerald-100 bg-white/95 text-slate-950",
-  accentClassName: "text-emerald-700",
-  badgeClassName: "bg-emerald-100 text-emerald-900 ring-1 ring-emerald-200",
+  sidebarTitleClassName: "text-cyan-700",
+  sidebarActiveClassName: "bg-cyan-50 text-cyan-900 ring-1 ring-cyan-100",
+  sidebarIconActiveClassName: "bg-white text-cyan-700 shadow-sm",
+  accentClassName: "text-cyan-700",
+  badgeClassName: "bg-cyan-50 text-cyan-800 ring-1 ring-cyan-100",
 };
 
 export function getPortalTheme(role: ERPRole): PortalTheme {

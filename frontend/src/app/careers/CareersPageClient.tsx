@@ -12,7 +12,14 @@ import {
 import PublicAudiencePageFrame from "@/components/public/PublicAudiencePageFrame";
 import PublicStructuredData from "@/components/public/PublicStructuredData";
 import { MotionReveal } from "@/components/public/PublicMotion";
-import { publicButtonClassName, publicPanelClassName, publicSectionClassName } from "@/components/public/publicStyles";
+import {
+  publicButtonClassName,
+  publicPageSectionClassName,
+  publicPanelClassName,
+  publicSectionClassName,
+  publicSectionContentGapClassName,
+  publicSectionSpacingClassName,
+} from "@/components/public/publicStyles";
 import { clientJobs } from "@/data/clientProfile";
 import { publicApi, type PublicJobPosting } from "@/services/modules";
 import { usePublicPageData } from "@/hooks/usePublicPageData";
@@ -139,7 +146,7 @@ export default function CareersPageClient({ audience }: { audience: PublicAudien
         }}
       />
 
-      <section className="py-16 sm:py-20">
+      <section className={publicPageSectionClassName}>
         <div className={`${publicSectionClassName} grid gap-6 xl:grid-cols-[1fr_1fr]`}>
           <MotionReveal>
             <div>
@@ -190,7 +197,7 @@ export default function CareersPageClient({ audience }: { audience: PublicAudien
         subtitle={content.processBody}
       />
 
-      <section className="pb-16 sm:pb-20">
+      <section className={publicSectionSpacingClassName}>
         <div className={publicSectionClassName}>
           <MotionReveal>
             <SectionIntro
@@ -200,7 +207,7 @@ export default function CareersPageClient({ audience }: { audience: PublicAudien
             />
           </MotionReveal>
 
-          <div className="mt-10">
+          <div className={publicSectionContentGapClassName}>
             {visibleJobs.length > 0 ? (
               <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                 {visibleJobs.map((item) => (

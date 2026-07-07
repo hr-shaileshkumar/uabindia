@@ -2,26 +2,22 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.EntityFrameworkCore;
 using UabIndia.Application.Interfaces;
-using UabIndia.Infrastructure.Data;
+using UabIndia.Api.Services;
 
 namespace UabIndia.Api.Middleware
 {
     public class TenantResolverMiddleware
     {
-        private static readonly string[] ReservedHostLabels = { "app", "api", "www" };
+        private static readonly string[] ReservedInfrastructureTenantLabels = { "app", "api", "www" };
         private readonly RequestDelegate _next;
-        private readonly IMemoryCache _cache;
 
-        public TenantResolverMiddleware(RequestDelegate next, IMemoryCache cache)
+        public TenantResolverMiddleware(RequestDelegate next)
         {
             _next = next;
-            _cache = cache;
         }
 
-        public async Task Invoke(HttpContext context, ITenantAccessor tenantAccessor, ApplicationDbContext db, Microsoft.Extensions.Hosting.IHostEnvironment env)
+        public async Task Invoke(HttpContext context, ITenantAccessor tenantAccessor, TenantResolutionService tenantResolutionService)
         {
             if (HttpMethods.IsOptions(context.Request.Method) || ShouldAlwaysBypassTenantResolution(context.Request.Path))
             {
@@ -31,24 +27,27 @@ namespace UabIndia.Api.Middleware
 
             // Accept explicit tenant override via header for shared-host and subdomainless flows.
             if (context.Request.Headers.TryGetValue("X-Tenant", out var headerTenant)
-                && !string.IsNullOrWhiteSpace(headerTenant))
+                && !string.IsNullOrWhiteSpace(headerTenant)
+                && !IsReservedInfrastructureTenantLabel(headerTenant.ToString()))
             {
                 var headerValue = headerTenant.ToString();
                 // Accept either a tenant GUID or a subdomain string
                 if (Guid.TryParse(headerValue, out var guid))
                 {
                     tenantAccessor.SetTenantId(guid);
-                        tenantAccessor.SetTenantSchema(BuildSchemaName(null, guid));
+                    tenantAccessor.SetTenantSchema(BuildSchemaName(null, guid));
                     await _next(context);
                     return;
                 }
 
-                // treat header as subdomain and resolve
-                var tenantFromHeader = await db.Tenants.FirstOrDefaultAsync(t => t.Subdomain == headerValue);
-                if (tenantFromHeader != null)
+                var headerResolution = headerValue.Contains('.', StringComparison.Ordinal)
+                    ? await tenantResolutionService.ResolveAsync(host: headerValue, cancellationToken: context.RequestAborted)
+                    : await tenantResolutionService.ResolveAsync(subdomain: headerValue, cancellationToken: context.RequestAborted);
+
+                if (headerResolution != null)
                 {
-                    tenantAccessor.SetTenantId(tenantFromHeader.Id);
-                    tenantAccessor.SetTenantSchema(BuildSchemaName(tenantFromHeader.Subdomain, tenantFromHeader.Id));
+                    tenantAccessor.SetTenantId(headerResolution.Tenant.Id);
+                    tenantAccessor.SetTenantSchema(BuildSchemaName(headerResolution.Tenant.Subdomain, headerResolution.Tenant.Id));
                     await _next(context);
                     return;
                 }
@@ -58,10 +57,16 @@ namespace UabIndia.Api.Middleware
                 return;
             }
 
-            var host = context.Request.Host.Host; // e.g. company.uabtech.in or tenant.localhost
-            var subdomain = ExtractSubdomain(host);
-            if (string.IsNullOrWhiteSpace(subdomain))
+            var host = context.Request.Headers["X-Forwarded-Host"].FirstOrDefault() ?? context.Request.Host.Host;
+            var resolution = await tenantResolutionService.ResolveAsync(host: host, cancellationToken: context.RequestAborted);
+            if (resolution == null)
             {
+                if (TrySetTenantContextFromAuthenticatedUser(context, tenantAccessor, ShouldSkipTenantSchemaForAuthenticatedRequest(context.Request.Path)))
+                {
+                    await _next(context);
+                    return;
+                }
+
                 if (AllowsAnonymousWithoutTenant(context.Request.Path))
                 {
                     await _next(context);
@@ -73,51 +78,49 @@ namespace UabIndia.Api.Middleware
                 return;
             }
 
-            var cacheKey = $"tenant_{subdomain}";
-            var tenant = await _cache.GetOrCreateAsync(cacheKey, async entry =>
-            {
-                entry.SlidingExpiration = System.TimeSpan.FromMinutes(30);
-                return await db.Tenants.FirstOrDefaultAsync(t => t.Subdomain == subdomain);
-            });
-
-            if (tenant == null)
-            {
-                context.Response.StatusCode = 404;
-                await context.Response.WriteAsync("Tenant not found");
-                return;
-            }
-
-            tenantAccessor.SetTenantId(tenant.Id);
-            tenantAccessor.SetTenantSchema(BuildSchemaName(tenant.Subdomain, tenant.Id));
+            tenantAccessor.SetTenantId(resolution.Tenant.Id);
+            tenantAccessor.SetTenantSchema(BuildSchemaName(resolution.Tenant.Subdomain, resolution.Tenant.Id));
             await _next(context);
         }
 
-        private string? ExtractSubdomain(string host)
+        private static bool TrySetTenantContextFromAuthenticatedUser(HttpContext context, ITenantAccessor tenantAccessor, bool skipTenantSchema)
         {
-            if (string.IsNullOrWhiteSpace(host)) return null;
-            var parts = host.Split('.');
-            // Accept tenant.localhost (2 parts) for local development AND tenant.example.com (3+ parts)
-            if (host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase) && parts.Length >= 2)
+            if (context.User?.Identity?.IsAuthenticated != true)
             {
-                var candidate = parts[0];
-                if (!ReservedHostLabels.Contains(candidate, StringComparer.OrdinalIgnoreCase))
-                {
-                    return candidate;
-                }
-
-                return null;
+                return false;
             }
 
-            if (parts.Length >= 3)
+            var tenantClaim = context.User.FindFirst("tenant_id")?.Value
+                ?? context.User.FindFirst("tenantId")?.Value;
+
+            if (!Guid.TryParse(tenantClaim, out var tenantId) || tenantId == Guid.Empty)
             {
-                var candidate = parts[0];
-                if (!ReservedHostLabels.Contains(candidate, StringComparer.OrdinalIgnoreCase))
-                {
-                    return candidate;
-                }
+                return false;
             }
 
-            return null;
+            tenantAccessor.SetTenantId(tenantId);
+            tenantAccessor.SetTenantSchema(skipTenantSchema ? null : BuildSchemaName(null, tenantId));
+            return true;
+        }
+
+        private static bool ShouldSkipTenantSchemaForAuthenticatedRequest(PathString path)
+        {
+            var value = path.Value ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
+            return value.Equals("/api/v1/auth/login", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/v1/auth/forgot-password", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/v1/auth/reset-password", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/v1/auth/refresh", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/v1/auth/csrf-token", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/v1/iam/auth/login", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/v1/iam/auth/forgot-password", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/v1/iam/auth/reset-password", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/v1/iam/auth/refresh", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/v1/iam/auth/csrf-token", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool ShouldAlwaysBypassTenantResolution(PathString path)
@@ -153,13 +156,18 @@ namespace UabIndia.Api.Middleware
 
             return value.Equals("/api/v1/public/site-manifest", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("/api/v1/public/company-profile", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/v1/public/site-data", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("/api/v1/public/contact", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("/api/v1/recruitment/job-postings/active", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("/api/v1/auth/login", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/v1/auth/forgot-password", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/v1/auth/reset-password", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("/api/v1/tenants/resolve", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("/api/v1/auth/refresh", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("/api/v1/auth/csrf-token", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("/api/v1/iam/auth/login", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/v1/iam/auth/forgot-password", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/v1/iam/auth/reset-password", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("/api/v1/iam/auth/refresh", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("/api/v1/iam/auth/csrf-token", StringComparison.OrdinalIgnoreCase)
                 || value.StartsWith("/api/v1/public/website-pages/", StringComparison.OrdinalIgnoreCase);
@@ -197,6 +205,13 @@ namespace UabIndia.Api.Middleware
             }
 
             return new string(buffer, 0, idx);
+        }
+
+        private static bool IsReservedInfrastructureTenantLabel(string value)
+        {
+            return ReservedInfrastructureTenantLabels.Contains(
+                value.Trim(),
+                StringComparer.OrdinalIgnoreCase);
         }
     }
 }

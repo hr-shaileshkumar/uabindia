@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { hrApi } from "@/services/hrApi";
-import PageShell from "@/features/erp/components/PageShell";
+import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -79,7 +79,7 @@ export default function PaymentsPage() {
   };
 
   return (
-    <PageShell title="Payments" subtitle="Record money in and money out">
+    <StandardPageLayout title="Payments" subtitle="Record money in and money out">
       {error && <div className="erp-alert-error text-sm">{error}</div>}
 
       {/* KPI summary cards */}
@@ -221,6 +221,6 @@ export default function PaymentsPage() {
           </Card>
         </TabsContent>
       </Tabs>
-    </PageShell>
+    </StandardPageLayout>
   );
 }

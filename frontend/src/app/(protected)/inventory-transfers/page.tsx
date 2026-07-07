@@ -270,7 +270,7 @@ export default function InventoryTransfersPage() {
             <p className="mt-1 text-sm text-slate-500">{filtered.length} transfer records</p>
           </div>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto bg-white/80">
           <table className="erp-table">
             <thead className="erp-thead">
               <tr>

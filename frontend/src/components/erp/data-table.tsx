@@ -61,8 +61,8 @@ export function DataTable({
   });
 
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className="overflow-hidden rounded-3xl border border-slate-200/85 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.98))] shadow-[0_18px_42px_rgba(15,23,42,0.08)]">
+      <div className="flex flex-col gap-4 border-b border-slate-200/85 bg-white/85 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h3 className="text-lg font-semibold text-slate-950">{title}</h3>
           <p className="mt-1 text-sm text-slate-600">{description}</p>
@@ -75,7 +75,7 @@ export function DataTable({
 
       <div className="overflow-x-auto">
         <table className="min-w-full">
-          <thead className="bg-slate-50">
+          <thead className="bg-slate-50/90">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
@@ -88,7 +88,7 @@ export function DataTable({
           </thead>
           <tbody>
             {table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className="border-t border-slate-100 hover:bg-slate-50/70">
+              <tr key={row.id} className="border-t border-slate-100/90 transition hover:bg-[linear-gradient(90deg,rgba(248,250,252,0.95),rgba(255,255,255,0.95))]">
                 {row.getVisibleCells().map((cell) => (
                   <td key={cell.id} className="px-5 py-4 align-middle">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}

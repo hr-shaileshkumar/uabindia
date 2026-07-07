@@ -58,7 +58,7 @@ export default function PasswordPoliciesPage() {
           </div>
           <span className="erp-toolbar-badge">{loading ? "Loading..." : policy ? "Active" : "Unavailable"}</span>
         </div>
-        <div className="rounded-lg bg-white p-4 text-sm text-slate-700">
+        <div className="rounded-xl bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(248,250,252,0.96))] p-4 text-sm text-slate-700">
           {policy ? (
             <ul className="space-y-2">
               <li>Minimum Length: {policy.minLength}</li>

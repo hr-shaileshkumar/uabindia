@@ -3,27 +3,24 @@
 import { useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
 import LoginCard from "@/components/auth/LoginCard";
 import PublicAudiencePageFrame from "@/components/public/PublicAudiencePageFrame";
 import PublicAuthShell from "@/components/public/PublicAuthShell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { usePublicPageData } from "@/hooks/usePublicPageData";
+import { useResolvedPublicAudience } from "@/hooks/useResolvedPublicAudience";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import {
-  hasExplicitPublicTenantContext,
-  resolvePublicAudience,
   withPublicAudience,
   type PublicAudience,
 } from "@/lib/public-audience";
 import type { ClientProfile } from "@/lib/publicProfile";
-import apiClient from "@/services/apiClient";
+import { authApi } from "@/services/modules";
 
 export default function ResetPasswordPage() {
-  const searchParams = useSearchParams();
-  const isTenantContext = hasExplicitPublicTenantContext();
-  const audience = useMemo(
-    () => resolvePublicAudience(searchParams.get("audience"), isTenantContext),
-    [isTenantContext, searchParams]
-  );
+  const { audience } = useResolvedPublicAudience();
   const { profile, headerContent, footerContent, allowedPaths, pageVisible, parseContent } = usePublicPageData("reset-password", audience);
   const content = parseContent({
     title: "Set a new password",
@@ -38,7 +35,12 @@ export default function ResetPasswordPage() {
 
   return (
     <PublicAudiencePageFrame audience={audience} profile={profile} headerContent={headerContent} footerContent={footerContent} allowedPaths={allowedPaths} pageVisible={pageVisible} footerVariant="full">
-      <PublicAuthShell>
+      <PublicAuthShell
+        eyebrow={content.authEyebrow}
+        title="Set a fresh password"
+        description="Finish password recovery with the reset token from your email. Choose a password you can safely use for daily workspace access."
+        badges={content.authBadges}
+      >
         <ResetPasswordForm audience={audience} profile={profile} submitLabel={content.submitLabel} />
       </PublicAuthShell>
     </PublicAudiencePageFrame>
@@ -60,6 +62,8 @@ function ResetPasswordForm({
   const [token, setToken] = useState(initialToken);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [state, setState] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
 
@@ -81,7 +85,7 @@ function ResetPasswordForm({
     setMessage("");
 
     try {
-      const response = await apiClient.post("/auth/reset-password", {
+      const response = await authApi.resetPassword({
         token,
         newPassword,
       });
@@ -97,6 +101,8 @@ function ResetPasswordForm({
   return (
     <LoginCard
       profile={profile}
+      eyebrow="Create a new password"
+      align="left"
       title="Create new password"
       subtitle="Use the token from your email to complete password recovery."
       footer={
@@ -114,38 +120,58 @@ function ResetPasswordForm({
       <form onSubmit={handleSubmit} className="space-y-5">
         <label className="block text-sm font-semibold text-slate-900">
           Reset token
-          <input
+          <Input
             type="text"
             value={token}
             onChange={(event) => setToken(event.target.value)}
             placeholder="Paste your reset token"
-            className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+            className="mt-2"
             required
           />
         </label>
 
         <label className="block text-sm font-semibold text-slate-900">
           New password
-          <input
-            type="password"
-            value={newPassword}
-            onChange={(event) => setNewPassword(event.target.value)}
-            placeholder="At least 8 characters"
-            className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
-            required
-          />
+          <div className="relative mt-2">
+            <Input
+              type={showNewPassword ? "text" : "password"}
+              value={newPassword}
+              onChange={(event) => setNewPassword(event.target.value)}
+              placeholder="At least 8 characters"
+              className="pr-12"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowNewPassword((value) => !value)}
+              className="absolute right-3 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+              aria-label={showNewPassword ? "Hide new password" : "Show new password"}
+            >
+              {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
         </label>
 
         <label className="block text-sm font-semibold text-slate-900">
           Confirm password
-          <input
-            type="password"
-            value={confirmPassword}
-            onChange={(event) => setConfirmPassword(event.target.value)}
-            placeholder="Repeat the new password"
-            className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
-            required
-          />
+          <div className="relative mt-2">
+            <Input
+              type={showConfirmPassword ? "text" : "password"}
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              placeholder="Repeat the new password"
+              className="pr-12"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword((value) => !value)}
+              className="absolute right-3 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+              aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+            >
+              {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
         </label>
 
         {message ? (
@@ -160,13 +186,13 @@ function ResetPasswordForm({
           </div>
         ) : null}
 
-        <button
+        <Button
           type="submit"
           disabled={state === "submitting"}
-          className="inline-flex w-full items-center justify-center rounded-xl bg-[color:var(--erp-primary)] px-4 py-3 font-semibold text-white shadow-[0_14px_32px_rgba(11,79,140,0.18)] transition hover:bg-[color:var(--erp-primary-hover)] disabled:cursor-not-allowed disabled:opacity-70"
+          className="w-full"
         >
           {state === "submitting" ? "Resetting..." : submitLabel}
-        </button>
+        </Button>
       </form>
     </LoginCard>
   );

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Data.SqlClient;
 using System.IO;
 using UabIndia.Core.Services;
 
@@ -20,7 +21,8 @@ namespace UabIndia.Infrastructure.Data
                 .AddJsonFile("appsettings.Development.json", optional: true)
                 .Build();
 
-            var conn = config.GetConnectionString("DefaultConnection") ?? "Server=(localdb)\\MSSQLLocalDB;Database=UabIndia_HRMS;Trusted_Connection=True;";
+            var conn = NormalizeSqlServerConnectionString(
+                config.GetConnectionString("DefaultConnection") ?? "Server=(localdb)\\MSSQLLocalDB;Database=UabIndia_HRMS;Trusted_Connection=True;");
             builder.UseSqlServer(conn);
             builder.ReplaceService<IModelCacheKeyFactory, TenantModelCacheKeyFactory>();
 
@@ -38,6 +40,22 @@ namespace UabIndia.Infrastructure.Data
             }
 
             return new ApplicationDbContext(builder.Options, tenantAccessor, new DummyEncryptionService());
+        }
+
+        private static string NormalizeSqlServerConnectionString(string connectionString)
+        {
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                return connectionString;
+            }
+
+            var builder = new SqlConnectionStringBuilder(connectionString)
+            {
+                TrustServerCertificate = true,
+                Encrypt = false
+            };
+
+            return builder.ConnectionString;
         }
     }
 

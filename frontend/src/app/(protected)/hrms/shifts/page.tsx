@@ -1,13 +1,11 @@
-import { WorkspacePage } from "@/components/erp/workspace-page";
+import { MappedRoutePage } from "@/components/erp/mapped-route-page";
 
 export default function ShiftPage() {
   return (
-    <WorkspacePage
-      workspaceKey="attendance"
-      crumbs={[
-        { label: "ERP", href: "/erp/dashboard" },
-        { label: "Roster & Shifts" },
-      ]}
+    <MappedRoutePage
+      eyebrow="Attendance / Shift Planning"
+      title="Roster & Shifts"
+      notice="Shift planning now renders as a route-aware SaaS page instead of a generic demo dashboard, keeping the same shell rhythm as the rest of HRMS."
     />
   );
 }

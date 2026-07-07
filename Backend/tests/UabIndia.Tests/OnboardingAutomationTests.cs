@@ -9,9 +9,10 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
-using UabIndia.Api.Controllers;
 using UabIndia.Api.Models;
+using UabIndia.Api.Modules.HRMS.Controllers;
 using UabIndia.Api.Services;
+using UabIndia.Api.Modules.Platform.Controllers;
 using UabIndia.Core.Entities;
 using UabIndia.Core.Services;
 using UabIndia.Infrastructure.Data;
@@ -72,6 +73,7 @@ namespace UabIndia.Tests
                 hasher,
                 resolver,
                 NullLogger<TenantProvisioningService>.Instance);
+            var tenantResolutionService = new TenantResolutionService(db, new MemoryCache(new MemoryCacheOptions()));
 
             var distributedCache = new MemoryDistributedCache(new Microsoft.Extensions.Options.OptionsWrapper<MemoryDistributedCacheOptions>(new MemoryDistributedCacheOptions()));
             const string requestToken = "qa-duplicate-click-token";
@@ -80,6 +82,7 @@ namespace UabIndia.Tests
             var controller = new TenantsController(
                 db,
                 provisioningService,
+                tenantResolutionService,
                 NullLogger<TenantsController>.Instance,
                 distributedCache);
 
@@ -261,11 +264,13 @@ namespace UabIndia.Tests
                 new PasswordHasher<User>(),
                 new RoleMappingResolver(configuration),
                 NullLogger<TenantProvisioningService>.Instance);
+            var tenantResolutionService = new TenantResolutionService(db, new MemoryCache(new MemoryCacheOptions()));
 
             var distributedCache = new MemoryDistributedCache(new Microsoft.Extensions.Options.OptionsWrapper<MemoryDistributedCacheOptions>(new MemoryDistributedCacheOptions()));
             var controller = new TenantsController(
                 db,
                 provisioningService,
+                tenantResolutionService,
                 NullLogger<TenantsController>.Instance,
                 distributedCache);
 
@@ -291,11 +296,13 @@ namespace UabIndia.Tests
                 new PasswordHasher<User>(),
                 new RoleMappingResolver(configuration),
                 NullLogger<TenantProvisioningService>.Instance);
+            var tenantResolutionService = new TenantResolutionService(db, new MemoryCache(new MemoryCacheOptions()));
 
             var distributedCache = new MemoryDistributedCache(new Microsoft.Extensions.Options.OptionsWrapper<MemoryDistributedCacheOptions>(new MemoryDistributedCacheOptions()));
             var controller = new TenantsController(
                 db,
                 provisioningService,
+                tenantResolutionService,
                 NullLogger<TenantsController>.Instance,
                 distributedCache);
 

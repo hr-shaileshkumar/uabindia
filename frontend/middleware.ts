@@ -3,21 +3,10 @@ import type { NextRequest } from "next/server";
 import { getServerApiV1BaseUrl } from "@/lib/api-base-url";
 import { AUTH_PATH_PREFIXES, BUSINESS_PATH_PREFIXES, OWNER_PATH_PREFIXES, matchesAnyPrefix } from "@/lib/erp/route-config";
 import { isPlatformOnlyPath, TENANT_PUBLIC_HOME } from "@/lib/erp/public-routing";
+import { hasTenantScopedHost, isLocalhostHostname } from "@/lib/tenant-host";
 
 const API_BASE_URL = getServerApiV1BaseUrl();
 const PROTECTED_PREFIXES = [...BUSINESS_PATH_PREFIXES, ...OWNER_PATH_PREFIXES, "/context"];
-
-const isLocalhost = (hostname: string) => hostname === "localhost" || hostname === "127.0.0.1";
-const RESERVED_HOST_LABELS = new Set(["app", "api", "www"]);
-
-const getSubdomain = (hostname: string) => {
-  if (!hostname.endsWith(".localhost")) return null;
-  const parts = hostname.split(".");
-  const candidate = parts.length >= 2 ? parts[0] : null;
-  if (!candidate) return null;
-  if (RESERVED_HOST_LABELS.has(candidate)) return null;
-  return candidate;
-};
 
 const matchesPrefix = (pathname: string, prefixes: string[]) =>
   prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
@@ -53,22 +42,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (isLocalhost(hostname)) {
+  if (isLocalhostHostname(hostname)) {
     return NextResponse.next();
   }
 
-  if (hostname.endsWith(".localhost")) {
-    const subdomain = getSubdomain(hostname);
-    if (!subdomain) {
-      return NextResponse.next();
-    }
-
-    if (pathname === "/" || isPlatformOnlyPath(pathname)) {
-      return NextResponse.redirect(new URL(TENANT_PUBLIC_HOME, request.url));
-    }
-
+  if (hasTenantScopedHost(hostname)) {
     try {
-      const res = await fetch(`${API_BASE_URL}/tenants/resolve?subdomain=${encodeURIComponent(subdomain)}`);
+      const res = await fetch(`${API_BASE_URL}/tenants/resolve?host=${encodeURIComponent(hostname)}`, { cache: "no-store" });
       if (!res.ok) {
         return NextResponse.redirect(new URL("/tenant-not-found", request.url));
       }
@@ -76,6 +56,10 @@ export async function middleware(request: NextRequest) {
       const data = await res.json();
       if (!data?.exists) {
         return NextResponse.redirect(new URL("/tenant-not-found", request.url));
+      }
+
+      if (pathname === "/" || isPlatformOnlyPath(pathname)) {
+        return NextResponse.redirect(new URL(TENANT_PUBLIC_HOME, request.url));
       }
     } catch {
       return NextResponse.redirect(new URL("/tenant-not-found", request.url));

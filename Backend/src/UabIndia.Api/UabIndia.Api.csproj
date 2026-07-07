@@ -6,10 +6,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\UabIndia.Application\UabIndia.Application.csproj" />
     <ProjectReference Include="..\UabIndia.Infrastructure\UabIndia.Infrastructure.csproj" />
     <ProjectReference Include="..\UabIndia.Identity\UabIndia.Identity.csproj" />
-    <ProjectReference Include="..\UabIndia.Core\UabIndia.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Modules\**\*.cs" />
   </ItemGroup>
 
   <ItemGroup>

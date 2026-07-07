@@ -23,8 +23,8 @@ export default function AssetsPage() {
     error,
   } = useAssets();
 
-  const [assets, setAssets] = useState([]);
-  const [allocations, setAllocations] = useState([]);
+  const [assets, setAssets] = useState<any[]>([]);
+  const [allocations, setAllocations] = useState<any[]>([]);
   const [showAssetForm, setShowAssetForm] = useState(false);
   const [showAllocationForm, setShowAllocationForm] = useState(false);
   const [assetForm, setAssetForm] = useState({
@@ -44,11 +44,16 @@ export default function AssetsPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const [assetsData, allocationsData] = await Promise.all([
-        getAssets('Active'),
-        getAllocations(),
-      ]);
-      setAssets(assetsData || []);
+      const assetsData = await getAssets();
+      const assetList = Array.isArray(assetsData) ? assetsData : [];
+      const allocationGroups = await Promise.all(
+        assetList
+          .map((asset: any) => asset?.id ?? asset?.assetId)
+          .filter((assetId: unknown): assetId is string => typeof assetId === 'string' && assetId.length > 0)
+          .map((assetId) => getAllocations(undefined, assetId))
+      );
+      const allocationsData = allocationGroups.flatMap((group: any) => (Array.isArray(group) ? group : []));
+      setAssets(assetList);
       setAllocations(allocationsData || []);
     } catch (err) {
       notifyError(getApiErrorMessage(err, 'Failed to load assets.'), 'Assets');
@@ -151,11 +156,7 @@ export default function AssetsPage() {
         </div>
       </div>
 
-      {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
-          Error: {error}
-        </div>
-      )}
+      {error ? <div className="erp-alert-error">Error: {error}</div> : null}
 
       <div className="erp-section-grid">
       {showAssetForm && (

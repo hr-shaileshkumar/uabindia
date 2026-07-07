@@ -138,7 +138,7 @@ export default function LeaveManager() {
       title="Leave Management"
       subtitle="Policies, requests, approvals, balances, and holiday allocations"
     >
-      <div className="space-y-4 p-4">
+      <div className="space-y-4">
         {error && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-4">
             <p className="font-medium text-red-700">{error}</p>

@@ -46,6 +46,8 @@ import {
   publicEyebrowClassName,
   publicPanelClassName,
   publicSectionClassName,
+  publicSectionContentGapClassName,
+  publicSectionSpacingClassName,
 } from "@/components/public/publicStyles";
 import type {
   ComparisonRow,
@@ -114,10 +116,10 @@ export function SectionIntro({
       )}
     >
       <p className={publicEyebrowClassName}>{eyebrow}</p>
-      <h2 className="max-w-4xl text-balance text-[2.35rem] leading-[0.96] font-semibold tracking-[-0.06em] text-slate-950 sm:text-[3.2rem] lg:text-[3.7rem]">
+      <h2 className="max-w-4xl text-balance text-[2.05rem] leading-[0.98] font-semibold tracking-[-0.06em] text-slate-950 sm:text-[2.7rem] lg:text-[3.15rem]">
         {title}
       </h2>
-      <p className="max-w-2xl text-pretty text-base leading-8 text-slate-600 sm:text-lg">
+      <p className="max-w-2xl text-pretty text-[0.98rem] leading-7 text-slate-600 sm:text-base">
         {subtitle}
       </p>
     </div>
@@ -142,23 +144,23 @@ export function MarketingHero({
   trustSignals?: string[];
 }) {
   return (
-    <section className="relative flex min-h-[calc(100vh-8.5rem)] items-center overflow-hidden pt-8 pb-16 sm:pt-10 sm:pb-20 lg:pt-14">
+    <section className="public-hero-section relative overflow-hidden pt-5 pb-8 sm:pt-6 sm:pb-10 lg:pt-8 lg:pb-12">
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[42rem] bg-[radial-gradient(circle_at_20%_15%,rgba(36,108,192,0.2),transparent_34%),radial-gradient(circle_at_78%_12%,rgba(99,102,241,0.18),transparent_30%),radial-gradient(circle_at_70%_65%,rgba(16,185,129,0.16),transparent_30%)]" />
-      <div className={cn(publicSectionClassName, "grid gap-10 lg:grid-cols-[1.02fr_0.98fr] lg:items-center")}>
+      <div className={cn(publicSectionClassName, "public-hero-grid grid gap-6 lg:grid-cols-[1.02fr_0.98fr] lg:items-start")}>
         <MotionReveal>
           <div className="relative">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--erp-primary)] shadow-[0_20px_45px_rgba(15,23,42,0.08)] backdrop-blur">
               <span className="h-2 w-2 rounded-full bg-emerald-500" />
               {eyebrow}
             </div>
-            <h1 className="mt-6 max-w-4xl text-balance text-[3.2rem] leading-[0.9] font-semibold tracking-[-0.08em] text-slate-950 sm:text-[4.35rem] lg:text-[5.4rem]">
+            <h1 className="mt-5 max-w-4xl text-balance text-[2.8rem] leading-[0.92] font-semibold tracking-[-0.08em] text-slate-950 sm:text-[3.7rem] lg:text-[4.6rem]">
               {title}
             </h1>
-            <p className="mt-6 max-w-2xl text-pretty text-lg leading-8 text-slate-600">
+            <p className="mt-5 max-w-2xl text-pretty text-base leading-7 text-slate-600">
               {subtitle}
             </p>
 
-            <div className="mt-8 flex flex-wrap gap-3">{actions}</div>
+            <div className="mt-7 flex flex-wrap gap-3">{actions}</div>
 
             {trustSignals.length > 0 ? (
               <div className="mt-6 flex flex-wrap gap-3 text-sm text-slate-600">
@@ -171,7 +173,7 @@ export function MarketingHero({
               </div>
             ) : null}
 
-            <div className="mt-10 flex flex-wrap gap-3">
+            <div className={`${publicSectionContentGapClassName} flex flex-wrap gap-3`}>
               {badges.map((badge) => (
                 <span
                   key={badge}
@@ -194,7 +196,7 @@ export function MarketingHero({
 
 export function TrustRibbon({ items }: { items: TrustedOrganization[] }) {
   return (
-    <section className="pb-16 sm:pb-20">
+    <section className={publicSectionSpacingClassName}>
       <div className={publicSectionClassName}>
         <MotionReveal>
           <div className="rounded-[2rem] border border-white/60 bg-white/75 p-6 shadow-[0_28px_70px_rgba(15,23,42,0.07)] backdrop-blur sm:p-8">
@@ -240,7 +242,7 @@ export function TrustRibbon({ items }: { items: TrustedOrganization[] }) {
 
 export function ProblemGrid({ items }: { items: MarketingProblem[] }) {
   return (
-    <section className="pb-16 sm:pb-20">
+    <section className={publicSectionSpacingClassName}>
       <div className={publicSectionClassName}>
         <MotionReveal>
           <SectionIntro
@@ -249,7 +251,7 @@ export function ProblemGrid({ items }: { items: MarketingProblem[] }) {
             subtitle="The issue is rarely a missing report. It is usually scattered systems, weak control, and too many manual handoffs between departments."
           />
         </MotionReveal>
-        <MotionStagger className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        <MotionStagger className={`${publicSectionContentGapClassName} grid gap-5 md:grid-cols-2 xl:grid-cols-4`}>
           {items.map((item) => (
             <MotionItem key={item.title}>
               <article className={cn(publicPanelClassName, "h-full p-6")}>
@@ -278,7 +280,7 @@ export function SolutionFramework({
   items: Array<{ title: string; detail: string }>;
 }) {
   return (
-    <section className="pb-16 sm:pb-20">
+    <section className={publicSectionSpacingClassName}>
       <div className={cn(publicSectionClassName, "grid gap-6 xl:grid-cols-[0.88fr_1.12fr]")}>
         <MotionReveal>
           <div className="rounded-[2rem] border border-slate-200/80 bg-[linear-gradient(180deg,#0f172a,#142c53_58%,#123b64)] p-8 text-white shadow-[0_30px_80px_rgba(15,23,42,0.2)] sm:p-10">
@@ -337,7 +339,7 @@ export function ConnectedFlowSection() {
   ];
 
   return (
-    <section className="pb-16 sm:pb-20">
+    <section className={publicSectionSpacingClassName}>
       <div className={publicSectionClassName}>
         <MotionReveal>
           <SectionIntro
@@ -346,7 +348,7 @@ export function ConnectedFlowSection() {
             subtitle="Instead of moving information between separate tools, UabIndia ERP keeps employee data, attendance inputs, payroll calculations, finance entries, reports, and leadership dashboards connected by design."
           />
         </MotionReveal>
-        <MotionReveal delay={0.06} className="mt-10">
+        <MotionReveal delay={0.06} className={publicSectionContentGapClassName}>
           <div className="rounded-[2rem] border border-slate-200/80 bg-white p-6 shadow-[0_30px_80px_rgba(15,23,42,0.08)] sm:p-8">
             <div className="grid gap-4 lg:grid-cols-6">
               {nodes.map((node, index) => (
@@ -384,12 +386,12 @@ export function ModuleGrid({
   subtitle?: string;
 }) {
   return (
-    <section className="pb-16 sm:pb-20">
+    <section className={publicSectionSpacingClassName}>
       <div className={publicSectionClassName}>
         <MotionReveal>
           <SectionIntro eyebrow={eyebrow} title={title} subtitle={subtitle} />
         </MotionReveal>
-        <MotionStagger className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <MotionStagger className={`${publicSectionContentGapClassName} grid gap-5 md:grid-cols-2 xl:grid-cols-3`}>
           {modules.map((module) => {
             const Icon =
               moduleIconMap[module.icon as keyof typeof moduleIconMap] || Sparkles;
@@ -438,7 +440,7 @@ export function ModuleGrid({
 
 export function HighlightChipGrid({ items }: { items: string[] }) {
   return (
-    <section className="pb-16 sm:pb-20">
+    <section className={publicSectionSpacingClassName}>
       <div className={publicSectionClassName}>
         <MotionReveal>
           <SectionIntro
@@ -447,7 +449,7 @@ export function HighlightChipGrid({ items }: { items: string[] }) {
             subtitle="The platform is designed for real operating teams: role-based access, approval logic, field-ready workflows, integrations, and future AI readiness."
           />
         </MotionReveal>
-        <MotionStagger className="mt-10 flex flex-wrap gap-3">
+        <MotionStagger className={`${publicSectionContentGapClassName} flex flex-wrap gap-3`}>
           {items.map((item) => (
             <MotionItem key={item} className="basis-full sm:basis-auto">
               <div className="flex items-center gap-3 rounded-full border border-slate-200/90 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-[0_16px_34px_rgba(15,23,42,0.05)]">
@@ -474,12 +476,12 @@ export function ProcessTimeline({
   subtitle?: string;
 }) {
   return (
-    <section className="pb-16 sm:pb-20">
+    <section className={publicSectionSpacingClassName}>
       <div className={publicSectionClassName}>
         <MotionReveal>
           <SectionIntro eyebrow={eyebrow} title={title} subtitle={subtitle} />
         </MotionReveal>
-        <MotionStagger className="mt-10 grid gap-5 lg:grid-cols-3 xl:grid-cols-6">
+        <MotionStagger className={`${publicSectionContentGapClassName} grid gap-5 lg:grid-cols-3 xl:grid-cols-6`}>
           {items.map((item) => (
             <MotionItem key={item.step}>
               <article className={cn(publicPanelClassName, "relative h-full p-5")}>
@@ -505,7 +507,7 @@ export function AnalyticsShowcase({
   metrics: MarketingMetric[];
 }) {
   return (
-    <section className="pb-16 sm:pb-20">
+    <section className={publicSectionSpacingClassName}>
       <div className={cn(publicSectionClassName, "grid gap-6 xl:grid-cols-[1.08fr_0.92fr]")}>
         <MotionReveal>
           <div className="rounded-[2rem] border border-slate-200/80 bg-white p-6 shadow-[0_30px_80px_rgba(15,23,42,0.08)] sm:p-8">
@@ -588,7 +590,7 @@ export function AnimatedStatsBand({
   items: Array<{ value: number; suffix: string; label: string }>;
 }) {
   return (
-    <section className="pb-16 sm:pb-20">
+    <section className={publicSectionSpacingClassName}>
       <div className={publicSectionClassName}>
         <MotionReveal>
           <div className="rounded-[2rem] border border-slate-200/80 bg-slate-950 px-6 py-8 text-white shadow-[0_30px_80px_rgba(15,23,42,0.2)] sm:px-8 sm:py-10">
@@ -630,12 +632,12 @@ export function IndustryGrid({
   subtitle?: string;
 }) {
   return (
-    <section className="pb-16 sm:pb-20">
+    <section className={publicSectionSpacingClassName}>
       <div className={publicSectionClassName}>
         <MotionReveal>
           <SectionIntro eyebrow={eyebrow} title={title} subtitle={subtitle} />
         </MotionReveal>
-        <MotionStagger className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <MotionStagger className={`${publicSectionContentGapClassName} grid gap-5 md:grid-cols-2 xl:grid-cols-3`}>
           {industries.map((industry) => {
             const Icon = industryIconMap[industry.slug as keyof typeof industryIconMap] || Building2;
 
@@ -671,7 +673,7 @@ export function IndustryGrid({
 
 export function ComparisonTable({ rows }: { rows: ComparisonRow[] }) {
   return (
-    <section className="pb-16 sm:pb-20">
+    <section className={publicSectionSpacingClassName}>
       <div className={publicSectionClassName}>
         <MotionReveal>
           <SectionIntro
@@ -680,7 +682,7 @@ export function ComparisonTable({ rows }: { rows: ComparisonRow[] }) {
             subtitle="The best ERP decision is the one that reduces manual work, strengthens control, and keeps adoption realistic for the business."
           />
         </MotionReveal>
-        <MotionReveal delay={0.05} className="mt-10 overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white shadow-[0_28px_70px_rgba(15,23,42,0.08)]">
+        <MotionReveal delay={0.05} className={`${publicSectionContentGapClassName} overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white shadow-[0_28px_70px_rgba(15,23,42,0.08)]`}>
           <div className="overflow-x-auto">
             <table className="min-w-full text-left">
               <thead className="bg-slate-950 text-white">
@@ -722,7 +724,7 @@ export function ComparisonTable({ rows }: { rows: ComparisonRow[] }) {
 
 export function TestimonialCards({ items }: { items: Testimonial[] }) {
   return (
-    <section className="pb-16 sm:pb-20">
+    <section className={publicSectionSpacingClassName}>
       <div className={publicSectionClassName}>
         <MotionReveal>
           <SectionIntro
@@ -731,7 +733,7 @@ export function TestimonialCards({ items }: { items: Testimonial[] }) {
             subtitle="These stories are representative of the kinds of operational gains businesses expect when fragmented workflows move into one governed system."
           />
         </MotionReveal>
-        <MotionStagger className="mt-10 grid gap-5 lg:grid-cols-3">
+        <MotionStagger className={`${publicSectionContentGapClassName} grid gap-5 lg:grid-cols-3`}>
           {items.map((item) => (
             <MotionItem key={`${item.name}-${item.company}`}>
               <article className="h-full rounded-[2rem] border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff,#f8fbff)] p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
@@ -779,7 +781,7 @@ export function FaqAccordion({ items }: { items: FaqItem[] }) {
   const [openIndex, setOpenIndex] = useState(0);
 
   return (
-    <section className="pb-16 sm:pb-20">
+    <section className={publicSectionSpacingClassName}>
       <div className={cn(publicSectionClassName, "grid gap-8 xl:grid-cols-[0.86fr_1.14fr]")}>
         <MotionReveal>
           <div className="sticky top-24">
@@ -830,7 +832,7 @@ export function FaqAccordion({ items }: { items: FaqItem[] }) {
 
 export function ResourceGrid({ items }: { items: ResourceCard[] }) {
   return (
-    <section className="pb-16 sm:pb-20">
+    <section className={publicSectionSpacingClassName}>
       <div className={publicSectionClassName}>
         <MotionReveal>
           <SectionIntro
@@ -839,7 +841,7 @@ export function ResourceGrid({ items }: { items: ResourceCard[] }) {
             subtitle="These resources are written for real decision-making conversations: scope, rollout sequence, control needs, and expected operational outcomes."
           />
         </MotionReveal>
-        <MotionStagger className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <MotionStagger className={`${publicSectionContentGapClassName} grid gap-5 md:grid-cols-2 xl:grid-cols-3`}>
           {items.map((item) => (
             <MotionItem key={item.title}>
               <Link
@@ -881,12 +883,12 @@ export function ValueGrid({
   subtitle?: string;
 }) {
   return (
-    <section className="pb-16 sm:pb-20">
+    <section className={publicSectionSpacingClassName}>
       <div className={publicSectionClassName}>
         <MotionReveal>
           <SectionIntro eyebrow={eyebrow} title={title} subtitle={subtitle} />
         </MotionReveal>
-        <MotionStagger className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        <MotionStagger className={`${publicSectionContentGapClassName} grid gap-5 md:grid-cols-2 xl:grid-cols-4`}>
           {items.map((item) => (
             <MotionItem key={item.title}>
               <div className={cn(publicPanelClassName, "h-full p-6")}>
@@ -919,7 +921,7 @@ export function CtaPanel({
   secondaryHref: string;
 }) {
   return (
-    <section className="pb-16 sm:pb-20">
+    <section className={publicSectionSpacingClassName}>
       <div className={publicSectionClassName}>
         <MotionReveal>
           <div className="overflow-hidden rounded-[2rem] border border-slate-200/80 bg-[linear-gradient(135deg,#0f172a,#12335c_56%,#0f5f8e)] px-8 py-10 text-white shadow-[0_34px_85px_rgba(15,23,42,0.22)] sm:px-10 sm:py-12">
@@ -994,43 +996,44 @@ function OperationalDashboardMockup({ metrics }: { metrics: MarketingMetric[] })
       title: "Employee Analytics",
       value: "1,284 active",
       note: "+12% headcount this quarter",
-      className: "public-float md:absolute md:-left-8 md:top-14",
+      className: "public-float xl:absolute xl:-left-10 xl:top-16",
     },
     {
       title: "Payroll Summary",
       value: "Rs 2.4 Cr",
       note: "Ready for finance approval",
-      className: "public-float-delayed md:absolute md:right-0 md:top-8",
+      className: "public-float-delayed xl:absolute xl:-right-4 xl:top-12",
     },
     {
       title: "Notifications",
       value: "8 critical",
       note: "Policy and attendance alerts",
-      className: "public-float-slow md:absolute md:-left-10 md:bottom-24",
+      className: "public-float-slow xl:absolute xl:-left-8 xl:bottom-24",
     },
     {
       title: "Revenue Graph",
       value: "+18.6%",
       note: "Month-on-month growth",
-      className: "public-float md:absolute md:right-2 md:bottom-8",
+      className: "public-float xl:absolute xl:right-4 xl:bottom-10",
     },
   ];
 
   return (
-    <div className="relative rounded-[2.2rem] border border-slate-200/80 bg-white/88 p-5 shadow-[0_36px_90px_rgba(15,23,42,0.12)] backdrop-blur sm:p-6 md:px-8 md:py-7">
-      <div className="absolute top-5 right-5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-emerald-700">
-        Live workspace
-      </div>
+    <div className="relative rounded-[2.2rem] border border-slate-200/80 bg-white/88 p-5 shadow-[0_36px_90px_rgba(15,23,42,0.12)] backdrop-blur sm:p-6 lg:p-7 xl:p-8">
       <div className="rounded-[1.8rem] border border-slate-200/80 bg-[linear-gradient(180deg,#f8fbff,#eef5ff)] p-5 md:p-6">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Executive dashboard</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Executive dashboard
+              </p>
+              <div className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                Live workspace
+              </div>
+            </div>
             <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-slate-950">
               One intelligent ERP command center
             </h3>
-          </div>
-          <div className="hidden rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 sm:block">
-            Multi-branch
           </div>
         </div>
 
@@ -1123,10 +1126,10 @@ function OperationalDashboardMockup({ metrics }: { metrics: MarketingMetric[] })
         </div>
       </div>
 
-      <div className="pointer-events-none hidden md:block">
+      <div className="pointer-events-none hidden xl:block">
         {floatingCards.map((card) => (
           <div key={card.title} className={card.className}>
-            <div className="w-[13.5rem] rounded-[1.25rem] border border-white/70 bg-white/92 p-4 shadow-[0_18px_38px_rgba(15,23,42,0.12)] backdrop-blur">
+            <div className="w-[12.75rem] rounded-[1.25rem] border border-white/70 bg-white/92 p-4 shadow-[0_18px_38px_rgba(15,23,42,0.12)] backdrop-blur">
               <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[color:var(--erp-primary)]">
                 {card.title}
               </p>
@@ -1137,7 +1140,7 @@ function OperationalDashboardMockup({ metrics }: { metrics: MarketingMetric[] })
         ))}
       </div>
 
-      <div className="mt-4 grid gap-3 md:hidden">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:hidden">
         {floatingCards.map((card) => (
           <div key={card.title} className="rounded-[1.25rem] border border-slate-200 bg-white p-4">
             <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[color:var(--erp-primary)]">
@@ -1184,3 +1187,4 @@ function AnimatedNumber({ value }: { value: number }) {
 
   return <span ref={ref}>{formatted}</span>;
 }
+

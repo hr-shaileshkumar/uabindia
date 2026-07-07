@@ -1,13 +1,11 @@
-import { WorkspacePage } from "@/components/erp/workspace-page";
+import { MappedRoutePage } from "@/components/erp/mapped-route-page";
 
 export default function DocumentsPage() {
   return (
-    <WorkspacePage
-      workspaceKey="hrms"
-      crumbs={[
-        { label: "ERP", href: "/erp/dashboard" },
-        { label: "Documents" },
-      ]}
+    <MappedRoutePage
+      eyebrow="Documents / Shared Records"
+      title="Documents"
+      notice="Document routing is now aligned with the common protected shell so content spacing and related-page navigation match the rest of the workspace."
     />
   );
 }

@@ -95,6 +95,10 @@ namespace UabIndia.Api.Validators
                 .InclusiveBetween(1, 65535)
                 .When(x => x.SmtpPort.HasValue);
 
+            RuleFor(x => x.SmtpPassword)
+                .MaximumLength(256)
+                .When(x => !string.IsNullOrWhiteSpace(x.SmtpPassword));
+
             RuleFor(x => x.SmtpFromEmail)
                 .EmailAddress()
                 .When(x => !string.IsNullOrWhiteSpace(x.SmtpFromEmail));
@@ -137,6 +141,10 @@ namespace UabIndia.Api.Validators
             RuleFor(x => x.SmtpPort)
                 .InclusiveBetween(1, 65535)
                 .When(x => x.SmtpPort.HasValue);
+
+            RuleFor(x => x.SmtpPassword)
+                .MaximumLength(256)
+                .When(x => !string.IsNullOrWhiteSpace(x.SmtpPassword));
 
             RuleFor(x => x.SmtpFromEmail)
                 .EmailAddress()

@@ -10,7 +10,12 @@ import {
 import PublicAudiencePageFrame from "@/components/public/PublicAudiencePageFrame";
 import PublicStructuredData from "@/components/public/PublicStructuredData";
 import { MotionReveal } from "@/components/public/PublicMotion";
-import { publicButtonClassName, publicPanelClassName, publicSectionClassName } from "@/components/public/publicStyles";
+import {
+  publicButtonClassName,
+  publicPageSectionClassName,
+  publicPanelClassName,
+  publicSectionClassName,
+} from "@/components/public/publicStyles";
 import { companyMilestones, companyValues, publicSiteUrl } from "@/lib/public-marketing";
 import { usePublicPageData } from "@/hooks/usePublicPageData";
 import { withPublicAudience, type PublicAudience } from "@/lib/public-audience";
@@ -73,7 +78,7 @@ export default function AboutPageClient({ audience }: { audience: PublicAudience
     >
       <PublicStructuredData data={structuredData} />
 
-      <section className="py-16 sm:py-20">
+      <section className={publicPageSectionClassName}>
         <div className={`${publicSectionClassName} grid gap-6 xl:grid-cols-[1.02fr_0.98fr]`}>
           <MotionReveal>
             <div>

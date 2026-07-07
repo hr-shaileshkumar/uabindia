@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/erp/app-sidebar";
+import { GlobalSearchCommand } from "@/components/erp/global-search-command";
 import { ERPTopbar } from "@/components/erp/topbar";
-import { WorkspaceStatusPanel } from "@/components/erp/workspace-status-panel";
 import { useAuth } from "@/context/AuthContext";
 import { useOrgContext } from "@/context/OrgContext";
 import { usePermissions } from "@/context/PermissionContext";
@@ -37,7 +37,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
     enabledModules,
     loading: schemaLoading,
     schemaError,
-    refresh,
+    usingCache,
     navigationReady,
     routeRulesReady,
     requiresSetup,
@@ -46,6 +46,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
   const [tenantDisplayName, setTenantDisplayName] = useState<string | undefined>(undefined);
 
   const role = useMemo(() => normalizeRole(user?.role), [user?.role]);
@@ -59,6 +60,22 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
   const canManageWorkspaceSetup =
     isSuperAdmin ||
     hasPermission(["module:platform", "platform.*", "platform.access", "platform.view"]);
+  const isSuperAdminRoute = pathname.startsWith("/superadmin");
+  const shellStatus = useMemo(() => {
+    if (schemaError && !usingCache) {
+      return { label: "Schema issue", tone: "critical" as const };
+    }
+
+    if (schemaError && usingCache) {
+      return { label: "Offline (cached)", tone: "warning" as const };
+    }
+
+    if (!hasEnabledModules || requiresSetup) {
+      return { label: "Setup required", tone: "warning" as const };
+    }
+
+    return { label: "Synced", tone: "positive" as const };
+  }, [hasEnabledModules, requiresSetup, schemaError, usingCache]);
 
   const matchedRouteRule = useMemo(() => {
     if (!schemaConfigured || isShellExemptPath(pathname)) {
@@ -69,8 +86,16 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
   }, [pathname, routeRules.rules, schemaConfigured]);
 
   const routeAllowed = useMemo(() => {
+    if (isSuperAdmin) {
+      return true;
+    }
+
     if (isShellExemptPath(pathname)) {
       return true;
+    }
+
+    if (isSuperAdminRoute) {
+      return isSuperAdmin;
     }
 
     if (!schemaConfigured) {
@@ -82,7 +107,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
     }
 
     return !!matchedRouteRule;
-  }, [canManageWorkspaceSetup, enabledModuleKeys, matchedRouteRule, pathname, schemaConfigured]);
+  }, [canManageWorkspaceSetup, enabledModuleKeys, isSuperAdmin, isSuperAdminRoute, matchedRouteRule, pathname, schemaConfigured]);
 
   useEffect(() => {
     if (loading || permissionsLoading || schemaLoading) return;
@@ -93,13 +118,17 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
       return;
     }
 
-    if (permissionFetchFailed) {
+    if (permissionFetchFailed && !isSuperAdmin) {
       router.replace(`/not-authorized?reason=${PERMISSIONS_UNAVAILABLE_REASON}`);
       return;
     }
 
     if (schemaError && !canManageWorkspaceSetup && !isShellExemptPath(pathname)) {
-      router.replace(`/not-authorized?reason=${NAVIGATION_ERROR_REASON}`);
+      // If we have a cached fallback, allow the user to continue in read-only/offline mode.
+      if (!usingCache) {
+        router.replace(`/not-authorized?reason=${NAVIGATION_ERROR_REASON}`);
+        return;
+      }
       return;
     }
 
@@ -120,6 +149,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
     canManageWorkspaceSetup,
     loading,
     pathname,
+    isSuperAdmin,
     permissionFetchFailed,
     permissionsLoading,
     routeAllowed,
@@ -129,6 +159,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
     schemaError,
     schemaLoading,
     requiresSetup,
+    usingCache,
     user,
   ]);
 
@@ -149,7 +180,19 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
       .catch(() => undefined);
   }, [role, user]);
 
-  if (loading || permissionsLoading || schemaLoading || !user || permissionFetchFailed) {
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setCommandOpen(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  if (loading || permissionsLoading || schemaLoading || !user || (permissionFetchFailed && !isSuperAdmin)) {
     return null;
   }
 
@@ -157,60 +200,36 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
     return null;
   }
 
-  const showSetupPanel = !isShellExemptPath(pathname) && canManageWorkspaceSetup && (schemaError || requiresSetup || !hasEnabledModules);
   const workspaceName =
     projectName ||
     companyName ||
     (role === "super_admin" ? "Global operations" : enabledModules[0]?.displayName || "Default workspace");
-  const setupDetail = schemaError
-    ? schemaError
-    : enabledModules.length > 0
-      ? `Enabled modules: ${enabledModules.map((module) => module.displayName || module.name || module.key).join(", ")}`
-      : "No modules are enabled for this tenant.";
 
   return (
-    <div className={`flex min-h-screen ${portal.shellClassName}`}>
-      <AppSidebar role={role} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
-      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-        <ERPTopbar
-          role={role}
-          userName={user.fullName || user.email}
-          tenantName={tenantDisplayName || companyName || undefined}
-          workspaceName={workspaceName}
-          financialYearLabel={financialYearLabel || undefined}
-          onMenuClick={() => setMobileOpen(true)}
-          onLogout={() => void logout()}
-        />
-        <main className="min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-[1600px] px-4 py-6 lg:px-6">
-            {showSetupPanel ? (
-              <WorkspaceStatusPanel
-                tone={schemaError ? "critical" : "warning"}
-                title={
-                  schemaError
-                    ? "Workspace navigation failed to load"
-                    : hasEnabledModules
-                      ? "Backend workspace setup is incomplete"
-                      : "No workspace modules are enabled"
-                }
-                description={
-                  schemaError
-                    ? "The shell could not load backend navigation, route rules, or module metadata for this session."
-                    : hasEnabledModules
-                      ? "This tenant has enabled modules, but backend `/ui-shell/navigation` and `/ui-shell/route-rules` are not fully configured yet."
-                      : "The authenticated user reached a protected shell, but the tenant has no enabled modules to render."
-                }
-                detail={setupDetail}
-                actionLabel={pathname === "/platform/module-mapping" ? undefined : "Open navigation registry"}
-                actionHref={pathname === "/platform/module-mapping" ? undefined : "/platform/module-mapping"}
-                onRetry={() => void refresh()}
-              />
-            ) : (
-              children
-            )}
-          </div>
-        </main>
+    <div className={`relative flex h-[100dvh] min-h-[100dvh] flex-col overflow-hidden ${portal.shellClassName}`}>
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(15,74,125,0.08),transparent_34%),radial-gradient(circle_at_top_right,rgba(11,123,115,0.08),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.52),rgba(248,250,252,0.92)_60%,rgba(241,245,249,0.96))]" />
+      <ERPTopbar
+        role={role}
+        userName={user.fullName || user.email}
+        tenantName={tenantDisplayName || companyName || undefined}
+        workspaceName={workspaceName}
+        financialYearLabel={financialYearLabel || undefined}
+        workspaceStatus={shellStatus}
+        onMenuClick={() => setMobileOpen(true)}
+        onLogout={() => void logout()}
+        onSearchOpen={() => setCommandOpen(true)}
+      />
+      <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
+        <AppSidebar role={role} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          <main className="erp-shell-main">
+            <div className="erp-shell-content-wrap flex w-full flex-col gap-3.5">
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
+      <GlobalSearchCommand open={commandOpen} onOpenChange={setCommandOpen} />
     </div>
   );
 }

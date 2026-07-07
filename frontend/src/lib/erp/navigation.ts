@@ -1,5 +1,16 @@
 import type { Module } from "@/types";
+import { ROUTES } from "@/constants/routes";
 import type { NavGroupDto, NavItemDto, NavModuleDto } from "@/lib/ui-schema/types";
+import {
+  getModuleDescription,
+  getModuleIcon,
+  getModuleLabel,
+  getModuleShellOrder,
+  listDerivedModules,
+  listModuleRegistry,
+  type ModuleDefinition,
+} from "@/lib/erp/module-registry";
+import { canonicalizeProtectedPath } from "@/lib/erp/route-config";
 
 export type WorkspaceNavItem = NavItemDto;
 
@@ -21,17 +32,29 @@ export type WorkspaceModule = {
   pageCount: number;
 };
 
-const MODULE_SUMMARIES: Record<string, string> = {
-  platform: "Govern tenant operations, access policy, website settings, and platform controls from one operator workspace.",
-  hrms: "Run employee operations, attendance, leave, recruitment, and people lifecycle workflows from one module home.",
-  payroll: "Manage payroll processing, statutory setup, reimbursements, and employee payout workflows from one module home.",
-  reports: "Track HR, payroll, compliance, ERP, and finance reporting flows with one reports control surface.",
-  helpdesk: "Keep support intake, escalations, and knowledge content aligned in one service workspace.",
-  communication: "Coordinate announcements and reusable message templates without leaving the workspace shell.",
-  integrations: "Manage API keys, webhooks, connected apps, and diagnostics from one integration control area.",
-  licensing: "Review subscription packaging, module access, and commercial controls from one licensing workspace.",
-  security: "Monitor sessions, MFA, devices, access logs, and policy controls from one security workspace.",
+export type WorkspacePageMatch = {
+  module: WorkspaceModule;
+  group: WorkspaceNavGroup;
+  item: WorkspaceNavItem;
 };
+
+type LegacyModuleSegment = {
+  key: string;
+  label: string;
+  description: string;
+  icon: string;
+  sortOrder: number;
+  prefixes: string[];
+};
+
+const LEGACY_ERP_SEGMENTS: LegacyModuleSegment[] = listDerivedModules("erp").map((definition) => ({
+  key: definition.key,
+  label: definition.label,
+  description: definition.description,
+  icon: definition.icon,
+  sortOrder: definition.shellOrder,
+  prefixes: definition.pathPrefixes ?? [],
+}));
 
 const sortItems = (items: NavItemDto[]) =>
   items
@@ -48,20 +71,98 @@ const normalizePath = (value?: string | null) => {
   return value === "/" ? value : value.replace(/\/+$/, "");
 };
 
+const normalizeComparablePath = (value?: string | null) => {
+  const normalized = normalizePath(value);
+  if (!normalized) return null;
+  return canonicalizeProtectedPath(normalized);
+};
+
+const sortWorkspaceModules = (modules: WorkspaceModule[]) =>
+  modules.slice().sort((left, right) => {
+    const leftOrder = getModuleShellOrder(left.key, left.sortOrder ?? Number.MAX_SAFE_INTEGER);
+    const rightOrder = getModuleShellOrder(right.key, right.sortOrder ?? Number.MAX_SAFE_INTEGER);
+    if (leftOrder !== rightOrder) return leftOrder - rightOrder;
+    if (left.sortOrder !== right.sortOrder) return left.sortOrder - right.sortOrder;
+    return left.label.localeCompare(right.label);
+  });
+
+const FALLBACK_HOME_BY_MODULE: Record<string, string> = {
+  platform: ROUTES.PLATFORM_HOME,
+  superadmin: ROUTES.SUPERADMIN_DASHBOARD,
+  company: ROUTES.PLATFORM_COMPANIES,
+  administration: ROUTES.DASHBOARD,
+  hrms: ROUTES.HRMS_HOME,
+  payroll: ROUTES.PAYROLL_HOME,
+  finance: ROUTES.CHART_OF_ACCOUNTS,
+  inventory: ROUTES.ITEMS,
+  procurement: ROUTES.VENDORS,
+  crm: ROUTES.CUSTOMERS,
+  sales: ROUTES.SALES_ORDERS,
+  projects: ROUTES.PLATFORM_PROJECTS,
+  assets: ROUTES.HR_ASSETS,
+  reports: ROUTES.REPORTS_HOME,
+  notifications: ROUTES.NOTIFICATIONS,
+  workflow: ROUTES.PLATFORM_WORKFLOW_CONFIG,
+  licensing: ROUTES.LICENSING_HOME,
+  security: ROUTES.SECURITY_HOME,
+  settings: ROUTES.PLATFORM_SETTINGS,
+};
+
+function getFallbackHomeHref(moduleKey: string) {
+  return FALLBACK_HOME_BY_MODULE[moduleKey] ?? ROUTES.CONTEXT;
+}
+
+function buildFallbackWorkspaceModule(definition: ModuleDefinition): WorkspaceModule {
+  const homeHref = getFallbackHomeHref(definition.key);
+  return {
+    key: definition.key,
+    label: definition.label,
+    description: definition.description,
+    icon: definition.icon,
+    homeHref,
+    sortOrder: definition.shellOrder,
+    enabled: true,
+    groups: [
+      {
+        label: "Pages",
+        sortOrder: 0,
+        items: [
+          {
+            key: `${definition.key}:overview`,
+            name: `${definition.label} overview`,
+            path: homeHref,
+            icon: definition.icon,
+            sortOrder: 0,
+            requiredPermissions: [`module:${definition.key}`],
+          },
+        ],
+      },
+    ],
+    pageCount: 1,
+  };
+}
+
+export function buildFallbackWorkspaceModules(enabledModules: Module[] = []): WorkspaceModule[] {
+  const enabledKeys = new Set(enabledModules.map((module) => module.key));
+  const registryDefinitions = listModuleRegistry().filter((definition) => !definition.sourceModuleKey);
+
+  const modules = registryDefinitions
+    .filter((definition) => enabledKeys.size === 0 || enabledKeys.has(definition.key))
+    .map((definition) => buildFallbackWorkspaceModule(definition));
+
+  return sortWorkspaceModules(modules);
+}
+
 const deriveRootPath = (value?: string | null) => {
   const normalized = normalizePath(value);
   if (!normalized) return null;
 
-  const segments = normalized.split("/").filter(Boolean);
+  const canonical = canonicalizeProtectedPath(normalized);
+  const segments = canonical.split("/").filter(Boolean);
   if (segments.length === 0) return "/";
 
   if (segments[0] === "platform") {
     return "/platform";
-  }
-
-  if (segments[0] === "erp") {
-    if (segments.length === 1) return "/erp";
-    return `/erp/${segments[1]}`;
   }
 
   return `/${segments[0]}`;
@@ -97,13 +198,114 @@ export function resolveWorkspaceModuleHomeHref(module: NavModuleDto, moduleMeta?
   return normalizePath(module.homeHref) ?? normalizePath(moduleMeta?.basePath);
 }
 
+function materializeWorkspaceModule(
+  moduleKey: string,
+  displayName: string,
+  icon: string | null | undefined,
+  description: string | undefined,
+  sortOrder: number,
+  moduleMeta: Module | undefined,
+  groups: WorkspaceNavGroup[],
+  fallbackHomeHref?: string | null
+): WorkspaceModule | null {
+  const normalizedGroups = groups.filter((group) => group.items.length > 0);
+  const pageCount = normalizedGroups.reduce((count, group) => count + group.items.length, 0);
+  if (pageCount === 0) {
+    return null;
+  }
+
+  const homeHref =
+    pickPreferredRoot([
+      fallbackHomeHref ?? null,
+      deriveRootPath(moduleMeta?.basePath),
+      ...normalizedGroups.flatMap((group) => group.items.map((item) => deriveRootPath(item.path))),
+    ]) ?? fallbackHomeHref ?? null;
+
+  return {
+    key: moduleKey,
+    label: getModuleLabel(moduleKey, displayName),
+    description: moduleMeta?.description || description || getModuleDescription(moduleKey),
+    icon: getModuleIcon(moduleKey, icon || moduleMeta?.icon),
+    homeHref,
+    sortOrder,
+    enabled: moduleMeta?.isEnabled !== false,
+    groups: normalizedGroups,
+    pageCount,
+  };
+}
+
+function splitLegacyErpModule(module: NavModuleDto, moduleMeta?: Module): WorkspaceModule[] {
+  const groupedItems = sortGroups(module.groups).map((group, groupIndex) => ({
+    label: group.label?.trim() || "Pages",
+    sortOrder: typeof group.sortOrder === "number" ? group.sortOrder : groupIndex,
+    items: sortItems(group.items),
+  }));
+
+  const splitModules = LEGACY_ERP_SEGMENTS.map((segment) => {
+    const segmentGroups = groupedItems
+      .map((group) => ({
+        ...group,
+        items: group.items.filter((item) => {
+          const path = normalizeComparablePath(item.path);
+          return Boolean(path && segment.prefixes.some((prefix) => path === prefix || path.startsWith(`${prefix}/`)));
+        }),
+      }))
+      .filter((group) => group.items.length > 0);
+
+    return materializeWorkspaceModule(
+      segment.key,
+      segment.label,
+      segment.icon,
+      segment.description,
+      segment.sortOrder,
+      moduleMeta,
+      segmentGroups,
+      segment.prefixes[0] ?? null
+    );
+  }).filter((workspaceModule): workspaceModule is WorkspaceModule => Boolean(workspaceModule));
+
+  const assignedPaths = new Set(
+    splitModules.flatMap((workspaceModule) =>
+      workspaceModule.groups.flatMap((group) => group.items.map((item) => normalizeComparablePath(item.path))).filter(Boolean) as string[]
+    )
+  );
+
+  const overflowGroups = groupedItems
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => {
+        const path = normalizeComparablePath(item.path);
+        return Boolean(path && !assignedPaths.has(path));
+      }),
+    }))
+    .filter((group) => group.items.length > 0);
+
+  const overflowModule = materializeWorkspaceModule(
+    "operations",
+    "Operations",
+    "grid",
+    "Run shared operational workflows that do not belong to a single business domain.",
+    170,
+    moduleMeta,
+    overflowGroups
+  );
+
+  return overflowModule ? [...splitModules, overflowModule] : splitModules;
+}
+
 export function buildWorkspaceModules(navigationModules: NavModuleDto[], enabledModules: Module[] = []): WorkspaceModule[] {
   const moduleMetaByKey = new Map(enabledModules.map((module) => [module.key, module]));
 
-  return navigationModules
+  const workspaceModules = navigationModules
     .slice()
     .sort((left, right) => left.sortOrder - right.sortOrder || left.displayName.localeCompare(right.displayName))
-    .map((module, moduleIndex) => {
+    .flatMap((module, moduleIndex) => {
+      const moduleMeta = moduleMetaByKey.get(module.key);
+
+      if (module.key === "erp") {
+        return splitLegacyErpModule(module, moduleMeta);
+      }
+
       const groups = sortGroups(module.groups)
         .map((group, groupIndex) => ({
           label: group.label?.trim() || "Pages",
@@ -112,22 +314,20 @@ export function buildWorkspaceModules(navigationModules: NavModuleDto[], enabled
         }))
         .filter((group) => group.items.length > 0);
 
-      const moduleMeta = moduleMetaByKey.get(module.key);
-      const pageCount = groups.reduce((count, group) => count + group.items.length, 0);
-
-      return {
-        key: module.key,
-        label: module.displayName,
-        description: moduleMeta?.description || MODULE_SUMMARIES[module.key],
-        icon: module.icon || moduleMeta?.icon,
-        homeHref: resolveWorkspaceModuleHomeHref(module, moduleMeta),
-        sortOrder: typeof module.sortOrder === "number" ? module.sortOrder : moduleIndex,
-        enabled: moduleMeta?.isEnabled !== false,
+      return materializeWorkspaceModule(
+        module.key,
+        module.displayName,
+        module.icon || moduleMeta?.icon,
+        getModuleDescription(module.key),
+        typeof module.sortOrder === "number" ? module.sortOrder : moduleIndex,
+        moduleMeta,
         groups,
-        pageCount,
-      };
+        resolveWorkspaceModuleHomeHref(module, moduleMeta)
+      );
     })
-    .filter((module) => module.pageCount > 0);
+    .filter((module): module is WorkspaceModule => Boolean(module));
+
+  return sortWorkspaceModules(workspaceModules).filter((module) => module.pageCount > 0);
 }
 
 export function filterWorkspaceModules(modules: WorkspaceModule[], query: string): WorkspaceModule[] {
@@ -168,18 +368,66 @@ export function findWorkspaceModuleByKey(modules: WorkspaceModule[], moduleKey: 
 }
 
 export function findWorkspaceModuleByPath(modules: WorkspaceModule[], pathname: string) {
-  const normalizedPath = normalizePath(pathname);
+  const normalizedPath = normalizeComparablePath(pathname);
   if (!normalizedPath) return null;
 
   return (
     modules.find((module) => {
-      if (module.homeHref && (normalizedPath === module.homeHref || normalizedPath.startsWith(`${module.homeHref}/`))) {
+      const comparableHomeHref = normalizeComparablePath(module.homeHref);
+      if (comparableHomeHref && (normalizedPath === comparableHomeHref || normalizedPath.startsWith(`${comparableHomeHref}/`))) {
         return true;
       }
 
       return module.groups.some((group) =>
-        group.items.some((item) => normalizedPath === item.path || normalizedPath.startsWith(`${item.path}/`))
+        group.items.some((item) => {
+          const comparableItemPath = normalizeComparablePath(item.path);
+          if (!comparableItemPath) {
+            return false;
+          }
+
+          return normalizedPath === comparableItemPath || normalizedPath.startsWith(`${comparableItemPath}/`);
+        })
       );
     }) ?? null
   );
+}
+
+export function flattenWorkspacePages(modules: WorkspaceModule[]): WorkspacePageMatch[] {
+  return modules.flatMap((module) =>
+    module.groups.flatMap((group) =>
+      group.items.map((item) => ({
+        module,
+        group,
+        item,
+      }))
+    )
+  );
+}
+
+export function findWorkspacePageByPath(modules: WorkspaceModule[], pathname: string) {
+  const normalizedPath = normalizeComparablePath(pathname);
+  if (!normalizedPath) {
+    return null;
+  }
+
+  let bestMatch: WorkspacePageMatch | null = null;
+  let bestMatchPathLength = -1;
+
+  for (const page of flattenWorkspacePages(modules)) {
+    const comparableItemPath = normalizeComparablePath(page.item.path);
+    if (!comparableItemPath) {
+      continue;
+    }
+
+    if (normalizedPath !== comparableItemPath && !normalizedPath.startsWith(`${comparableItemPath}/`)) {
+      continue;
+    }
+
+    if (comparableItemPath.length > bestMatchPathLength) {
+      bestMatch = page;
+      bestMatchPathLength = comparableItemPath.length;
+    }
+  }
+
+  return bestMatch;
 }

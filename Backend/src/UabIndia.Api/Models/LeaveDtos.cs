@@ -72,6 +72,7 @@ namespace UabIndia.Api.Models
     {
         public Guid Id { get; set; }
         public Guid EmployeeId { get; set; }
+        public string? EmployeeName { get; set; }
         public Guid LeavePolicyId { get; set; }
         public DateTime FromDate { get; set; }
         public DateTime ToDate { get; set; }
@@ -79,6 +80,7 @@ namespace UabIndia.Api.Models
         public string Period { get; set; } = "FullDay";
         public string Status { get; set; } = "Pending";
         public Guid? ApprovedBy { get; set; }
+        public string? ApprovedByName { get; set; }
         public DateTime? ApprovedAt { get; set; }
         public string? Reason { get; set; }
     }

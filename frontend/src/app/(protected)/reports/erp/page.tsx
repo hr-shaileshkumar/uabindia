@@ -85,7 +85,7 @@ export default function ErpReportsPage() {
             </div>
             <Link href={ROUTES.SALES_ORDERS} className="erp-action-btn erp-action-btn-secondary text-xs px-3">View All</Link>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto bg-white/80">
             <table className="erp-table">
               <thead className="erp-thead">
                 <tr>
@@ -122,7 +122,7 @@ export default function ErpReportsPage() {
             </div>
             <Link href={ROUTES.PURCHASE_ORDERS} className="erp-action-btn erp-action-btn-secondary text-xs px-3">View All</Link>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto bg-white/80">
             <table className="erp-table">
               <thead className="erp-thead">
                 <tr>
@@ -166,7 +166,7 @@ export default function ErpReportsPage() {
               { label: "Stock Movements", href: ROUTES.STOCK_MOVEMENTS },
               { label: "Payments", href: ROUTES.PAYMENTS },
             ].map((item) => (
-              <Link key={item.href} href={item.href} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center text-sm font-medium text-slate-700 transition hover:bg-white hover:shadow-sm">
+              <Link key={item.href} href={item.href} className="rounded-xl border border-slate-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.95),rgba(255,255,255,0.96))] px-4 py-3 text-center text-sm font-medium text-slate-700 transition hover:bg-white hover:shadow-sm">
                 {item.label}
               </Link>
             ))}

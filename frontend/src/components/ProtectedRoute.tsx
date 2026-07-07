@@ -14,6 +14,21 @@ type ProtectedRouteProps = {
   children: React.ReactNode;
 };
 
+export const resolvePermissionAllowed = (
+  combinedPermissionKeys: string[],
+  hasPermission: (keys: string[]) => boolean
+) => (combinedPermissionKeys.length > 0 ? hasPermission(combinedPermissionKeys) : true);
+
+export const shouldBlockProtectedRoute = (
+  finalLoading: boolean,
+  permissionFetchFailed: boolean,
+  isSuperAdmin: boolean,
+  finalAllowed: boolean
+) => {
+  if (finalLoading) return false;
+  return (permissionFetchFailed && !isSuperAdmin) || (!isSuperAdmin && !finalAllowed);
+};
+
 export default function ProtectedRoute({
   allowed,
   permission,
@@ -23,7 +38,7 @@ export default function ProtectedRoute({
 }: ProtectedRouteProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { hasPermission, loading: permissionLoading, fetchFailed: permissionFetchFailed } = usePermissions();
+  const { hasPermission, loading: permissionLoading, fetchFailed: permissionFetchFailed, isSuperAdmin } = usePermissions();
   const { routeRules, loading: schemaLoading } = useUiSchema();
 
   const permissionKeys = permission
@@ -40,20 +55,18 @@ export default function ProtectedRoute({
   const combinedPermissionKeys = permissionKeys.length > 0
     ? [...new Set([...permissionKeys, ...routePermissionKeys])]
     : routePermissionKeys;
-  const permissionAllowed = combinedPermissionKeys.length > 0
-    ? hasPermission(combinedPermissionKeys)
-    : false;
+  const permissionAllowed = resolvePermissionAllowed(combinedPermissionKeys, hasPermission);
   const finalAllowed = typeof allowed === "boolean" ? allowed : permissionAllowed;
   const finalLoading = loading || permissionLoading || schemaLoading;
+  const blocked = shouldBlockProtectedRoute(finalLoading, permissionFetchFailed, isSuperAdmin, finalAllowed);
 
   useEffect(() => {
-    if (finalLoading) return;
-    if (permissionFetchFailed || !finalAllowed) {
+    if (blocked) {
       router.replace(redirectTo);
     }
-  }, [finalAllowed, finalLoading, permissionFetchFailed, redirectTo, router]);
+  }, [blocked, redirectTo, router]);
 
   if (finalLoading) return null;
-  if (permissionFetchFailed || !finalAllowed) return null;
+  if (blocked) return null;
   return <>{children}</>;
 }

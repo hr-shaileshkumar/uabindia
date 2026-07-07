@@ -139,21 +139,21 @@ export default function HrReportsPage() {
               {activeTab === "attendance" && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-                    <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                    <div className="rounded-xl border border-slate-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.95),rgba(255,255,255,0.96))] p-4">
                       <p className="text-xs font-semibold uppercase text-slate-500">Total Records</p>
                       <p className="mt-2 text-2xl font-bold text-slate-900">{attendance?.totalRecords ?? 0}</p>
                     </div>
-                    <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                    <div className="rounded-xl border border-slate-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.95),rgba(255,255,255,0.96))] p-4">
                       <p className="text-xs font-semibold uppercase text-slate-500">Present Days</p>
                       <p className="mt-2 text-2xl font-bold text-emerald-700">{attendance?.presentDays ?? 0}</p>
                     </div>
-                    <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                    <div className="rounded-xl border border-slate-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.95),rgba(255,255,255,0.96))] p-4">
                       <p className="text-xs font-semibold uppercase text-slate-500">Attendance %</p>
                       <p className="mt-2 text-2xl font-bold text-slate-900">{attendance?.attendancePct ?? 0}%</p>
                     </div>
                   </div>
                   {attendance?.daily && attendance.daily.length > 0 && (
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto bg-white/80">
                       <table className="erp-table">
                         <thead className="erp-thead">
                           <tr>
@@ -181,21 +181,21 @@ export default function HrReportsPage() {
               {activeTab === "leave" && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-                    <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                    <div className="rounded-xl border border-slate-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.95),rgba(255,255,255,0.96))] p-4">
                       <p className="text-xs font-semibold uppercase text-slate-500">Total Requests</p>
                       <p className="mt-2 text-2xl font-bold text-slate-900">{leaveSummary?.totalRequests ?? 0}</p>
                     </div>
-                    <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                    <div className="rounded-xl border border-slate-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.95),rgba(255,255,255,0.96))] p-4">
                       <p className="text-xs font-semibold uppercase text-slate-500">Approved Days</p>
                       <p className="mt-2 text-2xl font-bold text-emerald-700">{leaveSummary?.approvedDays ?? 0}</p>
                     </div>
-                    <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                    <div className="rounded-xl border border-slate-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.95),rgba(255,255,255,0.96))] p-4">
                       <p className="text-xs font-semibold uppercase text-slate-500">Pending</p>
                       <p className="mt-2 text-2xl font-bold text-amber-700">{leaveSummary?.pendingRequests ?? 0}</p>
                     </div>
                   </div>
                   {leaveSummary?.byStatus && leaveSummary.byStatus.length > 0 && (
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto bg-white/80">
                       <table className="erp-table">
                         <thead className="erp-thead">
                           <tr>

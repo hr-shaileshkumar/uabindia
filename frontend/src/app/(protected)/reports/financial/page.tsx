@@ -82,7 +82,7 @@ export default function FinancialReportsPage() {
           ) : (
             <>
               {activeTab === "balances" && (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto bg-white/80">
                   <table className="erp-table">
                     <thead className="erp-thead">
                       <tr>
@@ -108,7 +108,7 @@ export default function FinancialReportsPage() {
                 </div>
               )}
               {activeTab === "journals" && (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto bg-white/80">
                   <table className="erp-table">
                     <thead className="erp-thead">
                       <tr>

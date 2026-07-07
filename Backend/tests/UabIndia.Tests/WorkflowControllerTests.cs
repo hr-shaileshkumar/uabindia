@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using UabIndia.Api.Controllers;
+using UabIndia.Api.Modules.Workflow.Controllers;
 using UabIndia.Core.Entities;
 using UabIndia.Infrastructure.Data;
 using UabIndia.Infrastructure.Services;

@@ -201,9 +201,9 @@ export function HelpdeskQueuePage() {
 
       {error ? <div className="erp-alert-error">{error}</div> : null}
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <div className="overflow-hidden rounded-2xl border border-slate-200/85 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] shadow-[0_14px_32px_rgba(15,23,42,0.07)]">
         <table className="w-full text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50">
+          <thead className="border-b border-slate-200 bg-slate-50/85">
             <tr>
               <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Ticket</th>
               <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Requester</th>
@@ -230,7 +230,7 @@ export function HelpdeskQueuePage() {
               </tr>
             ) : (
               filteredTickets.map((ticket) => (
-                <tr key={ticket.id} className="transition hover:bg-slate-50">
+                <tr key={ticket.id} className="transition hover:bg-[linear-gradient(90deg,rgba(248,250,252,0.95),rgba(255,255,255,0.95))]">
                   <td className="px-5 py-4">
                     <div className="font-medium text-slate-900">{ticket.title}</div>
                     <div className="mt-1 text-xs text-slate-500">

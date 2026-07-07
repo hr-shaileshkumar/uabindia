@@ -1,0 +1,2 @@
+/p:MSBuildEnableWorkloadResolver=true
+/p:RestoreUseStaticGraphEvaluation=true

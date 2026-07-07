@@ -90,22 +90,22 @@ export default function PublicHeader({
       className={cn(
         "sticky top-0 z-50 backdrop-blur-xl transition duration-300",
         isTransparentHomeNav
-          ? "border-b border-transparent bg-white/20"
-          : "border-b border-white/70 bg-white/75"
+          ? "border-b border-transparent bg-white/18 shadow-none"
+          : "border-b border-white/70 bg-white/78 shadow-[0_12px_34px_rgba(15,23,42,0.05)]"
       )}
     >
       {platformMode ? (
-        <div className="border-b border-slate-200/70 bg-slate-950 text-white">
+        <div className="border-b border-slate-200/70 bg-[linear-gradient(90deg,#0f172a,#123b6a_55%,#0b7b73)] text-white">
           <div className={cnSection(publicSectionClassName, "flex items-center justify-between gap-4 py-2 text-xs")}>
-            <p className="font-medium tracking-[0.12em] text-slate-200 uppercase">
+            <p className="font-semibold tracking-[0.14em] text-white/85 uppercase">
               One Platform. Complete Business Management.
             </p>
-            <p className="hidden text-slate-300 lg:block">{headerContent.announcement}</p>
+            <p className="hidden text-white/70 lg:block">{headerContent.announcement}</p>
           </div>
         </div>
       ) : null}
 
-      <div className={cnSection(publicSectionClassName, "flex items-center justify-between gap-4 py-4")}>
+      <div className={cnSection(publicSectionClassName, "flex items-center justify-between gap-4 py-3")}>
         <Link
           href={withPublicAudience(homeHref, audience)}
           className="flex min-w-0 items-center gap-3"
@@ -120,7 +120,7 @@ export default function PublicHeader({
               alt={brandName}
               width={168}
               height={56}
-              className="h-10 w-auto max-w-[8.8rem] object-contain sm:max-w-[9.6rem]"
+              className="h-9 w-auto max-w-[8rem] object-contain sm:max-w-[9rem]"
               onError={() => setLogoLoadFailed(true)}
             />
           ) : (
@@ -129,11 +129,11 @@ export default function PublicHeader({
               alt={brandName}
               width={168}
               height={56}
-              className="h-10 w-auto max-w-[8.8rem] object-contain sm:max-w-[9.6rem]"
+              className="h-9 w-auto max-w-[8rem] object-contain sm:max-w-[9rem]"
             />
           )}
           <div className="min-w-0">
-            <p className="truncate text-base font-semibold tracking-[-0.03em] text-slate-950">
+            <p className="truncate text-[0.98rem] font-semibold tracking-[-0.03em] text-slate-950">
               {brandName}
             </p>
             <p className="truncate text-xs uppercase tracking-[0.16em] text-slate-500">
@@ -144,7 +144,7 @@ export default function PublicHeader({
 
         <div className="hidden flex-1 items-center justify-end gap-3 xl:flex">
           {platformMode ? (
-            <nav className="flex items-center gap-1 rounded-full border border-slate-200/80 bg-white/80 px-2 py-1 shadow-[0_16px_34px_rgba(15,23,42,0.05)] backdrop-blur">
+            <nav className="flex items-center gap-1 rounded-full border border-slate-200/80 bg-white/86 px-2 py-1 shadow-[0_12px_28px_rgba(15,23,42,0.05)] backdrop-blur">
               {platformLinks.map((item) =>
                 item.label === "Products" ? (
                   <MenuTrigger
@@ -224,7 +224,7 @@ export default function PublicHeader({
               )}
             </nav>
           ) : (
-            <nav className="flex items-center gap-1 rounded-full border border-slate-200/80 bg-white/80 px-2 py-1 shadow-[0_16px_34px_rgba(15,23,42,0.05)] backdrop-blur">
+            <nav className="flex items-center gap-1 rounded-full border border-slate-200/80 bg-white/86 px-2 py-1 shadow-[0_12px_28px_rgba(15,23,42,0.05)] backdrop-blur">
               {tenantLinks.map((link) => (
                 <Link
                   key={`${link.href}-${link.label}`}
@@ -240,7 +240,7 @@ export default function PublicHeader({
           {platformMode ? (
             <Link
               href={loginHref}
-              className="inline-flex items-center rounded-full px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-white hover:text-slate-950"
+              className="inline-flex items-center rounded-full px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-white hover:text-slate-950"
             >
               Login
             </Link>
@@ -254,7 +254,7 @@ export default function PublicHeader({
 
         <button
           type="button"
-          className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-[0_12px_24px_rgba(15,23,42,0.06)] transition hover:bg-slate-50 xl:hidden"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-[0_12px_24px_rgba(15,23,42,0.06)] transition hover:bg-slate-50 xl:hidden"
           onClick={() => setIsMobileMenuOpen((value) => !value)}
           aria-label="Toggle navigation"
         >

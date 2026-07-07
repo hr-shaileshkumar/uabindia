@@ -200,11 +200,11 @@ export default function OnboardingPage() {
       )}
 
       {/* Onboarding Checklist Steps Banner */}
-      <div className="rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50/80 to-indigo-50/60 p-5">
+      <div className="rounded-2xl border border-blue-100/85 bg-[linear-gradient(135deg,rgba(239,246,255,0.9),rgba(224,242,254,0.85),rgba(238,242,255,0.75))] p-5 shadow-[0_14px_30px_rgba(15,23,42,0.06)]">
         <p className="mb-3 text-xs font-bold uppercase tracking-widest text-blue-700">Standard Onboarding Checklist — 6 Steps</p>
         <div className="flex flex-wrap gap-2">
           {ONBOARDING_STEPS.map((step, i) => (
-            <div key={step} className="flex items-center gap-2 rounded-full border border-blue-200/70 bg-white/80 px-3 py-1.5">
+            <div key={step} className="flex items-center gap-2 rounded-full border border-blue-200/70 bg-white/90 px-3 py-1.5 shadow-[0_8px_18px_rgba(37,99,235,0.08)]">
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">{i + 1}</span>
               <span className="text-xs font-semibold text-slate-700">{step}</span>
             </div>
@@ -220,7 +220,7 @@ export default function OnboardingPage() {
             <p className="mt-1 text-sm text-slate-500">{filtered.length} records in last 90 days</p>
           </div>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto bg-white/80">
           <table className="erp-table">
             <thead className="erp-thead">
               <tr>

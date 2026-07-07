@@ -10,7 +10,11 @@ import {
 import PublicAudiencePageFrame from "@/components/public/PublicAudiencePageFrame";
 import PublicHeroSection from "@/components/public/PublicHeroSection";
 import { PublicPageLoading } from "@/components/public/PublicPageLoading";
-import { publicButtonClassName, publicSectionClassName } from "@/components/public/publicStyles";
+import {
+  publicButtonClassName,
+  publicSectionClassName,
+  publicSectionSpacingClassName,
+} from "@/components/public/publicStyles";
 import { usePublicPageData } from "@/hooks/usePublicPageData";
 import { withPublicAudience } from "@/lib/public-audience";
 
@@ -87,7 +91,7 @@ export default function TenantHomePage() {
         metricColumns="two"
       />
 
-      <section className="pb-16 sm:pb-20">
+      <section className={publicSectionSpacingClassName}>
         <div className={publicSectionClassName}>
           <PublicCardGrid
             columns="four"
@@ -117,7 +121,7 @@ export default function TenantHomePage() {
         </div>
       </section>
 
-      <section className="pb-16 sm:pb-20">
+      <section className={publicSectionSpacingClassName}>
         <div className={`${publicSectionClassName} grid gap-6 xl:grid-cols-[0.95fr_1.05fr]`}>
           <PublicChecklistPanel
             eyebrow="What this page is for"

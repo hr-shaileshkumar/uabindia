@@ -19,7 +19,12 @@ import {
 import { MotionReveal } from "@/components/public/PublicMotion";
 import PublicStructuredData from "@/components/public/PublicStructuredData";
 import { PlatformPublicPageShell, usePlatformPublicPage } from "@/components/public/pages/PlatformPublicPageShell";
-import { publicButtonClassName, publicPanelClassName, publicSectionClassName } from "@/components/public/publicStyles";
+import {
+  publicButtonClassName,
+  publicPanelClassName,
+  publicSectionClassName,
+  publicSectionSpacingClassName,
+} from "@/components/public/publicStyles";
 import {
   businessProblems,
   comparisonRows,
@@ -172,7 +177,7 @@ export default function PlatformHomePage() {
       <ProcessTimeline items={implementationSteps} />
       <AnalyticsShowcase metrics={liveDashboardMetrics} />
       {liveDataNotice ? (
-        <section className="pb-16 sm:pb-20">
+        <section className={publicSectionSpacingClassName}>
           <div className={publicSectionClassName}>
             <MotionReveal>
               <div className={`${publicPanelClassName} p-6 sm:p-8`}>

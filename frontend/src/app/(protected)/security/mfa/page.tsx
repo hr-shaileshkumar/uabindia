@@ -80,7 +80,7 @@ export default function MfaPage() {
       </div>
 
       {/* Info Banner */}
-      <div className="flex items-start gap-3 rounded-2xl border border-blue-200 bg-blue-50 px-5 py-4">
+      <div className="flex items-start gap-3 rounded-2xl border border-blue-200/85 bg-[linear-gradient(135deg,rgba(239,246,255,0.9),rgba(224,242,254,0.85),rgba(238,242,255,0.75))] px-5 py-4 shadow-[0_12px_28px_rgba(15,23,42,0.06)]">
         <Info className="h-5 w-5 flex-shrink-0 text-blue-600 mt-0.5" />
         <div>
           <p className="font-semibold text-blue-900">MFA is on the product roadmap</p>
@@ -103,8 +103,8 @@ export default function MfaPage() {
         <div className="erp-panel-body">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {MFA_METHODS.map((method) => (
-              <div key={method.title} className={`rounded-2xl border border-slate-200/60 ${method.bg} p-5`}>
-                <div className={`flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-sm ${method.iconColor}`}>
+              <div key={method.title} className={`rounded-2xl border border-slate-200/70 ${method.bg} p-5 shadow-[0_10px_22px_rgba(15,23,42,0.06)]`}>
+                <div className={`flex h-11 w-11 items-center justify-center rounded-xl bg-white/95 shadow-sm ${method.iconColor}`}>
                   {method.icon}
                 </div>
                 <h3 className="mt-4 font-bold text-slate-900">{method.title}</h3>
@@ -130,7 +130,7 @@ export default function MfaPage() {
         <div className="erp-panel-body">
           <div className="grid gap-2 sm:grid-cols-2">
             {ROADMAP_ITEMS.map((item) => (
-              <div key={item} className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
+              <div key={item} className="flex items-start gap-3 rounded-xl border border-slate-100 bg-[linear-gradient(180deg,rgba(248,250,252,0.92),rgba(255,255,255,0.96))] px-4 py-3">
                 <CheckCircle className="h-4 w-4 flex-shrink-0 text-slate-400 mt-0.5" />
                 <span className="text-sm text-slate-700">{item}</span>
               </div>

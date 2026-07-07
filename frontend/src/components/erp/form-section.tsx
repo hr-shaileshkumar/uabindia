@@ -8,7 +8,7 @@ export function FormSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[2rem] border border-slate-200/80 bg-white p-6 shadow-[0_28px_70px_rgba(15,23,42,0.08)] sm:p-8">
+    <section className="overflow-hidden rounded-[2rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.97))] p-6 shadow-[0_28px_70px_rgba(15,23,42,0.08)] sm:p-8">
       <div className="mb-6">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--erp-primary)]">
           Request details

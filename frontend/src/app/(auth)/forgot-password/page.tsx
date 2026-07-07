@@ -1,21 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, type FormEvent } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, type FormEvent } from "react";
 import LoginCard from "@/components/auth/LoginCard";
 import PublicAudiencePageFrame from "@/components/public/PublicAudiencePageFrame";
 import PublicAuthShell from "@/components/public/PublicAuthShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { usePublicPageData } from "@/hooks/usePublicPageData";
+import { useResolvedPublicAudience } from "@/hooks/useResolvedPublicAudience";
 import { getApiErrorMessage } from "@/lib/api-errors";
-import {
-  hasExplicitPublicTenantContext,
-  resolvePublicAudience,
-  withPublicAudience,
-} from "@/lib/public-audience";
-import apiClient from "@/services/apiClient";
+import { withPublicAudience } from "@/lib/public-audience";
+import { authApi } from "@/services/modules";
 
 const schema = {
   email: (value: string) => /\S+@\S+\.\S+/.test(value),
@@ -32,12 +28,7 @@ type ForgotPasswordContent = {
 };
 
 export default function ForgotPasswordPage() {
-  const searchParams = useSearchParams();
-  const isTenantContext = hasExplicitPublicTenantContext();
-  const audience = useMemo(
-    () => resolvePublicAudience(searchParams.get("audience"), isTenantContext),
-    [isTenantContext, searchParams]
-  );
+  const { audience } = useResolvedPublicAudience();
   const { profile, headerContent, footerContent, allowedPaths, pageVisible, parseContent } = usePublicPageData("forgot-password", audience);
   const content = parseContent<ForgotPasswordContent>({
     title: "Forgot password",
@@ -52,6 +43,7 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [state, setState] = useState<"idle" | "success" | "error" | "submitting">("idle");
+  const emailFieldId = "forgot-password-email";
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -68,7 +60,7 @@ export default function ForgotPasswordPage() {
     setMessage("");
 
     try {
-      const response = await apiClient.post("/auth/forgot-password", { email: normalizedEmail });
+      const response = await authApi.forgotPassword({ email: normalizedEmail });
       setState("success");
       setMessage(
         response.data?.message ||
@@ -82,11 +74,18 @@ export default function ForgotPasswordPage() {
 
   return (
     <PublicAudiencePageFrame audience={audience} profile={profile} headerContent={headerContent} footerContent={footerContent} allowedPaths={allowedPaths} pageVisible={pageVisible} footerVariant="full">
-      <PublicAuthShell>
+      <PublicAuthShell
+        eyebrow={content.authEyebrow}
+        title="Recover workspace access"
+        description="Use the email linked to your workspace account. If the account exists, reset instructions will be sent without exposing account status."
+        badges={content.authBadges}
+      >
         <LoginCard
           profile={profile}
+          eyebrow="Password recovery"
+          align="left"
           title="Reset your password"
-          subtitle={isTenantContext ? "We will send reset instructions to your work email." : "Use the email linked to your workspace account."}
+          subtitle={audience === "tenant" ? "We will send reset instructions to your work email." : "Use the email linked to your workspace account."}
           footer={
             <div className="text-center text-sm text-slate-500">
               Back to{" "}
@@ -98,8 +97,8 @@ export default function ForgotPasswordPage() {
         >
           <form className="space-y-5" onSubmit={onSubmit}>
             <div>
-              <label className="erp-label">Email address</label>
-              <Input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@company.com" type="email" />
+              <label className="erp-label" htmlFor={emailFieldId}>Email address</label>
+              <Input id={emailFieldId} value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@company.com" type="email" className="mt-2" />
             </div>
 
             {message ? (

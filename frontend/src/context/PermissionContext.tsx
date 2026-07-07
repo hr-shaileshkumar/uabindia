@@ -45,9 +45,12 @@ export const usePermissions = () => {
   return ctx;
 };
 
-const normalize = (value: string) => value.toLowerCase();
+export const normalize = (value: string) => value.toLowerCase().trim();
 
-const inferModuleScope = (permissionKey: string) => {
+export const isWildcardPermission = (permission: string) =>
+  permission === "*" || permission === "module:*" || permission === "resource:*";
+
+export const inferModuleScope = (permissionKey: string) => {
   if (permissionKey.startsWith("module:")) {
     return permissionKey.slice("module:".length).split(".")[0] || null;
   }
@@ -91,11 +94,13 @@ export const PermissionProvider = ({ children }: { children: React.ReactNode }) 
 
   const hasPermission = (keys: string[]) => {
     if (state.capabilities.isSuperAdmin || userIsSuperAdmin) return true;
+    if (state.mode === "open") return true;
     if (state.fetchFailed) return false;
-    if (state.permissions.has("*")) return true; // Explicit wildcard from backend
+    if (state.permissions.has("*") || state.permissions.has("module:*") || state.permissions.has("resource:*")) return true;
     if (state.permissions.size === 0) return false;
     return keys.some((key) => {
       const normalized = normalize(key);
+      if (isWildcardPermission(normalized)) return true;
       const moduleScope = inferModuleScope(normalized);
 
       if (state.permissions.has(normalized)) return true;

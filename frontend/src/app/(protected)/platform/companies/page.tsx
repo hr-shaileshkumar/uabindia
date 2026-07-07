@@ -413,13 +413,6 @@ export default function CompaniesPage() {
 
   return (
     <StandardPageLayout
-      breadcrumb={
-        <nav className="erp-breadcrumb-nav" aria-label="Breadcrumb">
-          <span className="erp-breadcrumb-link">Platform</span>
-          <span className="erp-breadcrumb-sep" aria-hidden="true">/</span>
-          <span className="erp-breadcrumb-current">Company Master</span>
-        </nav>
-      }
       title="Company Master"
       subtitle="Manage company details, tenant mapping, and core platform configurations."
       eyebrow="Administration / Master Data"

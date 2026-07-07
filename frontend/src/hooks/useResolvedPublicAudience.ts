@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   hasExplicitPublicTenantContext,
+  normalizePublicAudience,
   resolvePublicAudience,
   type PublicAudience,
 } from "@/lib/public-audience";
@@ -16,7 +17,14 @@ type UseResolvedPublicAudienceResult = {
 export function useResolvedPublicAudience(): UseResolvedPublicAudienceResult {
   const searchParams = useSearchParams();
   const requestedAudience = searchParams.get("audience");
-  const isTenantContext = hasExplicitPublicTenantContext();
+  const normalizedRequestedAudience = normalizePublicAudience(requestedAudience);
+  const [detectedTenantContext, setDetectedTenantContext] = useState(false);
+
+  useEffect(() => {
+    setDetectedTenantContext(hasExplicitPublicTenantContext());
+  }, []);
+
+  const isTenantContext = normalizedRequestedAudience === "tenant" || detectedTenantContext;
   const audience = useMemo(
     () => resolvePublicAudience(requestedAudience, isTenantContext),
     [isTenantContext, requestedAudience]

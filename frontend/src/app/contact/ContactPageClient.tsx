@@ -9,7 +9,12 @@ import {
 import PublicAudiencePageFrame from "@/components/public/PublicAudiencePageFrame";
 import PublicStructuredData from "@/components/public/PublicStructuredData";
 import { MotionReveal } from "@/components/public/PublicMotion";
-import { publicPanelClassName, publicSectionClassName } from "@/components/public/publicStyles";
+import {
+  publicPageSectionClassName,
+  publicPanelClassName,
+  publicSectionClassName,
+  publicSectionSpacingClassName,
+} from "@/components/public/publicStyles";
 import { ContactDemoForm } from "@/components/erp/contact-demo-form";
 import { supportLanes, publicSiteUrl } from "@/lib/public-marketing";
 import { usePublicPageData } from "@/hooks/usePublicPageData";
@@ -62,7 +67,7 @@ export default function ContactPageClient({ audience }: { audience: PublicAudien
     >
       <PublicStructuredData data={structuredData} />
 
-      <section className="py-16 sm:py-20">
+      <section className={publicPageSectionClassName}>
         <div className={`${publicSectionClassName} grid gap-8 xl:grid-cols-[0.88fr_1.12fr]`}>
           <div className="space-y-6">
             <MotionReveal>
@@ -99,7 +104,7 @@ export default function ContactPageClient({ audience }: { audience: PublicAudien
         </div>
       </section>
 
-      <section className="pb-16 sm:pb-20">
+      <section className={publicSectionSpacingClassName}>
         <div className={`${publicSectionClassName} grid gap-6 xl:grid-cols-[0.86fr_1.14fr]`}>
           <MotionReveal>
             <div>

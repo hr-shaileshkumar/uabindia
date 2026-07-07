@@ -10,6 +10,7 @@ export const AUTH_PATH_PREFIXES = [
 
 export const OWNER_PATH_PREFIXES = [
   "/platform",
+  "/superadmin",
 ] as const;
 
 export const BUSINESS_PATH_PREFIXES = [
@@ -46,9 +47,17 @@ export const BUSINESS_PATH_PREFIXES = [
 
 export const PUBLIC_PATH_PREFIXES = [
   "/",
+  "/products",
+  "/industries",
+  "/pricing",
+  "/book-demo",
   "/contact",
   "/about",
   "/careers",
+  "/resources",
+  "/help-support",
+  "/privacy",
+  "/terms",
   "/tenant-not-found",
   "/not-authorized",
 ] as const;
@@ -98,7 +107,18 @@ export function matchesAnyPrefix(pathname: string, prefixes: readonly string[]) 
 export function canonicalizeProtectedPath(pathname: string) {
   const normalized = normalizePathname(pathname);
   if (normalized === "/" || normalized === "/context") return normalized;
-  if (normalized.startsWith("/erp/") || matchesAnyPrefix(normalized, OWNER_PATH_PREFIXES)) return normalized;
+  if (matchesAnyPrefix(normalized, OWNER_PATH_PREFIXES)) return normalized;
+
+  if (normalized === "/erp") {
+    return ROUTES.DASHBOARD;
+  }
+
+  if (normalized.startsWith("/erp/")) {
+    const legacyPath = normalized.slice("/erp".length);
+
+    if (legacyPath === "/dashboard") return ROUTES.DASHBOARD;
+    return normalizePathname(legacyPath);
+  }
 
   for (const [legacyPrefix, canonicalPrefix] of Object.entries(LEGACY_ALIAS_PREFIX)) {
     if (normalized === legacyPrefix || normalized.startsWith(`${legacyPrefix}/`)) {

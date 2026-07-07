@@ -48,22 +48,20 @@ namespace UabIndia.Api.Services
         {
             var tenantId = _tenantAccessor.GetTenantId();
             var permissionSnapshot = await GetCurrentPermissionSnapshotAsync(tenantId);
-
-            var modules = await _db.Modules
-                .AsNoTracking()
-                .Where(m => m.IsEnabled && enabledModuleKeys.Contains(m.ModuleKey))
-                .OrderBy(m => m.SortOrder)
-                .ThenBy(m => m.ModuleKey)
-                .ToListAsync();
+            var modules = (await GetRichEnabledModulesAsync(tenantId))
+                .Where(module => enabledModuleKeys.Contains(module.Key))
+                .OrderBy(module => module.SortOrder)
+                .ThenBy(module => module.Key, StringComparer.OrdinalIgnoreCase)
+                .ToList();
 
             var tenantNavGroups = await TryGetTenantNavGroupsAsync(tenantId);
             var navModules = new List<NavModuleDto>();
 
             foreach (var module in modules)
             {
-                var groups = tenantNavGroups.TryGetValue(module.ModuleKey, out var tenantGroups) && tenantGroups.Count > 0
+                var groups = tenantNavGroups.TryGetValue(module.Key, out var tenantGroups) && tenantGroups.Count > 0
                     ? tenantGroups
-                    : DefaultUiSchemaCatalog.GetNavigationGroups(module.ModuleKey);
+                    : DefaultUiSchemaCatalog.GetNavigationGroups(module.Key);
 
                 var filteredGroups = groups
                     .Select(group => new NavGroupDto
@@ -84,7 +82,7 @@ namespace UabIndia.Api.Services
 
                 navModules.Add(new NavModuleDto
                 {
-                    Key = module.ModuleKey,
+                    Key = module.Key,
                     DisplayName = string.IsNullOrWhiteSpace(module.DisplayName) ? module.Name : module.DisplayName,
                     Icon = module.Icon,
                     HomeHref = module.BasePath,
@@ -203,7 +201,7 @@ namespace UabIndia.Api.Services
                 .ThenBy(m => m.Key)
                 .ToListAsync();
 
-            return result;
+            return DefaultUiSchemaCatalog.ExpandEnabledModules(result);
         }
 
         private async Task<PermissionSnapshot> GetCurrentPermissionSnapshotAsync(Guid tenantId)
@@ -448,7 +446,7 @@ namespace UabIndia.Api.Services
                     result[key] = groups;
                 }
 
-                return result;
+                return DefaultUiSchemaCatalog.ExpandLegacyTenantNavigation(result);
             }
             catch (Exception ex)
             {
@@ -489,7 +487,7 @@ namespace UabIndia.Api.Services
                     });
                 }
 
-                return rules;
+                return DefaultUiSchemaCatalog.ExpandLegacyRouteRules(rules);
             }
             catch (Exception ex)
             {
@@ -517,7 +515,8 @@ namespace UabIndia.Api.Services
                     return null;
                 }
 
-                return JsonSerializer.Deserialize<DashboardSchemaDto>(dashboardEl.GetRawText(), _jsonOpts);
+                var schema = JsonSerializer.Deserialize<DashboardSchemaDto>(dashboardEl.GetRawText(), _jsonOpts);
+                return schema == null ? null : DefaultUiSchemaCatalog.NormalizeDashboardSchema(schema);
             }
             catch (Exception ex)
             {

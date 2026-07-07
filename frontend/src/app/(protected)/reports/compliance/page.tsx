@@ -85,7 +85,7 @@ export default function ComplianceReportsPage() {
           ) : (
             <>
               {activeTab === "audit" && (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto bg-white/80">
                   <table className="erp-table">
                     <thead className="erp-thead">
                       <tr>
@@ -122,7 +122,7 @@ export default function ComplianceReportsPage() {
               {activeTab === "quality" && (
                 <div className="space-y-4">
                   {dataQuality?.issues && dataQuality.issues.length > 0 ? (
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto bg-white/80">
                       <table className="erp-table">
                         <thead className="erp-thead">
                           <tr>

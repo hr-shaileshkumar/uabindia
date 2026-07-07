@@ -77,6 +77,8 @@ export default function ModuleMappingPage() {
     loading: schemaLoading,
     refresh,
     state,
+    usingCache,
+    lastSuccessfulAt,
   } = useUiSchema();
   const [selectedModule, setSelectedModule] = useState<string>("platform");
   const [search, setSearch] = useState("");
@@ -296,7 +298,17 @@ export default function ModuleMappingPage() {
               </div>
 
               {schemaLoading ? (
-                <p className="py-6 text-sm text-slate-500">Loading backend schema...</p>
+                <div className="py-6">
+                  <div className="space-y-3">
+                    <div className="h-4 w-3/4 animate-pulse rounded bg-slate-200" />
+                    <div className="h-6 w-full animate-pulse rounded bg-slate-200" />
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="h-40 animate-pulse rounded bg-slate-200" />
+                      <div className="h-40 animate-pulse rounded bg-slate-200" />
+                      <div className="h-40 animate-pulse rounded bg-slate-200" />
+                    </div>
+                  </div>
+                </div>
               ) : !selectedModuleData ? (
                 <p className="py-6 text-sm text-slate-500">No backend records matched the current module and search filter.</p>
               ) : (
@@ -380,6 +392,14 @@ export default function ModuleMappingPage() {
                 </div>
               )}
             </section>
+            {usingCache ? (
+              <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+                <span>
+                  Showing cached navigation and registry data (last known good: {lastSuccessfulAt ? new Date(lastSuccessfulAt).toLocaleString() : "unknown"}).
+                </span>
+                <button onClick={() => void refresh()} className="ml-3 font-semibold underline">Retry</button>
+              </div>
+            ) : null}
           </div>
         </div>
       </StandardPageLayout>

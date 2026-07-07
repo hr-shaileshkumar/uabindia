@@ -2,6 +2,7 @@ import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from "ax
 import { getClientApiV1BaseUrl } from "@/lib/api-base-url";
 import { withPublicAudience } from "@/lib/public-audience";
 import { OWNER_PATH_PREFIXES, matchesAnyPrefix } from "@/lib/erp/route-config";
+import { getTenantSubdomainFromHost, isLocalhostHostname, isPotentialCustomTenantHost } from "@/lib/tenant-host";
 
 /**
  * Unified API Client for ERP Frontend
@@ -11,7 +12,7 @@ import { OWNER_PATH_PREFIXES, matchesAnyPrefix } from "@/lib/erp/route-config";
 
 const apiBaseUrl = getClientApiV1BaseUrl();
 const TENANT_STORAGE_KEY = "erp.tenant.subdomain";
-const RESERVED_HOST_LABELS = new Set(["app", "api", "www"]);
+const RESERVED_TENANT_LABELS = new Set(["api", "app", "www"]);
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: apiBaseUrl,
@@ -59,7 +60,7 @@ const ensureCsrfToken = async (): Promise<string | null> => {
 
 export const persistTenantSubdomain = (tenant: string | null | undefined) => {
   if (typeof window === "undefined") return;
-  const normalized = tenant?.trim().toLowerCase();
+  const normalized = normalizeTenantSubdomain(tenant);
   if (!normalized) {
     window.localStorage.removeItem(TENANT_STORAGE_KEY);
     return;
@@ -74,39 +75,45 @@ export const clearTenantSubdomain = () => {
 };
 
 export const getTenantSubdomain = (): string | null => {
-  const tenantFromEnv = process.env.NEXT_PUBLIC_TENANT_SUBDOMAIN || null;
+  const tenantFromEnv = normalizeTenantSubdomain(process.env.NEXT_PUBLIC_TENANT_SUBDOMAIN || null);
   if (typeof window === "undefined") return tenantFromEnv;
 
   const hostname = window.location.hostname.toLowerCase();
-  const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
-  const queryTenant = new URLSearchParams(window.location.search).get("tenant")?.trim().toLowerCase() || null;
-  const storedTenant = window.localStorage.getItem(TENANT_STORAGE_KEY);
-  const parts = hostname.split(".").filter(Boolean);
+  const queryTenant = normalizeTenantSubdomain(new URLSearchParams(window.location.search).get("tenant"));
+  const tenantFromHost = normalizeTenantSubdomain(getTenantSubdomainFromHost(hostname));
 
-  if (hostname.endsWith(".localhost") && !isLocalhost) {
-    const candidate = hostname.split(".")[0] || null;
-    if (!candidate || RESERVED_HOST_LABELS.has(candidate)) {
-      return null;
-    }
-    return candidate;
+  if (tenantFromHost) {
+    return tenantFromHost;
   }
 
-  if (isLocalhost) {
-    return queryTenant || storedTenant || tenantFromEnv;
+  if (isLocalhostHostname(hostname)) {
+    return queryTenant || tenantFromEnv;
   }
 
-  if (parts.length >= 3) {
-    const candidate = parts[0];
-    if (candidate && !RESERVED_HOST_LABELS.has(candidate)) {
-      return candidate;
-    }
-  }
-
-  return tenantFromEnv;
+  return queryTenant || tenantFromEnv;
 };
 
 const getTenantHeader = (): string | null => {
-  return getTenantSubdomain();
+  const tenant = getTenantSubdomain();
+  if (tenant) {
+    return tenant;
+  }
+
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const hostname = window.location.hostname.toLowerCase();
+  return isPotentialCustomTenantHost(hostname) ? hostname : null;
+};
+
+const normalizeTenantSubdomain = (value: string | null | undefined): string | null => {
+  const normalized = value?.trim().toLowerCase() || null;
+  if (!normalized || RESERVED_TENANT_LABELS.has(normalized)) {
+    return null;
+  }
+
+  return normalized;
 };
 
 const getContextHeaders = (): { companyId?: string; projectId?: string } => {
@@ -131,6 +138,7 @@ const shouldAttachOrgScopeHeaders = (url?: string): boolean => {
     "/tenants",
     "/settings",
     "/platform",
+    "/superadmin",
     "/licensing",
     "/security",
   ];

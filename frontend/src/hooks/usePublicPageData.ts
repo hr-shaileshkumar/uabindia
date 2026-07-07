@@ -52,68 +52,92 @@ export const usePublicPageData = (
 
   useEffect(() => {
     let isActive = true;
-    const isTenantRequest = typeof window !== "undefined" ? hasExplicitPublicTenantContext() : audience === "tenant";
-    const resolvedAudience: PublicAudience = isTenantRequest ? "tenant" : "platform";
-    const tenant = isTenantRequest && typeof window !== "undefined" ? getTenantSubdomain() : null;
-    const canLoadPageContent = resolvedAudience === "platform" || Boolean(tenant);
-    setIsTenantContext(isTenantRequest);
-    setLoading(true);
+    const loadPublicPageData = async () => {
+      const isTenantRequest = typeof window !== "undefined" ? hasExplicitPublicTenantContext() : audience === "tenant";
+      const resolvedAudience: PublicAudience = isTenantRequest ? "tenant" : "platform";
+      const tenant = isTenantRequest && typeof window !== "undefined" ? getTenantSubdomain() : null;
+      const canLoadPageContent = resolvedAudience === "platform" || Boolean(tenant);
+      setIsTenantContext(isTenantRequest);
+      setLoading(true);
 
-    const profileRequest =
-      resolvedAudience === "platform"
-        ? publicApi.getCompanyProfile("platform").then((response) => buildClientProfile(response.data))
-        : tenant
-          ? publicApi.getCompanyProfile("tenant").then((response) => buildClientProfile(response.data))
-          : Promise.resolve(getBaseClientProfile());
-    const manifestRequest = publicApi.getSiteManifest(resolvedAudience).catch(() => null);
-    const siteDataRequest = publicApi.getSiteData(resolvedAudience).catch(() => null);
+      if (resolvedAudience === "tenant" && !tenant) {
+        setProfile(getBaseClientProfile());
+        setManifest(null);
+        setSiteData(null);
+        setPageRecord(null);
+        setHeaderRecord(null);
+        setFooterRecord(null);
+        setLoading(false);
+        return;
+      }
 
-    profileRequest
-      .then((nextProfile) => {
+      const manifestResponse = await publicApi.getSiteManifest(resolvedAudience).catch(() => null);
+      if (!isActive) return;
+
+      if (!manifestResponse) {
+        setProfile(getBaseClientProfile());
+        setManifest(null);
+        setSiteData(null);
+        setPageRecord(null);
+        setHeaderRecord(null);
+        setFooterRecord(null);
+        setLoading(false);
+        return;
+      }
+
+      setManifest(manifestResponse.data ?? null);
+
+      const profileRequest =
+        resolvedAudience === "platform"
+          ? publicApi.getCompanyProfile("platform").then((response) => buildClientProfile(response.data))
+          : tenant
+            ? publicApi.getCompanyProfile("tenant").then((response) => buildClientProfile(response.data))
+            : Promise.resolve(getBaseClientProfile());
+
+      if (!canLoadPageContent) {
+        setPageRecord(null);
+        setHeaderRecord(null);
+        setFooterRecord(null);
+
+        const [nextProfile, siteDataResponse] = await Promise.all([
+          profileRequest.catch(() => getBaseClientProfile()),
+          publicApi.getSiteData(resolvedAudience).catch(() => null),
+        ]);
+
         if (!isActive) return;
         setProfile(nextProfile);
-      })
-      .catch(() => {
-        if (!isActive) return;
-        setProfile(getBaseClientProfile());
-      });
+        setSiteData(siteDataResponse?.data ?? null);
+        setLoading(false);
+        return;
+      }
 
-    if (!canLoadPageContent) {
+      const [nextProfile, siteDataResponse, pageResponse, headerResponse, footerResponse] = await Promise.all([
+        profileRequest.catch(() => getBaseClientProfile()),
+        publicApi.getSiteData(resolvedAudience).catch(() => null),
+        publicApi.getWebsitePage(pageType, resolvedAudience).catch(() => null),
+        publicApi.getWebsitePage("header", resolvedAudience).catch(() => null),
+        publicApi.getWebsitePage("footer", resolvedAudience).catch(() => null),
+      ]);
+
+      if (!isActive) return;
+      setProfile(nextProfile);
+      setSiteData(siteDataResponse?.data ?? null);
+      setPageRecord(pageResponse?.data ?? null);
+      setHeaderRecord(headerResponse?.data ?? null);
+      setFooterRecord(footerResponse?.data ?? null);
+      setLoading(false);
+    };
+
+    void loadPublicPageData().catch(() => {
+      if (!isActive) return;
+      setProfile(getBaseClientProfile());
+      setManifest(null);
+      setSiteData(null);
       setPageRecord(null);
       setHeaderRecord(null);
       setFooterRecord(null);
-      Promise.all([manifestRequest, siteDataRequest])
-        .then(([manifestResponse, siteDataResponse]) => {
-          if (!isActive) return;
-          setManifest(manifestResponse?.data ?? null);
-          setSiteData(siteDataResponse?.data ?? null);
-        })
-        .finally(() => {
-          if (isActive) setLoading(false);
-        });
-      return () => {
-        isActive = false;
-      };
-    }
-
-    Promise.all([
-      manifestRequest,
-      siteDataRequest,
-      publicApi.getWebsitePage(pageType, resolvedAudience).catch(() => null),
-      publicApi.getWebsitePage("header", resolvedAudience).catch(() => null),
-      publicApi.getWebsitePage("footer", resolvedAudience).catch(() => null),
-    ])
-      .then((responses) => {
-        if (!isActive) return;
-        setManifest(responses[0]?.data ?? null);
-        setSiteData(responses[1]?.data ?? null);
-        setPageRecord(responses[2]?.data ?? null);
-        setHeaderRecord(responses[3]?.data ?? null);
-        setFooterRecord(responses[4]?.data ?? null);
-      })
-      .finally(() => {
-        if (isActive) setLoading(false);
-      });
+      setLoading(false);
+    });
 
     return () => {
       isActive = false;

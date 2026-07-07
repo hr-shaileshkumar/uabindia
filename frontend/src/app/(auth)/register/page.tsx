@@ -1,16 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, type FormEvent } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, type FormEvent } from "react";
 import LoginCard from "@/components/auth/LoginCard";
 import PublicAudiencePageFrame from "@/components/public/PublicAudiencePageFrame";
 import PublicAuthShell from "@/components/public/PublicAuthShell";
 import { usePublicPageData } from "@/hooks/usePublicPageData";
+import { useResolvedPublicAudience } from "@/hooks/useResolvedPublicAudience";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import {
-  hasExplicitPublicTenantContext,
-  resolvePublicAudience,
   withPublicAudience,
   type PublicAudience,
 } from "@/lib/public-audience";
@@ -19,12 +17,7 @@ import { publicApi } from "@/services/modules";
 import { getTenantSubdomain } from "@/services/apiClient";
 
 export default function RegisterPage() {
-  const searchParams = useSearchParams();
-  const isTenantContext = hasExplicitPublicTenantContext();
-  const audience = useMemo(
-    () => resolvePublicAudience(searchParams.get("audience"), isTenantContext),
-    [isTenantContext, searchParams]
-  );
+  const { audience } = useResolvedPublicAudience();
   const { profile, headerContent, footerContent, allowedPaths, pageVisible, parseContent } = usePublicPageData("register", audience);
   const content = parseContent({
     title: "Request workspace access",
@@ -62,7 +55,6 @@ function RegisterAccessRequestForm({
   profileName: string;
   submitLabel: string;
 }) {
-  const detectedTenant = getTenantSubdomain() ?? "";
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -86,7 +78,7 @@ function RegisterAccessRequestForm({
       const response = await publicApi.submitContact({
         name: fullName.trim(),
         email: email.trim(),
-        companyName: detectedTenant ? profileName : undefined,
+        companyName: getTenantSubdomain() ? profileName : undefined,
         subject: "Portal access request",
         message: message.trim(),
       }, audience, "request-access");
@@ -106,7 +98,7 @@ function RegisterAccessRequestForm({
     <LoginCard
       profile={profile}
       title="Request access"
-      subtitle={detectedTenant ? "Share your details for admin approval." : "Share your details and the platform team will route the access request."}
+      subtitle={audience === "tenant" ? "Share your details for admin approval." : "Share your details and the platform team will route the access request."}
       footer={
         <p className="text-center text-sm text-slate-500">
           Already have an account?{" "}

@@ -2,6 +2,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using UabIndia.Application.Interfaces;
+using UabIndia.Core.Authorization;
 using UabIndia.Infrastructure.Data;
 
 namespace UabIndia.Api.Authorization
@@ -24,8 +25,12 @@ namespace UabIndia.Api.Authorization
                 return;
             }
 
-            // SuperAdmin and SystemAdmin bypass module enablement checks.
-            if (context.User.IsInRole("SuperAdmin") || context.User.IsInRole("SystemAdmin"))
+            var roleClaims = context.User.Claims
+                .Where(c => c.Type.EndsWith("/role", StringComparison.OrdinalIgnoreCase) || c.Type.EndsWith("role", StringComparison.OrdinalIgnoreCase))
+                .Select(c => c.Value)
+                .ToList();
+
+            if (RoleCatalog.HasAnyRole(roleClaims, SystemRole.SuperAdmin))
             {
                 context.Succeed(requirement);
                 return;

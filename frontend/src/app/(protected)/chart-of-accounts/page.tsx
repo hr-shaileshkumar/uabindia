@@ -1,13 +1,11 @@
-import { WorkspacePage } from "@/components/erp/workspace-page";
+import { MappedRoutePage } from "@/components/erp/mapped-route-page";
 
 export default function FinancePage() {
   return (
-    <WorkspacePage
-      workspaceKey="finance"
-      crumbs={[
-        { label: "ERP", href: "/erp/dashboard" },
-        { label: "Finance" },
-      ]}
+    <MappedRoutePage
+      eyebrow="Finance / Ledger Setup"
+      title="Chart of Accounts"
+      notice="This route now uses the common SaaS shell instead of mock workspace content, while the deeper finance workflows continue to expand through the centralized API facade."
     />
   );
 }
