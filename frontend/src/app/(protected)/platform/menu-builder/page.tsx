@@ -13,26 +13,44 @@ interface MenuItem {
   id: string;
   title: string;
   path: string;
-  module: string;
+  category: string;
   requiredPermission?: string;
   order: number;
   isActive: boolean;
 }
 
+const MASTER_CATEGORIES = [
+  "Dashboard", "Organization", "Identity & Access", "Platform Configuration",
+  "Low-Code Platform", "Modules", "Workflow & Automation", "Website CMS",
+  "Integrations", "Security", "Monitoring", "Audit & Compliance",
+  "Backup & Recovery", "Licensing", "Data Management", "Developer Center",
+  "AI Configuration", "Reports", "Support Center", "Recycle Bin",
+  "System Tools", "Platform Settings"
+];
+
 const SEED_MENU_ITEMS: MenuItem[] = [
-  { id: "m1", title: "Dashboard Hub", path: "/dashboard", module: "Core", order: 1, isActive: true },
-  { id: "m2", title: "Tenant Directory", path: "/platform/tenants", module: "Platform", requiredPermission: "platform.tenants.manage", order: 2, isActive: true },
-  { id: "m3", title: "User Directory", path: "/platform/users", module: "Platform", requiredPermission: "platform.users.manage", order: 3, isActive: true },
-  { id: "m4", title: "General Ledger", path: "/finance/journals", module: "Finance", requiredPermission: "finance.journal.view", order: 4, isActive: true },
-  { id: "m5", title: "Employee Register", path: "/hrms/employees", module: "HRMS", requiredPermission: "hrms.employee.view", order: 5, isActive: true },
-  { id: "m6", title: "Sales Orders", path: "/sales/orders", module: "Sales", requiredPermission: "sales.order.view", order: 6, isActive: true },
-  { id: "m7", title: "Stock Ledger", path: "/inventory/stock", module: "Inventory", requiredPermission: "inventory.stock.view", order: 7, isActive: true },
+  { id: "m1", title: "Admin Overview", path: "/platform", category: "Dashboard", order: 1, isActive: true },
+  { id: "m2", title: "Tenant Directory", path: "/platform/tenants", category: "Organization", requiredPermission: "platform.tenants.manage", order: 2, isActive: true },
+  { id: "m3", title: "Company Directory", path: "/platform/companies", category: "Organization", requiredPermission: "platform.companies.manage", order: 3, isActive: true },
+  { id: "m4", title: "User Directory", path: "/platform/users", category: "Identity & Access", requiredPermission: "platform.users.manage", order: 4, isActive: true },
+  { id: "m5", title: "Roles & RBAC Matrix", path: "/platform/roles", category: "Identity & Access", requiredPermission: "platform.roles.manage", order: 5, isActive: true },
+  { id: "m6", title: "Schema Manager", path: "/platform/schema-manager", category: "Low-Code Platform", requiredPermission: "platform.schema.manage", order: 6, isActive: true },
+  { id: "m7", title: "Entity Builder", path: "/platform/entity-builder", category: "Low-Code Platform", requiredPermission: "platform.schema.manage", order: 7, isActive: true },
+  { id: "m8", title: "Feature Flags", path: "/platform/feature-flags", category: "Modules", requiredPermission: "platform.flags.manage", order: 8, isActive: true },
+  { id: "m9", title: "Workflow Config", path: "/platform/workflow-config", category: "Workflow & Automation", requiredPermission: "platform.workflows.manage", order: 9, isActive: true },
+  { id: "m10", title: "Integrations & Connectors", path: "/platform/integrations/connectors", category: "Integrations", requiredPermission: "platform.integrations.manage", order: 10, isActive: true },
+  { id: "m11", title: "Security & Sessions", path: "/platform/security/sessions", category: "Security", requiredPermission: "platform.security.manage", order: 11, isActive: true },
+  { id: "m12", title: "Developer Center", path: "/platform/developer-center", category: "Developer Center", requiredPermission: "platform.developer.view", order: 12, isActive: true },
+  { id: "m13", title: "AI Assistant Config", path: "/platform/ai-assistant", category: "AI Configuration", requiredPermission: "platform.ai.manage", order: 13, isActive: true },
+  { id: "m14", title: "System Health Telemetry", path: "/platform/system-health", category: "Monitoring", requiredPermission: "platform.health.view", order: 14, isActive: true },
+  { id: "m15", title: "Audit Logs", path: "/platform/audit-logs", category: "Audit & Compliance", requiredPermission: "platform.audit.view", order: 15, isActive: true },
+  { id: "m16", title: "Recycle Bin", path: "/platform/recycle-bin", category: "Recycle Bin", requiredPermission: "platform.recycle.manage", order: 16, isActive: true },
 ];
 
 export default function MenuBuilderPage() {
   const [items, setItems] = useState<MenuItem[]>(SEED_MENU_ITEMS);
   const [search, setSearch] = useState("");
-  const [moduleFilter, setModuleFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
@@ -40,7 +58,7 @@ export default function MenuBuilderPage() {
   // Form State
   const [title, setTitle] = useState("");
   const [path, setPath] = useState("");
-  const [moduleName, setModuleName] = useState("Platform");
+  const [category, setCategory] = useState("Organization");
   const [permission, setPermission] = useState("");
 
   const handleCreateMenuItem = (e: React.FormEvent) => {
@@ -51,7 +69,7 @@ export default function MenuBuilderPage() {
       id: `m_${Date.now()}`,
       title: title.trim(),
       path: path.trim(),
-      module: moduleName,
+      category,
       requiredPermission: permission.trim() || undefined,
       order: items.length + 1,
       isActive: true,
@@ -62,53 +80,49 @@ export default function MenuBuilderPage() {
     setTitle("");
     setPath("");
     setPermission("");
-    notifySuccess(`Navigation item "${newItem.title}" added to router registry.`);
+    notifySuccess(`Navigation item "${newItem.title}" added to Master Navigation Registry.`);
   };
 
   const filteredItems = items.filter((item) => {
     const q = search.toLowerCase();
     const matchesSearch = !q || item.title.toLowerCase().includes(q) || item.path.toLowerCase().includes(q);
-    const matchesModule = moduleFilter === "all" || item.module.toLowerCase() === moduleFilter.toLowerCase();
-    return matchesSearch && matchesModule;
+    const matchesCategory = categoryFilter === "all" || item.category.toLowerCase() === categoryFilter.toLowerCase();
+    return matchesSearch && matchesCategory;
   });
 
   const kpis: KpiMetricItem[] = [
-    { label: "Navigation Items", value: items.length, tone: "info", icon: <Compass className="h-3.5 w-3.5" />, subtext: "Registered" },
-    { label: "Modules Covered", value: new Set(items.map((i) => i.module)).size, tone: "positive", icon: <Layers className="h-3.5 w-3.5" />, subtext: "Modules" },
-    { label: "RBAC Enforced Routes", value: items.filter((i) => i.requiredPermission).length, tone: "warning", icon: <ShieldCheck className="h-3.5 w-3.5" />, subtext: "Protected" },
-    { label: "Active Routes", value: items.filter((i) => i.isActive).length, tone: "positive", icon: <ArrowRight className="h-3.5 w-3.5" />, subtext: "Active" },
+    { label: "Navigation Routes", value: items.length, tone: "info", icon: <Compass className="h-3.5 w-3.5" />, subtext: "Master Tree" },
+    { label: "Master Categories", value: new Set(items.map((i) => i.category)).size, tone: "positive", icon: <Layers className="h-3.5 w-3.5" />, subtext: "22 Standard" },
+    { label: "RBAC Protected", value: items.filter((i) => i.requiredPermission).length, tone: "warning", icon: <ShieldCheck className="h-3.5 w-3.5" />, subtext: "Enforced" },
+    { label: "Active Routes", value: items.filter((i) => i.isActive).length, tone: "positive", icon: <ArrowRight className="h-3.5 w-3.5" />, subtext: "Live" },
   ];
 
   return (
     <PlatformGlobalPageShell
-      title="Navigation Registry & Menu Builder"
-      subtitle="Configure dynamic sidebar navigation routes, module order, and permission guards across submodules."
-      categoryTag="UI Navigation Governance"
+      title="Master Navigation Registry & Menu Builder"
+      subtitle="Organize top-level ERP sidebar navigation across 22 Enterprise SaaS Architecture categories."
+      categoryTag="22-Category SaaS Navigation"
       kpiMetrics={kpis}
-      searchPlaceholder="Search menu titles, route paths, or modules..."
+      searchPlaceholder="Search menu title, route path, or category..."
       searchValue={search}
       onSearchChange={setSearch}
       filterOptions={[
         {
-          key: "module",
-          label: "All Modules",
-          value: moduleFilter,
-          onChange: setModuleFilter,
+          key: "category",
+          label: "All 22 Categories",
+          value: categoryFilter,
+          onChange: setCategoryFilter,
           options: [
-            { label: "All Modules", value: "all" },
-            { label: "Core", value: "core" },
-            { label: "Platform", value: "platform" },
-            { label: "Finance", value: "finance" },
-            { label: "HRMS", value: "hrms" },
-            { label: "Sales", value: "sales" },
+            { label: "All Categories", value: "all" },
+            ...MASTER_CATEGORIES.map((cat) => ({ label: cat, value: cat.toLowerCase() })),
           ],
         },
       ]}
       onClearFilters={() => {
         setSearch("");
-        setModuleFilter("all");
+        setCategoryFilter("all");
       }}
-      primaryActionLabel="New Route Item"
+      primaryActionLabel="New Route Entry"
       onPrimaryAction={() => setIsDrawerOpen(true)}
       primaryActionIcon={<Plus className="h-4 w-4 mr-1.5" />}
       isInspectorOpen={isDrawerOpen || !!selectedItem}
@@ -116,8 +130,8 @@ export default function MenuBuilderPage() {
         setIsDrawerOpen(false);
         setSelectedItem(null);
       }}
-      inspectorTitle={selectedItem ? `Navigation Route: ${selectedItem.title}` : "Add Navigation Route Item"}
-      inspectorSubTitle={selectedItem ? `Path ${selectedItem.path}` : "Register a route path in sidebar navigation matrix."}
+      inspectorTitle={selectedItem ? `Navigation Route: ${selectedItem.title}` : "Register Master Route"}
+      inspectorSubTitle={selectedItem ? `Path ${selectedItem.path}` : "Map route path to one of the 22 enterprise categories."}
       inspectorContent={
         selectedItem ? (
           <div className="space-y-4 text-xs">
@@ -131,12 +145,12 @@ export default function MenuBuilderPage() {
                 <span className="font-mono text-indigo-600 dark:text-indigo-400">{selectedItem.path}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Module:</span>
-                <span className="font-bold text-slate-900 dark:text-slate-100">{selectedItem.module}</span>
+                <span className="text-slate-500">Master Category:</span>
+                <span className="font-bold text-slate-900 dark:text-slate-100">{selectedItem.category}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">RBAC Permission:</span>
-                <span className="font-mono text-amber-600 dark:text-amber-400">{selectedItem.requiredPermission || "Public / Open"}</span>
+                <span className="text-slate-500">RBAC Guard:</span>
+                <span className="font-mono text-amber-600 dark:text-amber-400">{selectedItem.requiredPermission || "Public"}</span>
               </div>
             </div>
             <div className="flex justify-end pt-4">
@@ -149,22 +163,26 @@ export default function MenuBuilderPage() {
           <form onSubmit={handleCreateMenuItem} className="space-y-4 text-xs">
             <div className="space-y-2">
               <Label className="text-xs">Navigation Title *</Label>
-              <Input placeholder="Invoice Manager" value={title} onChange={(e) => setTitle(e.target.value)} required />
+              <Input placeholder="Branch Office Manager" value={title} onChange={(e) => setTitle(e.target.value)} required />
             </div>
 
             <div className="space-y-2">
               <Label className="text-xs">App Router Path *</Label>
-              <Input placeholder="/finance/invoices" value={path} onChange={(e) => setPath(e.target.value)} required />
+              <Input placeholder="/platform/branches" value={path} onChange={(e) => setPath(e.target.value)} required />
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs">Module Category</Label>
-              <Input placeholder="Finance / HRMS / Platform" value={moduleName} onChange={(e) => setModuleName(e.target.value)} />
+              <Label className="text-xs">Master Category</Label>
+              <select className="erp-select text-xs" value={category} onChange={(e) => setCategory(e.target.value)}>
+                {MASTER_CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs">Required RBAC Permission</Label>
-              <Input placeholder="finance.invoice.view" value={permission} onChange={(e) => setPermission(e.target.value)} />
+              <Label className="text-xs">Required Permission</Label>
+              <Input placeholder="platform.branches.manage" value={permission} onChange={(e) => setPermission(e.target.value)} />
             </div>
 
             <div className="flex justify-end gap-2 pt-6">
@@ -186,8 +204,8 @@ export default function MenuBuilderPage() {
               <th className="erp-th">Seq</th>
               <th className="erp-th">Navigation Title</th>
               <th className="erp-th">Route Path</th>
-              <th className="erp-th">Module</th>
-              <th className="erp-th">Required Permission</th>
+              <th className="erp-th">Master Category</th>
+              <th className="erp-th">RBAC Guard</th>
               <th className="erp-th">Status</th>
               <th className="erp-th text-right">Inspect</th>
             </tr>
@@ -205,10 +223,10 @@ export default function MenuBuilderPage() {
                 <td className="erp-td font-mono text-xs text-indigo-600 dark:text-indigo-400">{item.path}</td>
                 <td className="erp-td">
                   <Badge variant="outline" className="text-xs font-normal">
-                    {item.module}
+                    {item.category}
                   </Badge>
                 </td>
-                <td className="erp-td font-mono text-xs text-slate-500">{item.requiredPermission || "None"}</td>
+                <td className="erp-td font-mono text-xs text-slate-500">{item.requiredPermission || "Public"}</td>
                 <td className="erp-td">
                   <span className={item.isActive ? "erp-chip erp-chip-success" : "erp-chip erp-chip-neutral"}>
                     {item.isActive ? "Active" : "Disabled"}

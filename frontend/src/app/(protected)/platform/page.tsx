@@ -4,79 +4,112 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { 
   Building2, Users, ShieldCheck, Activity, Layers, SlidersHorizontal, 
-  Globe, Bell, Database, HardDrive, RefreshCw, FileText, ArrowRight, ShieldAlert
+  Globe, Bell, Database, HardDrive, FileText, ArrowRight, Code2, Bot, 
+  CreditCard, Key, ShieldAlert, Lock, RefreshCw, Cpu
 } from "lucide-react";
 import { PlatformGlobalPageShell, KpiMetricItem } from "@/components/platform/PlatformGlobalPageShell";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 
 interface ModuleShortcut {
   title: string;
   subtitle: string;
   href: string;
   icon: React.ReactNode;
-  badge?: string;
   category: string;
+  badge?: string;
 }
 
-const MODULE_SHORTCUTS: ModuleShortcut[] = [
-  { title: "Companies", subtitle: "Legal entity setup & tax registration", href: "/platform/companies", icon: <Building2 className="h-5 w-5 text-indigo-500" />, category: "Governance" },
-  { title: "Tenants", subtitle: "Multi-tenant provisioning & licensing", href: "/platform/tenants", icon: <Layers className="h-5 w-5 text-sky-500" />, category: "Governance", badge: "Multi-Tenant" },
-  { title: "Projects", subtitle: "Workspace scopes & project limits", href: "/platform/projects", icon: <Activity className="h-5 w-5 text-emerald-500" />, category: "Governance" },
-  { title: "User Directory", subtitle: "Identity management & active users", href: "/platform/users", icon: <Users className="h-5 w-5 text-amber-500" />, category: "Access Control" },
-  { title: "Roles & RBAC", subtitle: "Role-permission matrix & module switches", href: "/platform/roles", icon: <ShieldCheck className="h-5 w-5 text-indigo-500" />, category: "Access Control" },
-  { title: "Navigation Registry", subtitle: "Menu builder & router path mapper", href: "/platform/menu-builder", icon: <SlidersHorizontal className="h-5 w-5 text-rose-500" />, category: "Access Control" },
-  { title: "Schema Manager", subtitle: "Dynamic entity schema & custom fields", href: "/platform/schema-manager", icon: <Database className="h-5 w-5 text-cyan-500" />, category: "Configuration" },
-  { title: "System Settings", subtitle: "Global options, security, & API keys", href: "/platform/settings", icon: <SlidersHorizontal className="h-5 w-5 text-slate-500" />, category: "Configuration" },
-  { title: "Feature Flags", subtitle: "Real-time capability switches", href: "/platform/feature-flags", icon: <ShieldCheck className="h-5 w-5 text-emerald-500" />, category: "Configuration", badge: "Live Switched" },
-  { title: "Notification Templates", subtitle: "Email & SMS notification designer", href: "/platform/notification-templates", icon: <Bell className="h-5 w-5 text-purple-500" />, category: "Communication" },
-  { title: "Website Portal CMS", subtitle: "Pages, templates, themes & SEO settings", href: "/platform/website/pages", icon: <Globe className="h-5 w-5 text-blue-500" />, category: "CMS Portal" },
-  { title: "System Telemetry", subtitle: "CPU/RAM health & database latency", href: "/platform/system-health", icon: <Activity className="h-5 w-5 text-emerald-500" />, category: "Operations" },
-  { title: "Audit Logs", subtitle: "Immutable governance & payload stream", href: "/platform/audit-logs", icon: <FileText className="h-5 w-5 text-amber-500" />, category: "Operations" },
-  { title: "Recycle Bin", subtitle: "Soft-deleted records & recovery center", href: "/platform/recycle-bin", icon: <HardDrive className="h-5 w-5 text-rose-500" />, category: "Operations" },
+const MASTER_SHORTCUTS: ModuleShortcut[] = [
+  // 1. Dashboard
+  { title: "Admin Overview", subtitle: "Platform KPI metrics & live event stream", href: "/platform", icon: <Activity className="h-5 w-5 text-indigo-500" />, category: "Dashboard" },
+  // 2. Organization
+  { title: "Tenants", subtitle: "Multi-tenant provisioning & resource limits", href: "/platform/tenants", icon: <Layers className="h-5 w-5 text-sky-500" />, category: "Organization", badge: "Multi-Tenant" },
+  { title: "Companies", subtitle: "Legal entity setup, GST/Tax registration", href: "/platform/companies", icon: <Building2 className="h-5 w-5 text-indigo-500" />, category: "Organization" },
+  { title: "Projects", subtitle: "Workspace scopes & project budgets", href: "/platform/projects", icon: <Activity className="h-5 w-5 text-emerald-500" />, category: "Organization" },
+  { title: "Branches & Warehouses", subtitle: "Branch office locations & GSTIN mapping", href: "/platform/branches", icon: <Building2 className="h-5 w-5 text-amber-500" />, category: "Organization" },
+  { title: "Departments", subtitle: "Cost centers & org hierarchy levels", href: "/platform/departments", icon: <Layers className="h-5 w-5 text-purple-500" />, category: "Organization" },
+
+  // 3. Identity & Access
+  { title: "User Directory", subtitle: "Identity management & active users", href: "/platform/users", icon: <Users className="h-5 w-5 text-amber-500" />, category: "Identity & Access" },
+  { title: "Roles & RBAC Matrix", subtitle: "Permission matrix & module switches", href: "/platform/roles", icon: <ShieldCheck className="h-5 w-5 text-indigo-500" />, category: "Identity & Access" },
+  { title: "Permissions Catalog", subtitle: "Granular capability key list", href: "/platform/permissions", icon: <Lock className="h-5 w-5 text-rose-500" />, category: "Identity & Access" },
+  { title: "User Groups", subtitle: "Team access groups & cross-functional roles", href: "/platform/user-groups", icon: <Users className="h-5 w-5 text-sky-500" />, category: "Identity & Access" },
+  { title: "Navigation Registry", subtitle: "22-Category sidebar menu builder", href: "/platform/menu-builder", icon: <SlidersHorizontal className="h-5 w-5 text-cyan-500" />, category: "Identity & Access" },
+
+  // 4. Low-Code Platform
+  { title: "Schema Manager", subtitle: "Dynamic entity schema & custom fields", href: "/platform/schema-manager", icon: <Database className="h-5 w-5 text-cyan-500" />, category: "Low-Code Platform" },
+  { title: "Entity Builder", subtitle: "Visual entity builder & custom validation", href: "/platform/entity-builder", icon: <Code2 className="h-5 w-5 text-emerald-500" />, category: "Low-Code Platform", badge: "Low-Code" },
+
+  // 5. Configurations & Automation
+  { title: "Feature Flags", subtitle: "Real-time capability switches & rollout", href: "/platform/feature-flags", icon: <ShieldCheck className="h-5 w-5 text-emerald-500" />, category: "Modules", badge: "Live Switched" },
+  { title: "Workflow Config", subtitle: "BPMN approval rules & triggers", href: "/platform/workflow-config", icon: <Activity className="h-5 w-5 text-purple-500" />, category: "Workflow & Automation" },
+  { title: "Notification Templates", subtitle: "Email, SMS & Push template designer", href: "/platform/notification-templates", icon: <Bell className="h-5 w-5 text-purple-500" />, category: "Workflow & Automation" },
+
+  // 6. Website CMS
+  { title: "Website Portal Pages", subtitle: "Marketing CMS pages & SEO metadata", href: "/platform/website/pages", icon: <Globe className="h-5 w-5 text-blue-500" />, category: "Website CMS" },
+
+  // 7. Integrations & Security
+  { title: "Integrations & Connectors", subtitle: "Third-party APIs (Stripe, Razorpay, WhatsApp, M365)", href: "/platform/integrations/connectors", icon: <Key className="h-5 w-5 text-indigo-500" />, category: "Integrations" },
+  { title: "System Settings", subtitle: "Global options, SMTP, & API keys", href: "/platform/settings", icon: <SlidersHorizontal className="h-5 w-5 text-slate-500" />, category: "Platform Configuration" },
+  { title: "Security & Sessions", subtitle: "MFA enforcement, SSO, & Active sessions", href: "/platform/security/sessions", icon: <ShieldAlert className="h-5 w-5 text-rose-500" />, category: "Security" },
+
+  // 8. Developer Center & AI Config
+  { title: "Developer Center", subtitle: "API Explorer, OpenAPI/Swagger & SDKs", href: "/platform/developer-center", icon: <Code2 className="h-5 w-5 text-indigo-500" />, category: "Developer Center", badge: "OpenAPI 3.0" },
+  { title: "AI Assistant Config", subtitle: "LLM Providers, AI Agents & Prompts", href: "/platform/ai-assistant", icon: <Bot className="h-5 w-5 text-purple-500" />, category: "AI Configuration", badge: "AI Native" },
+
+  // 9. Operations, Licensing & Data
+  { title: "Licensing & Plans", subtitle: "Subscription plans, billing & seat usage", href: "/platform/licensing", icon: <CreditCard className="h-5 w-5 text-emerald-500" />, category: "Licensing" },
+  { title: "Backup & Recovery", subtitle: "Backup schedules & disaster recovery", href: "/platform/backup", icon: <HardDrive className="h-5 w-5 text-sky-500" />, category: "Backup & Recovery" },
+  { title: "Data Management", subtitle: "Import/Export & Migration center", href: "/platform/data-management", icon: <Database className="h-5 w-5 text-amber-500" />, category: "Data Management" },
+  { title: "System Telemetry", subtitle: "CPU/RAM health & DB latency", href: "/platform/system-health", icon: <Cpu className="h-5 w-5 text-emerald-500" />, category: "Monitoring" },
+  { title: "Audit Logs", subtitle: "Immutable governance event stream", href: "/platform/audit-logs", icon: <FileText className="h-5 w-5 text-amber-500" />, category: "Audit & Compliance" },
+  { title: "Recycle Bin", subtitle: "Soft-deleted records & recovery center", href: "/platform/recycle-bin", icon: <HardDrive className="h-5 w-5 text-rose-500" />, category: "Recycle Bin" },
 ];
 
 export default function PlatformOverviewPage() {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
 
-  const filteredShortcuts = MODULE_SHORTCUTS.filter((item) => {
+  const filteredShortcuts = MASTER_SHORTCUTS.filter((item) => {
     const q = search.toLowerCase();
     const matchesSearch = !q || item.title.toLowerCase().includes(q) || item.subtitle.toLowerCase().includes(q);
-    const matchesCategory = categoryFilter === "all" || item.category === categoryFilter;
+    const matchesCategory = categoryFilter === "all" || item.category.toLowerCase() === categoryFilter.toLowerCase();
     return matchesSearch && matchesCategory;
   });
 
   const kpis: KpiMetricItem[] = [
-    { label: "Active Submodules", value: 14, tone: "positive", icon: <Layers className="h-3.5 w-3.5" />, subtext: "Platform Hub" },
-    { label: "Registered Tenants", value: 24, tone: "info", icon: <Building2 className="h-3.5 w-3.5" />, subtext: "Live Tenants" },
+    { label: "Master Architecture", value: "22 Categories", tone: "positive", icon: <Layers className="h-3.5 w-3.5" />, subtext: "Enterprise Standard" },
+    { label: "Registered Submodules", value: MASTER_SHORTCUTS.length, tone: "info", icon: <Building2 className="h-3.5 w-3.5" />, subtext: "Hub Modules" },
     { label: "Active User Licenses", value: "1,420", tone: "warning", icon: <Users className="h-3.5 w-3.5" />, subtext: "Capacity 200k" },
-    { label: "System Health", value: "99.98%", tone: "positive", icon: <Activity className="h-3.5 w-3.5" />, subtext: "Optimal" },
+    { label: "System Telemetry", value: "99.99%", tone: "positive", icon: <Activity className="h-3.5 w-3.5" />, subtext: "Operational" },
   ];
 
   return (
     <PlatformGlobalPageShell
-      title="Platform Administration Hub"
-      subtitle="Centralized management portal for tenant governance, access control, system configurations, and telemetry."
-      categoryTag="Platform Governance Engine"
+      title="Master Enterprise SaaS Platform Hub"
+      subtitle="Centralized management portal for multi-tenant governance, low-code platform, AI services, security, and developer center."
+      categoryTag="22-Category SaaS Architecture"
       kpiMetrics={kpis}
-      searchPlaceholder="Filter platform submodules, capabilities, or administrative tools..."
+      searchPlaceholder="Filter across all 22 categories, submodules, or administrative tools..."
       searchValue={search}
       onSearchChange={setSearch}
       filterOptions={[
         {
           key: "category",
-          label: "All Categories",
+          label: "All 22 Categories",
           value: categoryFilter,
           onChange: setCategoryFilter,
           options: [
             { label: "All Categories", value: "all" },
-            { label: "Governance", value: "Governance" },
-            { label: "Access Control", value: "Access Control" },
-            { label: "Configuration", value: "Configuration" },
-            { label: "Communication", value: "Communication" },
-            { label: "CMS Portal", value: "CMS Portal" },
-            { label: "Operations", value: "Operations" },
+            { label: "Organization", value: "organization" },
+            { label: "Identity & Access", value: "identity & access" },
+            { label: "Low-Code Platform", value: "low-code platform" },
+            { label: "Workflow & Automation", value: "workflow & automation" },
+            { label: "Integrations", value: "integrations" },
+            { label: "Security", value: "security" },
+            { label: "Developer Center", value: "developer center" },
+            { label: "AI Configuration", value: "ai configuration" },
+            { label: "Monitoring", value: "monitoring" },
           ],
         },
       ]}
