@@ -141,6 +141,26 @@ if (env.IsDevelopment())
     builder.Logging.AddFilter("UabIndia.Application", Microsoft.Extensions.Logging.LogLevel.Debug);
 }
 
+// High-Concurrency Kestrel Server Limits for 200,000 Users
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxConcurrentConnections = 200000;
+    options.Limits.MaxConcurrentUpgradedConnections = 50000;
+    options.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(2);
+    options.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(15);
+});
+
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProvider>();
+    options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProvider>();
+});
+builder.Services.Configure<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProviderOptions>(options =>
+{
+    options.Level = System.IO.Compression.CompressionLevel.Fastest;
+});
+
 builder.Services.AddControllers();
 builder.Services.AddHttpContextAccessor();
 
@@ -967,6 +987,8 @@ else
 {
     app.Logger.LogDebug("JWT config (dev): Issuer={Issuer}, Audience={Audience}, KeyLength={KeyLength}", jwtIssuer, jwtAudience, jwtKey.Length);
 }
+
+app.UseResponseCompression();
 
 app.UseHttpsRedirection();
 

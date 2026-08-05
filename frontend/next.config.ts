@@ -19,6 +19,11 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+  compress: true,
+  output: process.env.VERCEL ? undefined : "standalone",
+  experimental: {
+    optimizePackageImports: ["lucide-react", "recharts", "framer-motion"],
+  },
   images: {
     unoptimized: true,
   },
