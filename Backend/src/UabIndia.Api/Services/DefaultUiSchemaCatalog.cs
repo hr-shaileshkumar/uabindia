@@ -292,6 +292,12 @@ namespace UabIndia.Api.Services
             new("integrations", "Connectivity", "integrations-webhooks", "Webhooks", "/integrations/webhooks", "webhook", LegacyErpPerms()),
             new("integrations", "Connectivity", "integrations-apps", "Third-Party Apps", "/integrations/apps", "plug", LegacyErpPerms()),
 
+            new("hrms", "Self-Service", "ess-home", "Employee Self-Service (ESS)", "/ess", "user", Perms("hrms", "employee.view")),
+            new("hrms", "Self-Service", "mss-home", "Manager Self-Service (MSS)", "/mss", "users", Perms("hrms", "employee.view")),
+            new("hrms", "Talent & Compliance", "recruitment-home", "Recruitment ATS", "/recruitment", "search", Perms("hrms", "recruitment.view")),
+            new("hrms", "Talent & Compliance", "performance-home", "Performance OKRs", "/performance", "trending-up", Perms("hrms", "performance.view")),
+            new("hrms", "Talent & Compliance", "travel-home", "Travel & Expenses", "/travel", "briefcase", Perms("hrms", "employee.view")),
+            new("hrms", "Talent & Compliance", "compliance-home", "Statutory Compliance", "/compliance", "shield", Perms("hrms", "hrms.view")),
             new("hrms", "Core HR", "hrms-home", "HR Dashboard", "/hrms", "dashboard", Perms("hrms", "hrms.view")),
             new("hrms", "Core HR", "hrms-employees", "Employees", "/hrms/employees", "employees", Perms("hrms", "employee.view")),
             new("hrms", "Core HR", "hrms-certificates", "Certificates", "/hrms/certificates", "award", Perms("hrms", "certificates.view")),

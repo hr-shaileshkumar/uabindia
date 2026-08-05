@@ -57,6 +57,24 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
   },
 
   {
+    key: "ess",
+    label: "Employee Self-Service",
+    eyebrow: "ESS / Portal",
+    description: "Employee self-service portal for attendance, leave, payslips, and claims.",
+    icon: "user",
+    shellOrder: 45,
+    tier: "business",
+  },
+  {
+    key: "mss",
+    label: "Manager Self-Service",
+    eyebrow: "MSS / Portal",
+    description: "Manager self-service portal for team attendance, approvals, and performance.",
+    icon: "users",
+    shellOrder: 46,
+    tier: "business",
+  },
+  {
     key: "hrms",
     label: "HRMS",
     eyebrow: "HRMS / Workspace",
