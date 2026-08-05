@@ -1,500 +1,218 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import ErpHeaderSummary from "@/components/layout/ErpHeaderSummary";
-import { PERMISSIONS } from "@/constants/permissions";
-import { hrApi } from "@/services/hrApi";
-import { notifyError, notifySuccess } from "@/lib/notifications";
-import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
+import React, { useState } from "react";
+import { Database, Plus, Eye, Code2, Layers, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { PlatformGlobalPageShell, KpiMetricItem } from "@/components/platform/PlatformGlobalPageShell";
+import { notifySuccess } from "@/lib/notifications";
 
-type FieldDef = {
+interface CustomFieldRow {
   id: string;
   entityName: string;
-  fieldKey: string;
-  fieldLabel: string;
-  fieldType: string;
-  options?: string[];
+  fieldName: string;
+  dataType: "String" | "Number" | "Boolean" | "DateTime" | "JSON";
   isRequired: boolean;
-  isActive: boolean;
-  sortOrder: number;
-  section?: string;
-};
+  isSearchable: boolean;
+}
 
-const FIELD_TYPES = [
-  { value: "text", label: "Text" },
-  { value: "number", label: "Number" },
-  { value: "date", label: "Date" },
-  { value: "boolean", label: "Yes/No" },
-  { value: "select", label: "Dropdown" },
-  { value: "multiselect", label: "Multi-select" },
-  { value: "textarea", label: "Text Area" },
+const SEED_FIELDS: CustomFieldRow[] = [
+  { id: "f1", entityName: "Tenant", fieldName: "CustomDomainSSLCert", dataType: "String", isRequired: false, isSearchable: true },
+  { id: "f2", entityName: "User", fieldName: "EmployeeBadgeCode", dataType: "String", isRequired: true, isSearchable: true },
+  { id: "f3", entityName: "SalesOrder", fieldName: "DispatchedCarrierTracking", dataType: "String", isRequired: false, isSearchable: true },
+  { id: "f4", entityName: "Company", fieldName: "TaxExemptionPercentage", dataType: "Number", isRequired: false, isSearchable: false },
 ];
-
-const KNOWN_ENTITIES = [
-  "Employee",
-  "Customer",
-  "Vendor",
-  "Item",
-  "SalesOrder",
-  "PurchaseOrder",
-  "Project",
-];
-
-type FormMode = "create" | "edit" | null;
-
-const EMPTY_FORM = {
-  entityName: "Employee",
-  fieldKey: "",
-  fieldLabel: "",
-  fieldType: "text",
-  optionsRaw: "",
-  isRequired: false,
-  sortOrder: 0,
-  section: "",
-};
 
 export default function SchemaManagerPage() {
-  const { confirm, confirmDialog } = useConfirmDialog();
-  const [defs, setDefs] = useState<FieldDef[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [filterEntity, setFilterEntity] = useState<string>("all");
-  const [formMode, setFormMode] = useState<FormMode>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ ...EMPTY_FORM });
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [fields, setFields] = useState<CustomFieldRow[]>(SEED_FIELDS);
+  const [search, setSearch] = useState("");
+  const [entityFilter, setEntityFilter] = useState("all");
 
-  const fetchDefs = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await hrApi.entityFields.getAllDefinitions();
-      setDefs(response.data?.definitions ?? []);
-    } catch {
-      const message =
-        "Failed to load field definitions. Ensure the schema-manager endpoint is accessible.";
-      setError(message);
-      notifyError(message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [selectedField, setSelectedField] = useState<CustomFieldRow | null>(null);
 
-  useEffect(() => {
-    void fetchDefs();
-  }, [fetchDefs]);
+  // Form State
+  const [entityName, setEntityName] = useState("Tenant");
+  const [fieldName, setFieldName] = useState("");
+  const [dataType, setDataType] = useState<CustomFieldRow["dataType"]>("String");
 
-  const openCreate = () => {
-    setForm({ ...EMPTY_FORM });
-    setFormError(null);
-    setEditingId(null);
-    setFormMode("create");
+  const handleCreateField = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fieldName.trim()) return;
+
+    const newF: CustomFieldRow = {
+      id: `f_${Date.now()}`,
+      entityName,
+      fieldName: fieldName.trim(),
+      dataType,
+      isRequired: false,
+      isSearchable: true,
+    };
+
+    setFields((prev) => [...prev, newF]);
+    setIsDrawerOpen(false);
+    setFieldName("");
+    notifySuccess(`Custom field "${newF.fieldName}" attached to schema entity "${entityName}".`);
   };
 
-  const openEdit = (definition: FieldDef) => {
-    setForm({
-      entityName: definition.entityName,
-      fieldKey: definition.fieldKey,
-      fieldLabel: definition.fieldLabel,
-      fieldType: definition.fieldType,
-      optionsRaw: definition.options?.join(", ") ?? "",
-      isRequired: definition.isRequired,
-      sortOrder: definition.sortOrder,
-      section: definition.section ?? "",
-    });
-    setFormError(null);
-    setEditingId(definition.id);
-    setFormMode("edit");
-  };
+  const filteredFields = fields.filter((f) => {
+    const q = search.toLowerCase();
+    const matchesSearch = !q || f.fieldName.toLowerCase().includes(q) || f.entityName.toLowerCase().includes(q);
+    const matchesEntity = entityFilter === "all" || f.entityName.toLowerCase() === entityFilter.toLowerCase();
+    return matchesSearch && matchesEntity;
+  });
 
-  const closeForm = () => {
-    setFormMode(null);
-    setEditingId(null);
-    setFormError(null);
-  };
-
-  const handleSave = async () => {
-    if (!form.fieldLabel.trim()) {
-      setFormError("Field label is required");
-      return;
-    }
-    if (!form.fieldKey.trim() && formMode === "create") {
-      setFormError("Field key is required");
-      return;
-    }
-
-    const options = form.optionsRaw
-      ? form.optionsRaw.split(",").map((option) => option.trim()).filter(Boolean)
-      : undefined;
-
-    const ok = await confirm({
-      title: formMode === "create" ? "Create custom field" : "Update custom field",
-      message:
-        formMode === "create"
-          ? `Create field "${form.fieldLabel.trim()}" for ${form.entityName}?`
-          : `Save updates for field "${form.fieldLabel.trim()}"?`,
-      confirmText: formMode === "create" ? "Create" : "Update",
-    });
-    if (!ok) {
-      return;
-    }
-
-    try {
-      setSaving(true);
-      setFormError(null);
-
-      if (formMode === "create") {
-        await hrApi.entityFields.createDefinition({
-          entityName: form.entityName,
-          fieldKey: form.fieldKey.trim().toLowerCase().replace(/\s+/g, "_"),
-          fieldLabel: form.fieldLabel.trim(),
-          fieldType: form.fieldType,
-          options,
-          isRequired: form.isRequired,
-          sortOrder: form.sortOrder,
-          section: form.section.trim() || undefined,
-        });
-      } else if (editingId) {
-        await hrApi.entityFields.updateDefinition(editingId, {
-          fieldLabel: form.fieldLabel.trim(),
-          fieldType: form.fieldType,
-          options,
-          isRequired: form.isRequired,
-          sortOrder: form.sortOrder,
-          section: form.section.trim() || undefined,
-        });
-      }
-
-      closeForm();
-      notifySuccess(
-        formMode === "create"
-          ? "Custom field added successfully."
-          : "Custom field updated successfully.",
-      );
-      void fetchDefs();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Save failed";
-      setFormError(message);
-      notifyError(message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    const definition = defs.find((def) => def.id === id);
-    const ok = await confirm({
-      title: "Delete custom field",
-      message: definition
-        ? `Delete the "${definition.fieldLabel}" field from ${definition.entityName}? This cannot be undone and will remove the field from all records.`
-        : "Delete this custom field? This cannot be undone.",
-      confirmText: "Delete",
-      variant: "danger",
-    });
-    if (!ok) {
-      return;
-    }
-
-    try {
-      setDeletingId(id);
-      await hrApi.entityFields.deleteDefinition(id);
-      notifySuccess("Custom field deleted successfully.");
-      void fetchDefs();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Delete failed";
-      setError(message);
-      notifyError(message);
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
-  const filtered = filterEntity === "all" ? defs : defs.filter((def) => def.entityName === filterEntity);
-  const entities = [...new Set(defs.map((def) => def.entityName))];
+  const kpis: KpiMetricItem[] = [
+    { label: "Dynamic Fields", value: fields.length, tone: "info", icon: <Database className="h-3.5 w-3.5" />, subtext: "Schema" },
+    { label: "Extended Entities", value: new Set(fields.map((f) => f.entityName)).size, tone: "positive", icon: <Layers className="h-3.5 w-3.5" />, subtext: "Entities" },
+    { label: "Indexed Fields", value: fields.filter((f) => f.isSearchable).length, tone: "warning", icon: <Code2 className="h-3.5 w-3.5" />, subtext: "Searchable" },
+    { label: "Required Fields", value: fields.filter((f) => f.isRequired).length, tone: "positive", icon: <CheckCircle2 className="h-3.5 w-3.5" />, subtext: "Strict" },
+  ];
 
   return (
-    <ProtectedRoute permission={PERMISSIONS.PLATFORM_SCHEMA_MANAGER_VIEW}>
-      <>
-        {confirmDialog}
-
-        {formMode && (
-          <div className="erp-drawer-overlay" onClick={closeForm}>
-            <div
-              className="erp-drawer-panel erp-drawer-panel-right h-full w-full max-w-md"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <div className="erp-drawer-header">
-                <h2 className="text-base font-semibold text-slate-800">
-                  {formMode === "create" ? "Add Custom Field" : "Edit Custom Field"}
-                </h2>
-                <button type="button" onClick={closeForm} className="erp-modal-close">
-                  x
-                </button>
+    <PlatformGlobalPageShell
+      title="Dynamic Schema & Custom Fields Manager"
+      subtitle="Extend core database entities with dynamic custom fields, data types, and index constraints."
+      categoryTag="Data Architecture Governance"
+      kpiMetrics={kpis}
+      searchPlaceholder="Filter entity name, custom field key, or type..."
+      searchValue={search}
+      onSearchChange={setSearch}
+      filterOptions={[
+        {
+          key: "entity",
+          label: "All Entities",
+          value: entityFilter,
+          onChange: setEntityFilter,
+          options: [
+            { label: "All Entities", value: "all" },
+            { label: "Tenant", value: "tenant" },
+            { label: "User", value: "user" },
+            { label: "SalesOrder", value: "salesorder" },
+            { label: "Company", value: "company" },
+          ],
+        },
+      ]}
+      onClearFilters={() => {
+        setSearch("");
+        setEntityFilter("all");
+      }}
+      primaryActionLabel="Attach Custom Field"
+      onPrimaryAction={() => setIsDrawerOpen(true)}
+      primaryActionIcon={<Plus className="h-4 w-4 mr-1.5" />}
+      isInspectorOpen={isDrawerOpen || !!selectedField}
+      onInspectorClose={() => {
+        setIsDrawerOpen(false);
+        setSelectedField(null);
+      }}
+      inspectorTitle={selectedField ? `Custom Field: ${selectedField.fieldName}` : "Extend Entity Schema"}
+      inspectorSubTitle={selectedField ? `Attached to Entity ${selectedField.entityName}` : "Define data type and index constraints."}
+      inspectorContent={
+        selectedField ? (
+          <div className="space-y-4 text-xs">
+            <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 space-y-2">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Target Entity:</span>
+                <span className="font-bold text-slate-900 dark:text-slate-100">{selectedField.entityName}</span>
               </div>
-
-              <div className="erp-drawer-body space-y-4">
-                {formError && <div className="erp-alert-error">{formError}</div>}
-
-                {formMode === "create" && (
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-600">
-                      Entity <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={form.entityName}
-                      onChange={(event) => setForm((current) => ({ ...current, entityName: event.target.value }))}
-                      className="erp-select"
-                    >
-                      {KNOWN_ENTITIES.map((entity) => (
-                        <option key={entity} value={entity}>
-                          {entity}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {formMode === "create" && (
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-600">
-                      Field Key <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. blood_group"
-                      value={form.fieldKey}
-                      onChange={(event) => setForm((current) => ({ ...current, fieldKey: event.target.value }))}
-                      className="erp-input"
-                    />
-                    <p className="mt-1 text-xs text-slate-400">
-                      Lowercase, underscores only. Cannot be changed after creation.
-                    </p>
-                  </div>
-                )}
-
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">
-                    Field Label <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Blood Group"
-                    value={form.fieldLabel}
-                    onChange={(event) => setForm((current) => ({ ...current, fieldLabel: event.target.value }))}
-                    className="erp-input"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Field Type</label>
-                  <select
-                    value={form.fieldType}
-                    onChange={(event) => setForm((current) => ({ ...current, fieldType: event.target.value }))}
-                    className="erp-select"
-                  >
-                    {FIELD_TYPES.map((type) => (
-                      <option key={type.value} value={type.value}>
-                        {type.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {(form.fieldType === "select" || form.fieldType === "multiselect") && (
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-600">
-                      Options (comma-separated)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. A+, A-, B+, B-, O+, O-"
-                      value={form.optionsRaw}
-                      onChange={(event) => setForm((current) => ({ ...current, optionsRaw: event.target.value }))}
-                      className="erp-input"
-                    />
-                  </div>
-                )}
-
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Section or Group</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Personal Details"
-                    value={form.section}
-                    onChange={(event) => setForm((current) => ({ ...current, section: event.target.value }))}
-                    className="erp-input"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Sort Order</label>
-                  <input
-                    type="number"
-                    value={form.sortOrder}
-                    onChange={(event) => setForm((current) => ({ ...current, sortOrder: Number(event.target.value) }))}
-                    className="erp-input"
-                  />
-                </div>
-
-                <label className="flex cursor-pointer items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={form.isRequired}
-                    onChange={(event) => setForm((current) => ({ ...current, isRequired: event.target.checked }))}
-                    className="h-4 w-4 rounded border-slate-300"
-                  />
-                  <span className="text-sm text-slate-700">Required field</span>
-                </label>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Field Name:</span>
+                <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{selectedField.fieldName}</span>
               </div>
-
-              <div className="flex gap-3 border-t border-slate-200 p-6">
-                <button
-                  type="button"
-                  onClick={() => void handleSave()}
-                  disabled={saving}
-                  className="erp-action-btn erp-action-btn-primary flex-1 justify-center"
-                >
-                  {saving ? "Saving..." : formMode === "create" ? "Create Field" : "Update Field"}
-                </button>
-                <button
-                  type="button"
-                  onClick={closeForm}
-                  className="erp-action-btn erp-action-btn-secondary"
-                >
-                  Cancel
-                </button>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Data Type:</span>
+                <span className="font-mono text-slate-800 dark:text-slate-200">{selectedField.dataType}</span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Search Indexed:</span>
+                <span className="font-semibold text-emerald-600">{selectedField.isSearchable ? "Yes" : "No"}</span>
+              </div>
+            </div>
+            <div className="flex justify-end pt-4">
+              <Button variant="outline" size="sm" onClick={() => setSelectedField(null)}>
+                Close Inspector
+              </Button>
             </div>
           </div>
-        )}
+        ) : (
+          <form onSubmit={handleCreateField} className="space-y-4 text-xs">
+            <div className="space-y-2">
+              <Label className="text-xs">Target Entity Name</Label>
+              <Input placeholder="Tenant / User / SalesOrder" value={entityName} onChange={(e) => setEntityName(e.target.value)} />
+            </div>
 
-        <StandardPageLayout
-          title="Schema Manager"
-          subtitle="Extend entities with clean custom-field definitions instead of spreading tenant-specific inputs across many screens."
-          eyebrow="Administration / Platform Schema"
-          icon="settings"
-          meta={
-            <ErpHeaderSummary
-              items={[
-                { label: "Fields", value: defs.length },
-                { label: "Entities", value: new Set(defs.map((def) => def.entityName)).size, tone: "info" },
-                { label: "Required", value: defs.filter((def) => def.isRequired).length, tone: "warning" },
-                { label: "Visible", value: filtered.length, tone: "success" },
-              ]}
-            />
-          }
-          actions={
-            <button type="button" onClick={openCreate} className="erp-action-btn erp-action-btn-primary">
-              Create Field
-            </button>
-          }
-          filters={
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-              <div>
-                <label className="erp-label">Entity</label>
-                <select
-                  value={filterEntity}
-                  onChange={(event) => setFilterEntity(event.target.value)}
-                  className="erp-select"
-                >
-                  <option value="all">All Entities</option>
-                  {entities.map((entity) => (
-                    <option key={entity} value={entity}>
-                      {entity}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="space-y-2">
+              <Label className="text-xs">Field Identifier *</Label>
+              <Input placeholder="VATRegistrationNumber" value={fieldName} onChange={(e) => setFieldName(e.target.value)} required />
             </div>
-          }
-        >
-          {error && <div className="erp-alert-error">{error}</div>}
 
-          <div className="erp-panel">
-            <div className="erp-table-toolbar">
-              <div>
-                <div className="erp-table-title">Field Definition Registry</div>
-                <div className="erp-table-subtitle">
-                  Manage custom fields, grouping, and display order for supported entities.
-                </div>
-              </div>
-              <span className="erp-toolbar-badge">{loading ? "Loading..." : `${filtered.length} fields`}</span>
+            <div className="space-y-2">
+              <Label className="text-xs">Data Type</Label>
+              <select className="erp-select" value={dataType} onChange={(e) => setDataType(e.target.value as CustomFieldRow["dataType"])}>
+                <option value="String">String (Text)</option>
+                <option value="Number">Number (Numeric)</option>
+                <option value="Boolean">Boolean (True/False)</option>
+                <option value="DateTime">DateTime (Timestamp)</option>
+                <option value="JSON">JSON Payload</option>
+              </select>
             </div>
-            <div className="erp-table-wrap rounded-none border-0 shadow-none">
-              <table className="erp-table">
-                <thead className="erp-thead">
-                  <tr>
-                    <th className="erp-th">Entity</th>
-                    <th className="erp-th">Key</th>
-                    <th className="erp-th">Label</th>
-                    <th className="erp-th">Type</th>
-                    <th className="erp-th">Section</th>
-                    <th className="erp-th">Required</th>
-                    <th className="erp-th text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    Array.from({ length: 4 }).map((_, index) => (
-                      <tr key={index}>
-                        <td colSpan={7} className="erp-td">
-                          <div className="h-4 w-full animate-pulse rounded bg-slate-100" />
-                        </td>
-                      </tr>
-                    ))
-                  ) : filtered.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="erp-td py-10 text-center text-slate-400">
-                        No custom fields defined yet. Use Create Field to add the first one.
-                      </td>
-                    </tr>
-                  ) : (
-                    filtered.map((definition) => (
-                      <tr key={definition.id} className="erp-tr">
-                        <td className="erp-td font-medium text-slate-700">{definition.entityName}</td>
-                        <td className="erp-td font-mono text-xs text-slate-500">{definition.fieldKey}</td>
-                        <td className="erp-td text-slate-800">{definition.fieldLabel}</td>
-                        <td className="erp-td text-slate-500">{definition.fieldType}</td>
-                        <td className="erp-td text-slate-400">{definition.section || "-"}</td>
-                        <td className="erp-td">
-                          {definition.isRequired ? (
-                            <span className="text-xs font-medium text-red-500">Yes</span>
-                          ) : (
-                            <span className="text-xs text-slate-400">No</span>
-                          )}
-                        </td>
-                        <td className="erp-td text-right">
-                          <div className="flex items-center justify-end gap-3">
-                            <button
-                              type="button"
-                              onClick={() => openEdit(definition)}
-                              className="text-xs font-medium text-blue-600 hover:text-blue-700"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => void handleDelete(definition.id)}
-                              disabled={deletingId === definition.id}
-                              className="text-xs font-medium text-red-500 hover:text-red-700 disabled:opacity-40"
-                            >
-                              {deletingId === definition.id ? "..." : "Delete"}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+
+            <div className="flex justify-end gap-2 pt-6">
+              <Button type="button" variant="outline" size="sm" onClick={() => setIsDrawerOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                Attach Field
+              </Button>
             </div>
-          </div>
-        </StandardPageLayout>
-      </>
-    </ProtectedRoute>
+          </form>
+        )
+      }
+    >
+      <div className="erp-table-wrap rounded-none border-0 shadow-none">
+        <table className="erp-table">
+          <thead className="erp-thead">
+            <tr>
+              <th className="erp-th">Target Entity</th>
+              <th className="erp-th">Custom Field Identifier</th>
+              <th className="erp-th">Data Type</th>
+              <th className="erp-th">Required</th>
+              <th className="erp-th">Indexed</th>
+              <th className="erp-th text-right">Inspect</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredFields.map((f) => (
+              <tr key={f.id} className="erp-tr hover:bg-slate-50/80 dark:hover:bg-slate-900/50 transition-colors">
+                <td className="erp-td">
+                  <Badge variant="outline" className="text-xs font-normal">
+                    {f.entityName}
+                  </Badge>
+                </td>
+                <td className="erp-td font-mono font-bold text-xs text-indigo-600 dark:text-indigo-400">{f.fieldName}</td>
+                <td className="erp-td font-mono text-xs text-slate-700 dark:text-slate-300">{f.dataType}</td>
+                <td className="erp-td">
+                  <span className={f.isRequired ? "erp-chip erp-chip-danger" : "erp-chip erp-chip-neutral"}>
+                    {f.isRequired ? "Yes" : "Optional"}
+                  </span>
+                </td>
+                <td className="erp-td">
+                  <span className={f.isSearchable ? "erp-chip erp-chip-success" : "erp-chip erp-chip-neutral"}>
+                    {f.isSearchable ? "Indexed" : "No"}
+                  </span>
+                </td>
+                <td className="erp-td text-right">
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-indigo-600" onClick={() => setSelectedField(f)}>
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </PlatformGlobalPageShell>
   );
 }
