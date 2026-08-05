@@ -214,6 +214,9 @@ builder.Services.AddSingleton<RoleMappingResolver>();
 // Encryption service for PII
 builder.Services.AddSingleton<IEncryptionService, UabIndia.Infrastructure.Services.AesEncryptionService>();
 
+// Multi-currency conversion service
+builder.Services.AddScoped<UabIndia.Application.Interfaces.ICurrencyConversionService, UabIndia.Infrastructure.Services.CurrencyConversionService>();
+
 // Health checks for operational monitoring
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<ApplicationDbContext>(

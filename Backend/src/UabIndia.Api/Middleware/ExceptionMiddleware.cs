@@ -44,8 +44,14 @@ namespace UabIndia.Api.Middleware
                 SentrySdk.CaptureException(ex);
                 
                 context.Response.StatusCode = 500;
+                context.Response.ContentType = "application/problem+json";
                 await context.Response.WriteAsJsonAsync(new ApiErrorResponse
                 {
+                    Type = "https://tools.ietf.org/html/rfc7231#section-6.6.1",
+                    Title = "An unhandled server error occurred.",
+                    Status = 500,
+                    Detail = ex.Message,
+                    Instance = context.Request.Path,
                     Message = "An error occurred.",
                     Code = "server_error",
                     TraceId = traceId,
