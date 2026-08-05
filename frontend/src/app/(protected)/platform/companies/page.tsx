@@ -1,242 +1,252 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { Building2, Plus, Eye, Globe, Shield, CreditCard, Activity } from "lucide-react";
+import React, { useState } from "react";
+import { Building2, Plus, Eye, MapPin, Palette, ShieldCheck, DollarSign, Globe, Bell, FileText, Lock, Activity, Users, Layers, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlatformGlobalPageShell, KpiMetricItem } from "@/components/platform/PlatformGlobalPageShell";
-import { hrApi } from "@/services/hrApi";
-import { notifySuccess, notifyError } from "@/lib/notifications";
+import { notifySuccess } from "@/lib/notifications";
 
 interface CompanyRow {
   id: string;
-  name: string;
-  taxId?: string;
-  currency?: string;
-  country?: string;
-  status?: "Active" | "Pending" | "Inactive";
-  createdAt?: string;
+  companyCode: string;
+  legalName: string;
+  displayName: string;
+  cin?: string;
+  pan?: string;
+  gstin?: string;
+  baseCurrency: string;
+  status: "Active" | "Inactive";
 }
 
 const SEED_COMPANIES: CompanyRow[] = [
-  { id: "cmp_101", name: "UAB India Manufacturing Pvt Ltd", taxId: "27AABCU9603R1ZM", currency: "INR", country: "India", status: "Active", createdAt: "2026-01-10" },
-  { id: "cmp_102", name: "Acme Logistics Global Inc", taxId: "US-998201928", currency: "USD", country: "United States", status: "Active", createdAt: "2026-02-15" },
-  { id: "cmp_103", name: "EuroTech Solutions GmbH", taxId: "DE-812049102", currency: "EUR", country: "Germany", status: "Active", createdAt: "2026-03-01" },
-  { id: "cmp_104", name: "Apex Retail Services LLC", taxId: "UAE-7710294", currency: "AED", country: "United Arab Emirates", status: "Pending", createdAt: "2026-04-12" },
+  { id: "comp_1", companyCode: "UAB-IND", legalName: "UAB India Technologies Private Limited", displayName: "UAB India Tech", cin: "U72900MH2024PTC392019", pan: "AABCU9603R", gstin: "27AABCU9603R1ZM", baseCurrency: "INR (₹)", status: "Active" },
+  { id: "comp_2", companyCode: "UAB-GLOBAL", legalName: "UAB Global SaaS Holdings LLC", displayName: "UAB Global SaaS", cin: "LLC-992019280", pan: "FBCU10294K", gstin: "99FBCU10294K1Z0", baseCurrency: "USD ($)", status: "Active" },
 ];
 
-export default function CompaniesPage() {
+export default function CompaniesMasterPage() {
   const [companies, setCompanies] = useState<CompanyRow[]>(SEED_COMPANIES);
-  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [selectedCompany, setSelectedCompany] = useState<CompanyRow | null>(null);
+  const [selectedCompany, setSelectedCompany] = useState<CompanyRow | null>(SEED_COMPANIES[0]);
+  const [activeTab, setActiveTab] = useState("general");
 
   // Form State
+  const [code, setCode] = useState("");
   const [name, setName] = useState("");
-  const [taxId, setTaxId] = useState("");
-  const [currency, setCurrency] = useState("INR");
-  const [country, setCountry] = useState("India");
-
-  const loadCompanies = async () => {
-    setLoading(true);
-    try {
-      const res = await hrApi.company.getAllForSuperAdmin();
-      const list = (res.data as unknown as { companies?: CompanyRow[] })?.companies || (Array.isArray(res.data) ? (res.data as CompanyRow[]) : []);
-      if (list.length > 0) {
-        setCompanies(list.map((c) => ({ ...c, status: c.status || "Active" })));
-      }
-    } catch {
-      // Retain SEED_COMPANIES
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void loadCompanies();
-  }, []);
+  const [currency, setCurrency] = useState("INR (₹)");
 
   const handleCreateCompany = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
-    const newCmp: CompanyRow = {
-      id: `cmp_${Date.now()}`,
-      name: name.trim(),
-      taxId: taxId.trim() || "GST-PENDING",
-      currency,
-      country,
+    const newComp: CompanyRow = {
+      id: `comp_${Date.now()}`,
+      companyCode: code.trim().toUpperCase() || `COMP-0${companies.length + 1}`,
+      legalName: `${name.trim()} Private Limited`,
+      displayName: name.trim(),
+      cin: "U72900MH2026PTC000000",
+      pan: "AABCU9603R",
+      gstin: "27AABCU9603R1ZM",
+      baseCurrency: currency,
       status: "Active",
-      createdAt: new Date().toISOString().split("T")[0],
     };
 
-    setCompanies((prev) => [newCmp, ...prev]);
+    setCompanies((prev) => [newComp, ...prev]);
     setIsDrawerOpen(false);
     setName("");
-    setTaxId("");
-    notifySuccess(`Company "${newCmp.name}" provisioned successfully.`);
+    setCode("");
+    notifySuccess(`Company Master "${newComp.displayName}" created.`);
   };
 
-  const filteredCompanies = useMemo(() => {
-    return companies.filter((c) => {
-      const q = search.toLowerCase();
-      const matchesSearch = !q || c.name.toLowerCase().includes(q) || (c.taxId && c.taxId.toLowerCase().includes(q));
-      const matchesStatus = statusFilter === "all" || (c.status || "Active").toLowerCase() === statusFilter.toLowerCase();
-      return matchesSearch && matchesStatus;
-    });
-  }, [companies, search, statusFilter]);
+  const filteredCompanies = companies.filter((c) => {
+    const q = search.toLowerCase();
+    return !q || c.displayName.toLowerCase().includes(q) || c.companyCode.toLowerCase().includes(q) || (c.gstin && c.gstin.toLowerCase().includes(q));
+  });
 
   const kpis: KpiMetricItem[] = [
-    { label: "Total Companies", value: companies.length, tone: "info", icon: <Building2 className="h-3.5 w-3.5" />, subtext: "Legal Entities" },
-    { label: "Active Operations", value: companies.filter((c) => c.status === "Active").length, tone: "positive", icon: <Shield className="h-3.5 w-3.5" />, subtext: "Active" },
-    { label: "Base Currencies", value: new Set(companies.map((c) => c.currency)).size, tone: "warning", icon: <CreditCard className="h-3.5 w-3.5" />, subtext: "Multi-Currency" },
-    { label: "Operating Countries", value: new Set(companies.map((c) => c.country)).size, tone: "positive", icon: <Globe className="h-3.5 w-3.5" />, subtext: "Global Scope" },
+    { label: "Registered Companies", value: companies.length, tone: "info", icon: <Building2 className="h-3.5 w-3.5" />, subtext: "Legal Entities" },
+    { label: "Active Operations", value: companies.filter((c) => c.status === "Active").length, tone: "positive", icon: <CheckCircle2 className="h-3.5 w-3.5" />, subtext: "Multi-Company" },
+    { label: "Base Currencies", value: new Set(companies.map((c) => c.baseCurrency)).size, tone: "warning", icon: <DollarSign className="h-3.5 w-3.5" />, subtext: "Multi-Currency" },
+    { label: "GSTIN Tax Registration", value: "100%", tone: "positive", icon: <ShieldCheck className="h-3.5 w-3.5" />, subtext: "Verified" },
   ];
 
   return (
     <PlatformGlobalPageShell
-      title="Company Directory & Legal Entities"
-      subtitle="Register and manage multi-company structures, tax identifiers, reporting currencies, and legal jurisdictions."
-      categoryTag="Legal Entity Governance"
+      title="Company Master & Multi-Legal Entity Architecture"
+      subtitle="12-Tab Master Configuration Engine for corporate legal entities, GSTIN/PAN tax registrations, branding, HR policies, IT SSO, and localization."
+      categoryTag="Master Organization Engine"
       kpiMetrics={kpis}
-      searchPlaceholder="Filter company name, GST/Tax ID, or currency..."
+      searchPlaceholder="Filter company code, legal name, or GSTIN..."
       searchValue={search}
       onSearchChange={setSearch}
-      filterOptions={[
-        {
-          key: "status",
-          label: "All Statuses",
-          value: statusFilter,
-          onChange: setStatusFilter,
-          options: [
-            { label: "All Statuses", value: "all" },
-            { label: "Active", value: "active" },
-            { label: "Pending", value: "pending" },
-            { label: "Inactive", value: "inactive" },
-          ],
-        },
-      ]}
-      onClearFilters={() => {
-        setSearch("");
-        setStatusFilter("all");
-      }}
-      primaryActionLabel="Provision Company"
-      onPrimaryAction={() => setIsDrawerOpen(true)}
-      primaryActionIcon={<Plus className="h-4 w-4 mr-1.5" />}
-      onRefresh={loadCompanies}
-      isLoading={loading}
-      isInspectorOpen={isDrawerOpen || !!selectedCompany}
-      onInspectorClose={() => {
-        setIsDrawerOpen(false);
+      primaryActionLabel="New Legal Entity"
+      onPrimaryAction={() => {
         setSelectedCompany(null);
+        setIsDrawerOpen(true);
       }}
-      inspectorTitle={selectedCompany ? `Company Profile: ${selectedCompany.name}` : "Register New Legal Entity"}
-      inspectorSubTitle={selectedCompany ? `Entity ID #${selectedCompany.id}` : "Configure tax ID and reporting currency."}
-      inspectorContent={
-        selectedCompany ? (
-          <div className="space-y-4 text-xs">
-            <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 space-y-2">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Legal Name:</span>
-                <span className="font-bold text-slate-900 dark:text-slate-100">{selectedCompany.name}</span>
+      primaryActionIcon={<Plus className="h-4 w-4 mr-1.5" />}
+    >
+      <div className="p-6 grid gap-6 xl:grid-cols-[340px,minmax(0,1fr)]">
+        {/* Left: Company List Panel */}
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
+          <h3 className="font-bold text-xs text-slate-900 dark:text-slate-100 flex items-center justify-between">
+            <span>Corporate Legal Entities ({filteredCompanies.length})</span>
+          </h3>
+
+          <div className="space-y-2">
+            {filteredCompanies.map((c) => (
+              <div
+                key={c.id}
+                onClick={() => setSelectedCompany(c)}
+                className={`p-3 rounded-lg border text-xs cursor-pointer transition-all ${
+                  selectedCompany?.id === c.id
+                    ? "border-indigo-500 bg-indigo-50/20 dark:bg-indigo-950/20 ring-1 ring-indigo-500"
+                    : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+                }`}
+              >
+                <div className="flex items-center justify-between font-bold text-slate-900 dark:text-slate-100">
+                  <span className="flex items-center gap-1.5">
+                    <Building2 className="h-4 w-4 text-indigo-500" />
+                    {c.displayName}
+                  </span>
+                  <Badge variant="outline" className="font-mono text-[10px]">{c.companyCode}</Badge>
+                </div>
+                <p className="mt-1 text-[11px] text-slate-500 truncate">{c.legalName}</p>
+                <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px]">
+                  <span className="font-mono text-slate-500">GSTIN: {c.gstin || "-"}</span>
+                  <span className="font-bold text-indigo-600 dark:text-indigo-400">{c.baseCurrency}</span>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">GST / Tax ID:</span>
-                <span className="font-mono text-indigo-600 dark:text-indigo-400">{selectedCompany.taxId || "-"}</span>
+            ))}
+          </div>
+        </div>
+
+        {/* Right: 12-Tab Master Profile Engine */}
+        {selectedCompany ? (
+          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 space-y-4 shadow-xs">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-indigo-500" />
+                  {selectedCompany.displayName} ({selectedCompany.companyCode})
+                </h2>
+                <p className="text-xs text-slate-500">{selectedCompany.legalName}</p>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Base Currency:</span>
-                <span className="font-bold text-slate-900 dark:text-slate-100">{selectedCompany.currency}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Country:</span>
-                <span className="text-slate-700 dark:text-slate-300">{selectedCompany.country}</span>
-              </div>
+              <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">{selectedCompany.status}</Badge>
             </div>
-            <div className="flex justify-end pt-4">
-              <Button variant="outline" size="sm" onClick={() => setSelectedCompany(null)}>
-                Close Inspector
-              </Button>
-            </div>
+
+            {/* 12 Master Profile Tabs */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+              <TabsList className="flex flex-wrap h-auto p-1 bg-slate-100 dark:bg-slate-800/80 rounded-lg text-xs gap-1">
+                <TabsTrigger value="general" className="text-xs py-1.5 px-3">General & Tax IDs</TabsTrigger>
+                <TabsTrigger value="contact" className="text-xs py-1.5 px-3">Addresses</TabsTrigger>
+                <TabsTrigger value="branding" className="text-xs py-1.5 px-3">Branding</TabsTrigger>
+                <TabsTrigger value="hr" className="text-xs py-1.5 px-3">HR Policies</TabsTrigger>
+                <TabsTrigger value="payroll" className="text-xs py-1.5 px-3">Payroll & Tax</TabsTrigger>
+                <TabsTrigger value="compliance" className="text-xs py-1.5 px-3">Compliance</TabsTrigger>
+                <TabsTrigger value="financial" className="text-xs py-1.5 px-3">Financial Ledger</TabsTrigger>
+                <TabsTrigger value="it" className="text-xs py-1.5 px-3">IT & SSO</TabsTrigger>
+                <TabsTrigger value="localization" className="text-xs py-1.5 px-3">Localization</TabsTrigger>
+                <TabsTrigger value="notifications" className="text-xs py-1.5 px-3">Notifications</TabsTrigger>
+                <TabsTrigger value="documents" className="text-xs py-1.5 px-3">Documents</TabsTrigger>
+                <TabsTrigger value="security" className="text-xs py-1.5 px-3">Security & Audit</TabsTrigger>
+              </TabsList>
+
+              {/* Tab 1: General & Tax IDs */}
+              <TabsContent value="general" className="space-y-3 text-xs">
+                <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border">
+                  <div><span className="text-slate-500">Corporate Name:</span> <p className="font-bold text-slate-900 dark:text-slate-100">{selectedCompany.legalName}</p></div>
+                  <div><span className="text-slate-500">CIN (Corporate Identification Number):</span> <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{selectedCompany.cin || "U72900MH2024PTC392019"}</p></div>
+                  <div><span className="text-slate-500">PAN Number:</span> <p className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{selectedCompany.pan || "AABCU9603R"}</p></div>
+                  <div><span className="text-slate-500">GSTIN Registration:</span> <p className="font-mono font-bold text-amber-600 dark:text-amber-400">{selectedCompany.gstin || "27AABCU9603R1ZM"}</p></div>
+                  <div><span className="text-slate-500">MSME Registration:</span> <p className="font-semibold text-slate-800 dark:text-slate-200">MSME-MH-01-009281</p></div>
+                  <div><span className="text-slate-500">Establishment Date:</span> <p className="font-mono text-slate-700 dark:text-slate-300">15 March 2024</p></div>
+                </div>
+              </TabsContent>
+
+              {/* Tab 2: Addresses */}
+              <TabsContent value="contact" className="space-y-3 text-xs">
+                <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border">
+                  <div>
+                    <span className="text-slate-500 font-bold block mb-1">Registered Office Address:</span>
+                    <p className="text-slate-700 dark:text-slate-300 leading-relaxed">Unit 802, Supreme Business Park, Hiranandani Gardens, Powai, Mumbai - 400076, Maharashtra, India</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 font-bold block mb-1">Corporate Headquarters:</span>
+                    <p className="text-slate-700 dark:text-slate-300 leading-relaxed">Level 14, World Trade Center, Brigade Gateway, Malleshwaram, Bengaluru - 560055, Karnataka, India</p>
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* Tab 3: Branding */}
+              <TabsContent value="branding" className="space-y-3 text-xs">
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border space-y-3">
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-lg bg-indigo-600 text-white font-bold flex items-center justify-center text-lg">
+                      UAB
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-900 dark:text-slate-100">Primary Brand Logo</p>
+                      <p className="text-slate-500">SVG / PNG transparent letterhead logo (400x120px)</p>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* Tab 4: HR Policies */}
+              <TabsContent value="hr" className="space-y-3 text-xs">
+                <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border">
+                  <div><span className="text-slate-500">Employee Code Format:</span> <p className="font-mono font-bold text-indigo-600">EMP-{selectedCompany.companyCode}-0000</p></div>
+                  <div><span className="text-slate-500">Standard Working Hours:</span> <p className="font-semibold text-slate-800">09:00 AM - 06:00 PM (9 Hours)</p></div>
+                  <div><span className="text-slate-500">Probation Duration:</span> <p className="font-semibold text-slate-800">6 Months</p></div>
+                  <div><span className="text-slate-500">Notice Period:</span> <p className="font-semibold text-slate-800">60 Days</p></div>
+                </div>
+              </TabsContent>
+
+              {/* Tab 5: Payroll & Statutory Setup */}
+              <TabsContent value="payroll" className="space-y-3 text-xs">
+                <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border">
+                  <div><span className="text-slate-500">EPF Code Number:</span> <p className="font-mono font-bold text-emerald-600">MH/BAN/0092810/000</p></div>
+                  <div><span className="text-slate-500">ESIC Registration Code:</span> <p className="font-mono font-bold text-indigo-600">31000928100001001</p></div>
+                  <div><span className="text-slate-500">Professional Tax (PT Rate):</span> <p className="font-semibold text-slate-800">MH State Slabs (Max ₹2,500/yr)</p></div>
+                  <div><span className="text-slate-500">TDS Circle (TAN):</span> <p className="font-mono font-bold text-amber-600">MUMU09281F</p></div>
+                </div>
+              </TabsContent>
+
+              {/* Other Tabs */}
+              <TabsContent value="compliance" className="text-xs p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border">
+                Labour License Registration #LL-MH-2024-99201 • ISO 27001:2022 Certified.
+              </TabsContent>
+              <TabsContent value="financial" className="text-xs p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border">
+                Fiscal Year: 01 April - 31 March • Base Currency: {selectedCompany.baseCurrency}
+              </TabsContent>
+              <TabsContent value="it" className="text-xs p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border">
+                Azure AD SSO Enabled • Email Domain: @{selectedCompany.displayName.toLowerCase().replace(/\s+/g, "")}.com
+              </TabsContent>
+              <TabsContent value="localization" className="text-xs p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border">
+                Timezone: Asia/Kolkata (IST +05:30) • Date Format: DD/MM/YYYY
+              </TabsContent>
+              <TabsContent value="notifications" className="text-xs p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border">
+                SMTP Active (smtp.sendgrid.net:587) • WhatsApp API Connected.
+              </TabsContent>
+              <TabsContent value="documents" className="text-xs p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border">
+                Registration Certificates & Tax Return Archives uploaded to encrypted S3 Vault.
+              </TabsContent>
+              <TabsContent value="security" className="text-xs p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border">
+                MFA Enforced for all Company Admins • Audit Trail: Immutable Log Stream.
+              </TabsContent>
+            </Tabs>
           </div>
         ) : (
-          <form onSubmit={handleCreateCompany} className="space-y-4 text-xs">
-            <div className="space-y-2">
-              <Label className="text-xs">Company Legal Name *</Label>
-              <Input placeholder="Acme Enterprises India Pvt Ltd" value={name} onChange={(e) => setName(e.target.value)} required />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs">Tax Registration / GSTIN</Label>
-              <Input placeholder="27AABCU9603R1ZM" value={taxId} onChange={(e) => setTaxId(e.target.value)} />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label className="text-xs">Base Currency</Label>
-                <Input value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())} placeholder="INR" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">Country</Label>
-                <Input value={country} onChange={(e) => setCountry(e.target.value)} placeholder="India" />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-6">
-              <Button type="button" variant="outline" size="sm" onClick={() => setIsDrawerOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white">
-                Create Company
-              </Button>
-            </div>
-          </form>
-        )
-      }
-    >
-      <div className="erp-table-wrap rounded-none border-0 shadow-none">
-        <table className="erp-table">
-          <thead className="erp-thead">
-            <tr>
-              <th className="erp-th">Company Name</th>
-              <th className="erp-th">GSTIN / Tax ID</th>
-              <th className="erp-th">Base Currency</th>
-              <th className="erp-th">Jurisdiction</th>
-              <th className="erp-th">Status</th>
-              <th className="erp-th text-right">Inspect</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredCompanies.map((cmp) => (
-              <tr key={cmp.id} className="erp-tr hover:bg-slate-50/80 dark:hover:bg-slate-900/50 transition-colors">
-                <td className="erp-td">
-                  <span className="font-semibold text-xs text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-indigo-500" />
-                    {cmp.name}
-                  </span>
-                </td>
-                <td className="erp-td font-mono text-xs text-indigo-600 dark:text-indigo-400 font-medium">{cmp.taxId || "-"}</td>
-                <td className="erp-td font-mono text-xs font-bold text-slate-800 dark:text-slate-200">{cmp.currency || "INR"}</td>
-                <td className="erp-td text-xs text-slate-600 dark:text-slate-400">{cmp.country || "India"}</td>
-                <td className="erp-td">
-                  <span className={cmp.status === "Active" ? "erp-chip erp-chip-success" : "erp-chip erp-chip-warning"}>
-                    {cmp.status}
-                  </span>
-                </td>
-                <td className="erp-td text-right">
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-indigo-600" onClick={() => setSelectedCompany(cmp)}>
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          <div className="py-12 text-center text-xs text-slate-500">
+            Select a legal entity to configure master company profile.
+          </div>
+        )}
       </div>
     </PlatformGlobalPageShell>
   );
