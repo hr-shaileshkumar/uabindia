@@ -21,6 +21,7 @@ import type { BulkActionFieldConfig } from "@/features/shared/types/bulkActions"
 import { CrudCard } from "@/components/erp/crud-workspace";
 import ErpHeaderSummary from "@/components/layout/ErpHeaderSummary";
 import { UserTable } from "@/features/platform/components/UserTable";
+import { PlatformGlobalPageShell, KpiMetricItem } from "@/components/platform/PlatformGlobalPageShell";
 
 
 interface UserRow {
@@ -432,35 +433,23 @@ export default function UsersPage() {
     await load();
   };
 
+  const kpis: KpiMetricItem[] = [
+    { label: "Total Users", value: filteredUsers.length, tone: "info", subtext: "Directory" },
+    { label: "Active Accounts", value: activeUsers, tone: "positive", subtext: "Active" },
+    { label: "Inactive Users", value: inactiveUsers, tone: "warning", subtext: "Inactive" },
+    { label: "Soft-Deleted", value: deletedUsers, tone: "negative", subtext: "Recycle Bin" },
+  ];
+
   return (
-    <div className="erp-page space-y-5">
-      <PageHeader
-        title="Users"
-        subtitle="Manage application users, activation state, and access posture."
-        eyebrow="Administration / Access"
-        icon="employees"
-        stats={[
-          { label: "Users", value: filteredUsers.length },
-          { label: "Active", value: activeUsers, tone: "success" },
-          { label: "Inactive", value: inactiveUsers, tone: "warning" },
-          { label: "Deleted", value: deletedUsers, tone: "danger" },
-        ]}
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
-            {isSuperAdmin ? (
-              <button
-                onClick={() => setShowDeleted((prev) => !prev)}
-                className={`erp-action-btn ${showDeleted ? "erp-action-btn-warning" : "erp-action-btn-secondary"}`}
-              >
-                {showDeleted ? "Hide Deleted" : "Show Deleted"}
-              </button>
-            ) : null}
-            <button onClick={openCreate} className="erp-action-btn erp-action-btn-primary">
-              Create User
-            </button>
-          </div>
-        }
-      />
+    <PlatformGlobalPageShell
+      title="User Directory & Identity Management"
+      subtitle="Manage application users, multi-tenant activation states, role assignments, and session postures."
+      categoryTag="User Access Governance"
+      kpiMetrics={kpis}
+      primaryActionLabel="Create User"
+      onPrimaryAction={openCreate}
+    >
+      <div className="p-4 space-y-5">
       <div className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1.6fr)_minmax(13rem,0.8fr)]">
           <div>
@@ -725,6 +714,7 @@ export default function UsersPage() {
           </div>
         </div>
       </QuickEditDrawer>
-    </div>
+      </div>
+    </PlatformGlobalPageShell>
   );
 }

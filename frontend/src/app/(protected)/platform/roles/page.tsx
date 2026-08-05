@@ -15,6 +15,7 @@ import { useUiSchema } from "@/context/UiSchemaContext";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { hrApi } from "@/services/hrApi";
+import { PlatformGlobalPageShell, KpiMetricItem } from "@/components/platform/PlatformGlobalPageShell";
 
 interface Role {
   id: string;
@@ -427,32 +428,31 @@ export default function RolesPage() {
     { label: "Routes", value: routeRules.rules.length, tone: "positive" as const },
   ];
 
+  const kpis: KpiMetricItem[] = [
+    { label: "Roles Configured", value: roles.length, tone: "info", subtext: "RBAC Roles" },
+    { label: "Active Permissions", value: allPerms.length, tone: "positive", subtext: "Permissions" },
+    { label: "Covered Modules", value: navigation.modules.length, tone: "warning", subtext: "Modules" },
+    { label: "Protected Routes", value: routeRules.rules.length, tone: "positive", subtext: "Route Rules" },
+  ];
+
   return (
     <ProtectedRoute permission={PERMISSIONS.PLATFORM_ROLES_VIEW}>
-      <div className="erp-page space-y-5">
-        <PageHeader
-          title="Roles & Access Control"
-          subtitle="See which modules a role can open, which pages inside each module are reachable, and which granular permissions power those pages."
-          eyebrow="Administration / Access Control"
-          icon="shield"
-          stats={[
-            { label: "Roles", value: roles.length },
-            { label: "Permissions", value: allPerms.length, tone: "info" },
-            { label: "Modules", value: navigation.modules.length, tone: "warning" },
-            { label: "Routes", value: routeRules.rules.length, tone: "success" },
-          ]}
-          actions={(
-            <div className="flex flex-wrap items-center gap-2">
-              <button type="button" onClick={() => void savePermissions()} disabled={!hasUnsavedChanges || saving || permLoading || !selectedRole} className="erp-action-btn erp-action-btn-primary inline-flex items-center gap-2">
-                <Copy className="h-4 w-4" />{saving ? "Saving..." : "Save changes"}
-              </button>
-              <button type="button" className="erp-action-btn erp-action-btn-secondary inline-flex items-center gap-2" onClick={() => setActiveTab("overview")}>
-                <ArrowRight className="h-4 w-4" />Overview
-              </button>
-            </div>
-          )}
-        />
-        {confirmDialog}
+      <PlatformGlobalPageShell
+        title="Roles & Access Control Matrix"
+        subtitle="Manage role-permission matrices, module accessibility switches, route access rules, and assigned users."
+        categoryTag="Enterprise RBAC Governance"
+        kpiMetrics={kpis}
+      >
+        <div className="p-4 space-y-5">
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => void savePermissions()} disabled={!hasUnsavedChanges || saving || permLoading || !selectedRole} className="erp-action-btn erp-action-btn-primary inline-flex items-center gap-2">
+              <Copy className="h-4 w-4" />{saving ? "Saving..." : "Save changes"}
+            </button>
+            <button type="button" className="erp-action-btn erp-action-btn-secondary inline-flex items-center gap-2" onClick={() => setActiveTab("overview")}>
+              <ArrowRight className="h-4 w-4" />Overview
+            </button>
+          </div>
+          {confirmDialog}
 
         {error && <div className="erp-alert-error mb-4">{error}</div>}
 
@@ -853,6 +853,7 @@ export default function RolesPage() {
           </section>
         </div>
       </div>
+    </PlatformGlobalPageShell>
     </ProtectedRoute>
   );
 }
