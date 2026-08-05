@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { CrudHeaderStats } from "@/components/erp/crud-workspace";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { hrApi } from "@/services/hrApi";
 
@@ -67,6 +68,20 @@ export default function AssessmentsPage() {
     <StandardPageLayout
       title="Assessments"
       subtitle="All training assessments across all enrolled employees."
+      meta={
+        <CrudHeaderStats
+          items={[
+            { label: "Assessments", value: rows.length, helper: "records" },
+            { label: "Passed", value: rows.filter((row) => (row.result || "").toLowerCase() === "pass").length, helper: "pass", tone: "positive" },
+            { label: "Failed", value: rows.filter((row) => (row.result || "").toLowerCase() === "fail").length, helper: "fail", tone: "danger" },
+            {
+              label: "Avg Score",
+              value: `${rows.length > 0 ? (rows.reduce((sum, row) => sum + (row.percentageScore || 0), 0) / rows.length).toFixed(1) : 0}%`,
+              tone: "info",
+            },
+          ]}
+        />
+      }
       filters={
         <div className="flex flex-wrap items-end gap-3">
           <input
@@ -100,14 +115,6 @@ export default function AssessmentsPage() {
       }
     >
       {error && <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">{error}</div>}
-
-      {/* KPI summary cards */}
-      <div className="erp-kpi-grid mb-4">
-        <div className="erp-kpi-card"><p className="erp-kpi-label">Total Assessments</p><p className="erp-kpi-value">{rows.length}</p><p className="erp-kpi-meta">Assessment records</p></div>
-        <div className="erp-kpi-card erp-kpi-card-success"><p className="erp-kpi-label">Passed</p><p className="erp-kpi-value erp-kpi-value-success">{rows.filter(r => (r.result || '').toLowerCase() === 'pass').length}</p><p className="erp-kpi-meta">Passed assessments</p></div>
-        <div className="erp-kpi-card erp-kpi-card-danger"><p className="erp-kpi-label">Failed</p><p className="erp-kpi-value erp-kpi-value-danger">{rows.filter(r => (r.result || '').toLowerCase() === 'fail').length}</p><p className="erp-kpi-meta">Failed assessments</p></div>
-        <div className="erp-kpi-card erp-kpi-card-info"><p className="erp-kpi-label">Avg Score</p><p className="erp-kpi-value">{rows.length > 0 ? (rows.reduce((s, r) => s + (r.percentageScore || 0), 0) / rows.length).toFixed(1) : 0}%</p><p className="erp-kpi-meta">Average percentage score</p></div>
-      </div>
 
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-sm">

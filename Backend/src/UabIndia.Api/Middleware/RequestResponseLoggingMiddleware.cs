@@ -20,6 +20,12 @@ namespace UabIndia.Api.Middleware
 
         public async Task Invoke(HttpContext context)
         {
+            if (!_logger.IsEnabled(LogLevel.Debug))
+            {
+                await _next(context);
+                return;
+            }
+
             try
             {
                 // Log request

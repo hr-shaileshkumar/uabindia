@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import ErpHeaderSummary from "@/components/layout/ErpHeaderSummary";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { hrApi } from "@/services/hrApi";
 
@@ -58,6 +59,16 @@ export default function CertificatesPage() {
     <StandardPageLayout
       title="Training Certificates"
       subtitle="Certificates issued to employees upon course completion."
+      meta={
+        <ErpHeaderSummary
+          items={[
+            { label: "Certificates", value: rows.length },
+            { label: "Active", value: rows.filter((row) => !row.isExpired).length, tone: "success" },
+            { label: "Expired", value: rows.filter((row) => row.isExpired).length, tone: "danger" },
+            { label: "Courses", value: new Set(rows.map((row) => row.courseTitle).filter(Boolean)).size, tone: "info" },
+          ]}
+        />
+      }
       filters={
         <div className="flex flex-wrap items-end gap-3">
           <input
@@ -84,14 +95,6 @@ export default function CertificatesPage() {
       }
     >
       {error && <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">{error}</div>}
-
-      {/* KPI summary cards */}
-      <div className="erp-kpi-grid mb-4">
-        <div className="erp-kpi-card"><p className="erp-kpi-label">Total Certificates</p><p className="erp-kpi-value">{rows.length}</p><p className="erp-kpi-meta">Issued certificates</p></div>
-        <div className="erp-kpi-card erp-kpi-card-success"><p className="erp-kpi-label">Active</p><p className="erp-kpi-value erp-kpi-value-success">{rows.filter(r => !r.isExpired).length}</p><p className="erp-kpi-meta">Valid certificates</p></div>
-        <div className="erp-kpi-card erp-kpi-card-danger"><p className="erp-kpi-label">Expired</p><p className="erp-kpi-value erp-kpi-value-danger">{rows.filter(r => r.isExpired).length}</p><p className="erp-kpi-meta">Expired certificates</p></div>
-        <div className="erp-kpi-card erp-kpi-card-info"><p className="erp-kpi-label">Courses</p><p className="erp-kpi-value">{new Set(rows.map(r => r.courseTitle).filter(Boolean)).size}</p><p className="erp-kpi-meta">Distinct courses</p></div>
-      </div>
 
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-sm">

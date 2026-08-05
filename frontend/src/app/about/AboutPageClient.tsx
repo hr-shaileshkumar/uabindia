@@ -83,7 +83,7 @@ export default function AboutPageClient({ audience }: { audience: PublicAudience
           <MotionReveal>
             <div>
               <SectionIntro eyebrow={content.eyebrow} title={content.title} subtitle={content.subtitle} />
-              <div className="mt-8 flex flex-wrap gap-3">
+              <div className="mt-6 flex flex-wrap gap-3">
                 <Link href={withPublicAudience("/book-demo", audience)} className={publicButtonClassName.primary}>
                   Book Demo
                 </Link>
@@ -95,16 +95,16 @@ export default function AboutPageClient({ audience }: { audience: PublicAudience
           </MotionReveal>
 
           <MotionReveal delay={0.06}>
-            <div className={`${publicPanelClassName} h-full p-8`}>
+            <div className={`${publicPanelClassName} h-full p-6`}>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--erp-primary)]">
                 {content.missionTitle}
               </p>
-              <h2 className="mt-4 text-3xl font-semibold tracking-[-0.05em] text-slate-950">
+              <h2 className="mt-3 text-[1.9rem] font-semibold tracking-[-0.05em] text-slate-950">
                 Premium on the surface. Disciplined underneath.
               </h2>
-              <p className="mt-4 text-base leading-8 text-slate-600">{content.missionBody}</p>
+              <p className="mt-3 text-[0.98rem] leading-7 text-slate-600">{content.missionBody}</p>
 
-              <div className="mt-8 grid gap-4 sm:grid-cols-2">
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 {(liveSummaryStats.length > 0
                   ? liveSummaryStats
                   : [
@@ -113,9 +113,21 @@ export default function AboutPageClient({ audience }: { audience: PublicAudience
                       { label: "Target markets", value: "SMB to Enterprise" },
                       { label: "Design principle", value: "One operating language" },
                     ]).map((item) => (
-                  <div key={item.label} className="rounded-[1.3rem] border border-slate-200 bg-slate-50/70 px-4 py-4">
+                  <div key={item.label} className="rounded-[1rem] border border-slate-200 bg-slate-50/70 px-4 py-3.5">
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{item.label}</p>
                     <p className="mt-2 text-lg font-semibold tracking-[-0.03em] text-slate-950">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 grid gap-3">
+                {[
+                  "Build one operating language across people, finance, and operations.",
+                  "Keep governance visible through access control and approval traceability.",
+                  "Reduce noise so the product and the public story feel equally disciplined.",
+                ].map((item) => (
+                  <div key={item} className="rounded-[1rem] border border-slate-200 bg-white px-4 py-3.5 text-sm leading-6 text-slate-700">
+                    {item}
                   </div>
                 ))}
               </div>

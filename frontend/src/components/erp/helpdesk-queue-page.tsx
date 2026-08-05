@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Inbox } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import { CrudHeaderStats } from "@/components/erp/crud-workspace";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { hrApi } from "@/services/hrApi";
 
@@ -134,12 +136,26 @@ export function HelpdeskQueuePage() {
     });
   }, [search, statusFilter, tickets]);
 
+  const activeTickets = filteredTickets.filter((ticket) => ["Open", "Pending"].includes(ticket.status)).length;
+  const urgentTickets = filteredTickets.filter((ticket) => ["High", "Critical"].includes(ticket.priority)).length;
+  const resolvedTickets = filteredTickets.filter((ticket) => ticket.status === "Resolved").length;
+
   return (
     <StandardPageLayout
       title="Helpdesk Queue"
       subtitle="Review support intake, filter active issues, and keep service response work visible in one queue."
       eyebrow="Helpdesk / Tickets"
       icon="ticket"
+      meta={
+        <CrudHeaderStats
+          items={[
+            { label: "Tickets", value: filteredTickets.length, helper: "visible" },
+            { label: "Active", value: activeTickets, tone: "warning" },
+            { label: "Urgent", value: urgentTickets, tone: "danger" },
+            { label: "Resolved", value: resolvedTickets, tone: "positive" },
+          ]}
+        />
+      }
       actions={
         <button type="button" onClick={() => void loadTickets()} className="erp-action-btn erp-action-btn-secondary">
           Refresh queue
@@ -170,76 +186,53 @@ export function HelpdeskQueuePage() {
         </div>
       }
     >
-      <div className="erp-kpi-grid">
-        <div className="erp-kpi-card">
-          <p className="erp-kpi-label">Visible Tickets</p>
-          <p className="erp-kpi-value">{filteredTickets.length}</p>
-          <p className="erp-kpi-meta">Current search and status scope</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-warning">
-          <p className="erp-kpi-label">Open / Pending</p>
-          <p className="erp-kpi-value">
-            {filteredTickets.filter((ticket) => ["Open", "Pending"].includes(ticket.status)).length}
-          </p>
-          <p className="erp-kpi-meta">Still needs active handling</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-danger">
-          <p className="erp-kpi-label">High Priority</p>
-          <p className="erp-kpi-value erp-kpi-value-danger">
-            {filteredTickets.filter((ticket) => ["High", "Critical"].includes(ticket.priority)).length}
-          </p>
-          <p className="erp-kpi-meta">Escalation attention items</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-success">
-          <p className="erp-kpi-label">Resolved</p>
-          <p className="erp-kpi-value erp-kpi-value-success">
-            {filteredTickets.filter((ticket) => ticket.status === "Resolved").length}
-          </p>
-          <p className="erp-kpi-meta">Tickets already closed out</p>
-        </div>
-      </div>
-
       {error ? <div className="erp-alert-error">{error}</div> : null}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200/85 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] shadow-[0_14px_32px_rgba(15,23,42,0.07)]">
-        <table className="w-full text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50/85">
+      <div className="erp-table-wrap">
+        <table className="erp-table">
+          <thead className="erp-thead">
             <tr>
-              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Ticket</th>
-              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Requester</th>
-              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Priority</th>
-              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
-              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Owner</th>
-              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Updated</th>
+              <th className="erp-th">Ticket</th>
+              <th className="erp-th">Requester</th>
+              <th className="erp-th">Priority</th>
+              <th className="erp-th">Status</th>
+              <th className="erp-th">Owner</th>
+              <th className="erp-th">Updated</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody>
             {loading ? (
               Array.from({ length: 5 }).map((_, index) => (
                 <tr key={index}>
-                  <td colSpan={6} className="px-5 py-4">
-                    <div className="h-5 w-full animate-pulse rounded bg-slate-100" />
+                  <td colSpan={6} className="erp-td">
+                    <div className="h-4 animate-pulse rounded bg-slate-100" aria-hidden="true" />
                   </td>
                 </tr>
               ))
             ) : filteredTickets.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-5 py-10 text-center text-slate-500">
-                  No tickets match the current filter set.
+                <td colSpan={6} className="erp-td py-10 text-center">
+                  <div className="mx-auto flex max-w-lg flex-col items-center gap-2 text-center" role="status">
+                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500" aria-hidden="true">
+                      <Inbox className="h-4 w-4" />
+                    </span>
+                    <p className="text-sm font-semibold text-slate-900">No tickets match the current filter set.</p>
+                    <p className="text-sm leading-6 text-slate-500">Try a broader search or switch to a different status bucket.</p>
+                  </div>
                 </td>
               </tr>
             ) : (
               filteredTickets.map((ticket) => (
-                <tr key={ticket.id} className="transition hover:bg-[linear-gradient(90deg,rgba(248,250,252,0.95),rgba(255,255,255,0.95))]">
-                  <td className="px-5 py-4">
+                <tr key={ticket.id} className="erp-tr">
+                  <td className="erp-td">
                     <div className="font-medium text-slate-900">{ticket.title}</div>
                     <div className="mt-1 text-xs text-slate-500">
                       {ticket.ticketNumber || "No ticket number"}
                       {ticket.category ? ` | ${ticket.category}` : ""}
                     </div>
                   </td>
-                  <td className="px-5 py-4 text-slate-600">{ticket.requester}</td>
-                  <td className="px-5 py-4">
+                  <td className="erp-td text-slate-600">{ticket.requester}</td>
+                  <td className="erp-td">
                     <span
                       className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
                         priorityClassName[ticket.priority.toLowerCase()] || "bg-slate-100 text-slate-600"
@@ -248,7 +241,7 @@ export function HelpdeskQueuePage() {
                       {ticket.priority}
                     </span>
                   </td>
-                  <td className="px-5 py-4">
+                  <td className="erp-td">
                     <span
                       className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
                         statusClassName[ticket.status.toLowerCase()] || "bg-slate-100 text-slate-600"
@@ -257,8 +250,8 @@ export function HelpdeskQueuePage() {
                       {ticket.status}
                     </span>
                   </td>
-                  <td className="px-5 py-4 text-slate-600">{ticket.assignedTo || "Unassigned"}</td>
-                  <td className="px-5 py-4 text-slate-600">{formatDate(ticket.updatedAt)}</td>
+                  <td className="erp-td text-slate-600">{ticket.assignedTo || "Unassigned"}</td>
+                  <td className="erp-td text-slate-600">{formatDate(ticket.updatedAt)}</td>
                 </tr>
               ))
             )}

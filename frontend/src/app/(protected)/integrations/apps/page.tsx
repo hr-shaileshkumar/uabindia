@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
+import { CrudHeaderStats } from "@/components/erp/crud-workspace";
 
 type AppRow = { id: string; name: string; category: string; provider: string; connectedAt: string; status: string };
 
@@ -20,12 +21,14 @@ export default function IntegrationsAppsPage() {
       rows={records}
       countLabel={(count) => `${count} apps`}
       emptyMessage="No connected apps."
-      kpiCards={
-        <div className="erp-kpi-grid">
-          <div className="erp-kpi-card"><p className="erp-kpi-label">Total</p><p className="erp-kpi-value">{records.length}</p><p className="erp-kpi-meta">Connected apps</p></div>
-          <div className="erp-kpi-card erp-kpi-card-success"><p className="erp-kpi-label">Active</p><p className="erp-kpi-value erp-kpi-value-success">{records.filter(r => r.status === "Connected").length}</p><p className="erp-kpi-meta">In sync</p></div>
-          <div className="erp-kpi-card erp-kpi-card-warning"><p className="erp-kpi-label">Error</p><p className="erp-kpi-value">{records.filter(r => r.status === "Error").length}</p><p className="erp-kpi-meta">Needs attention</p></div>
-        </div>
+      headerStats={
+        <CrudHeaderStats
+          items={[
+            { label: "Apps", value: records.length, helper: "connected" },
+            { label: "Active", value: records.filter((r) => r.status === "Connected").length, tone: "positive" },
+            { label: "Error", value: records.filter((r) => r.status === "Error").length, tone: "warning" },
+          ]}
+        />
       }
       columns={[{ label: "App" }, { label: "Category" }, { label: "Provider" }, { label: "Connected" }, { label: "Status" }]}
       renderRow={(r) => (

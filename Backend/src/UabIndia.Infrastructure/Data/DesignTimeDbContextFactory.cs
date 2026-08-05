@@ -51,8 +51,7 @@ namespace UabIndia.Infrastructure.Data
 
             var builder = new SqlConnectionStringBuilder(connectionString)
             {
-                TrustServerCertificate = true,
-                Encrypt = false
+                TrustServerCertificate = true
             };
 
             return builder.ConnectionString;

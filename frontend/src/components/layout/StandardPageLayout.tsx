@@ -6,6 +6,7 @@ type StandardPageLayoutProps = {
   subtitle?: string;
   eyebrow?: string;
   icon?: string;
+  meta?: ReactNode;
   actions?: ReactNode;
   filters?: ReactNode;
   breadcrumb?: ReactNode;
@@ -18,6 +19,7 @@ export default function StandardPageLayout({
   subtitle,
   eyebrow,
   icon,
+  meta,
   actions,
   filters,
   breadcrumb,
@@ -25,52 +27,59 @@ export default function StandardPageLayout({
   pagination,
 }: StandardPageLayoutProps) {
   return (
-    <div className="erp-page space-y-4">
-      {breadcrumb ? <div>{breadcrumb}</div> : null}
+    <div className="erp-page space-y-5">
+      {breadcrumb ? <div className="-mb-2">{breadcrumb}</div> : null}
 
-      <section className="overflow-hidden rounded-[1.35rem] border border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(246,249,253,0.96))] px-4 py-4 shadow-[0_14px_36px_rgba(15,23,42,0.05)] sm:px-5 sm:py-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex min-w-0 items-start gap-3">
+      {/* SAP Fiori / ERPNext Enterprise Desk Header Card */}
+      <section className="overflow-hidden rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-4 shadow-xs">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          {/* Left Track: Icon + Titles */}
+          <div className="flex min-w-0 items-start sm:items-center gap-3.5">
             {icon ? (
-              <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[1rem] bg-[linear-gradient(135deg,rgba(15,74,125,0.1),rgba(11,123,115,0.1))] text-[color:var(--erp-primary)] ring-1 ring-white/80">
+              <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50 shadow-2xs">
                 <ModuleIcon name={icon} className="h-5 w-5" />
               </span>
             ) : null}
 
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               {eyebrow ? (
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400">
                   {eyebrow}
                 </p>
               ) : null}
-              <h1 className="mt-1 text-[1.85rem] font-semibold tracking-[-0.05em] text-slate-950 sm:text-[2.1rem]">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
                 {title}
               </h1>
               {subtitle ? (
-                <p className="mt-2.5 max-w-3xl text-sm leading-6 text-slate-600 sm:text-[0.92rem]">
+                <p className="mt-0.5 text-xs sm:text-sm leading-relaxed text-slate-500 dark:text-slate-400 max-w-4xl">
                   {subtitle}
                 </p>
               ) : null}
+              {meta ? <div className="mt-2.5 flex flex-wrap items-center gap-2">{meta}</div> : null}
             </div>
           </div>
 
+          {/* Right Track: Action Buttons */}
           {actions ? (
-            <div className="flex flex-wrap items-center gap-2 rounded-[1rem] border border-slate-200/80 bg-white/80 p-1.5 shadow-sm backdrop-blur-sm">
+            <div className="flex flex-wrap items-center gap-2 pt-2 md:pt-0 shrink-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800">
               {actions}
             </div>
           ) : null}
         </div>
       </section>
 
+      {/* Filter Toolbar Section */}
       {filters ? (
-        <section className="rounded-[1.1rem] border border-slate-200/80 bg-white/95 p-3.5 shadow-[var(--erp-shadow-sm)] backdrop-blur-sm">
+        <section className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs">
           {filters}
         </section>
       ) : null}
 
+      {/* Main Page Workspace */}
       <section className="min-w-0 space-y-4">{children}</section>
 
-      {pagination ? <section className="erp-page-pagination">{pagination}</section> : null}
+      {/* Pagination Footer */}
+      {pagination ? <section className="pt-2">{pagination}</section> : null}
     </div>
   );
 }

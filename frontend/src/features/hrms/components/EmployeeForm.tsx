@@ -138,28 +138,31 @@ export default function EmployeeForm({ initialValues, employeeId, title }: Emplo
         </button>
       }
     >
-      <form onSubmit={(e) => void handleSubmit(e)} className="max-w-2xl space-y-6">
+      <form onSubmit={(e) => void handleSubmit(e)} className="w-full max-w-4xl space-y-3">
         {serverError && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {serverError}
           </div>
         )}
 
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <div className="border-b border-slate-100 px-6 py-4">
+        <div className="overflow-hidden rounded-[var(--erp-radius-panel)] border border-[var(--erp-border)] bg-white shadow-[var(--erp-shadow-sm)]">
+          <div className="border-b border-slate-100 px-4 py-3">
             <h2 className="text-sm font-semibold text-slate-700">Basic Information</h2>
           </div>
 
-          <div className="space-y-4 p-6">
+          <div className="grid gap-4 p-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">
+              <label htmlFor="employee-full-name" className="mb-1 block text-sm font-medium text-slate-700">
                 Full Name <span className="text-red-500">*</span>
               </label>
               <input
+                id="employee-full-name"
                 type="text"
                 value={values.fullName}
                 onChange={(e) => set("fullName", e.target.value)}
                 placeholder="e.g. Priya Sharma"
+                aria-invalid={Boolean(errors.fullName)}
+                aria-describedby={errors.fullName ? "employee-full-name-error" : undefined}
                 className={`w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-1 ${
                   errors.fullName
                     ? "border-red-400 focus:border-red-400 focus:ring-red-200"
@@ -167,13 +170,14 @@ export default function EmployeeForm({ initialValues, employeeId, title }: Emplo
                 }`}
               />
               {errors.fullName && (
-                <p className="mt-1 text-xs text-red-500">{errors.fullName}</p>
+                <p id="employee-full-name-error" className="mt-1 text-xs text-red-500">{errors.fullName}</p>
               )}
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Employee Code</label>
+              <label htmlFor="employee-code" className="mb-1 block text-sm font-medium text-slate-700">Employee Code</label>
               <input
+                id="employee-code"
                 type="text"
                 value={values.employeeCode}
                 onChange={(e) => set("employeeCode", e.target.value)}
@@ -183,13 +187,16 @@ export default function EmployeeForm({ initialValues, employeeId, title }: Emplo
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">
+              <label htmlFor="employee-company" className="mb-1 block text-sm font-medium text-slate-700">
                 Company <span className="text-red-500">*</span>
               </label>
               <select
+                id="employee-company"
                 value={values.companyId}
                 onChange={(e) => { set("companyId", e.target.value); set("projectId", ""); }}
                 disabled={loadingCompanies}
+                aria-invalid={Boolean(errors.companyId)}
+                aria-describedby={errors.companyId ? "employee-company-error" : undefined}
                 className={`w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-1 ${
                   errors.companyId
                     ? "border-red-400 focus:border-red-400 focus:ring-red-200"
@@ -202,13 +209,14 @@ export default function EmployeeForm({ initialValues, employeeId, title }: Emplo
                 ))}
               </select>
               {errors.companyId && (
-                <p className="mt-1 text-xs text-red-500">{errors.companyId}</p>
+                <p id="employee-company-error" className="mt-1 text-xs text-red-500">{errors.companyId}</p>
               )}
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Project</label>
+              <label htmlFor="employee-project" className="mb-1 block text-sm font-medium text-slate-700">Project</label>
               <select
+                id="employee-project"
                 value={values.projectId}
                 onChange={(e) => set("projectId", e.target.value)}
                 disabled={!values.companyId || loadingProjects}
@@ -228,8 +236,9 @@ export default function EmployeeForm({ initialValues, employeeId, title }: Emplo
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Status</label>
+              <label htmlFor="employee-status" className="mb-1 block text-sm font-medium text-slate-700">Status</label>
               <select
+                id="employee-status"
                 value={values.status}
                 onChange={(e) => set("status", e.target.value)}
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200"
@@ -242,7 +251,7 @@ export default function EmployeeForm({ initialValues, employeeId, title }: Emplo
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="erp-form-actions sticky bottom-0 z-10 flex items-center gap-2 rounded-[var(--erp-radius-panel)] border border-[var(--erp-border)] bg-white/95 p-3 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur">
           <button
             type="submit"
             disabled={saving}

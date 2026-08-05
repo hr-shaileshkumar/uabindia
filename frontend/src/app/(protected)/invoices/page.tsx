@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Plus, FileText } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import { CrudHeaderStats } from "@/components/erp/crud-workspace";
 import { hrApi } from "@/services/hrApi";
 import { notifyError } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
@@ -33,22 +34,27 @@ type InvoiceForm = {
 };
 
 const STATUS_CONFIG: Record<string, { chip: string; label: string }> = {
-  Paid:        { chip: "erp-chip erp-chip-success", label: "Paid"        },
-  Outstanding: { chip: "erp-chip erp-chip-info",    label: "Outstanding" },
-  Overdue:     { chip: "erp-chip erp-chip-danger",  label: "Overdue"     },
-  Draft:       { chip: "erp-chip erp-chip-neutral", label: "Draft"       },
-  Cancelled:   { chip: "erp-chip erp-chip-danger",  label: "Cancelled"   },
+  Paid: { chip: "erp-chip erp-chip-success", label: "Paid" },
+  Outstanding: { chip: "erp-chip erp-chip-info", label: "Outstanding" },
+  Overdue: { chip: "erp-chip erp-chip-danger", label: "Overdue" },
+  Draft: { chip: "erp-chip erp-chip-neutral", label: "Draft" },
+  Cancelled: { chip: "erp-chip erp-chip-danger", label: "Cancelled" },
 };
 
-const formatCurrency = (v?: number) => v != null ? `₹${v.toLocaleString("en-IN")}` : "—";
+const formatCurrency = (v?: number) => v != null ? `Rs ${v.toLocaleString("en-IN")}` : "-";
 
 function mapSoStatusToInvoiceStatus(soStatus?: string): string {
   switch (soStatus) {
-    case "Completed": return "Paid";
-    case "Confirmed": return "Outstanding";
-    case "Cancelled": return "Cancelled";
-    case "Draft": return "Draft";
-    default: return "Outstanding";
+    case "Completed":
+      return "Paid";
+    case "Confirmed":
+      return "Outstanding";
+    case "Cancelled":
+      return "Cancelled";
+    case "Draft":
+      return "Draft";
+    default:
+      return "Outstanding";
   }
 }
 
@@ -61,18 +67,21 @@ export default function InvoicesPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [form, setForm] = useState<InvoiceForm>({
-    customerId: "", soNumber: "", amount: 0, taxAmount: 0, dueDate: "", notes: "",
+    customerId: "",
+    soNumber: "",
+    amount: 0,
+    taxAmount: 0,
+    dueDate: "",
+    notes: "",
   });
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      // Use sales orders as invoice proxy
       const res = await hrApi.erp.salesOrders.getAll(1, 50);
       const raw = res.data;
       const list = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
-      // Map sales orders to invoice-like records
       const mapped: InvoiceRow[] = list.map((so: InvoiceRow) => ({
         id: so.id,
         invoiceNumber: `INV-${(so.soNumber || so.id?.slice(0, 8) || "").replace("SO-", "")}`,
@@ -95,7 +104,9 @@ export default function InvoicesPage() {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,21 +134,24 @@ export default function InvoicesPage() {
 
   const filtered = records.filter((r) => {
     const q = search.toLowerCase();
-    const matchSearch = !q
-      || (r.invoiceNumber || "").toLowerCase().includes(q)
-      || (r.customerName || "").toLowerCase().includes(q);
+    const matchSearch =
+      !q ||
+      (r.invoiceNumber || "").toLowerCase().includes(q) ||
+      (r.customerName || "").toLowerCase().includes(q);
     const matchStatus = !statusFilter || r.status === statusFilter;
     return matchSearch && matchStatus;
   });
 
   const now = new Date();
-  const paid        = filtered.filter((r) => r.status === "Paid").length;
+  const paid = filtered.filter((r) => r.status === "Paid").length;
   const outstanding = filtered.filter((r) => r.status === "Outstanding").length;
-  const overdue     = filtered.filter((r) => {
+  const overdue = filtered.filter((r) => {
     if (r.status !== "Outstanding") return false;
     return r.dueDate ? new Date(r.dueDate) < now : false;
   }).length;
-  const totalOutstanding = filtered.filter((r) => r.status === "Outstanding").reduce((s, r) => s + (r.totalAmount || 0), 0);
+  const totalOutstanding = filtered
+    .filter((r) => r.status === "Outstanding")
+    .reduce((sum, r) => sum + (r.totalAmount || 0), 0);
 
   return (
     <StandardPageLayout
@@ -145,6 +159,16 @@ export default function InvoicesPage() {
       subtitle="Manage customer invoices, track payment status, and monitor outstanding receivables across all billing entities."
       eyebrow="Finance / Transactions"
       icon="file"
+      meta={
+        <CrudHeaderStats
+          items={[
+            { label: "Invoices", value: filtered.length, helper: "visible" },
+            { label: "Paid", value: paid, tone: "positive" },
+            { label: "Outstanding", value: outstanding, helper: formatCurrency(totalOutstanding), tone: "warning" },
+            { label: "Overdue", value: overdue, tone: "danger" },
+          ]}
+        />
+      }
       actions={
         <button type="button" onClick={() => setShowForm((p) => !p)} className="erp-action-btn erp-action-btn-primary">
           <Plus className="h-4 w-4" />
@@ -153,9 +177,9 @@ export default function InvoicesPage() {
       }
       filters={
         <div className="flex flex-wrap items-end gap-3">
-          <div className="flex-1 min-w-48">
+          <div className="min-w-48 flex-1">
             <label className="erp-label">Search</label>
-            <input className="erp-input" placeholder="Invoice # or customer…" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <input className="erp-input" placeholder="Invoice # or customer..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           <div>
             <label className="erp-label">Status</label>
@@ -174,29 +198,6 @@ export default function InvoicesPage() {
         </div>
       }
     >
-      <div className="erp-kpi-grid">
-        <div className="erp-kpi-card">
-          <p className="erp-kpi-label">Total Invoices</p>
-          <p className="erp-kpi-value">{filtered.length}</p>
-          <p className="erp-kpi-meta">All billing documents</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-success">
-          <p className="erp-kpi-label">Paid</p>
-          <p className="erp-kpi-value erp-kpi-value-success">{paid}</p>
-          <p className="erp-kpi-meta">Cleared invoices</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-warning">
-          <p className="erp-kpi-label">Outstanding</p>
-          <p className="erp-kpi-value">{outstanding}</p>
-          <p className="erp-kpi-meta">{formatCurrency(totalOutstanding)}</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-danger">
-          <p className="erp-kpi-label">Overdue</p>
-          <p className="erp-kpi-value">{overdue}</p>
-          <p className="erp-kpi-meta">Past due date</p>
-        </div>
-      </div>
-
       {error && <div className="erp-alert-error">{error}</div>}
 
       {showForm && (
@@ -219,11 +220,11 @@ export default function InvoicesPage() {
                   <input className="erp-input" placeholder="e.g. SO-2024-0001" value={form.soNumber} onChange={(e) => setForm({ ...form, soNumber: e.target.value })} />
                 </div>
                 <div>
-                  <label className="erp-label">Amount (₹)</label>
+                  <label className="erp-label">Amount (Rs)</label>
                   <input className="erp-input" type="number" min={0} step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })} required />
                 </div>
                 <div>
-                  <label className="erp-label">Tax Amount (₹)</label>
+                  <label className="erp-label">Tax Amount (Rs)</label>
                   <input className="erp-input" type="number" min={0} step="0.01" value={form.taxAmount} onChange={(e) => setForm({ ...form, taxAmount: Number(e.target.value) })} />
                 </div>
                 <div>
@@ -241,7 +242,7 @@ export default function InvoicesPage() {
               </div>
               <div className="erp-form-actions">
                 <button type="button" onClick={() => setShowForm(false)} className="erp-action-btn erp-action-btn-secondary">Cancel</button>
-                <button type="submit" disabled={saving} className="erp-action-btn erp-action-btn-primary">{saving ? "Creating…" : "Create Invoice"}</button>
+                <button type="submit" disabled={saving} className="erp-action-btn erp-action-btn-primary">{saving ? "Creating..." : "Create Invoice"}</button>
               </div>
             </form>
           </div>
@@ -286,13 +287,13 @@ export default function InvoicesPage() {
                   const isOverdue = r.status === "Outstanding" && r.dueDate && new Date(r.dueDate) < now;
                   return (
                     <tr key={r.id} className="erp-tr">
-                      <td className="erp-td font-mono text-sm font-semibold text-slate-900">{r.invoiceNumber || "—"}</td>
-                      <td className="erp-td text-slate-700">{r.customerName || r.customerId || "—"}</td>
-                      <td className="erp-td text-slate-600">{r.issueDate ? new Date(r.issueDate).toLocaleDateString("en-IN") : "—"}</td>
+                      <td className="erp-td font-mono text-sm font-semibold text-slate-900">{r.invoiceNumber || "-"}</td>
+                      <td className="erp-td text-slate-700">{r.customerName || r.customerId || "-"}</td>
+                      <td className="erp-td text-slate-600">{r.issueDate ? new Date(r.issueDate).toLocaleDateString("en-IN") : "-"}</td>
                       <td className="erp-td">
                         <span className={isOverdue ? "font-semibold text-red-600" : "text-slate-600"}>
-                          {r.dueDate ? new Date(r.dueDate).toLocaleDateString("en-IN") : "—"}
-                          {isOverdue && <span className="ml-1 text-xs">⚠</span>}
+                          {r.dueDate ? new Date(r.dueDate).toLocaleDateString("en-IN") : "-"}
+                          {isOverdue && <span className="ml-1 text-xs">!</span>}
                         </span>
                       </td>
                       <td className="erp-td font-semibold text-slate-900">{formatCurrency(r.totalAmount)}</td>

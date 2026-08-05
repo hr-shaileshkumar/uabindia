@@ -1,6 +1,17 @@
-﻿-- Idempotent ERP schema bootstrap
+-- Idempotent ERP schema bootstrap
 IF OBJECT_ID(N'[BaseEntity]', N'U') IS NOT NULL
     DROP TABLE [BaseEntity];
+GO
+IF OBJECT_ID(N'dbo.ModuleMigrations', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.ModuleMigrations (
+        Id INT IDENTITY(1,1) PRIMARY KEY,
+        ModuleKey NVARCHAR(100) NOT NULL,
+        Version NVARCHAR(50) NOT NULL,
+        AppliedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT UQ_ModuleMigrations_Module_Version UNIQUE (ModuleKey, Version)
+    );
+END
 GO
 IF OBJECT_ID(N'[AppraisalCompetencies]', N'U') IS NULL
 BEGIN

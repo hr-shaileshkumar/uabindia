@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
+import { CrudHeaderStats } from "@/components/erp/crud-workspace";
 import { hrApi } from "@/services/hrApi";
 
 type SessionRow = {
@@ -40,13 +41,15 @@ export default function DeviceSessionsPage() {
       rows={sessions}
       countLabel={(count) => `${count} sessions`}
       emptyMessage="No device sessions found."
-      kpiCards={
-        <div className="erp-kpi-grid">
-          <div className="erp-kpi-card"><p className="erp-kpi-label">Total Devices</p><p className="erp-kpi-value">{sessions.length}</p><p className="erp-kpi-meta">Device session records</p></div>
-          <div className="erp-kpi-card erp-kpi-card-success"><p className="erp-kpi-label">Active</p><p className="erp-kpi-value erp-kpi-value-success">{sessions.filter(s => !s.isRevoked).length}</p><p className="erp-kpi-meta">Trusted devices</p></div>
-          <div className="erp-kpi-card erp-kpi-card-danger"><p className="erp-kpi-label">Revoked</p><p className="erp-kpi-value erp-kpi-value-danger">{sessions.filter(s => s.isRevoked).length}</p><p className="erp-kpi-meta">Untrusted devices</p></div>
-          <div className="erp-kpi-card erp-kpi-card-info"><p className="erp-kpi-label">Unique Devices</p><p className="erp-kpi-value">{new Set(sessions.map(s => s.deviceId).filter(Boolean)).size}</p><p className="erp-kpi-meta">Distinct device IDs</p></div>
-        </div>
+      headerStats={
+        <CrudHeaderStats
+          items={[
+            { label: "Devices", value: sessions.length, helper: "sessions" },
+            { label: "Active", value: sessions.filter((s) => !s.isRevoked).length, tone: "positive" },
+            { label: "Revoked", value: sessions.filter((s) => s.isRevoked).length, tone: "danger" },
+            { label: "Unique", value: new Set(sessions.map((s) => s.deviceId).filter(Boolean)).size, tone: "info" },
+          ]}
+        />
       }
       columns={[
         { label: "Device" },

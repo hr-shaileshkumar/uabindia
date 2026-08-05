@@ -2,18 +2,31 @@
 
 import Link from "next/link";
 import {
-  AnalyticsShowcase,
-  CtaPanel,
-  DemoAgendaPanel,
-  FaqAccordion,
-  IndustryGrid,
-  ModuleGrid,
-  ProcessTimeline,
-  ResourceGrid,
-  SectionIntro,
-  SupportLaneGrid,
-  ValueGrid,
-} from "@/components/public/PublicMarketingBlocks";
+  ArrowRight,
+  BarChart3,
+  BriefcaseBusiness,
+  Building2,
+  CalendarDays,
+  Check,
+  CheckCircle2,
+  Clock3,
+  FileText,
+  GraduationCap,
+  HeartPulse,
+  Landmark,
+  Layers3,
+  Library,
+  MessageSquareText,
+  Package,
+  ShoppingCart,
+  Store,
+  Truck,
+  Users,
+  UsersRound,
+  WalletCards,
+  Zap,
+} from "lucide-react";
+import { FloatingCard } from "@/components/public/PublicMarketingBlocks";
 import PublicAudiencePageFrame from "@/components/public/PublicAudiencePageFrame";
 import PublicStructuredData from "@/components/public/PublicStructuredData";
 import { MotionReveal } from "@/components/public/PublicMotion";
@@ -27,11 +40,7 @@ import {
 import { ContactDemoForm } from "@/components/erp/contact-demo-form";
 import { usePublicPageData } from "@/hooks/usePublicPageData";
 import {
-  comparisonRows,
-  companyValues,
-  dashboardSignals,
   demoAgenda,
-  frequentlyAskedQuestions,
   getRecommendedModules,
   marketingIndustries,
   marketingModules,
@@ -44,81 +53,172 @@ import {
 } from "@/lib/public-marketing";
 import { withPublicAudience, type PublicAudience } from "@/lib/public-audience";
 
-function buildModuleWorkflow(module: MarketingModule) {
-  return [
-    {
-      step: "01",
-      title: `Configure ${module.title}`,
-      description: `Set up the policies, structures, and ownership rules required to run ${module.title.toLowerCase()} inside your business.`,
-    },
-    {
-      step: "02",
-      title: "Capture live activity",
-      description: `Bring daily actions, requests, approvals, and records into one governed workflow instead of separate spreadsheets or chats.`,
-    },
-    {
-      step: "03",
-      title: "Review and approve",
-      description: `Managers and admins can validate exceptions, approvals, and operational decisions before they affect reporting or downstream teams.`,
-    },
-    {
-      step: "04",
-      title: "Report with confidence",
-      description: `Leadership gets a clearer view of ${module.title.toLowerCase()} outcomes through dashboards, KPIs, and audit-ready history.`,
-    },
-  ];
+function renderModuleIcon(slug: string, className: string) {
+  switch (slug) {
+    case "hrms":
+      return <UsersRound className={className} />;
+    case "payroll":
+      return <WalletCards className={className} />;
+    case "attendance":
+      return <Clock3 className={className} />;
+    case "leave":
+      return <CalendarDays className={className} />;
+    case "recruitment":
+      return <BriefcaseBusiness className={className} />;
+    case "performance":
+      return <BarChart3 className={className} />;
+    case "asset-management":
+      return <Package className={className} />;
+    case "finance":
+      return <Landmark className={className} />;
+    case "inventory":
+      return <Layers3 className={className} />;
+    case "procurement":
+      return <ShoppingCart className={className} />;
+    case "crm":
+    case "help-desk":
+      return <MessageSquareText className={className} />;
+    case "project-management":
+      return <Building2 className={className} />;
+    case "reporting":
+      return <FileText className={className} />;
+    default:
+      return <Layers3 className={className} />;
+  }
 }
 
-function getModuleFaqs(module: MarketingModule) {
-  const keyword = module.title.toLowerCase();
-  const highlightKeywords = module.highlights
-    .flatMap((highlight) => highlight.toLowerCase().split(/\s+/))
-    .filter((part) => part.length > 5);
-  const related = frequentlyAskedQuestions.filter((item) => {
-    const haystack = `${item.question} ${item.answer}`.toLowerCase();
-    return haystack.includes(keyword) || highlightKeywords.some((part) => haystack.includes(part));
-  });
-
-  return (related.length > 0 ? related : frequentlyAskedQuestions).slice(0, 6);
+function renderIndustryIcon(slug: string, className: string) {
+  switch (slug) {
+    case "manufacturing":
+      return <Building2 className={className} />;
+    case "healthcare":
+    case "hospital":
+      return <HeartPulse className={className} />;
+    case "education":
+      return <GraduationCap className={className} />;
+    case "retail":
+      return <Store className={className} />;
+    case "construction":
+      return <ShoppingCart className={className} />;
+    case "logistics":
+      return <Truck className={className} />;
+    case "agriculture":
+      return <Library className={className} />;
+    case "pharma":
+      return <WalletCards className={className} />;
+    case "government":
+      return <Landmark className={className} />;
+    case "ngo":
+    case "professional-services":
+      return <BriefcaseBusiness className={className} />;
+    case "it-services":
+      return <BarChart3 className={className} />;
+    default:
+      return <Building2 className={className} />;
+  }
 }
 
-function buildIndustryWorkflow(industry: MarketingIndustry) {
-  return [
-    {
-      step: "01",
-      title: "Map the operating model",
-      description: `Review the workflows, roles, and reporting pressure points that shape ${industry.title.toLowerCase()} delivery.`,
-    },
-    {
-      step: "02",
-      title: "Deploy the core modules",
-      description: `Launch the modules that remove the most friction first, then connect them to approvals, reporting, and leadership visibility.`,
-    },
-    {
-      step: "03",
-      title: "Standardize approvals",
-      description: `Align department owners, escalation rules, and governance so operating decisions move faster without losing control.`,
-    },
-    {
-      step: "04",
-      title: "Scale reporting",
-      description: `Expose performance, workforce, finance, and process visibility in a way that matches real sector decisions.`,
-    },
-  ];
-}
-
-function getIndustryFaqs(industry: MarketingIndustry) {
-  const keyword = industry.title.toLowerCase();
-  const related = frequentlyAskedQuestions.filter((item) =>
-    `${item.question} ${item.answer}`.toLowerCase().includes(keyword)
+function DashboardPreview() {
+  return (
+    <div className="rounded-[1.45rem] border border-[#dce8ff] bg-[linear-gradient(180deg,#ffffff,#f4f8ff)] p-3.5 shadow-[0_16px_40px_rgba(15,23,42,0.07)]">
+      <div className="rounded-[1.15rem] border border-slate-200 bg-white p-4">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-[#c5d8ff]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[#dbe7ff]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[#edf4ff]" />
+          </div>
+          <div className="h-7 w-28 rounded-full bg-[#f3f7ff]" />
+        </div>
+        <div className="mt-3.5 grid gap-3 md:grid-cols-[0.9fr_1.1fr]">
+          <div className="space-y-3">
+            <div className="rounded-[0.95rem] bg-[#f7faff] p-3">
+              <div className="h-3 w-20 rounded-full bg-[#dce8ff]" />
+              <div className="mt-3 h-10 w-24 rounded-xl bg-[#edf4ff]" />
+            </div>
+            <div className="rounded-[0.95rem] bg-[#f7faff] p-3">
+              <div className="h-3 w-24 rounded-full bg-[#dce8ff]" />
+              <div className="mt-3 h-8 w-20 rounded-xl bg-[#edf4ff]" />
+            </div>
+          </div>
+          <div className="rounded-[0.95rem] bg-[linear-gradient(180deg,#fbfdff,#f2f7ff)] p-4">
+            <div className="flex h-36 items-end gap-2">
+              {[30, 48, 42, 62, 54, 76, 68].map((height, index) => (
+                <div key={index} className="flex-1">
+                  <div
+                    className="w-full rounded-t-full bg-[linear-gradient(180deg,#86b3ff,#0f5eff)]"
+                    style={{ height: `${height * 1.2}px` }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
-
-  return (related.length > 0 ? related : frequentlyAskedQuestions.slice(0, 6)).slice(0, 6);
 }
 
-export function ProductsLandingPage({ audience }: { audience: PublicAudience }) {
-  const shell = usePublicPageData("features", audience);
+function HeroStatStrip({
+  items,
+}: {
+  items: Array<{ label: string; value: string }>;
+}) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-3">
+      {items.map((item) => (
+        <div key={item.label} className="rounded-[0.95rem] border border-white/80 bg-white/92 px-4 py-3 shadow-[0_8px_18px_rgba(15,23,42,0.05)]">
+          <p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-slate-500">{item.label}</p>
+          <p className="mt-2 text-[1.2rem] font-semibold tracking-[-0.04em] text-slate-950">{item.value}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
 
+function HeroSummaryPanel({
+  eyebrow,
+  title,
+  summary,
+  stats,
+  points,
+}: {
+  eyebrow: string;
+  title: string;
+  summary: string;
+  stats: Array<{ label: string; value: string }>;
+  points: string[];
+}) {
+  return (
+    <div className="rounded-[1.45rem] border border-slate-200/80 bg-[linear-gradient(180deg,#fbfdff,#eef4fb)] p-5 shadow-[0_18px_46px_rgba(15,23,42,0.07)]">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--erp-primary)]">{eyebrow}</p>
+      <h2 className="mt-2 text-[1.65rem] font-semibold tracking-[-0.05em] text-slate-950">{title}</h2>
+      <p className="mt-2 text-sm leading-6 text-slate-600">{summary}</p>
+      <div className="mt-4">
+        <HeroStatStrip items={stats} />
+      </div>
+      <div className="mt-4 grid gap-2.5">
+        {points.map((point) => (
+          <div key={point} className="rounded-[0.95rem] border border-white/80 bg-white/92 px-4 py-3 text-sm text-slate-700 shadow-[0_8px_18px_rgba(15,23,42,0.04)]">
+            {point}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PageShell({
+  audience,
+  shell,
+  structuredData,
+  children,
+}: {
+  audience: PublicAudience;
+  shell: ReturnType<typeof usePublicPageData>;
+  structuredData: Record<string, unknown>;
+  children: React.ReactNode;
+}) {
   return (
     <PublicAudiencePageFrame
       audience={audience}
@@ -128,70 +228,355 @@ export function ProductsLandingPage({ audience }: { audience: PublicAudience }) 
       allowedPaths={shell.allowedPaths}
       pageVisible={shell.pageVisible}
     >
-      <PublicStructuredData
-        data={{
-          "@context": "https://schema.org",
-          "@type": "CollectionPage",
-          name: "Products | UabIndia ERP",
-          url: `${publicSiteUrl}/products`,
-          description:
-            "Explore UabIndia ERP modules for HRMS, payroll, attendance, finance, inventory, procurement, CRM, projects, assets, help desk, and reporting.",
-        }}
-      />
+      <PublicStructuredData data={structuredData} />
+      {children}
+    </PublicAudiencePageFrame>
+  );
+}
 
+function SectionHeader({
+  eyebrow,
+  title,
+  subtitle,
+  centered = false,
+}: {
+  eyebrow: string;
+  title: string;
+  subtitle?: string;
+  centered?: boolean;
+}) {
+  return (
+    <div className={centered ? "mx-auto max-w-3xl text-center" : "max-w-3xl"}>
+      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--erp-primary)]">{eyebrow}</p>
+      <h1 className="mt-2.5 text-[clamp(2.35rem,4.2vw,3.2rem)] leading-[0.94] font-semibold tracking-[-0.075em] text-slate-950">
+        {title}
+      </h1>
+      {subtitle ? <p className="mt-3 max-w-2xl text-[0.98rem] leading-7 text-slate-600">{subtitle}</p> : null}
+    </div>
+  );
+}
+
+function ModuleCard({ module }: { module: MarketingModule }) {
+  return (
+    <article className={`${publicPanelClassName} flex h-full flex-col p-5 transition hover:-translate-y-1 hover:shadow-[0_18px_44px_rgba(15,23,42,0.09)]`}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="inline-flex h-11 w-11 items-center justify-center rounded-[0.95rem] bg-[linear-gradient(180deg,#eef5ff,#dfeaff)] text-[#0f5eff]">
+          {renderModuleIcon(module.slug, "h-6 w-6")}
+        </div>
+        <span className="rounded-full bg-[#f4f8ff] px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-slate-500">
+          {module.category}
+        </span>
+      </div>
+      <h3 className="mt-4 text-xl font-semibold tracking-[-0.04em] text-slate-950">{module.title}</h3>
+      <p className="mt-2 text-sm leading-6 text-slate-600">{module.summary}</p>
+      <Link href={`/products/${module.slug}`} className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[#0f5eff]">
+        Explore
+        <ArrowRight className="h-4 w-4" />
+      </Link>
+    </article>
+  );
+}
+
+function IndustryTile({ industry }: { industry: MarketingIndustry }) {
+  return (
+    <Link
+      href={`/industries/${industry.slug}`}
+      className={`${publicPanelClassName} flex h-full flex-col items-center p-5 text-center transition hover:-translate-y-1 hover:shadow-[0_18px_44px_rgba(15,23,42,0.09)]`}
+    >
+      <div className="inline-flex h-12 w-12 items-center justify-center rounded-[0.95rem] bg-[linear-gradient(180deg,#eef5ff,#dfeaff)] text-[#0f5eff]">
+        {renderIndustryIcon(industry.slug, "h-6 w-6")}
+      </div>
+      <h3 className="mt-4 text-lg font-semibold tracking-[-0.03em] text-slate-950">{industry.title}</h3>
+    </Link>
+  );
+}
+
+function ResourceCard({
+  item,
+}: {
+  item: {
+    title: string;
+    type: string;
+    summary: string;
+    href: string;
+  };
+}) {
+  return (
+    <Link
+      href={item.href}
+      className={`${publicPanelClassName} block h-full overflow-hidden transition hover:-translate-y-1 hover:shadow-[0_18px_44px_rgba(15,23,42,0.09)]`}
+    >
+      <div className="h-36 bg-[linear-gradient(135deg,#dbeafe,#eff6ff)]" />
+      <div className="p-5">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--erp-primary)]">{item.type}</p>
+        <h3 className="mt-3 text-xl font-semibold tracking-[-0.04em] text-slate-950">{item.title}</h3>
+        <p className="mt-3 text-sm leading-7 text-slate-600">{item.summary}</p>
+        <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[#0f5eff]">
+          Read More
+          <ArrowRight className="h-4 w-4" />
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+function PayrollVisual() {
+  return (
+    <div className="relative z-1 rounded-[24px] border border-slate-200 bg-white p-8 shadow-[0_20px_50px_rgba(15,23,42,0.08)] min-h-[420px] flex flex-col justify-between select-none">
+      {/* Background radial gradient */}
+      <div className="absolute -top-10 -right-10 -z-10 h-64 w-64 rounded-full bg-indigo-500/8 blur-[60px]" />
+      <div className="absolute -bottom-10 -left-10 -z-10 h-64 w-64 rounded-full bg-emerald-500/5 blur-[60px]" />
+      
+      {/* Visual content: CTC breakdown */}
+      <div>
+        <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
+          <div className="text-left">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Salary Structure</p>
+            <h3 className="text-lg font-bold text-slate-800">CTC Breakdown Statement</h3>
+          </div>
+          <span className="rounded-full bg-emerald-50 border border-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">Auto-calculated</span>
+        </div>
+
+        {/* Breakdown Items */}
+        <div className="space-y-4">
+          {[
+            { label: "Base Salary", amount: "₹4,20,000", pct: 70, color: "bg-indigo-600" },
+            { label: "House Rent Allowance (HRA)", amount: "₹1,20,000", pct: 20, color: "bg-cyan-500" },
+            { label: "Statutory PF & ESIC", amount: "₹60,000", pct: 10, color: "bg-emerald-500" },
+          ].map((item) => (
+            <div key={item.label} className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                <span>{item.label}</span>
+                <span>{item.amount}</span>
+              </div>
+              <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+                <div className={`h-full rounded-full ${item.color}`} style={{ width: `${item.pct}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Regulatory indicators badges */}
+      <div className="mt-8 pt-4 border-t border-slate-100 flex flex-wrap gap-2.5">
+        {[
+          { label: "EPF Settled", active: true },
+          { label: "ESIC Computed", active: true },
+          { label: "Tax Withheld (TDS)", active: true }
+        ].map((badg) => (
+          <div key={badg.label} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-sm">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            {badg.label}
+          </div>
+        ))}
+      </div>
+
+      {/* Floating Elements */}
+      {/* Floating Card 1: Upper Center */}
+      <FloatingCard position="-top-6 left-1/2 -translate-x-1/2" delay="0s">
+        <div className="flex items-center gap-2">
+          <Check className="h-4 w-4 text-emerald-600 shrink-0" />
+          <span className="text-xs font-bold text-slate-800 whitespace-nowrap">EPF Automatic Return Generated</span>
+        </div>
+      </FloatingCard>
+
+      {/* Floating Card 2: Lower Right */}
+      <FloatingCard position="-bottom-6 -right-6" delay="1s">
+        <div className="flex items-center gap-2.5">
+          <BarChart3 className="h-4 w-4 text-indigo-600" />
+          <span className="text-xs font-bold text-slate-800 whitespace-nowrap">Monthly Run Curves: OK</span>
+        </div>
+      </FloatingCard>
+    </div>
+  );
+}
+
+function FinanceVisual() {
+  return (
+    <div className="relative z-1 rounded-[24px] border border-slate-200 bg-white p-8 shadow-[0_20px_50px_rgba(15,23,42,0.08)] min-h-[420px] flex flex-col justify-between select-none">
+      {/* Background radial gradient */}
+      <div className="absolute -top-10 -right-10 -z-10 h-64 w-64 rounded-full bg-indigo-500/8 blur-[60px]" />
+      <div className="absolute -bottom-10 -left-10 -z-10 h-64 w-64 rounded-full bg-cyan-500/5 blur-[60px]" />
+
+      <div>
+        <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
+          <div className="text-left">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Analytical Ledgers</p>
+            <h3 className="text-lg font-bold text-slate-800">Finance Cashflow Summary</h3>
+          </div>
+          <span className="rounded-full bg-indigo-50 border border-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700">Real-time sync</span>
+        </div>
+
+        {/* Visual Line Graph Mockup */}
+        <div className="h-32 w-full flex items-end gap-1.5 pt-4">
+          {[40, 25, 45, 60, 50, 75, 90, 80, 95].map((val, idx) => (
+            <div key={idx} className="flex-1 flex flex-col items-center gap-1.5">
+              <div 
+                className="w-full bg-gradient-to-t from-indigo-500 to-indigo-600 rounded-t-lg transition-all duration-300"
+                style={{ height: `${val}px` }}
+              />
+              <span className="text-[9px] font-bold text-slate-400 uppercase">Q{idx + 1}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-8 pt-4 border-t border-slate-100 grid grid-cols-2 gap-3">
+        <div className="rounded-xl border border-slate-150 bg-slate-50/50 p-3 text-left">
+          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Operating Cash</p>
+          <p className="text-base font-bold text-slate-800">₹1.48 Crore</p>
+        </div>
+        <div className="rounded-xl border border-slate-150 bg-slate-50/50 p-3 text-left">
+          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Budget Balance</p>
+          <p className="text-base font-bold text-slate-800">92.4% Safe</p>
+        </div>
+      </div>
+
+      {/* Floating Card 1: Top Left */}
+      <FloatingCard position="-top-6 -left-6" delay="0s">
+        <div className="flex items-center gap-2 font-mono text-[9px] bg-slate-900 border-none text-white px-2.5 py-1 rounded-lg">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span>POST /v1/ledgers/sync ... 200 OK</span>
+        </div>
+      </FloatingCard>
+
+      {/* Floating Card 2: Bottom Right */}
+      <FloatingCard position="-bottom-6 -right-6" delay="1.2s">
+        <div className="flex items-center gap-2">
+          <Check className="h-4 w-4 text-emerald-600 shrink-0" />
+          <span className="text-xs font-bold text-slate-800 whitespace-nowrap">Corporate Bank Feeds Synced</span>
+        </div>
+      </FloatingCard>
+    </div>
+  );
+}
+
+function HRCoreVisual() {
+  return (
+    <div className="relative z-1 rounded-[24px] border border-slate-200 bg-white p-8 shadow-[0_20px_50px_rgba(15,23,42,0.08)] min-h-[420px] flex flex-col justify-between select-none">
+      {/* Background radial gradient */}
+      <div className="absolute -top-10 -right-10 -z-10 h-64 w-64 rounded-full bg-indigo-500/8 blur-[60px]" />
+      <div className="absolute -bottom-10 -left-10 -z-10 h-64 w-64 rounded-full bg-cyan-500/5 blur-[60px]" />
+
+      <div>
+        <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
+          <div className="text-left">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Employee Registry</p>
+            <h3 className="text-lg font-bold text-slate-800">Core Directory Layout</h3>
+          </div>
+          <span className="rounded-full bg-cyan-50 border border-cyan-100 px-3 py-1 text-xs font-semibold text-cyan-700">Centralized</span>
+        </div>
+
+        {/* Directory Grid */}
+        <div className="grid grid-cols-2 gap-3.5">
+          {[
+            { name: "Aditya Sharma", dept: "Engineering", email: "aditya@company.com", avatar: "A" },
+            { name: "Neha Patel", dept: "Finance", email: "neha@company.com", avatar: "N" },
+            { name: "Vikram Roy", dept: "Operations", email: "vikram@company.com", avatar: "V" },
+            { name: "Priya Das", dept: "Finance", email: "priya@company.com", avatar: "P" }
+          ].map((emp) => (
+            <div key={emp.name} className="flex items-center gap-2.5 rounded-xl border border-slate-150 bg-slate-50/50 p-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 font-bold text-indigo-700 text-xs shrink-0">
+                {emp.avatar}
+              </div>
+              <div className="text-left min-w-0">
+                <p className="text-xs font-bold text-slate-800 truncate">{emp.name}</p>
+                <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider truncate">{emp.dept}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-semibold text-left">
+        <span>Total Count: 1,248 Active</span>
+        <span>Active Departments: 6</span>
+      </div>
+
+      {/* Floating Card 1: Top Right */}
+      <FloatingCard position="-top-6 -right-6" delay="0.5s">
+        <div className="flex items-center gap-2">
+          <Check className="h-4 w-4 text-emerald-600 shrink-0" />
+          <span className="text-xs font-bold text-slate-800 whitespace-nowrap">Leave Request Approved: 4 Days</span>
+        </div>
+      </FloatingCard>
+
+      {/* Floating Card 2: Center Left */}
+      <FloatingCard position="top-1/2 -left-4 -translate-y-1/2" delay="1.5s">
+        <div className="flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-indigo-600 animate-pulse" />
+          <span className="text-xs font-bold text-slate-800 whitespace-nowrap">Onboarding Completion: 92%</span>
+        </div>
+      </FloatingCard>
+    </div>
+  );
+}
+
+export function ProductsLandingPage({ audience }: { audience: PublicAudience }) {
+  const shell = usePublicPageData("features", audience);
+
+  return (
+    <PageShell
+      audience={audience}
+      shell={shell}
+      structuredData={{
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        name: "Products | UabIndia ERP",
+        url: `${publicSiteUrl}/products`,
+        description: "Explore UabIndia ERP modules for HRMS, payroll, finance, inventory, procurement, CRM, projects, assets, help desk, and reporting.",
+      }}
+    >
       <section className={publicPageSectionClassName}>
-        <div className={publicSectionClassName}>
-          <MotionReveal>
-            <SectionIntro
-              eyebrow="Products"
-              title="A connected ERP suite for every core business function."
-              subtitle="Each module is valuable on its own. The biggest operational gains come when people, finance, approvals, inventory, and reporting share one data core."
+        <div className={`${publicSectionClassName} grid gap-6 xl:grid-cols-[0.96fr_1.04fr] xl:items-start`}>
+          <div>
+            <MotionReveal>
+              <SectionHeader
+                eyebrow="Our products"
+                title="Powerful modules built to streamline every aspect of your business."
+                subtitle="Choose the modules that match your rollout now and expand later without breaking the product experience."
+              />
+            </MotionReveal>
+
+            <MotionReveal delay={0.05}>
+              <div className="mt-6 flex flex-wrap gap-2">
+                {["All Modules", "Core", "Finance", "Operations", "Human Resources", "Sales & CRM"].map((tab) => (
+                  <span key={tab} className={`rounded-xl border px-4 py-2 text-sm font-semibold ${tab === "All Modules" ? "border-[#d4e3ff] bg-[#f4f8ff] text-[#0f5eff]" : "border-slate-200 bg-white text-slate-600"}`}>
+                    {tab}
+                  </span>
+                ))}
+              </div>
+            </MotionReveal>
+          </div>
+
+          <MotionReveal delay={0.08}>
+            <HeroSummaryPanel
+              eyebrow="Rollout view"
+              title="A shared product language across every module."
+              summary="The module system is designed for phased adoption, cleaner navigation, and connected reporting across people, finance, and operations."
+              stats={[
+                { label: "Modules", value: `${marketingModules.length}+` },
+                { label: "Workflows", value: "Role-aware" },
+                { label: "Rollout", value: "Phase-ready" },
+              ]}
+              points={[
+                "Start with one business unit or function and expand without redesigning the workspace.",
+                "Keep approvals, master data, and reporting aligned across modules.",
+                "Reduce training overhead with one consistent interaction model.",
+              ]}
             />
           </MotionReveal>
         </div>
+
+        <div className={`${publicSectionClassName} mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4`}>
+            {marketingModules.slice(0, 8).map((module, index) => (
+              <MotionReveal key={module.slug} delay={index * 0.03}>
+                <ModuleCard module={module} />
+              </MotionReveal>
+            ))}
+        </div>
       </section>
-
-      <ModuleGrid
-        modules={marketingModules}
-        eyebrow="Module suite"
-        title="Explore the full UabIndia ERP product stack."
-        subtitle="From HRMS and payroll to finance, procurement, projects, help desk, and reporting, the platform is designed to grow with business complexity."
-      />
-
-      <ValueGrid
-        items={[
-          {
-            title: "One design language",
-            description: "Users do not need to relearn the product when they move from HR workflows into finance or approvals.",
-          },
-          {
-            title: "Shared governance",
-            description: "Role-based access, audit signals, and workflow patterns stay consistent across modules.",
-          },
-          {
-            title: "Phased rollout",
-            description: "Start with the modules that solve immediate pain, then expand without changing the product direction.",
-          },
-          {
-            title: "Leadership visibility",
-            description: "Cross-module reporting matters because business problems rarely stay inside a single department.",
-          },
-        ]}
-        eyebrow="Product philosophy"
-        title="The suite is designed to feel like one platform, not a bundle of disconnected tools."
-        subtitle="Consistency is a competitive advantage in ERP. It reduces training time, lowers errors, and improves adoption."
-      />
-
-      <CtaPanel
-        eyebrow="Product walkthrough"
-        title="Need help identifying the right module sequence for your rollout?"
-        description="Share your current stack and operating priorities. We will recommend where to start and what to phase next."
-        primaryLabel="Book Demo"
-        primaryHref={withPublicAudience("/book-demo", audience)}
-        secondaryLabel="View Pricing"
-        secondaryHref={withPublicAudience("/pricing", audience)}
-      />
-    </PublicAudiencePageFrame>
+    </PageShell>
   );
 }
 
@@ -203,141 +588,87 @@ export function ProductDetailPageClient({
   module: MarketingModule;
 }) {
   const shell = usePublicPageData(`product-${module.slug}`, audience);
-  const analyticsMetrics =
-    shell.siteData?.dashboardMetrics?.length
-      ? [...module.metrics, ...shell.siteData.dashboardMetrics].slice(0, 4)
-      : module.metrics.slice(0, 4);
 
   return (
-    <PublicAudiencePageFrame
+    <PageShell
       audience={audience}
-      profile={shell.profile}
-      headerContent={shell.headerContent}
-      footerContent={shell.footerContent}
-      allowedPaths={shell.allowedPaths}
-      pageVisible={shell.pageVisible}
+      shell={shell}
+      structuredData={{
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        name: `${module.title} | UabIndia ERP`,
+        url: `${publicSiteUrl}/products/${module.slug}`,
+        description: module.summary,
+      }}
     >
-      <PublicStructuredData
-        data={{
-          "@context": "https://schema.org",
-          "@type": "WebPage",
-          name: `${module.title} | UabIndia ERP`,
-          url: `${publicSiteUrl}/products/${module.slug}`,
-          description: module.summary,
-        }}
-      />
-
       <section className={publicPageSectionClassName}>
-        <div className={`${publicSectionClassName} grid gap-6 xl:grid-cols-[1fr_1fr]`}>
+        <div className={`${publicSectionClassName} grid gap-6 xl:grid-cols-[0.9fr_1.1fr] xl:items-start`}>
           <MotionReveal>
             <div>
-              <SectionIntro
-                eyebrow={`${module.category} module`}
-                title={module.title}
-                subtitle={module.description}
-              />
-              <div className="mt-8 flex flex-wrap gap-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--erp-primary)]">{module.title}</p>
+              <h1 className="mt-2.5 text-[clamp(2.4rem,4.4vw,3.35rem)] leading-[0.94] font-semibold tracking-[-0.075em] text-slate-950">{module.title}</h1>
+              <p className="mt-3 max-w-2xl text-[0.98rem] leading-7 text-slate-600">{module.description}</p>
+              <div className="mt-6 space-y-2">
+                {module.highlights.slice(0, 5).map((item) => (
+                  <div key={item} className="flex items-start gap-3 text-sm text-slate-700">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-6 flex flex-wrap gap-3">
                 <Link href={withPublicAudience("/book-demo", audience)} className={publicButtonClassName.primary}>
-                  Book Demo
+                  Book a Demo
                 </Link>
                 <Link href={withPublicAudience("/contact", audience)} className={publicButtonClassName.secondary}>
-                  Talk to sales
+                  View Screenshots
                 </Link>
               </div>
             </div>
           </MotionReveal>
 
-          <MotionReveal delay={0.06}>
-            <div className={`${publicPanelClassName} p-8`}>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--erp-primary)]">
-                Outcome focus
-              </p>
-              <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                {module.metrics.map((metric) => (
-                  <div key={metric.label} className="rounded-[1.3rem] border border-slate-200 bg-slate-50/70 px-4 py-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{metric.label}</p>
-                    <p className="mt-2 text-xl font-semibold tracking-[-0.03em] text-slate-950">{metric.value}</p>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">{metric.helper}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
+          <MotionReveal delay={0.06} className="w-full min-w-0">
+            {module.slug === "payroll" ? (
+              <PayrollVisual />
+            ) : module.slug === "finance" ? (
+              <FinanceVisual />
+            ) : module.slug === "hrms" ? (
+              <HRCoreVisual />
+            ) : (
+              <HeroSummaryPanel
+                eyebrow="Module snapshot"
+                title="Built for controlled day-to-day execution."
+                summary="This module sits inside the same enterprise shell, so approvals, records, and reports remain connected as scope grows."
+                stats={[
+                  { label: "Adoption", value: "Fast" },
+                  { label: "Controls", value: "Role-based" },
+                  { label: "Reporting", value: "Shared" },
+                ]}
+                points={module.highlights.slice(0, 3)}
+              />
+            )}
           </MotionReveal>
         </div>
       </section>
-
-      <ValueGrid
-        items={module.outcomes.map((item) => ({
-          title: item,
-          description: `${module.title} helps teams deliver this outcome without fragmented follow-up or reporting gaps.`,
-        }))}
-        eyebrow="Benefits"
-        title={`Why teams adopt ${module.title.toLowerCase()} first.`}
-        subtitle="The strongest module rollouts create immediate operational gains while improving trust in the wider ERP program."
-      />
 
       <section className={publicSectionSpacingClassName}>
-        <div className={`${publicSectionClassName} grid gap-6 xl:grid-cols-[0.92fr_1.08fr]`}>
-          <MotionReveal>
-            <div className={`${publicPanelClassName} p-8`}>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--erp-primary)]">
-                Features
-              </p>
-              <div className="mt-5 space-y-4">
-                {module.highlights.map((highlight) => (
-                  <div key={highlight} className="rounded-[1.25rem] bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-700">
-                    {highlight}
-                  </div>
-                ))}
+        <div className={`${publicSectionClassName} grid gap-4 md:grid-cols-4`}>
+          {[
+            { value: "500+", label: "Businesses Trust Us" },
+            { value: "50K+", label: "Active Users" },
+            { value: "99.9%", label: "Uptime" },
+            { value: "24/7", label: "Support" },
+          ].map((item) => (
+            <MotionReveal key={item.label}>
+              <div className="text-center">
+                <p className="text-3xl font-semibold tracking-[-0.05em] text-slate-950">{item.value}</p>
+                <p className="mt-2 text-sm text-slate-500">{item.label}</p>
               </div>
-            </div>
-          </MotionReveal>
-
-          <MotionReveal delay={0.06}>
-            <div className={`${publicPanelClassName} p-8`}>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--erp-primary)]">
-                Best fit
-              </p>
-              <div className="mt-5 grid gap-4">
-                {module.idealFor.map((item) => (
-                  <div key={item} className="rounded-[1.25rem] border border-slate-200 bg-white px-4 py-4 text-sm font-medium text-slate-700">
-                    {item}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </MotionReveal>
+            </MotionReveal>
+          ))}
         </div>
       </section>
-
-      <ProcessTimeline
-        items={buildModuleWorkflow(module)}
-        eyebrow="Workflow"
-        title={`How ${module.title} runs from setup to reporting.`}
-        subtitle="Each module follows the same product discipline: configure once, capture clean data, route approvals, and report confidently."
-      />
-
-      <AnalyticsShowcase metrics={analyticsMetrics} />
-
-      <FaqAccordion items={getModuleFaqs(module)} />
-
-      <ModuleGrid
-        modules={marketingModules.filter((item) => item.slug !== module.slug).slice(0, 6)}
-        eyebrow="Related modules"
-        title={`Pair ${module.title} with the rest of the platform for stronger outcomes.`}
-        subtitle="ERP value compounds when modules share workflow logic, reporting, and governance."
-      />
-
-      <CtaPanel
-        eyebrow="Module walkthrough"
-        title={`See how ${module.title} fits your current operating model.`}
-        description="We can walk through workflows, roles, reports, and rollout dependencies based on your real process environment."
-        primaryLabel="Book Demo"
-        primaryHref={withPublicAudience("/book-demo", audience)}
-        secondaryLabel="All Products"
-        secondaryHref={withPublicAudience("/products", audience)}
-      />
-    </PublicAudiencePageFrame>
+    </PageShell>
   );
 }
 
@@ -345,61 +676,58 @@ export function IndustriesLandingPage({ audience }: { audience: PublicAudience }
   const shell = usePublicPageData("industries", audience);
 
   return (
-    <PublicAudiencePageFrame
+    <PageShell
       audience={audience}
-      profile={shell.profile}
-      headerContent={shell.headerContent}
-      footerContent={shell.footerContent}
-      allowedPaths={shell.allowedPaths}
-      pageVisible={shell.pageVisible}
+      shell={shell}
+      structuredData={{
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        name: "Industries | UabIndia ERP",
+        url: `${publicSiteUrl}/industries`,
+        description: "Industry solutions for healthcare, manufacturing, retail, construction, education, logistics, and services.",
+      }}
     >
-      <PublicStructuredData
-        data={{
-          "@context": "https://schema.org",
-          "@type": "CollectionPage",
-          name: "Industries | UabIndia ERP",
-          url: `${publicSiteUrl}/industries`,
-          description:
-            "Industry solutions for healthcare, manufacturing, retail, construction, education, NGOs, logistics, government projects, and services.",
-        }}
-      />
-
       <section className={publicPageSectionClassName}>
-        <div className={publicSectionClassName}>
+        <div className={`${publicSectionClassName} grid gap-6 xl:grid-cols-[0.96fr_1.04fr] xl:items-start`}>
           <MotionReveal>
-            <SectionIntro
-              eyebrow="Industries"
-              title="Different sectors. One disciplined ERP foundation."
-              subtitle="Industry fit is about aligning workflows, approvals, data visibility, and implementation scope to the way each organization actually operates."
+            <SectionHeader
+              eyebrow="Industries we serve"
+              title="Tailored ERP solutions for every industry"
+              subtitle="Choose the industry lens that matches your operating model. The platform stays consistent while workflows adapt."
+            />
+          </MotionReveal>
+          <MotionReveal delay={0.08}>
+            <HeroSummaryPanel
+              eyebrow="Industry fit"
+              title="One ERP core with workflow variation by sector."
+              summary="Industry alignment comes from approval logic, data structures, operational sequencing, and reporting depth, not from separate disconnected products."
+              stats={[
+                { label: "Sectors", value: `${marketingIndustries.length}+` },
+                { label: "Core", value: "Shared" },
+                { label: "Config", value: "Adaptive" },
+              ]}
+              points={[
+                "Healthcare, manufacturing, logistics, retail, and services can stay on the same product foundation.",
+                "Industry workflows can change without fragmenting access control or reporting language.",
+                "Rollouts remain cleaner when the UI stays consistent across operating contexts.",
+              ]}
             />
           </MotionReveal>
         </div>
+        <div className={`${publicSectionClassName} mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4`}>
+          {marketingIndustries.slice(0, 8).map((industry, index) => (
+            <MotionReveal key={industry.slug} delay={index * 0.03}>
+              <IndustryTile industry={industry} />
+            </MotionReveal>
+          ))}
+        </div>
+        <div className={`${publicSectionClassName} mt-6 flex justify-center`}>
+          <Link href={withPublicAudience("/contact", audience)} className={publicButtonClassName.secondary}>
+            View All Industries
+          </Link>
+        </div>
       </section>
-
-      <ModuleGrid
-        modules={getRecommendedModules(["hrms", "attendance", "payroll", "finance", "procurement", "inventory"])}
-        eyebrow="Common module mix"
-        title="These modules anchor most industry deployments."
-        subtitle="The exact sequence changes by sector, but these areas solve the highest-friction operational gaps most often."
-      />
-
-      <IndustryGrid
-        industries={marketingIndustries}
-        eyebrow="Sector coverage"
-        title="Choose the industry lens that matches your operating reality."
-        subtitle="Each sector has different pressure points, but the same design principles still apply: clear workflows, stronger control, and faster reporting."
-      />
-
-      <CtaPanel
-        eyebrow="Industry fit"
-        title="Want to see the module mix recommended for your sector?"
-        description="We can walk you through the modules, workflows, and reporting layers that usually matter most for your type of organization."
-        primaryLabel="Book Demo"
-        primaryHref={withPublicAudience("/book-demo", audience)}
-        secondaryLabel="Contact Us"
-        secondaryHref={withPublicAudience("/contact", audience)}
-      />
-    </PublicAudiencePageFrame>
+    </PageShell>
   );
 }
 
@@ -411,102 +739,48 @@ export function IndustryDetailPageClient({
   industry: MarketingIndustry;
 }) {
   const shell = usePublicPageData(`industry-${industry.slug}`, audience);
-  const recommendedModules = getRecommendedModules(industry.recommendedModules);
-  const analyticsMetrics =
-    shell.siteData?.dashboardMetrics?.length
-      ? shell.siteData.dashboardMetrics
-      : recommendedModules.flatMap((item) => item.metrics).slice(0, 4);
+  const modules = getRecommendedModules(industry.recommendedModules).slice(0, 4);
 
   return (
-    <PublicAudiencePageFrame
+    <PageShell
       audience={audience}
-      profile={shell.profile}
-      headerContent={shell.headerContent}
-      footerContent={shell.footerContent}
-      allowedPaths={shell.allowedPaths}
-      pageVisible={shell.pageVisible}
+      shell={shell}
+      structuredData={{
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        name: `${industry.title} ERP Solution | UabIndia ERP`,
+        url: `${publicSiteUrl}/industries/${industry.slug}`,
+        description: industry.summary,
+      }}
     >
-      <PublicStructuredData
-        data={{
-          "@context": "https://schema.org",
-          "@type": "WebPage",
-          name: `${industry.title} ERP Solution | UabIndia ERP`,
-          url: `${publicSiteUrl}/industries/${industry.slug}`,
-          description: industry.summary,
-        }}
-      />
-
       <section className={publicPageSectionClassName}>
-        <div className={`${publicSectionClassName} grid gap-6 xl:grid-cols-[1fr_1fr]`}>
+        <div className={`${publicSectionClassName} grid gap-6 xl:grid-cols-[0.9fr_1.1fr] xl:items-start`}>
           <MotionReveal>
             <div>
-              <SectionIntro eyebrow={industry.eyebrow} title={industry.title} subtitle={industry.description} />
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Link href={withPublicAudience("/book-demo", audience)} className={publicButtonClassName.primary}>
-                  Book Demo
-                </Link>
-                <Link href={withPublicAudience("/industries", audience)} className={publicButtonClassName.secondary}>
-                  All Industries
-                </Link>
+              <div className="inline-flex h-14 w-14 items-center justify-center rounded-[1.1rem] bg-[linear-gradient(180deg,#eef5ff,#dfeaff)] text-[#0f5eff]">
+                {renderIndustryIcon(industry.slug, "h-8 w-8")}
               </div>
+              <p className="mt-4 text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--erp-primary)]">{industry.eyebrow}</p>
+              <h1 className="mt-2.5 text-[clamp(2.4rem,4.4vw,3.35rem)] leading-[0.94] font-semibold tracking-[-0.075em] text-slate-950">{industry.title}</h1>
+              <p className="mt-3 text-[0.98rem] leading-7 text-slate-600">{industry.description}</p>
             </div>
           </MotionReveal>
-
           <MotionReveal delay={0.06}>
-            <div className={`${publicPanelClassName} p-8`}>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--erp-primary)]">
-                Typical business pressure points
-              </p>
-              <div className="mt-5 space-y-4">
-                {industry.challenges.map((challenge) => (
-                  <div key={challenge} className="rounded-[1.25rem] bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-700">
-                    {challenge}
-                  </div>
-                ))}
-              </div>
-            </div>
+            <HeroSummaryPanel
+              eyebrow="Recommended modules"
+              title="A practical deployment stack for this operating model."
+              summary="The recommended module mix keeps the business on one operating backbone while matching the reality of this sector."
+              stats={[
+                { label: "Modules", value: `${modules.length}` },
+                { label: "Approvals", value: "Aligned" },
+                { label: "Outcomes", value: "Connected" },
+              ]}
+              points={modules.map((module) => module.title)}
+            />
           </MotionReveal>
         </div>
       </section>
-
-      <ModuleGrid
-        modules={recommendedModules}
-        eyebrow="Recommended modules"
-        title={`A strong starting point for ${industry.title.toLowerCase()} organizations.`}
-        subtitle="These modules usually create the clearest operational gain first for this sector."
-      />
-
-      <ProcessTimeline
-        items={buildIndustryWorkflow(industry)}
-        eyebrow="Workflow"
-        title={`How ${industry.title.toLowerCase()} deployments usually move from pain points to measurable control.`}
-        subtitle="Strong industry rollouts standardize the operating model first, then connect workflows, approvals, and reporting to one ERP core."
-      />
-
-      <AnalyticsShowcase metrics={analyticsMetrics.length > 0 ? analyticsMetrics : dashboardSignals} />
-
-      <ValueGrid
-        items={industry.results.map((item) => ({
-          title: item,
-          description: `Expected business improvement area for ${industry.title.toLowerCase()} teams after rollout.`,
-        }))}
-        eyebrow="Expected outcomes"
-        title="The goal is better control, faster decisions, and cleaner execution."
-        subtitle="Industry rollouts should lead to measurable operational improvements, not just a larger software footprint."
-      />
-
-      <FaqAccordion items={getIndustryFaqs(industry)} />
-
-      <CtaPanel
-        eyebrow="Solution consultation"
-        title={`See how UabIndia ERP maps to ${industry.title.toLowerCase()} workflows.`}
-        description="We can review the likely module sequence, approval model, and reporting priorities for your sector."
-        primaryLabel="Book Demo"
-        primaryHref={withPublicAudience("/book-demo", audience)}
-        secondaryLabel="Contact Team"
-        secondaryHref={withPublicAudience("/contact", audience)}
-      />
-    </PublicAudiencePageFrame>
+    </PageShell>
   );
 }
 
@@ -514,94 +788,66 @@ export function PricingLandingPage({ audience }: { audience: PublicAudience }) {
   const shell = usePublicPageData("pricing", audience);
 
   return (
-    <PublicAudiencePageFrame
+    <PageShell
       audience={audience}
-      profile={shell.profile}
-      headerContent={shell.headerContent}
-      footerContent={shell.footerContent}
-      allowedPaths={shell.allowedPaths}
-      pageVisible={shell.pageVisible}
+      shell={shell}
+      structuredData={{
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        name: "Pricing | UabIndia ERP",
+        url: `${publicSiteUrl}/pricing`,
+        description: "Commercial planning for phased ERP rollouts.",
+      }}
     >
-      <PublicStructuredData
-        data={{
-          "@context": "https://schema.org",
-          "@type": "WebPage",
-          name: "Pricing | UabIndia ERP",
-          url: `${publicSiteUrl}/pricing`,
-          description: "Commercial planning for phased ERP rollout across growing organizations and enterprise teams.",
-        }}
-      />
-
       <section className={publicPageSectionClassName}>
-        <div className={publicSectionClassName}>
+        <div className={`${publicSectionClassName} grid gap-6 xl:grid-cols-[0.94fr_1.06fr] xl:items-start`}>
           <MotionReveal>
-            <SectionIntro
+            <SectionHeader
               eyebrow="Pricing"
-              title="Commercial planning that matches rollout scope, not vague feature tiers."
-              subtitle="ERP pricing works best when it reflects the real deployment journey: modules, branches, users, workflow complexity, implementation effort, and support expectations."
+              title="Flexible rollout plans for serious business operations."
+              subtitle="Choose a commercial model based on business scope, rollout depth, and long-term support needs."
+            />
+          </MotionReveal>
+          <MotionReveal delay={0.08}>
+            <HeroSummaryPanel
+              eyebrow="Commercial view"
+              title="Price should follow rollout complexity, not vague packaging."
+              summary="The strongest ERP commercial model is clear about business size, implementation depth, support expectations, and expansion path."
+              stats={[
+                { label: "Plans", value: `${pricingPlans.length}` },
+                { label: "Setup", value: "Guided" },
+                { label: "Growth", value: "Scalable" },
+              ]}
+              points={[
+                "Start with the right scope instead of overbuying modules too early.",
+                "Align implementation effort with branch, entity, and workflow complexity.",
+                "Keep room for future expansion without forcing a redesign of the plan.",
+              ]}
             />
           </MotionReveal>
         </div>
-      </section>
-
-      <section className={publicSectionSpacingClassName}>
-        <div className={`${publicSectionClassName} grid gap-5 xl:grid-cols-3`}>
-          {pricingPlans.map((plan) => (
-            <div
-              key={plan.name}
-              className={`${publicPanelClassName} h-full p-7 ${plan.featured ? "border-[color:var(--erp-primary)] shadow-[0_36px_80px_rgba(20,58,104,0.14)]" : ""}`}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div>
+        <div className={`${publicSectionClassName} mt-6 grid gap-4 xl:grid-cols-3`}>
+            {pricingPlans.map((plan, index) => (
+              <MotionReveal key={plan.name} delay={index * 0.04}>
+                <div className={`${publicPanelClassName} h-full p-6 ${plan.featured ? "border-[#cfe0ff] shadow-[0_18px_44px_rgba(15,94,255,0.09)]" : ""}`}>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--erp-primary)]">{plan.audience}</p>
                   <h2 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-slate-950">{plan.name}</h2>
-                </div>
-                {plan.featured ? (
-                  <span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white">
-                    Recommended
-                  </span>
-                ) : null}
-              </div>
-              <p className="mt-5 text-2xl font-semibold tracking-[-0.05em] text-slate-950">{plan.price}</p>
-              <p className="mt-2 text-sm text-slate-500">{plan.implementation}</p>
-              <p className="mt-5 text-sm leading-7 text-slate-600">{plan.summary}</p>
-              <div className="mt-6 space-y-3">
-                {plan.points.map((point) => (
-                  <div key={point} className="rounded-[1.15rem] bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                    {point}
+                  <p className="mt-4 text-2xl font-semibold tracking-[-0.04em] text-slate-900">{plan.price}</p>
+                  <p className="mt-2 text-sm text-slate-500">{plan.implementation}</p>
+                  <p className="mt-3 text-sm leading-6 text-slate-600">{plan.summary}</p>
+                  <div className="mt-4 space-y-2.5">
+                    {plan.points.map((point) => (
+                      <div key={point} className="rounded-[0.95rem] bg-slate-50 px-4 py-2.5 text-sm text-slate-700">
+                        {point}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <Link href={withPublicAudience("/book-demo", audience)} className="mt-6 inline-flex rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white">
-                Discuss this plan
-              </Link>
-            </div>
-          ))}
+                </div>
+              </MotionReveal>
+            ))}
         </div>
       </section>
-
-      <ValueGrid
-        items={comparisonRows.map((row) => ({
-          title: row.capability,
-          description: `UabIndia ERP: ${row.uabindia}`,
-        }))}
-        eyebrow="Commercial logic"
-        title="Pricing should follow operational value, implementation complexity, and long-term control."
-        subtitle="The right conversation is not just plan comparison. It is rollout sizing, ownership clarity, and support expectations."
-      />
-
-      <FaqAccordion items={frequentlyAskedQuestions.slice(0, 8)} />
-
-      <CtaPanel
-        eyebrow="Commercial discussion"
-        title="Need a pricing conversation tied to your real rollout scope?"
-        description="Share company size, entities, module priorities, and approval complexity. We will align the discussion to what you actually need."
-        primaryLabel="Book Demo"
-        primaryHref={withPublicAudience("/book-demo", audience)}
-        secondaryLabel="Contact Sales"
-        secondaryHref={withPublicAudience("/contact", audience)}
-      />
-    </PublicAudiencePageFrame>
+    </PageShell>
   );
 }
 
@@ -609,49 +855,67 @@ export function ResourcesLandingPage({ audience }: { audience: PublicAudience })
   const shell = usePublicPageData("resources", audience);
 
   return (
-    <PublicAudiencePageFrame
+    <PageShell
       audience={audience}
-      profile={shell.profile}
-      headerContent={shell.headerContent}
-      footerContent={shell.footerContent}
-      allowedPaths={shell.allowedPaths}
-      pageVisible={shell.pageVisible}
+      shell={shell}
+      structuredData={{
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        name: "Resources | UabIndia ERP",
+        url: `${publicSiteUrl}/resources`,
+        description: "Guides, case studies, and planning material for ERP evaluation teams.",
+      }}
     >
-      <PublicStructuredData
-        data={{
-          "@context": "https://schema.org",
-          "@type": "CollectionPage",
-          name: "Resources | UabIndia ERP",
-          url: `${publicSiteUrl}/resources`,
-          description: "Guides, checklists, and planning material for ERP evaluation and rollout teams.",
-        }}
-      />
-
       <section className={publicPageSectionClassName}>
-        <div className={publicSectionClassName}>
-          <MotionReveal>
-            <SectionIntro
-              eyebrow="Resources"
-              title="Practical content for buyers, operators, and implementation teams."
-              subtitle="Use these materials to evaluate ERP fit, prepare rollout discussions, and align internal stakeholders around expected outcomes."
+        <div className={`${publicSectionClassName} grid gap-6 xl:grid-cols-[0.95fr_1.05fr] xl:items-start`}>
+          <div>
+            <MotionReveal>
+              <SectionHeader
+                eyebrow="Resources"
+                title="Insights, guides, and updates to help your business grow."
+                subtitle="Keep the public content lean and useful: practical reading, not filler."
+              />
+            </MotionReveal>
+            <div className="mt-6 flex flex-wrap gap-2">
+            {["All", "Blog", "Guides", "Case Studies", "Videos", "Webinars"].map((tab, index) => (
+              <span key={tab} className={`rounded-xl border px-4 py-2 text-sm font-semibold ${index === 0 ? "border-[#d4e3ff] bg-[#f4f8ff] text-[#0f5eff]" : "border-slate-200 bg-white text-slate-600"}`}>
+                {tab}
+              </span>
+            ))}
+            </div>
+          </div>
+          <MotionReveal delay={0.08}>
+            <HeroSummaryPanel
+              eyebrow="Planning material"
+              title="Useful resources should help a decision move forward."
+              summary="The public knowledge layer should support evaluation, scope planning, rollout sequencing, and operating clarity instead of generic marketing copy."
+              stats={[
+                { label: "Formats", value: "Multi" },
+                { label: "Audience", value: "Buyers" },
+                { label: "Focus", value: "Practical" },
+              ]}
+              points={[
+                "Guides should answer rollout and governance questions directly.",
+                "Case material should show real process impact, not abstract claims.",
+                "Resource design should remain as disciplined as the product UI.",
+              ]}
             />
           </MotionReveal>
         </div>
+        <div className={`${publicSectionClassName} mt-6 grid gap-4 xl:grid-cols-3`}>
+          {resources.slice(0, 3).map((item, index) => (
+            <MotionReveal key={item.title} delay={index * 0.04}>
+              <ResourceCard item={item} />
+            </MotionReveal>
+          ))}
+        </div>
+        <div className={`${publicSectionClassName} mt-6 flex justify-center`}>
+          <Link href={withPublicAudience("/contact", audience)} className={publicButtonClassName.secondary}>
+            View All Resources
+          </Link>
+        </div>
       </section>
-
-      <ResourceGrid items={resources} />
-      <FaqAccordion items={frequentlyAskedQuestions.slice(8, 16)} />
-
-      <CtaPanel
-        eyebrow="Need a live answer?"
-        title="If a guide is not enough, schedule a focused discussion."
-        description="We can move from general advice into your actual organization structure, module priorities, and implementation constraints."
-        primaryLabel="Book Demo"
-        primaryHref={withPublicAudience("/book-demo", audience)}
-        secondaryLabel="Contact Team"
-        secondaryHref={withPublicAudience("/contact", audience)}
-      />
-    </PublicAudiencePageFrame>
+    </PageShell>
   );
 }
 
@@ -659,57 +923,60 @@ export function BookDemoLandingPage({ audience }: { audience: PublicAudience }) 
   const shell = usePublicPageData("book-demo", audience);
 
   return (
-    <PublicAudiencePageFrame
+    <PageShell
       audience={audience}
-      profile={shell.profile}
-      headerContent={shell.headerContent}
-      footerContent={shell.footerContent}
-      allowedPaths={shell.allowedPaths}
-      pageVisible={shell.pageVisible}
+      shell={shell}
+      structuredData={{
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        name: "Book Demo | UabIndia ERP",
+        url: `${publicSiteUrl}/book-demo`,
+        description: "Book a tailored walkthrough for your ERP rollout.",
+      }}
     >
-      <PublicStructuredData
-        data={{
-          "@context": "https://schema.org",
-          "@type": "WebPage",
-          name: "Book Demo | UabIndia ERP",
-          url: `${publicSiteUrl}/book-demo`,
-          description: "Book a tailored walkthrough for your ERP, HR, payroll, finance, and operations rollout.",
-        }}
-      />
-
       <section className={publicPageSectionClassName}>
-        <div className={`${publicSectionClassName} grid gap-8 xl:grid-cols-[0.9fr_1.1fr]`}>
+        <div className={`${publicSectionClassName} grid gap-6 xl:grid-cols-[0.9fr_1.1fr]`}>
           <div className="space-y-6">
             <MotionReveal>
-              <SectionIntro
-                eyebrow="Book Demo"
-                title="Schedule a walkthrough that matches your actual business priorities."
-                subtitle="The best demo is not generic. We shape it around your current process stack, approval needs, reporting gaps, and rollout ambitions."
+              <SectionHeader
+                eyebrow="Book a demo"
+                title="Schedule a walkthrough shaped around your real business priorities."
+                subtitle="Share your rollout scope and we will focus the conversation on modules, approvals, reporting, and adoption fit."
               />
             </MotionReveal>
             <MotionReveal delay={0.06}>
-              <DemoAgendaPanel items={demoAgenda} />
-            </MotionReveal>
-            <MotionReveal delay={0.12}>
-              <SupportLaneGrid items={supportLanes} />
+              <div className={`${publicPanelClassName} p-5`}>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--erp-primary)]">What your demo includes</p>
+                <div className="mt-4 space-y-2.5">
+                  {demoAgenda.map((item) => (
+                    <div key={item} className="rounded-[0.95rem] bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </MotionReveal>
           </div>
           <MotionReveal delay={0.08}>
-            <ContactDemoForm audience={audience} />
+            <HeroSummaryPanel
+              eyebrow="Demo outcomes"
+              title="A shorter, more useful pre-sales conversation."
+              summary="The goal is to identify module priority, process friction, and rollout reality before the product walkthrough becomes too broad."
+              stats={[
+                { label: "Focus", value: "Business-first" },
+                { label: "Scope", value: "Mapped" },
+                { label: "Next step", value: "Clear" },
+              ]}
+              points={[
+                "Review the workflows that are creating operational drag today.",
+                "Align the demo to your branch, entity, and approval complexity.",
+                "Leave with a realistic phased rollout direction, not just screenshots.",
+              ]}
+            />
           </MotionReveal>
         </div>
       </section>
-
-      <CtaPanel
-        eyebrow="Need more detail?"
-        title="Review products, pricing, or industry fit before the conversation."
-        description="If you are still narrowing the rollout scope, the product, pricing, and industry pages can help frame the discussion first."
-        primaryLabel="View Products"
-        primaryHref={withPublicAudience("/products", audience)}
-        secondaryLabel="View Pricing"
-        secondaryHref={withPublicAudience("/pricing", audience)}
-      />
-    </PublicAudiencePageFrame>
+    </PageShell>
   );
 }
 
@@ -717,58 +984,42 @@ export function HelpSupportLandingPage({ audience }: { audience: PublicAudience 
   const shell = usePublicPageData("support", audience);
 
   return (
-    <PublicAudiencePageFrame
+    <PageShell
       audience={audience}
-      profile={shell.profile}
-      headerContent={shell.headerContent}
-      footerContent={shell.footerContent}
-      allowedPaths={shell.allowedPaths}
-      pageVisible={shell.pageVisible}
+      shell={shell}
+      structuredData={{
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        name: "Help & Support | UabIndia ERP",
+        url: `${publicSiteUrl}/help-support`,
+        description: "Support coverage and service guidance for UabIndia ERP users.",
+      }}
     >
-      <PublicStructuredData
-        data={{
-          "@context": "https://schema.org",
-          "@type": "WebPage",
-          name: "Help & Support | UabIndia ERP",
-          url: `${publicSiteUrl}/help-support`,
-          description: "Support coverage, service paths, and guidance for UabIndia ERP customers and evaluation teams.",
-        }}
-      />
-
       <section className={publicPageSectionClassName}>
-        <div className={`${publicSectionClassName} grid gap-8 xl:grid-cols-[0.9fr_1.1fr]`}>
+        <div className={`${publicSectionClassName} grid gap-5 xl:grid-cols-[0.9fr_1.1fr]`}>
           <MotionReveal>
-            <div>
-              <SectionIntro
-                eyebrow="Help & support"
-                title="Support should follow the same operational clarity as the product itself."
-                subtitle="Good support is role-aware, business-aware, and easy to escalate. Employee help, business admin help, and platform governance do not belong in one undefined queue."
-              />
-            </div>
+            <SectionHeader
+              eyebrow="Support"
+              title="Clear support lanes for product, rollout, and post-go-live questions."
+              subtitle="Good support pages should route the user fast without unnecessary noise."
+            />
           </MotionReveal>
           <MotionReveal delay={0.06}>
-            <SupportLaneGrid items={supportLanes} />
+            <HeroSummaryPanel
+              eyebrow="Support design"
+              title="Faster routing with less confusion."
+              summary="Support pages work best when they separate implementation, tenant operations, and product questions without forcing users through generic contact loops."
+              stats={[
+                { label: "Lanes", value: `${supportLanes.length}` },
+                { label: "Routing", value: "Clear" },
+                { label: "Ownership", value: "Defined" },
+              ]}
+              points={supportLanes.slice(0, 3)}
+            />
           </MotionReveal>
         </div>
       </section>
-
-      <ValueGrid
-        items={companyValues}
-        eyebrow="Support principles"
-        title="Service quality depends on ownership, visibility, and escalation discipline."
-        subtitle="The strongest support models reduce confusion, shorten response time, and preserve trust in the platform."
-      />
-
-      <CtaPanel
-        eyebrow="Need assistance"
-        title="Use the contact page for product, implementation, or support conversations."
-        description="The support team can route your request based on the type of business issue and the stage of your rollout."
-        primaryLabel="Contact Team"
-        primaryHref={withPublicAudience("/contact", audience)}
-        secondaryLabel="Book Demo"
-        secondaryHref={withPublicAudience("/book-demo", audience)}
-      />
-    </PublicAudiencePageFrame>
+    </PageShell>
   );
 }
 
@@ -788,42 +1039,37 @@ export function LegalPublicPage({
   const shell = usePublicPageData(path.replace("/", ""), audience);
 
   return (
-    <PublicAudiencePageFrame
+    <PageShell
       audience={audience}
-      profile={shell.profile}
-      headerContent={shell.headerContent}
-      footerContent={shell.footerContent}
-      allowedPaths={shell.allowedPaths}
-      pageVisible={shell.pageVisible}
+      shell={shell}
+      structuredData={{
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        name: `${title} | UabIndia ERP`,
+        url: `${publicSiteUrl}${path}`,
+      }}
     >
-      <PublicStructuredData
-        data={{
-          "@context": "https://schema.org",
-          "@type": "WebPage",
-          name: `${title} | UabIndia ERP`,
-          url: `${publicSiteUrl}${path}`,
-        }}
-      />
-
       <section className={publicPageSectionClassName}>
         <div className={`${publicSectionClassName} max-w-4xl`}>
           <MotionReveal>
-            <SectionIntro
+            <SectionHeader
               eyebrow={eyebrow}
               title={title}
-              subtitle="These summary pages communicate baseline commitments for public-site visitors and demo enquiries. Formal legal documents can be provided during commercial discussions where required."
+              subtitle="These pages communicate baseline policy and legal expectations without overloading the public experience."
             />
           </MotionReveal>
-          <div className="mt-10 space-y-5">
+          <div className="mt-8 space-y-4">
             {body.map((section) => (
-              <div key={section.heading} className={`${publicPanelClassName} p-6`}>
-                <h2 className="text-xl font-semibold tracking-[-0.03em] text-slate-950">{section.heading}</h2>
-                <p className="mt-3 text-sm leading-7 text-slate-600">{section.text}</p>
-              </div>
+              <MotionReveal key={section.heading}>
+                <div className={`${publicPanelClassName} p-6`}>
+                  <h2 className="text-xl font-semibold tracking-[-0.03em] text-slate-950">{section.heading}</h2>
+                  <p className="mt-3 text-sm leading-7 text-slate-600">{section.text}</p>
+                </div>
+              </MotionReveal>
             ))}
           </div>
         </div>
       </section>
-    </PublicAudiencePageFrame>
+    </PageShell>
   );
 }

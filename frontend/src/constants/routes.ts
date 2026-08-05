@@ -5,6 +5,12 @@ export const ROUTES = {
   SUPERADMIN_DASHBOARD: "/superadmin/dashboard",
 
   DASHBOARD: "/dashboard",
+  ADMINISTRATION_HOME: "/administration",
+  ADMINISTRATION_APPROVALS: "/administration/approvals",
+  ADMINISTRATION_NOTIFICATIONS: "/administration/notifications",
+  ADMINISTRATION_DOCUMENTS: "/administration/documents",
+  ADMINISTRATION_PROFILE: "/administration/profile",
+  ADMINISTRATION_SECURITY: "/security",
 
   // ── HRMS ────────────────────────────────────────────────────────────────────
   HRMS_HOME: "/hrms",
@@ -63,6 +69,9 @@ export const ROUTES = {
   // Tenant Management
   PLATFORM_COMPANIES: "/platform/companies",
   PLATFORM_TENANTS: "/platform/tenants",
+  PLATFORM_TENANTS_NEW: "/platform/tenants/new",
+  PLATFORM_TENANTS_DETAIL: "/platform/tenants/[id]",
+  PLATFORM_TENANTS_EDIT: "/platform/tenants/[id]/edit",
   PLATFORM_PROJECTS: "/platform/projects",
   // Access Control
   PLATFORM_USERS: "/platform/users",
@@ -88,6 +97,7 @@ export const ROUTES = {
 
   // ── ERP Workspace ────────────────────────────────────────────────────────────
   // Finance
+  FINANCE_HOME: "/finance",
   CHART_OF_ACCOUNTS: "/chart-of-accounts",
   JOURNAL_ENTRIES: "/journal-entries",
   PAYMENTS: "/payments",
@@ -96,16 +106,21 @@ export const ROUTES = {
   TAX_MANAGEMENT: "/tax-management",
   BANK_RECONCILIATION: "/bank-reconciliation",
   // Procurement
+  PROCUREMENT_HOME: "/procurement",
   VENDORS: "/vendors",
   PURCHASE_REQUESTS: "/purchase-requests",
   PURCHASE_ORDERS: "/purchase-orders",
   GRN: "/grn",
   // Sales & CRM
+  CRM_HOME: "/crm",
+  LEADS: "/crm/leads",
+  SALES_HOME: "/sales",
   CUSTOMERS: "/customers",
   QUOTATIONS: "/quotations",
   SALES_ORDERS: "/sales-orders",
   RETURNS: "/returns",
   // Inventory
+  INVENTORY_HOME: "/inventory",
   ITEMS: "/items",
   WAREHOUSES: "/warehouses",
   STOCK_MOVEMENTS: "/stock-movements",

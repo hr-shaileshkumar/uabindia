@@ -8,6 +8,7 @@ import {
   getModuleShellOrder,
   listDerivedModules,
   listModuleRegistry,
+  listSidebarVisibleModuleRegistry,
   type ModuleDefinition,
 } from "@/lib/erp/module-registry";
 import { canonicalizeProtectedPath } from "@/lib/erp/route-config";
@@ -56,6 +57,14 @@ const LEGACY_ERP_SEGMENTS: LegacyModuleSegment[] = listDerivedModules("erp").map
   prefixes: definition.pathPrefixes ?? [],
 }));
 
+/** Keys of modules hidden from sidebar top-level nav (but routes still work) */
+const SIDEBAR_HIDDEN_MODULE_KEYS = new Set(
+  listModuleRegistry()
+    .filter((d) => d.hiddenFromSidebar)
+    .map((d) => d.key)
+);
+
+
 const sortItems = (items: NavItemDto[]) =>
   items
     .slice()
@@ -90,18 +99,18 @@ const FALLBACK_HOME_BY_MODULE: Record<string, string> = {
   platform: ROUTES.PLATFORM_HOME,
   superadmin: ROUTES.SUPERADMIN_DASHBOARD,
   company: ROUTES.PLATFORM_COMPANIES,
-  administration: ROUTES.DASHBOARD,
+  administration: ROUTES.ADMINISTRATION_HOME,
   hrms: ROUTES.HRMS_HOME,
   payroll: ROUTES.PAYROLL_HOME,
-  finance: ROUTES.CHART_OF_ACCOUNTS,
-  inventory: ROUTES.ITEMS,
-  procurement: ROUTES.VENDORS,
-  crm: ROUTES.CUSTOMERS,
-  sales: ROUTES.SALES_ORDERS,
+  finance: ROUTES.FINANCE_HOME,
+  inventory: ROUTES.INVENTORY_HOME,
+  procurement: ROUTES.PROCUREMENT_HOME,
+  crm: ROUTES.CRM_HOME,
+  sales: ROUTES.SALES_HOME,
   projects: ROUTES.PLATFORM_PROJECTS,
   assets: ROUTES.HR_ASSETS,
   reports: ROUTES.REPORTS_HOME,
-  notifications: ROUTES.NOTIFICATIONS,
+  notifications: ROUTES.ADMINISTRATION_NOTIFICATIONS,
   workflow: ROUTES.PLATFORM_WORKFLOW_CONFIG,
   licensing: ROUTES.LICENSING_HOME,
   security: ROUTES.SECURITY_HOME,
@@ -144,7 +153,8 @@ function buildFallbackWorkspaceModule(definition: ModuleDefinition): WorkspaceMo
 
 export function buildFallbackWorkspaceModules(enabledModules: Module[] = []): WorkspaceModule[] {
   const enabledKeys = new Set(enabledModules.map((module) => module.key));
-  const registryDefinitions = listModuleRegistry().filter((definition) => !definition.sourceModuleKey);
+  // Use sidebar-visible registry so hidden modules (like administration) don't appear in sidebar
+  const registryDefinitions = listSidebarVisibleModuleRegistry().filter((definition) => !definition.sourceModuleKey);
 
   const modules = registryDefinitions
     .filter((definition) => enabledKeys.size === 0 || enabledKeys.has(definition.key))
@@ -214,12 +224,13 @@ function materializeWorkspaceModule(
     return null;
   }
 
+  const explicitFallbackHomeHref = normalizePath(fallbackHomeHref);
   const homeHref =
+    explicitFallbackHomeHref ??
     pickPreferredRoot([
-      fallbackHomeHref ?? null,
       deriveRootPath(moduleMeta?.basePath),
       ...normalizedGroups.flatMap((group) => group.items.map((item) => deriveRootPath(item.path))),
-    ]) ?? fallbackHomeHref ?? null;
+    ]);
 
   return {
     key: moduleKey,
@@ -260,7 +271,7 @@ function splitLegacyErpModule(module: NavModuleDto, moduleMeta?: Module): Worksp
       segment.sortOrder,
       moduleMeta,
       segmentGroups,
-      segment.prefixes[0] ?? null
+      getFallbackHomeHref(segment.key)
     );
   }).filter((workspaceModule): workspaceModule is WorkspaceModule => Boolean(workspaceModule));
 
@@ -327,8 +338,11 @@ export function buildWorkspaceModules(navigationModules: NavModuleDto[], enabled
     })
     .filter((module): module is WorkspaceModule => Boolean(module));
 
-  return sortWorkspaceModules(workspaceModules).filter((module) => module.pageCount > 0);
+  return sortWorkspaceModules(workspaceModules)
+    .filter((module) => module.pageCount > 0)
+    .filter((module) => !SIDEBAR_HIDDEN_MODULE_KEYS.has(module.key));
 }
+
 
 export function filterWorkspaceModules(modules: WorkspaceModule[], query: string): WorkspaceModule[] {
   const normalizedQuery = query.trim().toLowerCase();

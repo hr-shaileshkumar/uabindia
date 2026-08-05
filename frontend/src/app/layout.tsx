@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import ScreenFitController from "@/components/app/ScreenFitController";
 import Providers from "./providers";
+import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { publicSiteUrl } from "@/lib/public-marketing";
 
 export const metadata: Metadata = {
@@ -29,10 +30,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        />
+      </head>
       <body className="min-h-screen">
-        <ScreenFitController />
-        <Providers>{children}</Providers>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <ScreenFitController />
+          <Providers>{children}</Providers>
+        </ThemeProvider>
       </body>
     </html>
   );

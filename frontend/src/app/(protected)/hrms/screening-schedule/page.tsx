@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { CrudHeaderStats } from "@/components/erp/crud-workspace";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import { ROUTES } from "@/constants/routes";
 import { hrApi } from "@/services/hrApi";
 import Link from "next/link";
 
@@ -71,6 +73,16 @@ export default function ScreeningSchedulePage() {
     <StandardPageLayout
       title="Screening Schedule"
       subtitle="All upcoming and past candidate interviews across all job postings."
+      meta={
+        <CrudHeaderStats
+          items={[
+            { label: "Scheduled", value: rows.length, helper: "sessions" },
+            { label: "Pending", value: rows.filter((row) => (row.status || "").toLowerCase() === "scheduled").length, helper: "upcoming", tone: "warning" },
+            { label: "Completed", value: rows.filter((row) => (row.status || "").toLowerCase() === "completed").length, helper: "finished", tone: "positive" },
+            { label: "Types", value: new Set(rows.map((row) => row.screeningType).filter(Boolean)).size, helper: "distinct", tone: "info" },
+          ]}
+        />
+      }
       filters={
         <div className="flex flex-wrap items-end gap-3">
           <input
@@ -113,14 +125,6 @@ export default function ScreeningSchedulePage() {
     >
       {error && <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">{error}</div>}
 
-      {/* KPI summary cards */}
-      <div className="erp-kpi-grid mb-4">
-        <div className="erp-kpi-card"><p className="erp-kpi-label">Total Scheduled</p><p className="erp-kpi-value">{rows.length}</p><p className="erp-kpi-meta">Screening sessions</p></div>
-        <div className="erp-kpi-card erp-kpi-card-warning"><p className="erp-kpi-label">Pending</p><p className="erp-kpi-value">{rows.filter(r => (r.status || '').toLowerCase() === 'scheduled').length}</p><p className="erp-kpi-meta">Upcoming screenings</p></div>
-        <div className="erp-kpi-card erp-kpi-card-success"><p className="erp-kpi-label">Completed</p><p className="erp-kpi-value erp-kpi-value-success">{rows.filter(r => (r.status || '').toLowerCase() === 'completed').length}</p><p className="erp-kpi-meta">Finished screenings</p></div>
-        <div className="erp-kpi-card erp-kpi-card-info"><p className="erp-kpi-label">Screening Types</p><p className="erp-kpi-value">{new Set(rows.map(r => r.screeningType).filter(Boolean)).size}</p><p className="erp-kpi-meta">Distinct types</p></div>
-      </div>
-
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-sm">
           <thead className="border-b border-slate-200 bg-slate-50">
@@ -142,7 +146,7 @@ export default function ScreeningSchedulePage() {
             ) : rows.map((r) => (
               <tr key={r.screeningId} className="hover:bg-slate-50">
                 <td className="px-5 py-3">
-                  <Link href={`/erp/hrms/recruitment`} className="font-medium text-blue-600 hover:underline">
+                  <Link href={ROUTES.RECRUITMENT} className="font-medium text-blue-600 hover:underline">
                     {r.candidateName}
                   </Link>
                   <p className="text-xs text-slate-400">{r.candidateEmail}</p>

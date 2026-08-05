@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
+import { CrudHeaderStats } from "@/components/erp/crud-workspace";
 
 type AccessLogRow = {
   id: string;
@@ -28,13 +29,15 @@ export default function AccessLogsPage() {
       rows={records}
       countLabel={(count) => `${count} events`}
       emptyMessage="No access log events found."
-      kpiCards={
-        <div className="erp-kpi-grid">
-          <div className="erp-kpi-card"><p className="erp-kpi-label">Total Events</p><p className="erp-kpi-value">{records.length}</p><p className="erp-kpi-meta">All access events</p></div>
-          <div className="erp-kpi-card erp-kpi-card-success"><p className="erp-kpi-label">Successful</p><p className="erp-kpi-value erp-kpi-value-success">{records.filter(r => r.result === "Success").length}</p><p className="erp-kpi-meta">Authorized access</p></div>
-          <div className="erp-kpi-card erp-kpi-card-danger"><p className="erp-kpi-label">Failed</p><p className="erp-kpi-value">{records.filter(r => r.result === "Failed").length}</p><p className="erp-kpi-meta">Denied attempts</p></div>
-          <div className="erp-kpi-card erp-kpi-card-info"><p className="erp-kpi-label">Unique IPs</p><p className="erp-kpi-value">{new Set(records.map(r => r.ipAddress)).size}</p><p className="erp-kpi-meta">Distinct origins</p></div>
-        </div>
+      headerStats={
+        <CrudHeaderStats
+          items={[
+            { label: "Events", value: records.length, helper: "access" },
+            { label: "Successful", value: records.filter((r) => r.result === "Success").length, tone: "positive" },
+            { label: "Failed", value: records.filter((r) => r.result === "Failed").length, tone: "danger" },
+            { label: "IPs", value: new Set(records.map((r) => r.ipAddress)).size, tone: "info" },
+          ]}
+        />
       }
       columns={[
         { label: "User" },

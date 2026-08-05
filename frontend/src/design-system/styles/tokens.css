@@ -1,0 +1,41 @@
+:root {
+  /* Centralized Enterprise Design System Tokens */
+  --ds-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  
+  /* Primary Indigo Brand Tokens */
+  --ds-color-primary-50: #eef2ff;
+  --ds-color-primary-100: #e0e7ff;
+  --ds-color-primary-500: #6366f1;
+  --ds-color-primary-600: #4f46e5;
+  --ds-color-primary-700: #4338ca;
+  
+  /* Neutral Slate Surface Tokens */
+  --ds-color-bg-app: #f8fafc;
+  --ds-color-bg-card: #ffffff;
+  --ds-color-border: #e2e8f0;
+  --ds-color-text-main: #0f172a;
+  --ds-color-text-muted: #64748b;
+  
+  /* Semantic Status Tokens */
+  --ds-color-success: #16a34a;
+  --ds-color-warning: #d97706;
+  --ds-color-danger: #dc2626;
+  --ds-color-info: #4f46e5;
+  
+  /* Radii */
+  --ds-radius-card: 0.75rem;
+  --ds-radius-btn: 0.5rem;
+  --ds-radius-input: 0.5rem;
+  
+  /* Shadows */
+  --ds-shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05);
+  --ds-shadow-dropdown: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+.dark {
+  --ds-color-bg-app: #090d16;
+  --ds-color-bg-card: #0f172a;
+  --ds-color-border: #1e293b;
+  --ds-color-text-main: #f8fafc;
+  --ds-color-text-muted: #94a3b8;
+}

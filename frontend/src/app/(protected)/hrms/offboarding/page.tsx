@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { LogOut, Plus } from "lucide-react";
+import ErpHeaderSummary from "@/components/layout/ErpHeaderSummary";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { hrApi } from "@/services/hrApi";
 import { notifyError } from "@/lib/notifications";
@@ -106,30 +107,17 @@ export default function OffboardingPage() {
           Initiate Exit
         </button>
       }
+      meta={
+        <ErpHeaderSummary
+          items={[
+            { label: "Exits", value: records.length },
+            { label: "Completed", value: completed, tone: "success" },
+            { label: "In Progress", value: inProgress, tone: "info" },
+            { label: "Initiated", value: initiated, tone: "warning" },
+          ]}
+        />
+      }
     >
-      <div className="erp-kpi-grid">
-        <div className="erp-kpi-card">
-          <p className="erp-kpi-label">Total Exits</p>
-          <p className="erp-kpi-value">{records.length}</p>
-          <p className="erp-kpi-meta">All offboarding records</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-success">
-          <p className="erp-kpi-label">Completed</p>
-          <p className="erp-kpi-value erp-kpi-value-success">{completed}</p>
-          <p className="erp-kpi-meta">Full clearance done</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-info">
-          <p className="erp-kpi-label">In Progress</p>
-          <p className="erp-kpi-value">{inProgress}</p>
-          <p className="erp-kpi-meta">Clearance pending</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-warning">
-          <p className="erp-kpi-label">Initiated</p>
-          <p className="erp-kpi-value">{initiated}</p>
-          <p className="erp-kpi-meta">Just started</p>
-        </div>
-      </div>
-
       {error && <div className="erp-alert-error">{error}</div>}
 
       {showForm && (

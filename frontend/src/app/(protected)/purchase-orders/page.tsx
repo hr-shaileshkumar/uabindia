@@ -3,6 +3,7 @@
 import { useEffect, useState, type ChangeEvent } from "react";
 import { hrApi } from "@/services/hrApi";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
 import ModuleIcon from "@/components/ModuleIcon";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -96,7 +97,7 @@ export default function PurchaseOrdersPage() {
   };
 
   useEffect(() => {
-    fetchOrders();
+    void fetchOrders();
   }, []);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -182,9 +183,19 @@ export default function PurchaseOrdersPage() {
   return (
     <StandardPageLayout
       title="Purchase Orders"
-      subtitle="Run procurement transactions with a clean Fiori-style workspace for monitoring, approval, and receipt status."
+      subtitle="Run procurement transactions with a clean workspace for monitoring, approval, and receipt status."
       eyebrow="Procurement / Purchase Orders"
       icon="box"
+      meta={
+        <CrudHeaderStats
+          items={[
+            { label: "Orders", value: orders.length, helper: "procurement" },
+            { label: "In Process", value: inFlightCount, tone: "info" },
+            { label: "Received", value: receivedCount, tone: "positive" },
+            { label: "Avg Value", value: formatCurrency(averageValue), tone: "warning" },
+          ]}
+        />
+      }
       actions={
         canCreatePurchaseOrder ? (
           <button type="button" onClick={handleCreateNew} className="erp-action-btn erp-action-btn-primary">
@@ -194,29 +205,6 @@ export default function PurchaseOrdersPage() {
       }
     >
       {confirmDialog}
-      <div className="erp-kpi-grid">
-        <div className="erp-kpi-card">
-          <p className="erp-kpi-label">Total orders</p>
-          <p className="erp-kpi-value">{orders.length}</p>
-          <p className="erp-kpi-meta">All procurement documents in the current workspace.</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-info">
-          <p className="erp-kpi-label">In process</p>
-          <p className="erp-kpi-value">{inFlightCount}</p>
-          <p className="erp-kpi-meta">Draft, submitted, approved, and partially received orders.</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-success">
-          <p className="erp-kpi-label">Received</p>
-          <p className="erp-kpi-value erp-kpi-value-success">{receivedCount}</p>
-          <p className="erp-kpi-meta">Orders fully received into stores or inventory.</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-warning">
-          <p className="erp-kpi-label">Average order value</p>
-          <p className="erp-kpi-value">{formatCurrency(averageValue)}</p>
-          <p className="erp-kpi-meta">Portfolio value across all purchase transactions.</p>
-        </div>
-      </div>
-
       {error ? <div className="erp-alert-error">{error}</div> : null}
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -226,70 +214,62 @@ export default function PurchaseOrdersPage() {
         </TabsList>
 
         <TabsContent value="list">
-          <Card className="erp-panel">
-            <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 bg-white/75">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <span className="erp-inline-icon" aria-hidden>
-                    <ModuleIcon name="box" className="h-4 w-4" />
-                  </span>
-                  Procurement workbench
-                </CardTitle>
-                <p className="mt-1 text-sm text-slate-500">Review vendor commitments, due dates, and receipt progress in one place.</p>
-              </div>
-              <Button onClick={handleCreateNew}>Add Order</Button>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="erp-loading">Loading orders...</div>
-              ) : orders.length === 0 ? (
-                <div className="erp-empty">No purchase orders found.</div>
-              ) : (
-                <div className="erp-table-wrap border-0 bg-white/80 shadow-none">
-                  <table className="erp-table">
-                    <thead className="erp-thead">
-                      <tr>
-                        <th className="erp-th">PO #</th>
-                        <th className="erp-th">Vendor</th>
-                        <th className="erp-th">Order date</th>
-                        <th className="erp-th">Expected delivery</th>
-                        <th className="erp-th">Status</th>
-                        <th className="erp-th">Amount</th>
-                        <th className="erp-th">Actions</th>
+          <CrudCard
+            title="Procurement Workbench"
+            description="Review vendor commitments, due dates, and receipt progress in one place."
+            actions={<Button onClick={handleCreateNew}>Add Order</Button>}
+          >
+            {loading ? (
+              <div className="erp-loading">Loading orders...</div>
+            ) : orders.length === 0 ? (
+              <div className="erp-empty">No purchase orders found.</div>
+            ) : (
+              <div className="erp-table-wrap">
+                <table className="erp-table">
+                  <thead className="erp-thead">
+                    <tr>
+                      <th className="erp-th">PO #</th>
+                      <th className="erp-th">Vendor</th>
+                      <th className="erp-th">Order Date</th>
+                      <th className="erp-th">Expected Delivery</th>
+                      <th className="erp-th">Status</th>
+                      <th className="erp-th">Amount</th>
+                      <th className="erp-th">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orders.map((order) => (
+                      <tr key={order.id} className="erp-tr">
+                        <td className="erp-td font-semibold text-slate-900">{order.poNumber}</td>
+                        <td className="erp-td">{order.vendorId}</td>
+                        <td className="erp-td">{new Date(order.poDate).toLocaleDateString()}</td>
+                        <td className="erp-td">
+                          {order.expectedDeliveryDate ? new Date(order.expectedDeliveryDate).toLocaleDateString() : "-"}
+                        </td>
+                        <td className="erp-td">
+                          <span className={getStatusChipClass(order.status)}>{order.status}</span>
+                        </td>
+                        <td className="erp-td font-semibold text-slate-900">{formatCurrency(order.totalAmount)}</td>
+                        <td className="erp-td">
+                          {(() => {
+                            const actionItems = [
+                              ...(canEditPurchaseOrder ? [{ label: "Edit", onClick: () => handleEdit(order) }] : []),
+                              ...(canDeletePurchaseOrder ? [{ label: "Delete", onClick: () => handleDelete(order.id), danger: true }] : []),
+                            ];
+                            return actionItems.length > 0 ? (
+                              <TableActionMenu items={actionItems} />
+                            ) : (
+                              <span className="text-xs text-slate-500">No actions available</span>
+                            );
+                          })()}
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {orders.map((order) => (
-                        <tr key={order.id} className="erp-tr">
-                          <td className="erp-td font-semibold text-slate-900">{order.poNumber}</td>
-                          <td className="erp-td">{order.vendorId}</td>
-                          <td className="erp-td">{new Date(order.poDate).toLocaleDateString()}</td>
-                          <td className="erp-td">{order.expectedDeliveryDate ? new Date(order.expectedDeliveryDate).toLocaleDateString() : "—"}</td>
-                          <td className="erp-td">
-                            <span className={getStatusChipClass(order.status)}>{order.status}</span>
-                          </td>
-                          <td className="erp-td font-semibold text-slate-900">{formatCurrency(order.totalAmount)}</td>
-                          <td className="erp-td">
-                            {(() => {
-                              const actionItems = [
-                                ...(canEditPurchaseOrder ? [{ label: "Edit", onClick: () => handleEdit(order) }] : []),
-                                ...(canDeletePurchaseOrder ? [{ label: "Delete", onClick: () => handleDelete(order.id), danger: true }] : []),
-                              ];
-                              return actionItems.length > 0 ? (
-                                <TableActionMenu items={actionItems} />
-                              ) : (
-                                <span className="text-xs text-slate-500">No actions available</span>
-                              );
-                            })()}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CrudCard>
         </TabsContent>
 
         <TabsContent value="form">
@@ -309,60 +289,27 @@ export default function PurchaseOrdersPage() {
               <div className="erp-form-grid erp-form-grid-2">
                 <div>
                   <label className="erp-label">PO Number</label>
-                  <input
-                    name="poNumber"
-                    value={formData.poNumber}
-                    onChange={handleChange}
-                    className="erp-input"
-                  />
+                  <input name="poNumber" value={formData.poNumber} onChange={handleChange} className="erp-input" />
                 </div>
                 <div>
                   <label className="erp-label">Vendor ID</label>
-                  <input
-                    name="vendorId"
-                    value={formData.vendorId}
-                    onChange={handleChange}
-                    className="erp-input"
-                  />
+                  <input name="vendorId" value={formData.vendorId} onChange={handleChange} className="erp-input" />
                 </div>
                 <div>
                   <label className="erp-label">PO Date</label>
-                  <input
-                    name="poDate"
-                    type="date"
-                    value={formData.poDate}
-                    onChange={handleChange}
-                    className="erp-input"
-                  />
+                  <input name="poDate" type="date" value={formData.poDate} onChange={handleChange} className="erp-input" />
                 </div>
                 <div>
                   <label className="erp-label">Expected Delivery</label>
-                  <input
-                    name="expectedDeliveryDate"
-                    type="date"
-                    value={formData.expectedDeliveryDate}
-                    onChange={handleChange}
-                    className="erp-input"
-                  />
+                  <input name="expectedDeliveryDate" type="date" value={formData.expectedDeliveryDate} onChange={handleChange} className="erp-input" />
                 </div>
                 <div>
                   <label className="erp-label">Total Amount</label>
-                  <input
-                    name="totalAmount"
-                    type="number"
-                    value={formData.totalAmount}
-                    onChange={handleChange}
-                    className="erp-input"
-                  />
+                  <input name="totalAmount" type="number" value={formData.totalAmount} onChange={handleChange} className="erp-input" />
                 </div>
                 <div>
                   <label className="erp-label">Status</label>
-                  <select
-                    name="status"
-                    value={formData.status}
-                    onChange={handleChange}
-                    className="erp-select"
-                  >
+                  <select name="status" value={formData.status} onChange={handleChange} className="erp-select">
                     <option value="Draft">Draft</option>
                     <option value="Submitted">Submitted</option>
                     <option value="Approved">Approved</option>

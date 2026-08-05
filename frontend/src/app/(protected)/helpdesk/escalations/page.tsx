@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
+import { CrudHeaderStats } from "@/components/erp/crud-workspace";
 import { hrApi } from "@/services/hrApi";
 import { notifyError } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
@@ -44,13 +45,27 @@ export default function HelpdeskEscalationsPage() {
       rows={records}
       countLabel={(count) => `${count} escalations`}
       emptyMessage="No escalations found."
-      kpiCards={
-        <div className="erp-kpi-grid">
-          <div className="erp-kpi-card"><p className="erp-kpi-label">Total</p><p className="erp-kpi-value">{records.length}</p><p className="erp-kpi-meta">All escalations</p></div>
-          <div className="erp-kpi-card erp-kpi-card-danger"><p className="erp-kpi-label">SLA Breached</p><p className="erp-kpi-value">{records.filter(r => r.slaBreached).length}</p><p className="erp-kpi-meta">Needs immediate action</p></div>
-          <div className="erp-kpi-card erp-kpi-card-warning"><p className="erp-kpi-label">Open</p><p className="erp-kpi-value">{records.filter(r => r.status === "Open").length}</p><p className="erp-kpi-meta">Still active</p></div>
-          <div className="erp-kpi-card erp-kpi-card-success"><p className="erp-kpi-label">Resolved</p><p className="erp-kpi-value erp-kpi-value-success">{records.filter(r => r.status === "Resolved").length}</p><p className="erp-kpi-meta">Closed</p></div>
-        </div>
+      headerStats={
+        <CrudHeaderStats
+          items={[
+            { label: "Escalations", value: records.length, helper: "total" },
+            {
+              label: "SLA Breached",
+              value: records.filter((record) => record.slaBreached).length,
+              tone: "danger",
+            },
+            {
+              label: "Open",
+              value: records.filter((record) => record.status === "Open").length,
+              tone: "warning",
+            },
+            {
+              label: "Resolved",
+              value: records.filter((record) => record.status === "Resolved").length,
+              tone: "positive",
+            },
+          ]}
+        />
       }
       columns={[{ label: "Ticket Ref" }, { label: "Reason" }, { label: "Escalated To" }, { label: "Escalated At" }, { label: "SLA" }, { label: "Status" }]}
       renderRow={(r) => (

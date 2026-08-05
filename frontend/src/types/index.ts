@@ -10,6 +10,7 @@ export interface User {
   companyId?: string;
   tenantId?: string;
   isActive: boolean;
+  avatarUrl?: string;
 }
 
 export interface AuthResponse {
@@ -84,6 +85,7 @@ export interface Project {
   location?: string;
   createdAt?: string;
   updatedAt?: string;
+  isDeleted?: boolean;
 }
 
 export interface CompaniesResponse {
@@ -145,4 +147,394 @@ export interface PaginatedResponse<T> {
 export interface ApiResponse<T> {
   data: T;
   message?: string;
+}
+
+// ─── HRMS Domain Types ──────────────────────────────────────────────────────
+
+export type EmployeeStatus = "Active" | "Inactive" | "Terminated" | "OnLeave";
+
+export interface Employee {
+  id: string;
+  fullName?: string;
+  firstName?: string;
+  lastName?: string;
+  employeeCode?: string;
+  email?: string;
+  phone?: string;
+  companyId?: string;
+  projectId?: string;
+  departmentId?: string;
+  departmentName?: string;
+  designationId?: string;
+  designationName?: string;
+  status?: EmployeeStatus;
+  joiningDate?: string;
+  avatarUrl?: string;
+  gender?: string;
+  dateOfBirth?: string;
+  address?: string;
+  managerId?: string;
+  managerName?: string;
+  employmentType?: string;
+  workLocation?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Department {
+  id: string;
+  name: string;
+  code?: string;
+  companyId?: string;
+  parentDepartmentId?: string;
+  managerId?: string;
+  isActive: boolean;
+  employeeCount?: number;
+}
+
+export interface Designation {
+  id: string;
+  name: string;
+  code?: string;
+  departmentId?: string;
+  level?: string;
+  isActive: boolean;
+}
+
+export interface AttendanceRecord {
+  id: string;
+  employeeId: string;
+  employeeName?: string;
+  date: string;
+  checkIn?: string;
+  checkOut?: string;
+  status?: "Present" | "Absent" | "HalfDay" | "Late" | "Holiday" | "WeekOff";
+  hoursWorked?: number;
+  remarks?: string;
+}
+
+export interface Shift {
+  id: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+  breakDuration?: number;
+  isNightShift?: boolean;
+  isActive: boolean;
+}
+
+export interface LeaveType {
+  id: string;
+  name: string;
+  code?: string;
+  maxDaysPerYear?: number;
+  isPaid: boolean;
+  isCarryForward: boolean;
+  isActive: boolean;
+}
+
+export interface LeaveRequest {
+  id: string;
+  employeeId: string;
+  employeeName?: string;
+  leaveTypeId?: string;
+  leaveTypeName?: string;
+  startDate: string;
+  endDate: string;
+  days: number;
+  reason?: string;
+  status: "Pending" | "Approved" | "Rejected" | "Cancelled";
+  appliedAt?: string;
+  approvedBy?: string;
+}
+
+export interface LeaveBalance {
+  leaveTypeId: string;
+  leaveTypeName: string;
+  allocated: number;
+  used: number;
+  balance: number;
+}
+
+export interface OvertimeRequest {
+  id: string;
+  employeeId: string;
+  employeeName?: string;
+  date: string;
+  hours: number;
+  reason?: string;
+  status: "Pending" | "Approved" | "Rejected";
+}
+
+export interface Recruitment {
+  id: string;
+  jobTitle: string;
+  departmentId?: string;
+  departmentName?: string;
+  vacancies: number;
+  status: "Open" | "Closed" | "OnHold";
+  postedDate?: string;
+  closingDate?: string;
+  description?: string;
+}
+
+export interface Candidate {
+  id: string;
+  recruitmentId?: string;
+  fullName: string;
+  email?: string;
+  phone?: string;
+  status: "Applied" | "Screening" | "Interview" | "Offered" | "Hired" | "Rejected";
+  resumeUrl?: string;
+  appliedAt?: string;
+}
+
+// ─── Payroll Domain Types ────────────────────────────────────────────────────
+
+export interface PayrollRun {
+  id: string;
+  month: number;
+  year: number;
+  status: "Draft" | "Processing" | "Approved" | "Paid" | "Cancelled";
+  totalGross?: number;
+  totalDeductions?: number;
+  totalNet?: number;
+  employeeCount?: number;
+  processedAt?: string;
+  approvedAt?: string;
+}
+
+export interface Payslip {
+  id: string;
+  employeeId: string;
+  employeeName?: string;
+  month: number;
+  year: number;
+  grossPay: number;
+  totalDeductions: number;
+  netPay: number;
+  status: "Draft" | "Generated" | "Sent";
+  paymentDate?: string;
+}
+
+export interface SalaryComponent {
+  id: string;
+  name: string;
+  code?: string;
+  type: "Earning" | "Deduction" | "Employer";
+  calculationType: "Fixed" | "Percentage";
+  value?: number;
+  isActive: boolean;
+  isTaxable?: boolean;
+}
+
+// ─── Finance Domain Types ─────────────────────────────────────────────────────
+
+export interface Account {
+  id: string;
+  code: string;
+  name: string;
+  type: "Asset" | "Liability" | "Equity" | "Revenue" | "Expense";
+  parentId?: string;
+  isGroup: boolean;
+  balance?: number;
+  isActive: boolean;
+}
+
+export interface JournalEntry {
+  id: string;
+  entryNumber?: string;
+  date: string;
+  description?: string;
+  reference?: string;
+  totalDebit?: number;
+  totalCredit?: number;
+  status: "Draft" | "Posted" | "Voided";
+  lines?: JournalEntryLine[];
+}
+
+export interface JournalEntryLine {
+  id?: string;
+  accountId: string;
+  accountName?: string;
+  description?: string;
+  debit?: number;
+  credit?: number;
+}
+
+export interface Payment {
+  id: string;
+  paymentDate?: string;
+  amount?: number;
+  paymentType?: "Inbound" | "Outbound";
+  status?: "Pending" | "Completed" | "Failed" | "Cancelled";
+  referenceNumber?: string;
+  partyName?: string;
+  accountId?: string;
+  accountName?: string;
+  notes?: string;
+}
+
+// ─── CRM Domain Types ────────────────────────────────────────────────────────
+
+export interface Lead {
+  id: string;
+  name: string;
+  company?: string;
+  email?: string;
+  phone?: string;
+  source?: string;
+  status: "New" | "Qualified" | "Proposal" | "Negotiation" | "Won" | "Lost";
+  assignedTo?: string;
+  value?: number;
+  expectedCloseDate?: string;
+  createdAt?: string;
+}
+
+export interface Contact {
+  id: string;
+  fullName: string;
+  email?: string;
+  phone?: string;
+  company?: string;
+  position?: string;
+  isActive: boolean;
+  tags?: string[];
+  createdAt?: string;
+}
+
+// ─── Expense Domain Types ─────────────────────────────────────────────────────
+
+export type ExpenseStatus = "Draft" | "Submitted" | "Approved" | "Rejected" | "Paid";
+
+export interface Expense {
+  id: string;
+  employeeId?: string;
+  employeeName?: string;
+  title: string;
+  description?: string;
+  amount: number;
+  currency?: string;
+  category?: string;
+  date: string;
+  status: ExpenseStatus;
+  receiptUrl?: string;
+  approvedBy?: string;
+  submittedAt?: string;
+}
+
+// ─── Helpdesk Domain Types ───────────────────────────────────────────────────
+
+export type TicketPriority = "Low" | "Medium" | "High" | "Critical";
+export type TicketStatus = "Open" | "InProgress" | "Resolved" | "Closed";
+
+export interface Ticket {
+  id: string;
+  ticketNumber?: string;
+  subject: string;
+  description?: string;
+  priority: TicketPriority;
+  status: TicketStatus;
+  category?: string;
+  assignedTo?: string;
+  reportedBy?: string;
+  createdAt?: string;
+  resolvedAt?: string;
+  slaDeadline?: string;
+}
+
+// ─── Asset Domain Types ──────────────────────────────────────────────────────
+
+export interface Asset {
+  id: string;
+  assetCode?: string;
+  name: string;
+  category?: string;
+  status: "Available" | "Assigned" | "UnderMaintenance" | "Disposed";
+  purchaseDate?: string;
+  purchasePrice?: number;
+  currentValue?: number;
+  assignedTo?: string;
+  assignedToName?: string;
+  location?: string;
+  serialNumber?: string;
+}
+
+// ─── Fleet Domain Types ──────────────────────────────────────────────────────
+
+export interface Vehicle {
+  id: string;
+  registrationNumber: string;
+  make?: string;
+  model?: string;
+  year?: number;
+  vehicleType?: string;
+  status: "Available" | "InUse" | "Maintenance" | "Retired";
+  driverName?: string;
+  lastMaintenanceDate?: string;
+  nextMaintenanceDate?: string;
+  mileage?: number;
+}
+
+// ─── Document Domain Types ───────────────────────────────────────────────────
+
+export interface Document {
+  id: string;
+  name: string;
+  type?: string;
+  size?: number;
+  uploadedBy?: string;
+  uploadedAt?: string;
+  folderId?: string;
+  url?: string;
+  version?: number;
+  tags?: string[];
+}
+
+// ─── Notification Domain Types ────────────────────────────────────────────────
+
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type?: string;
+  isRead: boolean;
+  createdAt?: string;
+  actionUrl?: string;
+  category?: "Info" | "Warning" | "Success" | "Error";
+}
+
+// ─── Tour/Travel Domain Types ────────────────────────────────────────────────
+
+export type TourStatus = "Draft" | "Submitted" | "Approved" | "InProgress" | "Completed" | "Rejected";
+
+export interface TourRequest {
+  id: string;
+  employeeId?: string;
+  employeeName?: string;
+  destination: string;
+  purpose?: string;
+  departureDate: string;
+  returnDate: string;
+  estimatedCost?: number;
+  actualCost?: number;
+  status: TourStatus;
+  approvedBy?: string;
+  createdAt?: string;
+}
+
+// ─── Workflow Domain Types ────────────────────────────────────────────────────
+
+export type ApprovalStatus = "Pending" | "Approved" | "Rejected" | "Escalated";
+
+export interface ApprovalRequest {
+  id: string;
+  type: string;
+  subject: string;
+  requestedBy?: string;
+  requestedAt?: string;
+  status: ApprovalStatus;
+  priority?: "Low" | "Normal" | "High";
+  dueDate?: string;
+  notes?: string;
 }

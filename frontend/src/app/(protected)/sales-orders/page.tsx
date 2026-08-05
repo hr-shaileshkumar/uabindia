@@ -3,6 +3,7 @@
 import { useEffect, useState, type ChangeEvent } from "react";
 import { hrApi } from "@/services/hrApi";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
 import ModuleIcon from "@/components/ModuleIcon";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -98,7 +99,7 @@ export default function SalesOrdersPage() {
   };
 
   useEffect(() => {
-    fetchOrders();
+    void fetchOrders();
   }, []);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -188,6 +189,16 @@ export default function SalesOrdersPage() {
       subtitle="Manage customer commitments, fulfillment readiness, and commercial order value with one standardized transaction workspace."
       eyebrow="Sales & CRM / Sales Orders"
       icon="briefcase"
+      meta={
+        <CrudHeaderStats
+          items={[
+            { label: "Orders", value: orders.length, helper: "sales" },
+            { label: "In Progress", value: confirmedCount, tone: "info" },
+            { label: "Completed", value: completedCount, tone: "positive" },
+            { label: "Avg Value", value: formatCurrency(averageValue), tone: "warning" },
+          ]}
+        />
+      }
       actions={
         canCreateSalesOrder ? (
           <button type="button" onClick={handleCreateNew} className="erp-action-btn erp-action-btn-primary">
@@ -197,29 +208,6 @@ export default function SalesOrdersPage() {
       }
     >
       {confirmDialog}
-      <div className="erp-kpi-grid">
-        <div className="erp-kpi-card">
-          <p className="erp-kpi-label">Total orders</p>
-          <p className="erp-kpi-value">{orders.length}</p>
-          <p className="erp-kpi-meta">All customer-facing sales documents in the current view.</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-info">
-          <p className="erp-kpi-label">Confirmed / partial</p>
-          <p className="erp-kpi-value">{confirmedCount}</p>
-          <p className="erp-kpi-meta">Orders ready for fulfillment or awaiting final completion.</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-success">
-          <p className="erp-kpi-label">Completed</p>
-          <p className="erp-kpi-value erp-kpi-value-success">{completedCount}</p>
-          <p className="erp-kpi-meta">Orders fully delivered and commercially closed.</p>
-        </div>
-        <div className="erp-kpi-card">
-          <p className="erp-kpi-label">Average order value</p>
-          <p className="erp-kpi-value">{formatCurrency(averageValue)}</p>
-          <p className="erp-kpi-meta">Commercial exposure per order across the sales pipeline.</p>
-        </div>
-      </div>
-
       {error ? <div className="erp-alert-error">{error}</div> : null}
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -229,20 +217,11 @@ export default function SalesOrdersPage() {
         </TabsList>
 
         <TabsContent value="list">
-          <Card className="erp-panel">
-            <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 bg-white/75">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <span className="erp-inline-icon" aria-hidden>
-                    <ModuleIcon name="briefcase" className="h-4 w-4" />
-                  </span>
-                  Commercial order desk
-                </CardTitle>
-                <p className="mt-1 text-sm text-slate-500">Track customer order numbers, delivery expectations, and revenue status in a structured grid.</p>
-              </div>
-              <Button onClick={handleCreateNew}>Add Order</Button>
-            </CardHeader>
-            <CardContent>
+          <CrudCard
+            title="Commercial Order Desk"
+            description="Track customer order numbers, delivery expectations, and revenue status in a structured grid."
+            actions={<Button onClick={handleCreateNew}>Add Order</Button>}
+          >
               {loading ? (
                 <div className="erp-loading">Loading orders...</div>
               ) : orders.length === 0 ? (
@@ -254,8 +233,8 @@ export default function SalesOrdersPage() {
                       <tr>
                         <th className="erp-th">Order #</th>
                         <th className="erp-th">Customer</th>
-                        <th className="erp-th">Order date</th>
-                        <th className="erp-th">Expected delivery</th>
+                        <th className="erp-th">Order Date</th>
+                        <th className="erp-th">Expected Delivery</th>
                         <th className="erp-th">Status</th>
                         <th className="erp-th">Amount</th>
                         <th className="erp-th">Actions</th>
@@ -267,7 +246,7 @@ export default function SalesOrdersPage() {
                           <td className="erp-td font-semibold text-slate-900">{order.soNumber}</td>
                           <td className="erp-td">{order.customerId}</td>
                           <td className="erp-td">{new Date(order.soDate).toLocaleDateString()}</td>
-                          <td className="erp-td">{order.expectedDeliveryDate ? new Date(order.expectedDeliveryDate).toLocaleDateString() : "—"}</td>
+                          <td className="erp-td">{order.expectedDeliveryDate ? new Date(order.expectedDeliveryDate).toLocaleDateString() : "-"}</td>
                           <td className="erp-td">
                             <span className={getStatusChipClass(order.status)}>{order.status}</span>
                           </td>
@@ -290,9 +269,8 @@ export default function SalesOrdersPage() {
                     </tbody>
                   </table>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+                )}
+          </CrudCard>
         </TabsContent>
 
         <TabsContent value="form">
@@ -312,60 +290,27 @@ export default function SalesOrdersPage() {
               <div className="erp-form-grid erp-form-grid-2">
                 <div>
                   <label className="erp-label">Order Number</label>
-                  <input
-                    name="soNumber"
-                    value={formData.soNumber}
-                    onChange={handleChange}
-                    className="erp-input"
-                  />
+                  <input name="soNumber" value={formData.soNumber} onChange={handleChange} className="erp-input" />
                 </div>
                 <div>
                   <label className="erp-label">Customer ID</label>
-                  <input
-                    name="customerId"
-                    value={formData.customerId}
-                    onChange={handleChange}
-                    className="erp-input"
-                  />
+                  <input name="customerId" value={formData.customerId} onChange={handleChange} className="erp-input" />
                 </div>
                 <div>
                   <label className="erp-label">Order Date</label>
-                  <input
-                    name="soDate"
-                    type="date"
-                    value={formData.soDate}
-                    onChange={handleChange}
-                    className="erp-input"
-                  />
+                  <input name="soDate" type="date" value={formData.soDate} onChange={handleChange} className="erp-input" />
                 </div>
                 <div>
                   <label className="erp-label">Expected Delivery</label>
-                  <input
-                    name="expectedDeliveryDate"
-                    type="date"
-                    value={formData.expectedDeliveryDate}
-                    onChange={handleChange}
-                    className="erp-input"
-                  />
+                  <input name="expectedDeliveryDate" type="date" value={formData.expectedDeliveryDate} onChange={handleChange} className="erp-input" />
                 </div>
                 <div>
                   <label className="erp-label">Total Amount</label>
-                  <input
-                    name="totalAmount"
-                    type="number"
-                    value={formData.totalAmount}
-                    onChange={handleChange}
-                    className="erp-input"
-                  />
+                  <input name="totalAmount" type="number" value={formData.totalAmount} onChange={handleChange} className="erp-input" />
                 </div>
                 <div>
                   <label className="erp-label">Status</label>
-                  <select
-                    name="status"
-                    value={formData.status}
-                    onChange={handleChange}
-                    className="erp-select"
-                  >
+                  <select name="status" value={formData.status} onChange={handleChange} className="erp-select">
                     <option value="Draft">Draft</option>
                     <option value="Confirmed">Confirmed</option>
                     <option value="Partial">Partial</option>
@@ -375,13 +320,7 @@ export default function SalesOrdersPage() {
                 </div>
                 <div className="md:col-span-2">
                   <label className="erp-label">Notes</label>
-                  <textarea
-                    name="notes"
-                    value={formData.notes}
-                    onChange={handleChange}
-                    rows={4}
-                    className="erp-input"
-                  />
+                  <textarea name="notes" value={formData.notes} onChange={handleChange} rows={4} className="erp-input" />
                 </div>
               </div>
 

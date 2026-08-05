@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import ErpHeaderSummary from "@/components/layout/ErpHeaderSummary";
 import { hrApi } from "@/services/hrApi";
 import { brandingThemeToCssVars, type BrandingTheme } from "@/lib/branding";
 import { notifyError, notifySuccess } from "@/lib/notifications";
@@ -163,41 +164,23 @@ export default function WebsiteThemesPage() {
       subtitle="Control the live branding JSON used by public pages and site chrome."
       eyebrow="Platform / Website"
       icon="palette"
+      meta={
+        <ErpHeaderSummary
+          items={[
+            { label: "Theme", value: brandingJson !== "{}" ? "Custom" : "Default" },
+            { label: "Presets", value: themePresets.length, tone: "info" },
+            { label: "Primary", value: currentTheme.primaryColor || "n/a", tone: "success" },
+            { label: "Accent", value: currentTheme.accentColor || "n/a", tone: "warning" },
+          ]}
+        />
+      }
       actions={
         <button type="button" onClick={() => void load()} className="erp-action-btn erp-action-btn-secondary">
           Refresh
         </button>
       }
     >
-      <div className="erp-kpi-grid">
-        <div className="erp-kpi-card">
-          <p className="erp-kpi-label">Theme JSON</p>
-          <p className="erp-kpi-value">{brandingJson !== "{}" ? "Custom" : "Default"}</p>
-          <p className="erp-kpi-meta">Stored in tenant config branding JSON.</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-info">
-          <p className="erp-kpi-label">Presets</p>
-          <p className="erp-kpi-value">{themePresets.length}</p>
-          <p className="erp-kpi-meta">Base palettes you can load in one click.</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-success">
-          <p className="erp-kpi-label">Primary</p>
-          <p className="erp-kpi-value" style={{ color: currentTheme.primaryColor }}>
-            {currentTheme.primaryColor || "n/a"}
-          </p>
-          <p className="erp-kpi-meta">Main brand color.</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-warning">
-          <p className="erp-kpi-label">Accent</p>
-          <p className="erp-kpi-value" style={{ color: currentTheme.accentColor }}>
-            {currentTheme.accentColor || "n/a"}
-          </p>
-          <p className="erp-kpi-meta">Accent color for emphasis and CTA contrast.</p>
-        </div>
-      </div>
-
       {error ? <div className="erp-alert-error">{error}</div> : null}
-
       <div className="grid gap-6 xl:grid-cols-[1fr_1.05fr]">
         <div className="erp-panel">
           <div className="erp-panel-header">

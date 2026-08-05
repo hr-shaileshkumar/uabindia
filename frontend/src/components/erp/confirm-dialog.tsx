@@ -20,10 +20,10 @@ export function ConfirmDialog({
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        <div className="px-6 py-5">
-          <p className="text-sm leading-7 text-slate-600">{description}</p>
+        <div className="px-4 py-4 sm:px-5">
+          <p className="text-sm leading-6 text-slate-600">{description}</p>
         </div>
-        <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
+        <div className="flex flex-col-reverse justify-end gap-2 border-t border-slate-200 px-4 py-3 sm:flex-row sm:px-5">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={() => onOpenChange(false)}>Confirm</Button>
         </div>

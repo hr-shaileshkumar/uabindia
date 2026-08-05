@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type MouseEvent } from "react";
 
 export interface ActionMenuItem {
   label: string;
@@ -21,6 +21,7 @@ interface TableActionMenuProps {
  */
 export function TableActionMenu({ items, label = "Actions" }: TableActionMenuProps) {
   const [open, setOpen] = useState(false);
+  const menuId = useId();
   const [position, setPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -63,15 +64,23 @@ export function TableActionMenu({ items, label = "Actions" }: TableActionMenuPro
       }
     };
     const handleViewportChange = () => setOpen(false);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+        btnRef.current?.focus();
+      }
+    };
 
     document.addEventListener("pointerdown", handler);
     window.addEventListener("resize", handleViewportChange);
     window.addEventListener("scroll", handleViewportChange, true);
+    document.addEventListener("keydown", handleKeyDown);
 
     return () => {
       document.removeEventListener("pointerdown", handler);
       window.removeEventListener("resize", handleViewportChange);
       window.removeEventListener("scroll", handleViewportChange, true);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [open]);
 
@@ -83,6 +92,9 @@ export function TableActionMenu({ items, label = "Actions" }: TableActionMenuPro
         onClick={handleOpen}
         onPointerDown={(event) => event.stopPropagation()}
         className="erp-action-btn erp-action-btn-secondary text-xs"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        aria-controls={open ? menuId : undefined}
       >
         {label} ▾
       </button>
@@ -90,14 +102,17 @@ export function TableActionMenu({ items, label = "Actions" }: TableActionMenuPro
       {open && (
         <div
           ref={menuRef}
+          id={menuId}
+          role="menu"
           style={{ position: "fixed", top: position.top, left: position.left, zIndex: 9999 }}
           className="min-w-40 rounded-xl border border-slate-200 bg-white py-1 shadow-xl"
           onPointerDown={(event) => event.stopPropagation()}
         >
-          {items.map((item) => (
+          {items.map((item, index) => (
             <button
-              key={item.label}
+              key={`${item.label}-${index}`}
               type="button"
+              role="menuitem"
               disabled={item.disabled}
               onPointerDown={(event) => event.stopPropagation()}
               onClick={(e) => {

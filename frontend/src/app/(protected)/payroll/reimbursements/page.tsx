@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
+import { CrudHeaderStats } from "@/components/erp/crud-workspace";
 
 type ReimbursementRecord = {
   id: string;
@@ -27,13 +28,28 @@ export default function PayrollReimbursementsPage() {
       rows={records}
       countLabel={(count) => `${count} reimbursements`}
       emptyMessage="No reimbursement records found."
-      kpiCards={
-        <div className="erp-kpi-grid">
-          <div className="erp-kpi-card"><p className="erp-kpi-label">Total</p><p className="erp-kpi-value">{records.length}</p><p className="erp-kpi-meta">All claims</p></div>
-          <div className="erp-kpi-card erp-kpi-card-success"><p className="erp-kpi-label">Approved</p><p className="erp-kpi-value erp-kpi-value-success">{records.filter(r => r.status === "Approved").length}</p><p className="erp-kpi-meta">Ready to pay</p></div>
-          <div className="erp-kpi-card erp-kpi-card-warning"><p className="erp-kpi-label">Pending</p><p className="erp-kpi-value">{records.filter(r => r.status === "Pending").length}</p><p className="erp-kpi-meta">Under review</p></div>
-          <div className="erp-kpi-card erp-kpi-card-info"><p className="erp-kpi-label">Total Amount</p><p className="erp-kpi-value">{records.reduce((s, r) => s + r.amount, 0).toLocaleString()}</p><p className="erp-kpi-meta">Sum of claims</p></div>
-        </div>
+      headerStats={
+        <CrudHeaderStats
+          items={[
+            { label: "Claims", value: records.length, helper: "total" },
+            {
+              label: "Approved",
+              value: records.filter((record) => record.status === "Approved").length,
+              tone: "positive",
+            },
+            {
+              label: "Pending",
+              value: records.filter((record) => record.status === "Pending").length,
+              tone: "warning",
+            },
+            {
+              label: "Amount",
+              value: records.reduce((total, record) => total + record.amount, 0).toLocaleString(),
+              helper: "sum",
+              tone: "info",
+            },
+          ]}
+        />
       }
       columns={[
         { label: "Employee" },

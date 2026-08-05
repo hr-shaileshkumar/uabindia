@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Plus, Landmark, CheckCircle, Clock, AlertTriangle } from "lucide-react";
+import { CrudHeaderStats } from "@/components/erp/crud-workspace";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { hrApi } from "@/services/hrApi";
 import { notifyError } from "@/lib/notifications";
@@ -168,30 +169,17 @@ export default function PayrollLoansPage() {
           )}
         </div>
       }
+      meta={
+        <CrudHeaderStats
+          items={[
+            { label: "Loans", value: filtered.length, helper: "total" },
+            { label: "Active", value: activeLoans, helper: "repayment", tone: "info" },
+            { label: "Outstanding", value: formatCurrency(totalOutstanding), helper: "balance", tone: "warning" },
+            { label: "Disbursed", value: formatCurrency(totalDisbursed), helper: "principal", tone: "positive" },
+          ]}
+        />
+      }
     >
-      <div className="erp-kpi-grid">
-        <div className="erp-kpi-card">
-          <p className="erp-kpi-label">Total Loans</p>
-          <p className="erp-kpi-value">{filtered.length}</p>
-          <p className="erp-kpi-meta">All loan records</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-info">
-          <p className="erp-kpi-label">Active Loans</p>
-          <p className="erp-kpi-value">{activeLoans}</p>
-          <p className="erp-kpi-meta">Currently in repayment</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-warning">
-          <p className="erp-kpi-label">Outstanding</p>
-          <p className="erp-kpi-value">{formatCurrency(totalOutstanding)}</p>
-          <p className="erp-kpi-meta">Total balance remaining</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-success">
-          <p className="erp-kpi-label">Total Disbursed</p>
-          <p className="erp-kpi-value">{formatCurrency(totalDisbursed)}</p>
-          <p className="erp-kpi-meta">Principal amounts given</p>
-        </div>
-      </div>
-
       {error && <div className="erp-alert-error">{error}</div>}
 
       {showForm && (

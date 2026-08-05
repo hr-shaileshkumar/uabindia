@@ -4,20 +4,21 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import { PageHeader } from "@/design-system";
+import { StatusBadge } from "@/components/erp/status-badge";
 import { TableActionMenu, type ActionMenuItem } from "@/components/table/TableActionMenu";
+import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
+import AdminModal from "@/components/admin/AdminModal";
 import { hrApi } from "@/services/hrApi";
 import { ROUTES } from "@/constants/routes";
 import { PERMISSIONS } from "@/constants/permissions";
 import { usePermissions } from "@/context/PermissionContext";
+import type { Employee } from "@/types";
 
-export type Employee = {
-  id: string;
-  fullName?: string;
-  employeeCode?: string;
-  companyId?: string;
-  projectId?: string;
-  status?: string;
-};
+// Re-exported for backward compatibility
+export type { Employee };
+
+
 
 const PAGE_SIZE = 15;
 
@@ -40,6 +41,9 @@ export default function EmployeeList() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const activeCount = employees.filter((employee) => employee.status === "Active").length;
+  const onLeaveCount = employees.filter((employee) => employee.status === "OnLeave").length;
+  const inactiveCount = employees.filter((employee) => employee.status === "Inactive" || employee.status === "Terminated").length;
 
   const fetchEmployees = useCallback(async () => {
     try {
@@ -53,8 +57,8 @@ export default function EmployeeList() {
       const list: Employee[] = Array.isArray(raw)
         ? raw
         : Array.isArray(raw?.employees)
-        ? raw.employees
-        : [];
+          ? raw.employees
+          : [];
       setEmployees(list);
       setTotal(raw?.total ?? list.length);
     } catch (err) {
@@ -98,9 +102,7 @@ export default function EmployeeList() {
       setError(null);
       const currentStatus = employee.status ?? "Inactive";
       const newStatus = currentStatus === "Active" ? "Inactive" : "Active";
-      await hrApi.hrms.employees.update(employee.id, {
-        status: newStatus,
-      });
+      await hrApi.hrms.employees.update(employee.id, { status: newStatus });
       void fetchEmployees();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update employee status");
@@ -141,7 +143,7 @@ export default function EmployeeList() {
     if (canAccessDocuments) {
       actions.push({
         label: "Upload Documents",
-        onClick: () => router.push(`${ROUTES.DOCUMENTS}?employeeId=${employee.id}&module=hrms`),
+        onClick: () => router.push(`${ROUTES.ADMINISTRATION_DOCUMENTS}?employeeId=${employee.id}&module=hrms`),
       });
     }
 
@@ -178,112 +180,97 @@ export default function EmployeeList() {
 
   return (
     <>
-      {confirmDeleteId && (
-        <div className="erp-modal-backdrop" onClick={() => setConfirmDeleteId(null)}>
-          <div className="erp-modal-card erp-modal-sm" onClick={(e) => e.stopPropagation()}>
-            <div className="erp-modal-accent erp-modal-accent-danger" />
-            <div className="erp-modal-header">
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="erp-modal-icon erp-modal-icon-danger">
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </span>
-                <div className="erp-modal-title">Delete Employee</div>
-              </div>
-              <button type="button" onClick={() => setConfirmDeleteId(null)} className="erp-modal-close">
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 6l12 12M18 6L6 18" />
-                </svg>
-              </button>
-            </div>
-            <div className="erp-modal-body">
-              <p className="text-sm text-slate-600">Are you sure you want to delete this employee? This action cannot be undone.</p>
-            </div>
-            <div className="erp-modal-footer">
-              <button type="button" onClick={() => setConfirmDeleteId(null)} className="erp-action-btn erp-action-btn-secondary">Cancel</button>
-              <button type="button" onClick={() => void handleDelete(confirmDeleteId)} disabled={deletingId === confirmDeleteId} className="erp-action-btn erp-action-btn-danger disabled:opacity-50">
-                {deletingId === confirmDeleteId ? "Deleting…" : "Delete"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AdminModal
+        open={Boolean(confirmDeleteId)}
+        title="Delete employee"
+        subtitle="This permanently removes the selected employee record."
+        type="danger"
+        size="sm"
+        onClose={() => setConfirmDeleteId(null)}
+        onConfirm={confirmDeleteId ? () => void handleDelete(confirmDeleteId) : undefined}
+        confirmLabel="Delete employee"
+        confirmLoading={Boolean(confirmDeleteId && deletingId === confirmDeleteId)}
+      >
+        <p className="text-sm leading-6 text-slate-600">This action cannot be undone. Confirm that the employee is no longer required by dependent HR workflows.</p>
+      </AdminModal>
 
-      <StandardPageLayout
-        title="Employee Master"
-        subtitle="Manage your organization's employees"
-        actions={
-          canCreateEmployee ? (
-            <Link
-              href={`${ROUTES.EMPLOYEES}/new`}
-              className="erp-action-btn erp-action-btn-primary"
-            >
-              + Add Employee
-            </Link>
-          ) : null
-        }
-        filters={
-          <form
-            onSubmit={handleSearchSubmit}
-            className="flex flex-wrap items-end gap-3"
-          >
-            <div className="flex-1 min-w-48">
-              <label className="mb-1 block text-xs font-medium text-slate-600">Search</label>
-              <input
-                type="search"
-                placeholder="Name or code…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
-              />
-            </div>
-            <div className="w-36">
-              <label className="mb-1 block text-xs font-medium text-slate-600">Status</label>
-              <select
-                value={statusFilter}
-                onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400"
-              >
-                <option value="">All</option>
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-                <option value="OnLeave">On Leave</option>
-                <option value="Terminated">Terminated</option>
-              </select>
-            </div>
-            <button
-              type="submit"
-              className="erp-action-btn erp-action-btn-secondary"
-            >
-              Search
-            </button>
-            {(search || statusFilter) && (
+      <div className="erp-page space-y-5">
+        <PageHeader
+          title="Employee Master"
+          subtitle="Manage active workforce records, lifecycle states, and HR actions from one unified employee workspace."
+          eyebrow="HRMS / People Directory"
+          icon="users"
+          stats={[
+            { label: "Employees", value: total },
+            { label: "Active", value: activeCount, tone: "success" },
+            { label: "On Leave", value: onLeaveCount, tone: "warning" },
+            { label: "Inactive", value: inactiveCount, tone: "danger" },
+          ]}
+          actions={
+            canCreateEmployee ? (
               <button
                 type="button"
-                onClick={() => { setSearch(""); setStatusFilter(""); setPage(1); }}
-                className="erp-action-btn erp-action-btn-secondary"
+                onClick={() => router.push(`${ROUTES.EMPLOYEES}/new`)}
+                className="h-9 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs shadow-sm"
               >
-                Clear
+                + Add Employee
               </button>
-            )}
-          </form>
-        }
-      >
+            ) : null
+          }
+        />
+      <div className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs">
+        <form onSubmit={handleSearchSubmit} className="grid items-end gap-2 sm:grid-cols-[minmax(0,1fr)_9rem_auto]">
+          <div className="min-w-0">
+            <label className="mb-1 block text-xs font-medium text-slate-600">Search</label>
+            <input
+              type="search"
+              placeholder="Name or code..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
+            />
+          </div>
+          <div className="min-w-0">
+            <label className="mb-1 block text-xs font-medium text-slate-600">Status</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400"
+            >
+              <option value="">All</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+              <option value="OnLeave">On Leave</option>
+              <option value="Terminated">Terminated</option>
+            </select>
+          </div>
+          <button type="submit" className="erp-action-btn erp-action-btn-secondary">
+            Search
+          </button>
+          {(search || statusFilter) && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch("");
+                setStatusFilter("");
+                setPage(1);
+              }}
+              className="erp-action-btn erp-action-btn-secondary"
+            >
+              Clear
+            </button>
+          )}
+        </form>
+      </div>
         {error && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-4">
             <p className="text-sm font-medium text-red-700">{error}</p>
           </div>
         )}
-
-        {/* KPI summary cards */}
-        <div className="erp-kpi-grid mb-4">
-          <div className="erp-kpi-card"><p className="erp-kpi-label">Total Employees</p><p className="erp-kpi-value">{total}</p><p className="erp-kpi-meta">All workforce records</p></div>
-          <div className="erp-kpi-card erp-kpi-card-success"><p className="erp-kpi-label">Active</p><p className="erp-kpi-value erp-kpi-value-success">{employees.filter(e => e.status === 'Active').length}</p><p className="erp-kpi-meta">Current page active</p></div>
-          <div className="erp-kpi-card erp-kpi-card-warning"><p className="erp-kpi-label">On Leave</p><p className="erp-kpi-value">{employees.filter(e => e.status === 'OnLeave').length}</p><p className="erp-kpi-meta">Currently on leave</p></div>
-          <div className="erp-kpi-card erp-kpi-card-danger"><p className="erp-kpi-label">Inactive / Terminated</p><p className="erp-kpi-value erp-kpi-value-danger">{employees.filter(e => e.status === 'Inactive' || e.status === 'Terminated').length}</p><p className="erp-kpi-meta">Not in service</p></div>
-        </div>
-
+        <CrudCard title="Employee Directory" description="Keep the employee master dense. Open profile, lifecycle, attendance, and payroll actions from the same grid.">
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-sm">
             <thead className="border-b border-slate-200 bg-slate-50">
@@ -306,31 +293,29 @@ export default function EmployeeList() {
               ) : employees.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-5 py-10 text-center text-slate-400">
-                    No employees found. {" "}
+                    No employees found.{" "}
                     <Link href={`${ROUTES.EMPLOYEES}/new`} className="text-blue-600 underline">
                       Add the first one.
                     </Link>
                   </td>
                 </tr>
               ) : (
-                employees.map((emp) => (
-                  <tr key={emp.id} className="transition hover:bg-slate-50">
-                    <td className="px-5 py-3 font-medium text-slate-800">
-                      {emp.fullName || "—"}
-                    </td>
-                    <td className="px-5 py-3 text-slate-500">{emp.employeeCode || "—"}</td>
+                employees.map((employee) => (
+                  <tr key={employee.id} className="transition hover:bg-slate-50">
+                    <td className="px-5 py-3 font-medium text-slate-800">{employee.fullName || "-"}</td>
+                    <td className="px-5 py-3 text-slate-500">{employee.employeeCode || "-"}</td>
                     <td className="px-5 py-3">
                       <span
                         className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          STATUS_BADGE[emp.status ?? ""] ?? "bg-slate-100 text-slate-600"
+                          STATUS_BADGE[employee.status ?? ""] ?? "bg-slate-100 text-slate-600"
                         }`}
                       >
-                        {emp.status || "Unknown"}
+                        {employee.status || "Unknown"}
                       </span>
                     </td>
                     <td className="px-5 py-3 text-right">
                       <div className="flex items-center justify-end gap-3">
-                        <TableActionMenu items={getEmployeeActions(emp)} label="Actions" />
+                        <TableActionMenu items={getEmployeeActions(employee)} label="Actions" />
                       </div>
                     </td>
                   </tr>
@@ -339,6 +324,7 @@ export default function EmployeeList() {
             </tbody>
           </table>
         </div>
+        </CrudCard>
 
         {!loading && totalPages > 1 && (
           <div className="flex items-center justify-between border-t border-slate-100 pt-4">
@@ -349,23 +335,23 @@ export default function EmployeeList() {
               <button
                 type="button"
                 disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
                 className="erp-action-btn erp-action-btn-secondary disabled:opacity-40"
               >
-                ← Prev
+                Prev
               </button>
               <button
                 type="button"
                 disabled={page >= totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() => setPage((currentPage) => Math.min(totalPages, currentPage + 1))}
                 className="erp-action-btn erp-action-btn-secondary disabled:opacity-40"
               >
-                Next →
+                Next
               </button>
             </div>
           </div>
         )}
-      </StandardPageLayout>
+      </div>
     </>
   );
 }

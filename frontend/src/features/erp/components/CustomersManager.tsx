@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState, type ChangeEvent } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
 import { hrApi } from "@/services/hrApi";
 
 type Customer = {
@@ -44,6 +44,9 @@ const getErrorMessage = (err: unknown, fallback: string) => {
   return fallback;
 };
 
+const formatCurrency = (value?: number) =>
+  value != null ? `Rs ${value.toLocaleString("en-IN")}` : "-";
+
 export default function CustomersManager() {
   const { confirm, confirmDialog } = useConfirmDialog();
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -79,21 +82,17 @@ export default function CustomersManager() {
   };
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true);
-        const response = await customersApi.getAll();
-        setCustomers(response.data?.data || []);
-        setError(null);
-      } catch (err) {
-        setError(getErrorMessage(err, "Failed to fetch customers"));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void load();
+    void fetchCustomers();
   }, []);
+
+  const activeCustomers = useMemo(
+    () => customers.filter((customer) => (customer.status || "Active") === "Active").length,
+    [customers]
+  );
+  const totalCreditLimit = useMemo(
+    () => customers.reduce((sum, customer) => sum + (customer.creditLimit || 0), 0),
+    [customers]
+  );
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -179,7 +178,29 @@ export default function CustomersManager() {
   };
 
   return (
-    <StandardPageLayout title="Customers" subtitle="Manage customer master and billing terms">
+    <StandardPageLayout
+      title="Customers"
+      subtitle="Maintain customer master data, billing readiness, and commercial terms from one sales master workspace."
+      eyebrow="Sales & CRM / Customers"
+      icon="users"
+      meta={
+        <>
+          <CrudHeaderStats
+            items={[
+              { label: "Customers", value: customers.length, helper: "records" },
+              { label: "Active", value: activeCustomers, tone: "positive" },
+              { label: "Credit", value: formatCurrency(totalCreditLimit), tone: "info" },
+              { label: "Avg Terms", value: `${customers.length ? Math.round(customers.reduce((sum, customer) => sum + (customer.paymentTerms || 0), 0) / customers.length) : 0}d` },
+            ]}
+          />
+        </>
+      }
+      actions={
+        <Button onClick={() => { setEditingId(null); resetForm(); setActiveTab("form"); }}>
+          Add Customer
+        </Button>
+      }
+    >
       <div className="space-y-4">
         {confirmDialog}
         {error && (
@@ -187,7 +208,6 @@ export default function CustomersManager() {
             <p className="font-medium">{error}</p>
           </div>
         )}
-
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="erp-tabs-list">
             <TabsTrigger value="list" className="erp-tab-trigger data-[state=active]:erp-tab-trigger-active">Customer List</TabsTrigger>
@@ -195,16 +215,15 @@ export default function CustomersManager() {
           </TabsList>
 
           <TabsContent value="list">
-            <Card className="erp-panel">
-              <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 bg-white/75">
-                <CardTitle>Customer Directory</CardTitle>
-                <Button onClick={() => { setEditingId(null); resetForm(); setActiveTab("form"); }}>Add Customer</Button>
-              </CardHeader>
-              <CardContent>
+            <CrudCard
+              title="Customer Directory"
+              description="Show legal identity, contact, location, tax, credit, and billing term information in one compact table."
+              actions={<Button onClick={() => { setEditingId(null); resetForm(); setActiveTab("form"); }}>Add Customer</Button>}
+            >
                 {loading ? (
-                  <div className="erp-loading">Loading customers…</div>
+                  <div className="erp-loading">Loading customers...</div>
                 ) : customers.length === 0 ? (
-                  <div className="erp-empty">No customers found.</div>
+                  <div className="erp-empty">No customers found. Add the first customer master record to begin order and billing flows.</div>
                 ) : (
                   <div className="erp-table-wrap border-0 bg-white/80 shadow-none">
                     <table className="erp-table">
@@ -214,6 +233,9 @@ export default function CustomersManager() {
                           <th className="erp-th">Name</th>
                           <th className="erp-th">Email</th>
                           <th className="erp-th">Phone</th>
+                          <th className="erp-th">City</th>
+                          <th className="erp-th">Terms</th>
+                          <th className="erp-th">Credit Limit</th>
                           <th className="erp-th">Actions</th>
                         </tr>
                       </thead>
@@ -222,8 +244,11 @@ export default function CustomersManager() {
                           <tr key={customer.id} className="erp-tr">
                             <td className="erp-td font-medium text-slate-900">{customer.customerCode}</td>
                             <td className="erp-td">{customer.customerName}</td>
-                            <td className="erp-td text-slate-600">{customer.email || "—"}</td>
-                            <td className="erp-td text-slate-600">{customer.phoneNumber || "—"}</td>
+                            <td className="erp-td text-slate-600">{customer.email || "-"}</td>
+                            <td className="erp-td text-slate-600">{customer.phoneNumber || "-"}</td>
+                            <td className="erp-td text-slate-600">{customer.city || "-"}</td>
+                            <td className="erp-td text-slate-600">{customer.paymentTerms || 0} days</td>
+                            <td className="erp-td font-medium text-slate-900">{formatCurrency(customer.creditLimit)}</td>
                             <td className="erp-td">
                               <div className="flex gap-2">
                                 <Button variant="outline" size="sm" onClick={() => handleEdit(customer)}>Edit</Button>
@@ -236,31 +261,64 @@ export default function CustomersManager() {
                     </table>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+            </CrudCard>
           </TabsContent>
 
           <TabsContent value="form">
-            <Card className="erp-panel">
-              <CardHeader className="border-b border-slate-100 bg-white/75">
-                <CardTitle>{editingId ? "Edit Customer" : "Create Customer"}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <CrudCard
+              title={editingId ? "Edit Customer" : "Create Customer"}
+              description="Keep only customer master information here. Transaction history and collections activity should stay outside this setup form."
+            >
+              <div className="space-y-4">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <input name="customerCode" value={formData.customerCode} onChange={handleInputChange} placeholder="Customer Code" className="erp-input" />
-                  <input name="customerName" value={formData.customerName} onChange={handleInputChange} placeholder="Customer Name" className="erp-input" />
-                  <input name="email" type="email" value={formData.email} onChange={handleInputChange} placeholder="Email" className="erp-input" />
-                  <input name="phoneNumber" value={formData.phoneNumber} onChange={handleInputChange} placeholder="Phone" className="erp-input" />
-                  <input name="city" value={formData.city} onChange={handleInputChange} placeholder="City" className="erp-input" />
-                  <input name="state" value={formData.state} onChange={handleInputChange} placeholder="State" className="erp-input" />
+                  <div>
+                    <label className="erp-label">Customer Code</label>
+                    <input name="customerCode" value={formData.customerCode} onChange={handleInputChange} placeholder="e.g. CUST-1024" className="erp-input" />
+                  </div>
+                  <div>
+                    <label className="erp-label">Customer Name</label>
+                    <input name="customerName" value={formData.customerName} onChange={handleInputChange} placeholder="Legal or trading name" className="erp-input" />
+                  </div>
+                  <div>
+                    <label className="erp-label">Email</label>
+                    <input name="email" type="email" value={formData.email} onChange={handleInputChange} placeholder="billing@company.com" className="erp-input" />
+                  </div>
+                  <div>
+                    <label className="erp-label">Phone</label>
+                    <input name="phoneNumber" value={formData.phoneNumber} onChange={handleInputChange} placeholder="Primary contact number" className="erp-input" />
+                  </div>
+                  <div>
+                    <label className="erp-label">City</label>
+                    <input name="city" value={formData.city} onChange={handleInputChange} placeholder="City" className="erp-input" />
+                  </div>
+                  <div>
+                    <label className="erp-label">State</label>
+                    <input name="state" value={formData.state} onChange={handleInputChange} placeholder="State" className="erp-input" />
+                  </div>
+                  <div>
+                    <label className="erp-label">Country</label>
+                    <input name="country" value={formData.country} onChange={handleInputChange} placeholder="Country" className="erp-input" />
+                  </div>
+                  <div>
+                    <label className="erp-label">GST Number</label>
+                    <input name="gstNumber" value={formData.gstNumber} onChange={handleInputChange} placeholder="Tax registration ID" className="erp-input" />
+                  </div>
+                  <div>
+                    <label className="erp-label">Credit Limit</label>
+                    <input name="creditLimit" type="number" value={formData.creditLimit} onChange={handleInputChange} placeholder="0" className="erp-input" />
+                  </div>
+                  <div>
+                    <label className="erp-label">Payment Terms</label>
+                    <input name="paymentTerms" type="number" value={formData.paymentTerms} onChange={handleInputChange} placeholder="30" className="erp-input" />
+                  </div>
                 </div>
 
                 <div className="flex justify-end gap-2">
                   <Button variant="outline" onClick={() => setActiveTab("list")}>Cancel</Button>
                   <Button onClick={() => void handleSave()} disabled={loading}>{editingId ? "Update Customer" : "Save Customer"}</Button>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </CrudCard>
           </TabsContent>
         </Tabs>
       </div>

@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import { PageHeader } from "@/design-system";
+import { CrudHeaderStats } from "@/components/erp/crud-workspace";
+import { StatusBadge } from "@/components/erp/status-badge";
 import { PERMISSIONS } from "@/constants/permissions";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { notifyError, notifySuccess } from "@/lib/notifications";
@@ -76,6 +79,7 @@ export default function AttendanceList({ fetchAttendance, employeeId }: Attendan
 
     return { inCount, outCount, geoValidated };
   }, [records]);
+  const latestPunch = records[0];
 
   const handlePunch = async () => {
     if (!employeeValue.trim()) {
@@ -105,22 +109,62 @@ export default function AttendanceList({ fetchAttendance, employeeId }: Attendan
   };
 
   return (
-    <StandardPageLayout
-      title="Attendance"
-      subtitle="Track employee punches and mark daily presence from the HRMS workspace."
-      actions={
-        canPunchAttendance ? (
-          <button
-            type="button"
-            onClick={() => void handlePunch()}
-            disabled={punching}
-            className="erp-action-btn erp-action-btn-primary disabled:opacity-50"
-          >
-            {punching ? "Saving..." : "Mark Attendance"}
-          </button>
-        ) : null
-      }
-    >
+    <div className="erp-page space-y-5">
+      <PageHeader
+        title="Attendance Management"
+        subtitle="Track employee punches and mark daily presence from the HRMS workspace."
+        eyebrow="HRMS / Attendance"
+        icon="clock"
+        stats={[
+          { label: "Punches", value: records.length },
+          { label: "IN", value: punchStats.inCount, tone: "success" },
+          { label: "OUT", value: punchStats.outCount, tone: "warning" },
+          { label: "Geo Verified", value: punchStats.geoValidated, tone: "info" },
+        ]}
+        actions={
+          canPunchAttendance ? (
+            <button
+              type="button"
+              onClick={() => void handlePunch()}
+              disabled={punching}
+              className="h-9 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs shadow-sm disabled:opacity-50"
+            >
+              {punching ? "Saving..." : "Mark Attendance"}
+            </button>
+          ) : null
+        }
+      />
+      <section className="rounded-[1.1rem] border border-slate-200/85 bg-[linear-gradient(180deg,#ffffff,#f8fbff)] p-4 shadow-[var(--erp-shadow-sm)]">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(18rem,0.85fr)] lg:items-start">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+              Attendance Focus
+            </p>
+            <h2 className="mt-1 text-[1.2rem] font-semibold tracking-[-0.03em] text-slate-950">
+              Capture punches cleanly and review check-in/check-out flow without leaving the page.
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+              Attendance pages should show recent activity, validation status, and the fastest next action for HR, supervisors, and payroll teams.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+            <div className="rounded-[0.95rem] border border-slate-200 bg-white px-3.5 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Latest punch</p>
+              <p className="mt-2 text-sm font-semibold text-slate-950">{latestPunch?.employeeName || "No recent punch"}</p>
+              <p className="mt-1 text-xs leading-5 text-slate-500">{latestPunch ? formatTimestamp(latestPunch.timestamp) : "Waiting for records"}</p>
+            </div>
+            <div className="rounded-[0.95rem] border border-slate-200 bg-white px-3.5 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Validated</p>
+              <p className="mt-2 text-[1.4rem] font-semibold tracking-[-0.04em] text-slate-950">{punchStats.geoValidated}</p>
+            </div>
+            <div className="rounded-[0.95rem] border border-slate-200 bg-white px-3.5 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Direction split</p>
+              <p className="mt-2 text-sm font-semibold text-slate-950">{punchStats.inCount} IN / {punchStats.outCount} OUT</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {canPunchAttendance ? (
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="grid gap-3 lg:grid-cols-5">
@@ -189,29 +233,6 @@ export default function AttendanceList({ fetchAttendance, employeeId }: Attendan
 
       {!loading && !error && (
         <>
-          <div className="erp-kpi-grid mb-4">
-            <div className="erp-kpi-card">
-              <p className="erp-kpi-label">Total Punches</p>
-              <p className="erp-kpi-value">{records.length}</p>
-              <p className="erp-kpi-meta">Loaded attendance entries</p>
-            </div>
-            <div className="erp-kpi-card erp-kpi-card-success">
-              <p className="erp-kpi-label">IN Punches</p>
-              <p className="erp-kpi-value erp-kpi-value-success">{punchStats.inCount}</p>
-              <p className="erp-kpi-meta">Check-ins captured</p>
-            </div>
-            <div className="erp-kpi-card erp-kpi-card-warning">
-              <p className="erp-kpi-label">OUT Punches</p>
-              <p className="erp-kpi-value">{punchStats.outCount}</p>
-              <p className="erp-kpi-meta">Check-outs captured</p>
-            </div>
-            <div className="erp-kpi-card erp-kpi-card-info">
-              <p className="erp-kpi-label">Geo Validated</p>
-              <p className="erp-kpi-value">{punchStats.geoValidated}</p>
-              <p className="erp-kpi-meta">Location verified punches</p>
-            </div>
-          </div>
-
           {records.length === 0 ? (
             <div className="p-8 text-center">
               <p className="text-gray-600">No attendance records found</p>
@@ -266,6 +287,6 @@ export default function AttendanceList({ fetchAttendance, employeeId }: Attendan
           )}
         </>
       )}
-    </StandardPageLayout>
+    </div>
   );
 }

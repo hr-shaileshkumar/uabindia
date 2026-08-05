@@ -26,13 +26,13 @@ export function resolvePortalId(role: ERPRole): PortalId {
 }
 
 const lightShellBase = {
-  shellClassName: "bg-[var(--erp-canvas)] text-slate-950",
-  sidebarClassName: "bg-white/92 text-slate-900",
-  sidebarBorderClassName: "border-slate-200/80",
+  shellClassName: "bg-[var(--erp-canvas)] text-slate-900 dark:text-slate-100",
+  sidebarClassName: "bg-[#0b0f19] text-slate-200",
+  sidebarBorderClassName: "border-slate-800",
   sidebarSectionClassName: "text-slate-400",
-  sidebarInactiveClassName: "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
-  sidebarIconInactiveClassName: "bg-slate-100 text-slate-500",
-  topbarClassName: "border-slate-200/80 bg-white/90 text-slate-950",
+  sidebarInactiveClassName: "text-slate-400 hover:bg-white/5 hover:text-white",
+  sidebarIconInactiveClassName: "bg-white/5 text-slate-400",
+  topbarClassName: "border-slate-200/90 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-slate-100",
 } satisfies Omit<
   PortalTheme,
   | "id"
@@ -50,11 +50,11 @@ const ownerTheme: PortalTheme = {
   id: "platform_owner",
   label: "Software Owner Console",
   subtitle: "Platform governance, tenants, billing, and global health",
-  sidebarTitleClassName: "text-indigo-700",
-  sidebarActiveClassName: "bg-indigo-50 text-indigo-900 ring-1 ring-indigo-100",
-  sidebarIconActiveClassName: "bg-white text-indigo-700 shadow-sm",
-  accentClassName: "text-indigo-700",
-  badgeClassName: "bg-indigo-50 text-indigo-800 ring-1 ring-indigo-100",
+  sidebarTitleClassName: "text-violet-400",
+  sidebarActiveClassName: "bg-violet-500/15 text-white ring-1 ring-violet-500/30",
+  sidebarIconActiveClassName: "bg-violet-500/25 text-violet-300 shadow-sm",
+  accentClassName: "text-violet-600 dark:text-violet-400",
+  badgeClassName: "bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 ring-1 ring-violet-200 dark:ring-violet-900/50",
 };
 
 const businessOwnerTheme: PortalTheme = {
@@ -62,11 +62,11 @@ const businessOwnerTheme: PortalTheme = {
   id: "business_owner",
   label: "Business Owner Portal",
   subtitle: "Company control, users, finance, HR, and operations",
-  sidebarTitleClassName: "text-blue-700",
-  sidebarActiveClassName: "bg-blue-50 text-blue-900 ring-1 ring-blue-100",
-  sidebarIconActiveClassName: "bg-white text-blue-700 shadow-sm",
-  accentClassName: "text-blue-700",
-  badgeClassName: "bg-blue-50 text-blue-800 ring-1 ring-blue-100",
+  sidebarTitleClassName: "text-indigo-400",
+  sidebarActiveClassName: "bg-indigo-500/15 text-white ring-1 ring-indigo-500/30",
+  sidebarIconActiveClassName: "bg-indigo-500/25 text-indigo-300 shadow-sm",
+  accentClassName: "text-indigo-600 dark:text-indigo-400",
+  badgeClassName: "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-200 dark:ring-indigo-900/50",
 };
 
 const businessTheme: PortalTheme = {
@@ -74,11 +74,11 @@ const businessTheme: PortalTheme = {
   id: "business",
   label: "Company Workspace",
   subtitle: "HR, payroll, finance, procurement, and daily operations",
-  sidebarTitleClassName: "text-sky-700",
-  sidebarActiveClassName: "bg-sky-50 text-sky-900 ring-1 ring-sky-100",
-  sidebarIconActiveClassName: "bg-white text-sky-700 shadow-sm",
-  accentClassName: "text-sky-700",
-  badgeClassName: "bg-slate-100 text-slate-700 ring-1 ring-slate-200",
+  sidebarTitleClassName: "text-indigo-400",
+  sidebarActiveClassName: "bg-indigo-500/15 text-white ring-1 ring-indigo-500/30",
+  sidebarIconActiveClassName: "bg-indigo-500/25 text-indigo-300 shadow-sm",
+  accentClassName: "text-indigo-600 dark:text-indigo-400",
+  badgeClassName: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 ring-1 ring-slate-200 dark:ring-slate-700",
 };
 
 const essTheme: PortalTheme = {
@@ -86,11 +86,11 @@ const essTheme: PortalTheme = {
   id: "ess",
   label: "Employee Self Service",
   subtitle: "Attendance, leave, payslips, documents, and support",
-  sidebarTitleClassName: "text-cyan-700",
-  sidebarActiveClassName: "bg-cyan-50 text-cyan-900 ring-1 ring-cyan-100",
-  sidebarIconActiveClassName: "bg-white text-cyan-700 shadow-sm",
-  accentClassName: "text-cyan-700",
-  badgeClassName: "bg-cyan-50 text-cyan-800 ring-1 ring-cyan-100",
+  sidebarTitleClassName: "text-sky-400",
+  sidebarActiveClassName: "bg-sky-500/15 text-white ring-1 ring-sky-500/30",
+  sidebarIconActiveClassName: "bg-sky-500/25 text-sky-300 shadow-sm",
+  accentClassName: "text-sky-600 dark:text-sky-400",
+  badgeClassName: "bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 ring-1 ring-sky-200 dark:ring-sky-900/50",
 };
 
 export function getPortalTheme(role: ERPRole): PortalTheme {

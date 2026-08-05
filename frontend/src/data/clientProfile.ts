@@ -5,7 +5,7 @@ export const clientProfile = {
   headquarters: "Tenant-configured headquarters",
   employeeCount: "250+",
   supportEmail: "operations@uabindia.com",
-  supportPhone: "Tenant-configured support line",
+  supportPhone: "+91 9798490879",
   supportHours: "Mon-Sat | 9:00 AM - 6:30 PM",
   supportTier: "Premium (24x6)",
   implementationPartner: "Uabindia ERP",

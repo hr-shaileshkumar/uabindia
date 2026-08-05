@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, FileText } from "lucide-react";
+import { FileText, Plus } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import { CrudHeaderStats } from "@/components/erp/crud-workspace";
 import { hrApi } from "@/services/hrApi";
 import { notifyError } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
@@ -31,15 +32,16 @@ type QuoteForm = {
 };
 
 const STATUS_CONFIG: Record<string, { chip: string; label: string }> = {
-  Draft:    { chip: "erp-chip erp-chip-neutral", label: "Draft"    },
-  Sent:     { chip: "erp-chip erp-chip-info",    label: "Sent"     },
-  Pending:  { chip: "erp-chip erp-chip-warning", label: "Pending"  },
+  Draft: { chip: "erp-chip erp-chip-neutral", label: "Draft" },
+  Sent: { chip: "erp-chip erp-chip-info", label: "Sent" },
+  Pending: { chip: "erp-chip erp-chip-warning", label: "Pending" },
   Accepted: { chip: "erp-chip erp-chip-success", label: "Accepted" },
-  Rejected: { chip: "erp-chip erp-chip-danger",  label: "Rejected" },
-  Expired:  { chip: "erp-chip erp-chip-neutral", label: "Expired"  },
+  Rejected: { chip: "erp-chip erp-chip-danger", label: "Rejected" },
+  Expired: { chip: "erp-chip erp-chip-neutral", label: "Expired" },
 };
 
-const formatCurrency = (v?: number) => v != null ? `₹${v.toLocaleString("en-IN")}` : "—";
+const formatCurrency = (value?: number) =>
+  value != null ? `Rs ${value.toLocaleString("en-IN")}` : "-";
 
 export default function QuotationsPage() {
   const [records, setRecords] = useState<QuotationRow[]>([]);
@@ -50,45 +52,55 @@ export default function QuotationsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [form, setForm] = useState<QuoteForm>({
-    customerId: "", amount: 0, validUntil: "", notes: "",
+    customerId: "",
+    amount: 0,
+    validUntil: "",
+    notes: "",
   });
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      // Use customers as base, create quote-like view from sales orders
-      const res = await hrApi.erp.salesOrders.getAll(1, 50);
-      const raw = res.data;
+
+      const response = await hrApi.erp.salesOrders.getAll(1, 50);
+      const raw = response.data;
       const list = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
+
       const mapped: QuotationRow[] = list
-        .filter((so: QuotationRow) => so.status === "Draft")
-        .map((so: QuotationRow) => ({
-          id: so.id,
-          quoteNumber: `QT-${(so.soNumber || so.id?.slice(0, 8) || "").replace("SO-", "")}`,
-          customerId: so.customerId,
-          customerName: so.customerName || so.customerId,
-          amount: so.totalAmount,
-          validUntil: so.expectedDeliveryDate,
-          createdDate: so.soDate,
+        .filter((salesOrder: QuotationRow) => salesOrder.status === "Draft")
+        .map((salesOrder: QuotationRow) => ({
+          id: salesOrder.id,
+          quoteNumber: `QT-${(salesOrder.soNumber || salesOrder.id?.slice(0, 8) || "").replace("SO-", "")}`,
+          customerId: salesOrder.customerId,
+          customerName: salesOrder.customerName || salesOrder.customerId,
+          amount: salesOrder.totalAmount,
+          validUntil: salesOrder.expectedDeliveryDate,
+          createdDate: salesOrder.soDate,
           status: "Pending",
-          notes: so.notes,
+          notes: salesOrder.notes,
         }));
+
       setRecords(mapped);
     } catch (err) {
-      const msg = getApiErrorMessage(err, "Failed to load quotations.");
-      setError(msg);
-      notifyError(msg, "Quotations");
+      const message = getApiErrorMessage(err, "Failed to load quotations.");
+      setError(message);
+      notifyError(message, "Quotations");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.customerId || form.amount <= 0) return;
+  const handleSave = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!form.customerId || form.amount <= 0) {
+      return;
+    }
+
     try {
       setSaving(true);
       await hrApi.erp.salesOrders.create({
@@ -110,39 +122,69 @@ export default function QuotationsPage() {
     }
   };
 
-  const filtered = records.filter((r) => {
-    const q = search.toLowerCase();
-    const matchSearch = !q || (r.quoteNumber || "").toLowerCase().includes(q) || (r.customerName || "").toLowerCase().includes(q);
-    const matchStatus = !statusFilter || r.status === statusFilter;
+  const filtered = records.filter((record) => {
+    const query = search.toLowerCase();
+    const matchSearch =
+      !query ||
+      (record.quoteNumber || "").toLowerCase().includes(query) ||
+      (record.customerName || "").toLowerCase().includes(query);
+    const matchStatus = !statusFilter || record.status === statusFilter;
     return matchSearch && matchStatus;
   });
 
-  const accepted    = filtered.filter((r) => r.status === "Accepted").length;
-  const pending     = filtered.filter((r) => r.status === "Pending" || r.status === "Sent").length;
-  const pipelineVal = filtered.filter((r) => ["Pending", "Sent"].includes(r.status || "")).reduce((s, r) => s + (r.amount || 0), 0);
-  const convRate    = filtered.length ? Math.round((accepted / filtered.length) * 100) : 0;
+  const acceptedCount = filtered.filter((record) => record.status === "Accepted").length;
+  const _pendingCount = filtered.filter((record) =>
+    ["Pending", "Sent"].includes(record.status || ""),
+  ).length;
+  const pipelineValue = filtered
+    .filter((record) => ["Pending", "Sent"].includes(record.status || ""))
+    .reduce((sum, record) => sum + (record.amount || 0), 0);
+  const conversionRate = filtered.length ? Math.round((acceptedCount / filtered.length) * 100) : 0;
 
   return (
     <StandardPageLayout
       title="Quotations"
-      subtitle="Create and manage sales quotations, pricing proposals, and track conversion to confirmed sales orders."
-      eyebrow="Sales / Sales Process"
+      subtitle="Manage quote creation, validity, and sales pipeline visibility without heavy duplicate UI blocks."
+      eyebrow="Sales / Quotation Control"
       icon="file"
+      meta={
+        <CrudHeaderStats
+          items={[
+            { label: "Quotations", value: filtered.length, helper: "visible" },
+            { label: "Accepted", value: acceptedCount, tone: "positive" },
+            { label: "Pipeline", value: formatCurrency(pipelineValue), tone: "warning" },
+            { label: "Conversion", value: `${conversionRate}%`, tone: "info" },
+          ]}
+        />
+      }
       actions={
-        <button type="button" onClick={() => setShowForm((p) => !p)} className="erp-action-btn erp-action-btn-primary">
+        <button
+          type="button"
+          onClick={() => setShowForm((current) => !current)}
+          className="erp-action-btn erp-action-btn-primary"
+        >
           <Plus className="h-4 w-4" />
           New Quotation
         </button>
       }
       filters={
         <div className="flex flex-wrap items-end gap-3">
-          <div className="flex-1 min-w-48">
+          <div className="min-w-48 flex-1">
             <label className="erp-label">Search</label>
-            <input className="erp-input" placeholder="Quote # or customer…" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <input
+              className="erp-input"
+              placeholder="Quotation number or customer..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
           </div>
           <div>
             <label className="erp-label">Status</label>
-            <select className="erp-select w-36" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <select
+              className="erp-select w-36"
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+            >
               <option value="">All Status</option>
               <option value="Draft">Draft</option>
               <option value="Sent">Sent</option>
@@ -152,34 +194,20 @@ export default function QuotationsPage() {
             </select>
           </div>
           {(search || statusFilter) && (
-            <button type="button" onClick={() => { setSearch(""); setStatusFilter(""); }} className="erp-action-btn erp-action-btn-secondary">Clear</button>
+            <button
+              type="button"
+              onClick={() => {
+                setSearch("");
+                setStatusFilter("");
+              }}
+              className="erp-action-btn erp-action-btn-secondary"
+            >
+              Clear
+            </button>
           )}
         </div>
       }
     >
-      <div className="erp-kpi-grid">
-        <div className="erp-kpi-card">
-          <p className="erp-kpi-label">Total Quotations</p>
-          <p className="erp-kpi-value">{filtered.length}</p>
-          <p className="erp-kpi-meta">All active proposals</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-success">
-          <p className="erp-kpi-label">Accepted</p>
-          <p className="erp-kpi-value erp-kpi-value-success">{accepted}</p>
-          <p className="erp-kpi-meta">Converted to sales orders</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-warning">
-          <p className="erp-kpi-label">Pending ({pending})</p>
-          <p className="erp-kpi-value">{formatCurrency(pipelineVal)}</p>
-          <p className="erp-kpi-meta">Open quote pipeline value</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-info">
-          <p className="erp-kpi-label">Conversion Rate</p>
-          <p className="erp-kpi-value">{convRate}%</p>
-          <p className="erp-kpi-meta">Quote to order conversion</p>
-        </div>
-      </div>
-
       {error && <div className="erp-alert-error">{error}</div>}
 
       {showForm && (
@@ -187,7 +215,9 @@ export default function QuotationsPage() {
           <div className="erp-panel-header">
             <div>
               <h2 className="erp-panel-title">Create Quotation</h2>
-              <p className="mt-1 text-sm text-slate-500">Prepare a pricing proposal for a customer with validity period.</p>
+              <p className="mt-1 text-sm text-slate-500">
+                Set customer reference, value, validity period, and commercial notes.
+              </p>
             </div>
           </div>
           <div className="erp-panel-body">
@@ -195,24 +225,58 @@ export default function QuotationsPage() {
               <div className="erp-form-grid erp-form-grid-2">
                 <div>
                   <label className="erp-label">Customer ID</label>
-                  <input className="erp-input" placeholder="Enter customer ID" value={form.customerId} onChange={(e) => setForm({ ...form, customerId: e.target.value })} required />
+                  <input
+                    className="erp-input"
+                    placeholder="Enter customer ID"
+                    value={form.customerId}
+                    onChange={(event) => setForm({ ...form, customerId: event.target.value })}
+                    required
+                  />
                 </div>
                 <div>
-                  <label className="erp-label">Quote Amount (₹)</label>
-                  <input className="erp-input" type="number" min={0} step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })} required />
+                  <label className="erp-label">Quotation Amount (Rs)</label>
+                  <input
+                    className="erp-input"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={form.amount}
+                    onChange={(event) => setForm({ ...form, amount: Number(event.target.value) })}
+                    required
+                  />
                 </div>
                 <div>
                   <label className="erp-label">Valid Until</label>
-                  <input className="erp-input" type="date" value={form.validUntil} onChange={(e) => setForm({ ...form, validUntil: e.target.value })} required />
+                  <input
+                    className="erp-input"
+                    type="date"
+                    value={form.validUntil}
+                    onChange={(event) => setForm({ ...form, validUntil: event.target.value })}
+                    required
+                  />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="erp-label">Notes / Terms</label>
-                  <textarea className="erp-input" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+                  <label className="erp-label">Notes or Terms</label>
+                  <textarea
+                    className="erp-input"
+                    rows={3}
+                    value={form.notes}
+                    onChange={(event) => setForm({ ...form, notes: event.target.value })}
+                    placeholder="Pricing notes, validity terms, delivery assumptions..."
+                  />
                 </div>
               </div>
               <div className="erp-form-actions">
-                <button type="button" onClick={() => setShowForm(false)} className="erp-action-btn erp-action-btn-secondary">Cancel</button>
-                <button type="submit" disabled={saving} className="erp-action-btn erp-action-btn-primary">{saving ? "Creating…" : "Create Quotation"}</button>
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  className="erp-action-btn erp-action-btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button type="submit" disabled={saving} className="erp-action-btn erp-action-btn-primary">
+                  {saving ? "Creating..." : "Create Quotation"}
+                </button>
               </div>
             </form>
           </div>
@@ -223,14 +287,16 @@ export default function QuotationsPage() {
         <div className="erp-panel-header">
           <div>
             <h2 className="erp-panel-title">Quotation Register</h2>
-            <p className="mt-1 text-sm text-slate-500">{filtered.length} quotations</p>
+            <p className="mt-1 text-sm text-slate-500">
+              Review quote value, customer, creation date, validity, and status in one list.
+            </p>
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="erp-table">
             <thead className="erp-thead">
               <tr>
-                <th className="erp-th">Quote #</th>
+                <th className="erp-th">Quotation</th>
                 <th className="erp-th">Customer</th>
                 <th className="erp-th">Amount</th>
                 <th className="erp-th">Created</th>
@@ -240,34 +306,62 @@ export default function QuotationsPage() {
             </thead>
             <tbody>
               {loading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}><td colSpan={6} className="erp-td"><div className="h-4 animate-pulse rounded bg-slate-100" /></td></tr>
+                Array.from({ length: 5 }).map((_, index) => (
+                  <tr key={index}>
+                    <td colSpan={6} className="erp-td">
+                      <div className="h-4 animate-pulse rounded bg-slate-100" />
+                    </td>
+                  </tr>
                 ))
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={6} className="erp-td py-16 text-center">
-                  <div className="flex flex-col items-center gap-3">
-                    <FileText className="h-10 w-10 text-slate-300" />
-                    <p className="text-sm text-slate-400">No quotations found. Create one to get started.</p>
-                    <button type="button" onClick={() => setShowForm(true)} className="erp-action-btn erp-action-btn-secondary text-xs">New Quotation</button>
-                  </div>
-                </td></tr>
+                <tr>
+                  <td colSpan={6} className="erp-td py-16 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <FileText className="h-10 w-10 text-slate-300" />
+                      <p className="text-sm text-slate-400">No quotations found.</p>
+                      <button
+                        type="button"
+                        onClick={() => setShowForm(true)}
+                        className="erp-action-btn erp-action-btn-secondary text-xs"
+                      >
+                        New Quotation
+                      </button>
+                    </div>
+                  </td>
+                </tr>
               ) : (
-                filtered.map((r) => {
-                  const cfg = STATUS_CONFIG[r.status || "Draft"] || STATUS_CONFIG.Draft;
-                  const isExpired = r.validUntil && new Date(r.validUntil) < new Date();
+                filtered.map((record) => {
+                  const isExpired = record.validUntil && new Date(record.validUntil) < new Date();
+                  const statusKey = isExpired ? "Expired" : record.status || "Draft";
+                  const status = STATUS_CONFIG[statusKey] || STATUS_CONFIG.Draft;
+
                   return (
-                    <tr key={r.id} className="erp-tr">
-                      <td className="erp-td font-mono text-sm font-semibold text-slate-900">{r.quoteNumber || "—"}</td>
-                      <td className="erp-td text-slate-700">{r.customerName || r.customerId || "—"}</td>
-                      <td className="erp-td font-semibold text-slate-900">{formatCurrency(r.amount)}</td>
-                      <td className="erp-td text-slate-600">{r.createdDate ? new Date(r.createdDate).toLocaleDateString("en-IN") : "—"}</td>
+                    <tr key={record.id} className="erp-tr">
+                      <td className="erp-td font-mono text-sm font-semibold text-slate-900">
+                        {record.quoteNumber || "-"}
+                      </td>
+                      <td className="erp-td text-slate-700">
+                        {record.customerName || record.customerId || "-"}
+                      </td>
+                      <td className="erp-td font-semibold text-slate-900">
+                        {formatCurrency(record.amount)}
+                      </td>
+                      <td className="erp-td text-slate-600">
+                        {record.createdDate
+                          ? new Date(record.createdDate).toLocaleDateString("en-IN")
+                          : "-"}
+                      </td>
                       <td className="erp-td">
-                        <span className={isExpired ? "text-red-600 font-semibold" : "text-slate-600"}>
-                          {r.validUntil ? new Date(r.validUntil).toLocaleDateString("en-IN") : "—"}
-                          {isExpired && <span className="ml-1 text-xs">⚠ Expired</span>}
+                        <span className={isExpired ? "font-semibold text-red-600" : "text-slate-600"}>
+                          {record.validUntil
+                            ? new Date(record.validUntil).toLocaleDateString("en-IN")
+                            : "-"}
+                          {isExpired ? <span className="ml-1 text-xs">Expired</span> : null}
                         </span>
                       </td>
-                      <td className="erp-td"><span className={cfg.chip}>{cfg.label}</span></td>
+                      <td className="erp-td">
+                        <span className={status.chip}>{status.label}</span>
+                      </td>
                     </tr>
                   );
                 })

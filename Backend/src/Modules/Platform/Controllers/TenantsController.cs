@@ -42,7 +42,12 @@ namespace UabIndia.Api.Modules.Platform.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> List([FromQuery] bool includeDeleted = false)
+        public async Task<IActionResult> List(
+            [FromQuery] bool includeDeleted = false,
+            [FromQuery] int page = 1,
+            [FromQuery] int limit = 50,
+            [FromQuery] string? search = null,
+            [FromQuery] string? status = null)
         {
             var roleClaims = User.Claims
                 .Where(c => c.Type == ClaimTypes.Role || c.Type.EndsWith("/role", StringComparison.OrdinalIgnoreCase))
@@ -56,8 +61,24 @@ namespace UabIndia.Api.Modules.Platform.Controllers
                 tenantQuery = tenantQuery.Where(t => !t.IsDeleted);
             }
 
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var lowerSearch = search.ToLower();
+                tenantQuery = tenantQuery.Where(t => t.Name!.ToLower().Contains(lowerSearch) || t.Subdomain!.ToLower().Contains(lowerSearch));
+            }
+
+            if (!string.IsNullOrWhiteSpace(status) && status != "all")
+            {
+                if (status.ToLower() == "active") tenantQuery = tenantQuery.Where(t => t.IsActive);
+                else if (status.ToLower() == "inactive") tenantQuery = tenantQuery.Where(t => !t.IsActive);
+            }
+
+            var totalCount = await tenantQuery.CountAsync();
+
             var tenants = await tenantQuery
                 .OrderBy(t => t.Name)
+                .Skip((page - 1) * limit)
+                .Take(limit)
                 .ToListAsync();
 
             var data = new System.Collections.Generic.List<TenantDto>(tenants.Count);
@@ -66,7 +87,22 @@ namespace UabIndia.Api.Modules.Platform.Controllers
                 data.Add(await _provisioningService.BuildTenantDtoAsync(tenant));
             }
 
-            return Ok(new { tenants = data });
+            return Ok(new { data = data, totalCount, page, pageSize = limit });
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(string id)
+        {
+            if (!Guid.TryParse(id, out var guidId))
+            {
+                return BadRequest(new { message = "Invalid GUID" });
+            }
+            var tenant = await _db.Tenants.IgnoreQueryFilters().FirstOrDefaultAsync(t => t.Id == guidId);
+            if (tenant == null)
+            {
+                return NotFound(new { message = "Tenant not found." });
+            }
+            return Ok(await _provisioningService.BuildTenantDtoAsync(tenant));
         }
 
         [AllowAnonymous]
@@ -411,5 +447,69 @@ namespace UabIndia.Api.Modules.Platform.Controllers
         {
             return string.Equals(tenant.Subdomain, "master", StringComparison.OrdinalIgnoreCase);
         }
+
+        [HttpPost("{id}/restore")]
+        public async Task<IActionResult> Restore(string id)
+        {
+            if (!Guid.TryParse(id, out var guidId)) return BadRequest(new { message = "Invalid GUID" });
+            var tenant = await _db.Tenants.IgnoreQueryFilters().FirstOrDefaultAsync(t => t.Id == guidId);
+            if (tenant == null) return NotFound(new { message = "Tenant not found." });
+
+            tenant.IsDeleted = false;
+            tenant.DeletedAt = null;
+            tenant.DeletedBy = null;
+            tenant.UpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync();
+            return Ok(await _provisioningService.BuildTenantDtoAsync(tenant));
+        }
+
+        [HttpPost("bulk")]
+        public async Task<IActionResult> BulkAction([FromBody] TenantBulkActionDto payload)
+        {
+            if (payload == null || payload.TenantIds == null || !payload.TenantIds.Any())
+                return BadRequest(new { message = "No tenants selected." });
+
+            var guidIds = payload.TenantIds.Where(id => Guid.TryParse(id, out _)).Select(Guid.Parse).ToList();
+
+            var tenants = await _db.Tenants.IgnoreQueryFilters()
+                .Where(t => guidIds.Contains(t.Id))
+                .ToListAsync();
+
+            foreach (var tenant in tenants)
+            {
+                if (IsMasterTenant(tenant)) continue;
+
+                switch (payload.Action.ToLower())
+                {
+                    case "delete":
+                        tenant.IsDeleted = true;
+                        tenant.DeletedAt = DateTime.UtcNow;
+                        break;
+                    case "restore":
+                        tenant.IsDeleted = false;
+                        tenant.DeletedAt = null;
+                        break;
+                    case "suspend":
+                        tenant.IsActive = false;
+                        tenant.ProvisionStatus = "Suspended";
+                        break;
+                    case "activate":
+                        tenant.IsActive = true;
+                        tenant.ProvisionStatus = "Active";
+                        break;
+                }
+                tenant.UpdatedAt = DateTime.UtcNow;
+            }
+
+            await _db.SaveChangesAsync();
+            return NoContent();
+        }
+    }
+
+    public class TenantBulkActionDto
+    {
+        public System.Collections.Generic.List<string> TenantIds { get; set; } = new();
+        public string Action { get; set; } = "";
     }
 }

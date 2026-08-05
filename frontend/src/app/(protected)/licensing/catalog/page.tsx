@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
+import { CrudHeaderStats } from "@/components/erp/crud-workspace";
 import { hrApi } from "@/services/hrApi";
 
 type ModuleRow = {
@@ -40,13 +41,27 @@ export default function ModuleCatalogPage() {
       rows={modules}
       countLabel={(count) => `${count} modules`}
       emptyMessage="No modules found."
-      kpiCards={
-        <div className="erp-kpi-grid">
-          <div className="erp-kpi-card"><p className="erp-kpi-label">Total Modules</p><p className="erp-kpi-value">{modules.length}</p><p className="erp-kpi-meta">Licensed modules</p></div>
-          <div className="erp-kpi-card erp-kpi-card-success"><p className="erp-kpi-label">Enabled</p><p className="erp-kpi-value erp-kpi-value-success">{modules.filter(m => m.isEnabled).length}</p><p className="erp-kpi-meta">Active modules</p></div>
-          <div className="erp-kpi-card erp-kpi-card-warning"><p className="erp-kpi-label">Disabled</p><p className="erp-kpi-value">{modules.filter(m => !m.isEnabled).length}</p><p className="erp-kpi-meta">Inactive modules</p></div>
-          <div className="erp-kpi-card erp-kpi-card-info"><p className="erp-kpi-label">Enable Rate</p><p className="erp-kpi-value">{modules.length > 0 ? Math.round(modules.filter(m => m.isEnabled).length / modules.length * 100) : 0}%</p><p className="erp-kpi-meta">Activation percentage</p></div>
-        </div>
+      headerStats={
+        <CrudHeaderStats
+          items={[
+            { label: "Modules", value: modules.length, helper: "catalog" },
+            {
+              label: "Enabled",
+              value: modules.filter((module) => module.isEnabled).length,
+              tone: "positive",
+            },
+            {
+              label: "Disabled",
+              value: modules.filter((module) => !module.isEnabled).length,
+              tone: "warning",
+            },
+            {
+              label: "Enable Rate",
+              value: `${modules.length > 0 ? Math.round((modules.filter((module) => module.isEnabled).length / modules.length) * 100) : 0}%`,
+              tone: "info",
+            },
+          ]}
+        />
       }
       columns={[
         { label: "Key" },

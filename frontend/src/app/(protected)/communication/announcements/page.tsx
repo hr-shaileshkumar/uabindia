@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import ErpHeaderSummary from "@/components/layout/ErpHeaderSummary";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { hrApi } from "@/services/hrApi";
 
@@ -97,6 +98,16 @@ export default function AnnouncementsPage() {
       subtitle="Live communication records, audience targeting, and publication state in one workspace feed."
       eyebrow="Workspace / Communication"
       icon="notifications"
+      meta={
+        <ErpHeaderSummary
+          items={[
+            { label: "Visible", value: filteredAnnouncements.length },
+            { label: "Published", value: filteredAnnouncements.filter((announcement) => announcement.status.toLowerCase() === "published").length, tone: "success" },
+            { label: "Draft", value: filteredAnnouncements.filter((announcement) => announcement.status.toLowerCase() === "draft").length, tone: "warning" },
+            { label: "Audiences", value: availableAudiences.length, tone: "info" },
+          ]}
+        />
+      }
       actions={
         <button type="button" onClick={() => void loadAnnouncements()} className="erp-action-btn erp-action-btn-secondary">
           Refresh feed
@@ -131,33 +142,6 @@ export default function AnnouncementsPage() {
         </div>
       }
     >
-      <div className="erp-kpi-grid">
-        <div className="erp-kpi-card">
-          <p className="erp-kpi-label">Visible Announcements</p>
-          <p className="erp-kpi-value">{filteredAnnouncements.length}</p>
-          <p className="erp-kpi-meta">Current communication feed</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-success">
-          <p className="erp-kpi-label">Published</p>
-          <p className="erp-kpi-value erp-kpi-value-success">
-            {filteredAnnouncements.filter((announcement) => announcement.status.toLowerCase() === "published").length}
-          </p>
-          <p className="erp-kpi-meta">Already visible to users</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-warning">
-          <p className="erp-kpi-label">Draft</p>
-          <p className="erp-kpi-value">
-            {filteredAnnouncements.filter((announcement) => announcement.status.toLowerCase() === "draft").length}
-          </p>
-          <p className="erp-kpi-meta">Still awaiting release</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-info">
-          <p className="erp-kpi-label">Audience Groups</p>
-          <p className="erp-kpi-value">{availableAudiences.length}</p>
-          <p className="erp-kpi-meta">Distinct target segments</p>
-        </div>
-      </div>
-
       {error ? <div className="erp-alert-error">{error}</div> : null}
 
       {loading ? (

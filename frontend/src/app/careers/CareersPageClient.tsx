@@ -151,7 +151,7 @@ export default function CareersPageClient({ audience }: { audience: PublicAudien
           <MotionReveal>
             <div>
               <SectionIntro eyebrow={content.eyebrow} title={content.title} subtitle={content.subtitle} />
-              <div className="mt-8 flex flex-wrap gap-3">
+              <div className="mt-6 flex flex-wrap gap-3">
                 <Link href={withPublicAudience("/contact", audience)} className={publicButtonClassName.primary}>
                   Talk to the team
                 </Link>
@@ -162,18 +162,30 @@ export default function CareersPageClient({ audience }: { audience: PublicAudien
             </div>
           </MotionReveal>
           <MotionReveal delay={0.06}>
-            <div className={`${publicPanelClassName} p-8`}>
+            <div className={`${publicPanelClassName} p-6`}>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--erp-primary)]">
                 What we look for
               </p>
-              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                {[
+                  { label: "Hiring", value: "Structured" },
+                  { label: "Culture", value: "Ownership" },
+                  { label: "Focus", value: "Operational" },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-[0.95rem] border border-slate-200 bg-white px-4 py-3">
+                    <p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-slate-500">{item.label}</p>
+                    <p className="mt-2 text-[1.15rem] font-semibold tracking-[-0.03em] text-slate-950">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {[
                   "People who think clearly about business workflows",
                   "Engineers and operators who care about product quality",
                   "Delivery teams comfortable with enterprise expectations",
                   "Professionals who prefer structured execution over noise",
                 ].map((item) => (
-                  <div key={item} className="rounded-[1.25rem] border border-slate-200 bg-slate-50/70 px-4 py-4 text-sm leading-7 text-slate-700">
+                  <div key={item} className="rounded-[1rem] border border-slate-200 bg-slate-50/70 px-4 py-3.5 text-sm leading-6 text-slate-700">
                     {item}
                   </div>
                 ))}
@@ -209,12 +221,12 @@ export default function CareersPageClient({ audience }: { audience: PublicAudien
 
           <div className={publicSectionContentGapClassName}>
             {visibleJobs.length > 0 ? (
-              <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {visibleJobs.map((item) => (
-                  <article key={`${item.role}-${item.location}`} className={`${publicPanelClassName} flex h-full flex-col p-6`}>
+                  <article key={`${item.role}-${item.location}`} className={`${publicPanelClassName} flex h-full flex-col p-5`}>
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <h2 className="text-2xl font-semibold tracking-[-0.04em] text-slate-950">{item.role}</h2>
+                        <h2 className="text-[1.45rem] font-semibold tracking-[-0.04em] text-slate-950">{item.role}</h2>
                         <p className="mt-1 text-sm text-slate-600">{item.company}</p>
                       </div>
                       <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
@@ -222,7 +234,7 @@ export default function CareersPageClient({ audience }: { audience: PublicAudien
                       </span>
                     </div>
 
-                    <div className="mt-6 space-y-2 text-sm text-slate-600">
+                    <div className="mt-5 space-y-2 text-sm text-slate-600">
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-slate-400" />
                         <span>{item.location}</span>
@@ -233,14 +245,14 @@ export default function CareersPageClient({ audience }: { audience: PublicAudien
                       </div>
                     </div>
 
-                    <Link href={withPublicAudience("/contact", audience)} className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-900">
+                    <Link href={withPublicAudience("/contact", audience)} className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-900">
                       {content.applyLabel}
                     </Link>
                   </article>
                 ))}
               </div>
             ) : (
-              <div className={`${publicPanelClassName} p-10 text-center`}>
+              <div className={`${publicPanelClassName} p-8 text-center`}>
                 <Users className="mx-auto h-10 w-10 text-slate-400" />
                 <h2 className="mt-4 text-2xl font-semibold tracking-[-0.04em] text-slate-950">{content.emptyTitle}</h2>
                 <p className="mt-3 text-sm leading-7 text-slate-600">{content.emptySubtitle}</p>

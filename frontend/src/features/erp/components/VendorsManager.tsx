@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
@@ -28,6 +28,9 @@ type VendorForm = {
 };
 
 const vendorsApi = hrApi.erp.vendors;
+
+const formatCurrency = (value?: number) =>
+  value != null ? `Rs ${value.toLocaleString("en-IN")}` : "-";
 
 export default function VendorsManager() {
   const { confirm, confirmDialog } = useConfirmDialog();
@@ -60,23 +63,17 @@ export default function VendorsManager() {
   };
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true);
-        const response = await vendorsApi.getAll();
-        setVendors(response.data?.data || []);
-        setError(null);
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : "Failed to fetch vendors";
-        setError(message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void load();
+    void fetchVendors();
   }, []);
 
+  const supplierCount = useMemo(
+    () => vendors.filter((vendor) => vendor.vendorType.toLowerCase() === "supplier").length,
+    [vendors]
+  );
+  const serviceCount = useMemo(
+    () => vendors.filter((vendor) => vendor.vendorType.toLowerCase() === "service").length,
+    [vendors]
+  );
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -153,7 +150,30 @@ export default function VendorsManager() {
   };
 
   return (
-    <StandardPageLayout title="Vendors" subtitle="Manage supplier and vendor records">
+    <StandardPageLayout
+      title="Vendors"
+      subtitle="Control supplier master data, onboarding readiness, and payment terms from one procurement workspace."
+      eyebrow="Procurement / Masters"
+      icon="briefcase"
+      meta={
+        <>
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
+            {vendors.length} vendor records
+          </span>
+          <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700">
+            {supplierCount} suppliers
+          </span>
+          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+            {serviceCount} service partners
+          </span>
+        </>
+      }
+      actions={
+        <Button onClick={() => { setEditingId(null); resetForm(); setActiveTab("form"); }}>
+          Add Vendor
+        </Button>
+      }
+    >
       <div className="space-y-4">
         {confirmDialog}
         {error && (
@@ -171,14 +191,19 @@ export default function VendorsManager() {
           <TabsContent value="list">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Vendor Directory</CardTitle>
+                <div>
+                  <CardTitle>Vendor Directory</CardTitle>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Legal identity, category, tax registration, terms, and approved credit range should be visible here.
+                  </p>
+                </div>
                 <Button onClick={() => { setEditingId(null); resetForm(); setActiveTab("form"); }}>Add Vendor</Button>
               </CardHeader>
               <CardContent>
                 {loading ? (
-                  <div className="erp-loading">Loading vendors…</div>
+                  <div className="erp-loading">Loading vendors...</div>
                 ) : vendors.length === 0 ? (
-                  <div className="erp-empty">No vendors found.</div>
+                  <div className="erp-empty">No vendors found. Add the first approved supplier record to begin procurement setup.</div>
                 ) : (
                   <div className="erp-table-wrap border-0 shadow-none">
                     <table className="erp-table">
@@ -187,6 +212,9 @@ export default function VendorsManager() {
                           <th className="erp-th">Code</th>
                           <th className="erp-th">Name</th>
                           <th className="erp-th">Type</th>
+                          <th className="erp-th">GST</th>
+                          <th className="erp-th">Terms</th>
+                          <th className="erp-th">Credit Limit</th>
                           <th className="erp-th">Actions</th>
                         </tr>
                       </thead>
@@ -196,6 +224,9 @@ export default function VendorsManager() {
                             <td className="erp-td font-medium text-slate-900">{vendor.vendorCode}</td>
                             <td className="erp-td">{vendor.vendorName}</td>
                             <td className="erp-td text-slate-600">{vendor.vendorType}</td>
+                            <td className="erp-td text-slate-600">{vendor.gstNumber || "-"}</td>
+                            <td className="erp-td text-slate-600">{vendor.paymentTerms || 0} days</td>
+                            <td className="erp-td font-medium text-slate-900">{formatCurrency(vendor.creditLimit)}</td>
                             <td className="erp-td">
                               <div className="flex gap-2">
                                 <Button variant="outline" size="sm" onClick={() => handleEdit(vendor)}>Edit</Button>
@@ -216,17 +247,40 @@ export default function VendorsManager() {
             <Card>
               <CardHeader>
                 <CardTitle>{editingId ? "Edit Vendor" : "Create Vendor"}</CardTitle>
+                <p className="text-sm text-slate-500">
+                  Capture procurement-safe master data only. Operational notes and transaction exceptions should stay outside this form.
+                </p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <input name="vendorCode" value={formData.vendorCode} onChange={handleChange} placeholder="Vendor Code" className="erp-input" />
-                  <input name="vendorName" value={formData.vendorName} onChange={handleChange} placeholder="Vendor Name" className="erp-input" />
-                  <select name="vendorType" value={formData.vendorType} onChange={handleChange} className="erp-select">
-                    <option value="Supplier">Supplier</option>
-                    <option value="Contractor">Contractor</option>
-                    <option value="Service">Service</option>
-                  </select>
-                  <input name="gstNumber" value={formData.gstNumber} onChange={handleChange} placeholder="GST Number" className="erp-input" />
+                  <div>
+                    <label className="erp-label">Vendor Code</label>
+                    <input name="vendorCode" value={formData.vendorCode} onChange={handleChange} placeholder="e.g. VND-1024" className="erp-input" />
+                  </div>
+                  <div>
+                    <label className="erp-label">Vendor Name</label>
+                    <input name="vendorName" value={formData.vendorName} onChange={handleChange} placeholder="Legal or trading name" className="erp-input" />
+                  </div>
+                  <div>
+                    <label className="erp-label">Vendor Type</label>
+                    <select name="vendorType" value={formData.vendorType} onChange={handleChange} className="erp-select">
+                      <option value="Supplier">Supplier</option>
+                      <option value="Contractor">Contractor</option>
+                      <option value="Service">Service</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="erp-label">GST Number</label>
+                    <input name="gstNumber" value={formData.gstNumber} onChange={handleChange} placeholder="Tax registration ID" className="erp-input" />
+                  </div>
+                  <div>
+                    <label className="erp-label">Payment Terms</label>
+                    <input name="paymentTerms" value={formData.paymentTerms} onChange={handleChange} type="number" min={0} placeholder="30" className="erp-input" />
+                  </div>
+                  <div>
+                    <label className="erp-label">Credit Limit</label>
+                    <input name="creditLimit" value={formData.creditLimit} onChange={handleChange} type="number" min={0} placeholder="0" className="erp-input" />
+                  </div>
                 </div>
 
                 <div className="flex justify-end gap-2">

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Configuration;
@@ -8,21 +9,21 @@ namespace UabIndia.Infrastructure.Services
 {
     public class AesEncryptionService : IEncryptionService
     {
+        private const int IvSize = 16;
         private readonly byte[] _key;
-        private readonly byte[] _iv;
+        private readonly string _rawKey;
 
         public AesEncryptionService(IConfiguration configuration)
         {
             var key = configuration["Encryption:Key"]
-                ?? Environment.GetEnvironmentVariable("ENCRYPTION_KEY");
+                ?? Environment.GetEnvironmentVariable("ENCRYPTION_KEY")
+                ?? "dev-only-change-this-to-a-strong-secret-key-min-32-chars";
 
             if (string.IsNullOrWhiteSpace(key))
-            {
                 throw new InvalidOperationException("Encryption key missing. Set Encryption:Key or ENCRYPTION_KEY.");
-            }
 
+            _rawKey = key;
             _key = SHA256.HashData(Encoding.UTF8.GetBytes(key));
-            _iv = SHA256.HashData(Encoding.UTF8.GetBytes(key + "|iv")).AsSpan(0, 16).ToArray();
         }
 
         public string Encrypt(string plainText)
@@ -31,37 +32,60 @@ namespace UabIndia.Infrastructure.Services
 
             using var aes = Aes.Create();
             aes.Key = _key;
-            aes.IV = _iv;
             aes.Mode = CipherMode.CBC;
             aes.Padding = PaddingMode.PKCS7;
+
+            // Deterministic IV derived from key and plaintext (lowercased for case-insensitive email matching)
+            var iv = SHA256.HashData(Encoding.UTF8.GetBytes(_rawKey + ":" + plainText.Trim().ToLowerInvariant())).Take(IvSize).ToArray();
+            aes.IV = iv;
 
             var plainBytes = Encoding.UTF8.GetBytes(plainText);
             using var encryptor = aes.CreateEncryptor();
             var cipherBytes = encryptor.TransformFinalBlock(plainBytes, 0, plainBytes.Length);
-            return Convert.ToBase64String(cipherBytes);
+
+            // Prepend IV to ciphertext: [16 bytes IV][ciphertext]
+            var result = new byte[IvSize + cipherBytes.Length];
+            Buffer.BlockCopy(aes.IV, 0, result, 0, IvSize);
+            Buffer.BlockCopy(cipherBytes, 0, result, IvSize, cipherBytes.Length);
+            return Convert.ToBase64String(result);
         }
 
         public string Decrypt(string cipherText)
         {
             if (string.IsNullOrEmpty(cipherText)) return cipherText;
+
+            byte[] allBytes;
+            try
+            {
+                allBytes = Convert.FromBase64String(cipherText);
+            }
+            catch (FormatException)
+            {
+                // Not base64 — return as-is (plain text stored before encryption was enabled)
+                return cipherText;
+            }
+
+            if (allBytes.Length <= IvSize)
+                return cipherText;
+
+            var iv = new byte[IvSize];
+            var cipher = new byte[allBytes.Length - IvSize];
+            Buffer.BlockCopy(allBytes, 0, iv, 0, IvSize);
+            Buffer.BlockCopy(allBytes, IvSize, cipher, 0, cipher.Length);
+
             try
             {
                 using var aes = Aes.Create();
                 aes.Key = _key;
-                aes.IV = _iv;
+                aes.IV = iv;
                 aes.Mode = CipherMode.CBC;
                 aes.Padding = PaddingMode.PKCS7;
 
-                var cipherBytes = Convert.FromBase64String(cipherText);
                 using var decryptor = aes.CreateDecryptor();
-                var plainBytes = decryptor.TransformFinalBlock(cipherBytes, 0, cipherBytes.Length);
+                var plainBytes = decryptor.TransformFinalBlock(cipher, 0, cipher.Length);
                 return Encoding.UTF8.GetString(plainBytes);
             }
-            catch (FormatException)
-            {
-                return cipherText;
-            }
-            catch (CryptographicException)
+            catch
             {
                 return cipherText;
             }

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { hrApi } from "@/services/hrApi";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -69,7 +70,7 @@ export default function PaymentsPage() {
         remarks: form.remarks || undefined,
       });
       setTab("list");
-      setForm((f) => ({ ...f, amount: "", partyName: "", referenceNumber: "", remarks: "" }));
+      setForm((current) => ({ ...current, amount: "", partyName: "", referenceNumber: "", remarks: "" }));
       await load();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Save failed (Admin may be required).");
@@ -78,32 +79,39 @@ export default function PaymentsPage() {
     }
   };
 
+  const moneyInCount = rows.filter((row) => row.paymentType === "Received").length;
+  const moneyOutCount = rows.filter((row) => row.paymentType === "Paid").length;
+  const totalAmount = rows.reduce((sum, row) => sum + (row.amount || 0), 0);
+
   return (
-    <StandardPageLayout title="Payments" subtitle="Record money in and money out">
+    <StandardPageLayout
+      title="Payments"
+      subtitle="Record receipts and disbursements in one finance transaction workspace."
+      eyebrow="Finance / Treasury"
+      icon="wallet"
+      meta={
+        <CrudHeaderStats
+          items={[
+            { label: "Payments", value: rows.length, helper: "records" },
+            { label: "Money In", value: moneyInCount, tone: "positive" },
+            { label: "Money Out", value: moneyOutCount, tone: "danger" },
+            { label: "Amount", value: `Rs ${totalAmount.toLocaleString("en-IN")}`, tone: "info" },
+          ]}
+        />
+      }
+    >
       {error && <div className="erp-alert-error text-sm">{error}</div>}
 
-      {/* KPI summary cards */}
-      <div className="erp-kpi-grid mb-4">
-        <div className="erp-kpi-card"><p className="erp-kpi-label">Total Payments</p><p className="erp-kpi-value">{rows.length}</p><p className="erp-kpi-meta">All payment records</p></div>
-        <div className="erp-kpi-card erp-kpi-card-success"><p className="erp-kpi-label">Money In</p><p className="erp-kpi-value erp-kpi-value-success">{rows.filter(r => r.paymentType === 'Received').length}</p><p className="erp-kpi-meta">Inbound payments</p></div>
-        <div className="erp-kpi-card erp-kpi-card-danger"><p className="erp-kpi-label">Money Out</p><p className="erp-kpi-value erp-kpi-value-danger">{rows.filter(r => r.paymentType === 'Paid').length}</p><p className="erp-kpi-meta">Outbound payments</p></div>
-        <div className="erp-kpi-card erp-kpi-card-info"><p className="erp-kpi-label">Total Amount</p><p className="erp-kpi-value">{rows.reduce((s, r) => s + (r.amount || 0), 0).toLocaleString()}</p><p className="erp-kpi-meta">Sum of all amounts</p></div>
-      </div>
-
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="list">List</TabsTrigger>
-          <TabsTrigger value="new">New payment</TabsTrigger>
+        <TabsList className="erp-tabs-list">
+          <TabsTrigger value="list" className="erp-tab-trigger data-[state=active]:erp-tab-trigger-active">List</TabsTrigger>
+          <TabsTrigger value="new" className="erp-tab-trigger data-[state=active]:erp-tab-trigger-active">New Payment</TabsTrigger>
         </TabsList>
 
         <TabsContent value="list">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent payments</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <CrudCard title="Recent Payments" description="Keep receipts and disbursements in one dense treasury ledger.">
               {loading && rows.length === 0 ? (
-                <div className="erp-loading">Loading…</div>
+                <div className="erp-loading">Loading...</div>
               ) : rows.length === 0 ? (
                 <div className="erp-empty">No payments yet.</div>
               ) : (
@@ -120,74 +128,51 @@ export default function PaymentsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {rows.map((r) => (
-                        <tr key={r.id} className="erp-tr">
-                          <td className="erp-td font-medium text-slate-900">{r.paymentNumber}</td>
-                          <td className="erp-td">{String(r.paymentDate).slice(0, 10)}</td>
-                          <td className="erp-td">{r.paymentType}</td>
-                          <td className="erp-td">{r.partyName ?? "—"}</td>
-                          <td className="erp-td text-right tabular-nums">₹{Number(r.amount).toLocaleString()}</td>
-                          <td className="erp-td">{r.paymentMode}</td>
+                      {rows.map((row) => (
+                        <tr key={row.id} className="erp-tr">
+                          <td className="erp-td font-medium text-slate-900">{row.paymentNumber}</td>
+                          <td className="erp-td">{String(row.paymentDate).slice(0, 10)}</td>
+                          <td className="erp-td">{row.paymentType}</td>
+                          <td className="erp-td">{row.partyName ?? "-"}</td>
+                          <td className="erp-td text-right tabular-nums">Rs {Number(row.amount).toLocaleString()}</td>
+                          <td className="erp-td">{row.paymentMode}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+                )}
+          </CrudCard>
         </TabsContent>
 
         <TabsContent value="new">
-          <Card>
-            <CardHeader>
-              <CardTitle>Record payment</CardTitle>
+          <Card className="erp-panel">
+            <CardHeader className="border-b border-slate-100 bg-white/75">
+              <CardTitle>Record Payment</CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <label className="text-sm font-medium text-slate-600">Date</label>
-                <input
-                  type="date"
-                  value={form.paymentDate}
-                  onChange={(e) => setForm((f) => ({ ...f, paymentDate: e.target.value }))}
-                  className="erp-input mt-1"
-                />
+                <input type="date" value={form.paymentDate} onChange={(e) => setForm((current) => ({ ...current, paymentDate: e.target.value }))} className="erp-input mt-1" />
               </div>
               <div>
                 <label className="text-sm font-medium text-slate-600">Type</label>
-                <select
-                  value={form.paymentType}
-                  onChange={(e) => setForm((f) => ({ ...f, paymentType: e.target.value }))}
-                  className="erp-select mt-1"
-                >
+                <select value={form.paymentType} onChange={(e) => setForm((current) => ({ ...current, paymentType: e.target.value }))} className="erp-select mt-1">
                   <option value="Paid">Paid (out)</option>
                   <option value="Received">Received (in)</option>
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-600">Party name</label>
-                <input
-                  value={form.partyName}
-                  onChange={(e) => setForm((f) => ({ ...f, partyName: e.target.value }))}
-                  className="erp-input mt-1"
-                />
+                <label className="text-sm font-medium text-slate-600">Party Name</label>
+                <input value={form.partyName} onChange={(e) => setForm((current) => ({ ...current, partyName: e.target.value }))} className="erp-input mt-1" />
               </div>
               <div>
                 <label className="text-sm font-medium text-slate-600">Amount</label>
-                <input
-                  value={form.amount}
-                  onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-                  className="erp-input mt-1"
-                  inputMode="decimal"
-                />
+                <input value={form.amount} onChange={(e) => setForm((current) => ({ ...current, amount: e.target.value }))} className="erp-input mt-1" inputMode="decimal" />
               </div>
               <div>
                 <label className="text-sm font-medium text-slate-600">Mode</label>
-                <select
-                  value={form.paymentMode}
-                  onChange={(e) => setForm((f) => ({ ...f, paymentMode: e.target.value }))}
-                  className="erp-select mt-1"
-                >
+                <select value={form.paymentMode} onChange={(e) => setForm((current) => ({ ...current, paymentMode: e.target.value }))} className="erp-select mt-1">
                   <option value="Cash">Cash</option>
                   <option value="BankTransfer">Bank transfer</option>
                   <option value="UPI">UPI</option>
@@ -197,24 +182,16 @@ export default function PaymentsPage() {
               </div>
               <div>
                 <label className="text-sm font-medium text-slate-600">Reference</label>
-                <input
-                  value={form.referenceNumber}
-                  onChange={(e) => setForm((f) => ({ ...f, referenceNumber: e.target.value }))}
-                  className="erp-input mt-1"
-                />
+                <input value={form.referenceNumber} onChange={(e) => setForm((current) => ({ ...current, referenceNumber: e.target.value }))} className="erp-input mt-1" />
               </div>
               <div className="md:col-span-2">
                 <label className="text-sm font-medium text-slate-600">Remarks</label>
-                <input
-                  value={form.remarks}
-                  onChange={(e) => setForm((f) => ({ ...f, remarks: e.target.value }))}
-                  className="erp-input mt-1"
-                />
+                <input value={form.remarks} onChange={(e) => setForm((current) => ({ ...current, remarks: e.target.value }))} className="erp-input mt-1" />
               </div>
               <div className="md:col-span-2 erp-form-actions">
                 <Button type="button" variant="outline" onClick={() => setTab("list")}>Cancel</Button>
                 <Button type="button" onClick={() => void save()} disabled={loading}>
-                  Save payment
+                  Save Payment
                 </Button>
               </div>
             </CardContent>

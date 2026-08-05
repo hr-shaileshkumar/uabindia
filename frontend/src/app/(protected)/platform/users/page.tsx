@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import { PageHeader } from "@/design-system";
 import { hrApi } from "@/services/hrApi";
 import { useOrgContext } from "@/context/OrgContext";
 import { getApiErrorMessage } from "@/lib/api-errors";
@@ -17,6 +18,10 @@ import { TableActionMenu } from "@/components/table/TableActionMenu";
 import QuickEditDrawer from "@/components/ui/QuickEditDrawer";
 import EntityProfileCard from "@/components/ui/EntityProfileCard";
 import type { BulkActionFieldConfig } from "@/features/shared/types/bulkActions";
+import { CrudCard } from "@/components/erp/crud-workspace";
+import ErpHeaderSummary from "@/components/layout/ErpHeaderSummary";
+import { UserTable } from "@/features/platform/components/UserTable";
+
 
 interface UserRow {
   id: string;
@@ -65,7 +70,6 @@ const emptyForm = (): UserFormState => ({
 
 export default function UsersPage() {
   const { isSuperAdmin } = useAuth();
-  // Platform pages are global admin views – intentionally ignore topbar org context
   const { companyId: ctxCompanyId } = useOrgContext();
   const { confirm, confirmDialog } = useConfirmDialog();
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -74,7 +78,6 @@ export default function UsersPage() {
   const [companyTenantMap, setCompanyTenantMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<"list" | "form">("list");
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [form, setForm] = useState<UserFormState>(emptyForm);
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
@@ -89,6 +92,10 @@ export default function UsersPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
   const [showDeleted, setShowDeleted] = useState(false);
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  const [bulkApplying, setBulkApplying] = useState(false);
+
+  const selection = useTableSelection<UserRow>();
 
   const load = async (includeDeletedFlag?: boolean) => {
     setLoading(true);
@@ -129,6 +136,7 @@ export default function UsersPage() {
         setRoles(rolesRes.data.roles || []);
         setCompanyTenantMap({});
       }
+      setError(null);
     } catch (err) {
       const message = getApiErrorMessage(err, "Failed to load users");
       setError(message);
@@ -139,16 +147,64 @@ export default function UsersPage() {
   };
 
   useEffect(() => {
-    load();
+    void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showDeleted, ctxCompanyId]);
+
+  const filteredUsers = useMemo(() => users.filter((user) => {
+    if (showDeleted) {
+      if (!user.isDeleted) return false;
+    } else if (user.isDeleted) {
+      return false;
+    }
+
+    const keyword = search.trim().toLowerCase();
+    const matchesKeyword =
+      !keyword ||
+      user.fullName?.toLowerCase().includes(keyword) ||
+      user.email.toLowerCase().includes(keyword) ||
+      (user.roles || []).join(" ").toLowerCase().includes(keyword);
+
+    const matchesStatus = statusFilter === "all" || (statusFilter === "active" ? user.isActive : !user.isActive);
+
+    if (isSuperAdmin && ctxCompanyId) {
+      const tenantId = companyTenantMap[ctxCompanyId];
+      if (!tenantId || user.tenantId !== tenantId) return false;
+    }
+
+    return matchesKeyword && matchesStatus;
+  }), [users, showDeleted, search, statusFilter, isSuperAdmin, ctxCompanyId, companyTenantMap]);
+
+  useEffect(() => {
+    selection.setItems(filteredUsers);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredUsers]);
+
+  const userBulkFields: BulkActionFieldConfig[] = [
+    { key: "isActive", label: "Active Status", fieldType: "boolean" },
+  ];
+
+  const isFormOpen = editingUserId !== null || Boolean(form.email || form.fullName || form.password || form.roles.length || form.tenantId);
+  const activeUsers = filteredUsers.filter((user) => user.isActive && !user.isDeleted).length;
+  const inactiveUsers = filteredUsers.filter((user) => !user.isActive && !user.isDeleted).length;
+  const deletedUsers = filteredUsers.filter((user) => user.isDeleted).length;
 
   const toggleRole = (roleName: string) => {
     setForm((prev) => {
       const exists = prev.roles.includes(roleName);
       return {
         ...prev,
-        roles: exists ? prev.roles.filter((r) => r !== roleName) : [...prev.roles, roleName],
+        roles: exists ? prev.roles.filter((role) => role !== roleName) : [...prev.roles, roleName],
+      };
+    });
+  };
+
+  const toggleQuickRole = (roleName: string) => {
+    setQuickEditForm((prev) => {
+      const exists = prev.roles.includes(roleName);
+      return {
+        ...prev,
+        roles: exists ? prev.roles.filter((role) => role !== roleName) : [...prev.roles, roleName],
       };
     });
   };
@@ -157,7 +213,7 @@ export default function UsersPage() {
     setError(null);
     setEditingUserId(null);
     setForm(emptyForm());
-    setActiveTab("form");
+    setSelectedUser(null);
   };
 
   const openFullEdit = (user: UserRow) => {
@@ -171,7 +227,11 @@ export default function UsersPage() {
       roles: user.roles || [],
       tenantId: user.tenantId || "",
     });
-    setActiveTab("form");
+  };
+
+  const closeForm = () => {
+    setEditingUserId(null);
+    setForm(emptyForm());
   };
 
   const openQuickEdit = (user: UserRow) => {
@@ -185,51 +245,6 @@ export default function UsersPage() {
 
   const closeQuickEdit = () => {
     setQuickEditUser(null);
-  };
-
-  const toggleQuickRole = (roleName: string) => {
-    setQuickEditForm((prev) => {
-      const exists = prev.roles.includes(roleName);
-      return {
-        ...prev,
-        roles: exists ? prev.roles.filter((r) => r !== roleName) : [...prev.roles, roleName],
-      };
-    });
-  };
-
-  const handleQuickEditSave = async () => {
-    if (!quickEditUser) return;
-
-    const ok = await confirm({
-      title: "Quick update user",
-      message: `Confirm quick update for "${quickEditUser.email}"?`,
-      confirmText: "Update",
-    });
-    if (!ok) return;
-
-    setQuickEditSaving(true);
-    try {
-      await hrApi.platform.updateUser(quickEditUser.id, {
-        fullName: quickEditForm.fullName.trim() || undefined,
-        isActive: quickEditForm.isActive,
-        roles: quickEditForm.roles,
-      });
-      notifySuccess("User quick-updated successfully.");
-      closeQuickEdit();
-      await load();
-    } catch (err) {
-      const message = getApiErrorMessage(err, "Failed to quick update user");
-      setError(message);
-      notifyError(message);
-    } finally {
-      setQuickEditSaving(false);
-    }
-  };
-
-  const closeForm = () => {
-    setActiveTab("list");
-    setEditingUserId(null);
-    setForm(emptyForm());
   };
 
   const handleSave = async () => {
@@ -255,9 +270,7 @@ export default function UsersPage() {
         : `Confirm creating user "${form.email.trim()}"?`,
       confirmText: editingUserId ? "Update" : "Create",
     });
-    if (!ok) {
-      return;
-    }
+    if (!ok) return;
 
     setSaving(true);
     setError(null);
@@ -294,6 +307,35 @@ export default function UsersPage() {
     }
   };
 
+  const handleQuickEditSave = async () => {
+    if (!quickEditUser) return;
+
+    const ok = await confirm({
+      title: "Quick update user",
+      message: `Confirm quick update for "${quickEditUser.email}"?`,
+      confirmText: "Update",
+    });
+    if (!ok) return;
+
+    setQuickEditSaving(true);
+    try {
+      await hrApi.platform.updateUser(quickEditUser.id, {
+        fullName: quickEditForm.fullName.trim() || undefined,
+        isActive: quickEditForm.isActive,
+        roles: quickEditForm.roles,
+      });
+      notifySuccess("User quick-updated successfully.");
+      closeQuickEdit();
+      await load();
+    } catch (err) {
+      const message = getApiErrorMessage(err, "Failed to quick update user");
+      setError(message);
+      notifyError(message);
+    } finally {
+      setQuickEditSaving(false);
+    }
+  };
+
   const handleDelete = async (user: UserRow) => {
     const ok = await confirm({
       title: "Delete user",
@@ -301,11 +343,7 @@ export default function UsersPage() {
       confirmText: "Delete",
       variant: "danger",
     });
-    if (!ok) {
-      return;
-    }
-
-    setError(null);
+    if (!ok) return;
 
     try {
       await hrApi.platform.deleteUser(user.id);
@@ -350,45 +388,6 @@ export default function UsersPage() {
     }
   };
 
-  const filteredUsers = useMemo(() => users.filter((u) => {
-    if (showDeleted) {
-      if (!u.isDeleted) return false;
-    } else if (u.isDeleted) {
-      return false;
-    }
-
-    const keyword = search.trim().toLowerCase();
-    const matchesKeyword =
-      !keyword ||
-      u.fullName?.toLowerCase().includes(keyword) ||
-      u.email.toLowerCase().includes(keyword) ||
-      (u.roles || []).join(" ").toLowerCase().includes(keyword);
-
-    const matchesStatus = statusFilter === "all" || (statusFilter === "active" ? u.isActive : !u.isActive);
-
-    // When a specific company is selected, show only users of that company's tenant
-    if (isSuperAdmin && ctxCompanyId) {
-      const tenantId = companyTenantMap[ctxCompanyId];
-      if (!tenantId || u.tenantId !== tenantId) return false;
-    }
-
-    return matchesKeyword && matchesStatus;
-  }), [users, showDeleted, search, statusFilter, isSuperAdmin, ctxCompanyId, companyTenantMap]);
-
-  // ─── Bulk selection ──────────────────────────────────────────────────────────
-  const selection = useTableSelection<UserRow>();
-  const [bulkEditOpen, setBulkEditOpen] = useState(false);
-  const [bulkApplying, setBulkApplying] = useState(false);
-
-  const userBulkFields: BulkActionFieldConfig[] = [
-    { key: "isActive", label: "Active Status", fieldType: "boolean" },
-  ];
-
-  useEffect(() => {
-    selection.setItems(filteredUsers);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredUsers]);
-
   const handleBulkDelete = async () => {
     const count = selection.selectionCount;
     const ok = await confirm({
@@ -398,10 +397,17 @@ export default function UsersPage() {
       variant: "danger",
     });
     if (!ok) return;
+
     let successCount = 0;
-    for (const u of selection.selectedItems) {
-      try { await hrApi.platform.deleteUser(u.id); successCount += 1; } catch { /* continue */ }
+    for (const user of selection.selectedItems) {
+      try {
+        await hrApi.platform.deleteUser(user.id);
+        successCount += 1;
+      } catch {
+        // Continue processing remaining rows.
+      }
     }
+
     selection.clearSelection();
     notifySuccess(`Deleted ${successCount} of ${count} user${count === 1 ? "" : "s"}.`);
     await load();
@@ -411,11 +417,13 @@ export default function UsersPage() {
     setBulkApplying(true);
     let successCount = 0;
     const count = selection.selectionCount;
-    for (const u of selection.selectedItems) {
+    for (const user of selection.selectedItems) {
       try {
-        await hrApi.platform.updateUser(u.id, updates as { isActive?: boolean; roles?: string[]; fullName?: string; password?: string });
+        await hrApi.platform.updateUser(user.id, updates as { isActive?: boolean; roles?: string[]; fullName?: string; password?: string });
         successCount += 1;
-      } catch { /* continue */ }
+      } catch {
+        // Continue processing remaining rows.
+      }
     }
     setBulkApplying(false);
     setBulkEditOpen(false);
@@ -425,29 +433,37 @@ export default function UsersPage() {
   };
 
   return (
-    <StandardPageLayout
-      title="Users"
-      subtitle="Manage application users, activation state, and access posture."
-      eyebrow="Administration / Access"
-      icon="employees"
-      actions={
-        <div className="flex w-full flex-col gap-2 lg:w-auto lg:flex-row lg:flex-wrap lg:items-center lg:justify-end">
-          {isSuperAdmin && (
-            <button
-              onClick={() => setShowDeleted((prev) => !prev)}
-              className={`erp-action-btn w-full lg:w-auto ${showDeleted ? "erp-action-btn-warning" : "erp-action-btn-secondary"}`}
-            >
-              {showDeleted ? "Hide Deleted" : "Show Deleted"}
+    <div className="erp-page space-y-5">
+      <PageHeader
+        title="Users"
+        subtitle="Manage application users, activation state, and access posture."
+        eyebrow="Administration / Access"
+        icon="employees"
+        stats={[
+          { label: "Users", value: filteredUsers.length },
+          { label: "Active", value: activeUsers, tone: "success" },
+          { label: "Inactive", value: inactiveUsers, tone: "warning" },
+          { label: "Deleted", value: deletedUsers, tone: "danger" },
+        ]}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            {isSuperAdmin ? (
+              <button
+                onClick={() => setShowDeleted((prev) => !prev)}
+                className={`erp-action-btn ${showDeleted ? "erp-action-btn-warning" : "erp-action-btn-secondary"}`}
+              >
+                {showDeleted ? "Hide Deleted" : "Show Deleted"}
+              </button>
+            ) : null}
+            <button onClick={openCreate} className="erp-action-btn erp-action-btn-primary">
+              Create User
             </button>
-          )}
-          <button onClick={openCreate} className="erp-action-btn erp-action-btn-primary w-full lg:w-auto">
-            Create User
-          </button>
-        </div>
-      }
-      filters={
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <div className="md:col-span-2">
+          </div>
+        }
+      />
+      <div className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1.6fr)_minmax(13rem,0.8fr)]">
+          <div>
             <label className="erp-label">Search</label>
             <input
               value={search}
@@ -469,60 +485,25 @@ export default function UsersPage() {
             </select>
           </div>
         </div>
-      }
-    >
+      </div>
       {confirmDialog}
+      {error ? <div className="erp-alert-error">{error}</div> : null}
 
-      {/* KPI summary cards – counts reflect current filter (company/status) */}
-      <div className="erp-kpi-grid mb-4">
-        <div className="erp-kpi-card"><p className="erp-kpi-label">Total Users</p><p className="erp-kpi-value">{filteredUsers.length}</p><p className="erp-kpi-meta">All registered accounts</p></div>
-        <div className="erp-kpi-card erp-kpi-card-success"><p className="erp-kpi-label">Active</p><p className="erp-kpi-value erp-kpi-value-success">{filteredUsers.filter(u => u.isActive && !u.isDeleted).length}</p><p className="erp-kpi-meta">Accounts with access</p></div>
-        <div className="erp-kpi-card erp-kpi-card-warning"><p className="erp-kpi-label">Inactive</p><p className="erp-kpi-value">{filteredUsers.filter(u => !u.isActive && !u.isDeleted).length}</p><p className="erp-kpi-meta">Suspended accounts</p></div>
-        <div className="erp-kpi-card erp-kpi-card-danger"><p className="erp-kpi-label">Deleted</p><p className="erp-kpi-value erp-kpi-value-danger">{filteredUsers.filter(u => u.isDeleted).length}</p><p className="erp-kpi-meta">Soft-deleted records</p></div>
-      </div>
-
-      {error && <div className="erp-alert-error mb-4">{error}</div>}
-
-      <div className="overflow-x-auto border-b border-gray-200 mb-4">
-        <div className="flex min-w-max gap-2">
-          <button
-            onClick={() => setActiveTab("list")}
-            className={`px-4 py-2 text-sm font-medium whitespace-nowrap transition ${
-              activeTab === "list"
-                ? "border-b-2 border-blue-600 text-blue-600"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
-          >
-            User List ({filteredUsers.length})
-          </button>
-          {(activeTab === "form" || editingUserId) && (
-            <button
-              onClick={() => setActiveTab("form")}
-              className={`px-4 py-2 text-sm font-medium whitespace-nowrap transition ${
-                activeTab === "form"
-                  ? "border-b-2 border-blue-600 text-blue-600"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              {editingUserId ? "Edit User" : "Create User"}
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Bulk action bar */}
-      {activeTab === "list" && selection.selectionCount > 0 && (
+      {selection.selectionCount > 0 && !isFormOpen ? (
         <BulkActionBar
           selectionCount={selection.selectionCount}
           onEdit={() => setBulkEditOpen(true)}
-          onRefresh={() => { selection.clearSelection(); void load(); }}
+          onRefresh={() => {
+            selection.clearSelection();
+            void load();
+          }}
           onDelete={() => void handleBulkDelete()}
           onClear={selection.clearSelection}
           loading={bulkApplying}
         />
-      )}
+      ) : null}
 
-      {activeTab === "list" && bulkEditOpen && (
+      {bulkEditOpen && !isFormOpen ? (
         <BulkEditDialog
           fields={userBulkFields}
           selectionCount={selection.selectionCount}
@@ -530,13 +511,15 @@ export default function UsersPage() {
           onClose={() => setBulkEditOpen(false)}
           loading={bulkApplying}
         />
-      )}
+      ) : null}
 
-      {activeTab === "form" && (
-        <div className="erp-panel mb-4 erp-panel-body erp-kpi-card erp-kpi-card-info erp-kpi-action-card space-y-4">
-          <div className="text-sm font-semibold text-slate-800">{editingUserId ? "Edit User" : "Create User"}</div>
+      {isFormOpen ? (
+        <CrudCard
+          title={editingUserId ? "Edit User" : "Create User"}
+          description="Use one compact form surface for identity, activation, and role assignment."
+        >
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {isSuperAdmin && !editingUserId && (
+            {isSuperAdmin && !editingUserId ? (
               <div className="md:col-span-2">
                 <label className="erp-label">Tenant *</label>
                 <select
@@ -544,15 +527,15 @@ export default function UsersPage() {
                   onChange={(e) => setForm((prev) => ({ ...prev, tenantId: e.target.value }))}
                   className="erp-select"
                 >
-                  <option value="">— select tenant —</option>
-                  {tenants.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}{t.subdomain ? ` (${t.subdomain})` : ""}
+                  <option value="">Select tenant</option>
+                  {tenants.map((tenant) => (
+                    <option key={tenant.id} value={tenant.id}>
+                      {tenant.name}{tenant.subdomain ? ` (${tenant.subdomain})` : ""}
                     </option>
                   ))}
                 </select>
               </div>
-            )}
+            ) : null}
             <div>
               <label className="erp-label">Full Name</label>
               <input
@@ -593,6 +576,7 @@ export default function UsersPage() {
               </label>
             </div>
           </div>
+
           <div>
             <label className="erp-label">Roles</label>
             <div className="flex flex-wrap gap-2">
@@ -615,7 +599,8 @@ export default function UsersPage() {
               })}
             </div>
           </div>
-          <div className="erp-kpi-action-footer border-t border-slate-100 pt-4">
+
+          <div className="erp-form-actions border-t border-slate-100 pt-4">
             <button onClick={handleSave} disabled={saving} className="erp-action-btn erp-action-btn-primary">
               {saving ? "Saving..." : editingUserId ? "Update User" : "Create User"}
             </button>
@@ -623,139 +608,74 @@ export default function UsersPage() {
               Cancel
             </button>
           </div>
-        </div>
-      )}
+        </CrudCard>
+      ) : null}
 
-      {activeTab === "list" && (
-      <div className="erp-panel">
-        <div className="erp-table-toolbar">
-          <div>
-            <div className="erp-table-title">User directory</div>
-            <div className="erp-table-subtitle">Review identity records and activation state in a denser enterprise grid.</div>
-          </div>
-          <span className="erp-toolbar-badge">{loading ? "Loading..." : `${filteredUsers.length} users`}</span>
-        </div>
-        <div className="erp-table-wrap rounded-none border-0 shadow-none">
-          <table className="erp-table">
-            <thead className="erp-thead">
-              <tr>
-                <th className="erp-th">
-                  <SelectAllCheckbox
-                    checked={selection.isAllSelected}
-                    indeterminate={selection.isIndeterminate}
-                    onChange={selection.isAllSelected ? selection.clearSelection : selection.selectAll}
-                  />
-                </th>
-                <th className="erp-th">Name</th>
-                <th className="erp-th">Email</th>
-                <th className="erp-th">Roles</th>
-                {isSuperAdmin && <th className="erp-th">Tenant ID</th>}
-                <th className="erp-th">Status</th>
-                <th className="erp-th">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredUsers.map((u) => (
-                <tr key={u.id} className={`erp-tr${u.isDeleted ? " opacity-50 bg-red-50" : ""}`}>
-                  <td className="erp-td">
-                    <SelectionCheckbox
-                      checked={selection.isSelected(u.id)}
-                      onChange={() => selection.toggleSelection(u.id)}
-                      label={`Select ${u.email}`}
-                    />
-                  </td>
-                  <td className="erp-td">
-                    <div className="erp-row-title">{u.fullName}</div>
-                    <div className="erp-row-meta">Application identity record</div>
-                  </td>
-                  <td className="erp-td text-sm text-slate-700">{u.email}</td>
-                  <td className="erp-td text-xs text-slate-600">{u.roles?.join(", ") || "-"}</td>
-                  {isSuperAdmin && (
-                    <td className="erp-td text-xs text-slate-500 font-mono">
-                      {u.tenantId ? u.tenantId.slice(0, 8) + "…" : "—"}
-                    </td>
-                  )}
-                  <td className="erp-td">
-                    <span className={u.isDeleted ? "erp-chip erp-chip-error" : u.isActive ? "erp-chip erp-chip-success" : "erp-chip erp-chip-neutral"}>
-                      {u.isDeleted ? "Deleted" : u.isActive ? "Active" : "Inactive"}
-                    </span>
-                  </td>
-                  <td className="erp-td">
-                    <TableActionMenu
-                      items={
-                        !u.isDeleted
-                          ? isSuperAdmin
-                            ? [
-                                { label: "View Details", onClick: () => setSelectedUser(u) },
-                                { label: "Quick Edit", onClick: () => openQuickEdit(u) },
-                                { label: "Open Full Edit", onClick: () => openFullEdit(u) },
-                                { label: "Delete", onClick: () => void handleDelete(u), danger: true },
-                              ]
-                            : [{ label: "View Details", onClick: () => setSelectedUser(u) }]
-                          : isSuperAdmin
-                            ? [
-                                { label: "Restore", onClick: () => void handleRestore(u) },
-                                { label: "Permanent Delete", onClick: () => void handleHardDelete(u), danger: true },
-                              ]
-                            : [{ label: "View Details", onClick: () => setSelectedUser(u) }]
-                      }
-                    />
-                  </td>
-                </tr>
-              ))}
-              {!loading && filteredUsers.length === 0 && (
-                <tr>
-                  <td colSpan={isSuperAdmin ? 7 : 6} className="erp-td py-8 text-center text-slate-500">{showDeleted ? "No deleted users found for selected filters." : "No users found for selected filters."}</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      )}
+      <CrudCard
+        title="User Directory"
+        description="Review identity records, activation state, roles, and tenant mapping in a single dense grid."
+        badge={<span className="erp-toolbar-badge">{loading ? "Loading..." : `${filteredUsers.length} users`}</span>}
+        actions={selectedUser ? (
+          <button type="button" onClick={() => setSelectedUser(null)} className="erp-action-btn erp-action-btn-secondary">
+            Hide Details
+          </button>
+        ) : null}
+      >
+        <UserTable
+          users={filteredUsers}
+          loading={loading}
+          isSuperAdmin={isSuperAdmin}
+          showDeleted={showDeleted}
+          selection={selection}
+          onSelectUser={setSelectedUser}
+          onQuickEdit={openQuickEdit}
+          onFullEdit={openFullEdit}
+          onDelete={(u) => void handleDelete(u)}
+          onRestore={(u) => void handleRestore(u)}
+          onHardDelete={(u) => void handleHardDelete(u)}
+        />
+      </CrudCard>
 
-      {activeTab === "list" && selectedUser && (
-        <div className="mt-4">
-          <EntityProfileCard
-            title={selectedUser.fullName || selectedUser.email}
-            subtitle="User profile details"
-            badge={
-              <span className={selectedUser.isDeleted ? "erp-chip erp-chip-danger" : selectedUser.isActive ? "erp-chip erp-chip-success" : "erp-chip erp-chip-neutral"}>
-                {selectedUser.isDeleted ? "Deleted" : selectedUser.isActive ? "Active" : "Inactive"}
-              </span>
-            }
-            items={[
-              { label: "Email", value: selectedUser.email },
-              { label: "Roles", value: selectedUser.roles?.join(", ") || "—" },
-              { label: "Tenant", value: selectedUser.tenantId || "—" },
-              { label: "Record ID", value: selectedUser.id.slice(0, 12) + "…" },
-            ]}
-            footer={
-              <div className="flex flex-wrap gap-2">
-                {!selectedUser.isDeleted ? (
-                  <>
-                    <button type="button" onClick={() => openQuickEdit(selectedUser)} className="erp-action-btn erp-action-btn-secondary">
-                      Quick Edit
-                    </button>
-                    <button type="button" onClick={() => openFullEdit(selectedUser)} className="erp-action-btn erp-action-btn-primary">
-                      Open Full Edit
-                    </button>
-                  </>
-                ) : (
-                  <button type="button" onClick={() => void handleRestore(selectedUser)} className="erp-action-btn erp-action-btn-secondary">
-                    Restore
+      {selectedUser ? (
+        <EntityProfileCard
+          title={selectedUser.fullName || selectedUser.email}
+          subtitle="User profile details"
+          badge={
+            <span className={selectedUser.isDeleted ? "erp-chip erp-chip-danger" : selectedUser.isActive ? "erp-chip erp-chip-success" : "erp-chip erp-chip-neutral"}>
+              {selectedUser.isDeleted ? "Deleted" : selectedUser.isActive ? "Active" : "Inactive"}
+            </span>
+          }
+          items={[
+            { label: "Email", value: selectedUser.email },
+            { label: "Roles", value: selectedUser.roles?.join(", ") || "-" },
+            { label: "Tenant", value: selectedUser.tenantId || "-" },
+            { label: "Record ID", value: `${selectedUser.id.slice(0, 12)}...` },
+          ]}
+          footer={
+            <div className="flex flex-wrap gap-2">
+              {!selectedUser.isDeleted ? (
+                <>
+                  <button type="button" onClick={() => openQuickEdit(selectedUser)} className="erp-action-btn erp-action-btn-secondary">
+                    Quick Edit
                   </button>
-                )}
-              </div>
-            }
-          />
-        </div>
-      )}
+                  <button type="button" onClick={() => openFullEdit(selectedUser)} className="erp-action-btn erp-action-btn-primary">
+                    Open Full Edit
+                  </button>
+                </>
+              ) : (
+                <button type="button" onClick={() => void handleRestore(selectedUser)} className="erp-action-btn erp-action-btn-secondary">
+                  Restore
+                </button>
+              )}
+            </div>
+          }
+        />
+      ) : null}
 
       <QuickEditDrawer
         open={Boolean(quickEditUser)}
         title="Quick Edit User"
-        subtitle="Fast rename/role/status changes"
+        subtitle="Fast rename, role, and status changes"
         onClose={closeQuickEdit}
         onSave={() => void handleQuickEditSave()}
         saveLabel="Update User"
@@ -805,6 +725,6 @@ export default function UsersPage() {
           </div>
         </div>
       </QuickEditDrawer>
-    </StandardPageLayout>
+    </div>
   );
 }

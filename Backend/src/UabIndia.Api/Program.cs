@@ -58,7 +58,7 @@ var env = builder.Environment;
 // Configuration
 var configuration = builder.Configuration;
 var sqlServerConnectionString = NormalizeSqlServerConnectionString(
-    configuration.GetConnectionString("DefaultConnection") ?? "Server=.;Database=UabIndia_HRMS;Trusted_Connection=True;",
+    configuration.GetConnectionString("DefaultConnection") ?? @"Server=DESKTOP-6698OV0\SHAILESH;Database=UabIndia_HRMS;User ID=SA;Password=YOUR_PASSWORD;Persist Security Info=True;TrustServerCertificate=True;Encrypt=True;",
     env);
 configuration["ConnectionStrings:DefaultConnection"] = sqlServerConnectionString;
 
@@ -169,6 +169,7 @@ builder.Services.AddCors(options =>
         else
         {
             policy.WithOrigins(origins)
+                .SetIsOriginAllowedToAllowWildcardSubdomains()
                 .AllowAnyHeader()
                 .AllowAnyMethod()
                 .AllowCredentials();
@@ -352,6 +353,10 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("Module:finance", policy => policy.Requirements.Add(new ModuleEnabledRequirement("finance")));
     options.AddPolicy("Module:procurement", policy => policy.Requirements.Add(new ModuleEnabledRequirement("procurement")));
     options.AddPolicy("Module:assets", policy => policy.Requirements.Add(new ModuleEnabledRequirement("assets")));
+    options.AddPolicy("Module:notifications", policy => policy.Requirements.Add(new ModuleEnabledRequirement("notifications")));
+    options.AddPolicy("Module:projects", policy => policy.Requirements.Add(new ModuleEnabledRequirement("projects")));
+    options.AddPolicy("Module:sales", policy => policy.Requirements.Add(new ModuleEnabledRequirement("sales")));
+    options.AddPolicy("Module:workflow", policy => policy.Requirements.Add(new ModuleEnabledRequirement("workflow")));
 });
 
 builder.Services.AddScoped<IAuthorizationHandler, ModuleEnabledHandler>();
@@ -380,6 +385,30 @@ builder.Services.AddRateLimiter(options =>
             factory: _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = isDev ? 30 : 5,
+                Window = isDev ? TimeSpan.FromMinutes(5) : TimeSpan.FromMinutes(15),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            }));
+
+    // Forgot-password limiter (stricter: 3 attempts per 15 min)
+    options.AddPolicy("auth-forgot", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = isDev ? 20 : 3,
+                Window = isDev ? TimeSpan.FromMinutes(5) : TimeSpan.FromMinutes(15),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            }));
+
+    // Reset-password limiter
+    options.AddPolicy("auth-reset", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = isDev ? 20 : 5,
                 Window = isDev ? TimeSpan.FromMinutes(5) : TimeSpan.FromMinutes(15),
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                 QueueLimit = 0
@@ -976,11 +1005,11 @@ app.Use(async (context, next) =>
 {
     context.Response.Headers.Append("Content-Security-Policy", 
         "default-src 'self'; " +
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; " +
+        "script-src 'self' https://cdn.jsdelivr.net; " +
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
         "img-src 'self' data: https:; " +
         "font-src 'self' https://fonts.gstatic.com; " +
-        "connect-src 'self' http://localhost:3000 http://localhost:5000; " +
+        "connect-src 'self'; " +
         "frame-ancestors 'none'; " +
         "base-uri 'self'; " +
         "form-action 'self'");
@@ -1101,6 +1130,8 @@ if (app.Environment.IsDevelopment())
         var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<User>>();
         var tenantAccessor = scope.ServiceProvider.GetRequiredService<ITenantAccessor>();
 
+        await UabIndia.Infrastructure.Data.Migrations.MigrationBootstrap.EnsureExtendedSchemaAsync(db);
+
         var tenant = db.Tenants.FirstOrDefault(t => t.Subdomain == "api") ?? db.Tenants.FirstOrDefault();
         if (tenant == null)
         {
@@ -1162,27 +1193,15 @@ if (app.Environment.IsDevelopment())
     }
     else
     {
-        // Restore if soft-deleted and ensure correct state
-        bool changed = false;
-        if (adminUser.IsDeleted)
-        {
-            adminUser.IsDeleted = false;
-            adminUser.IsActive = true;
-            adminUser.IsSystemAdmin = true;
-            changed = true;
-        }
-        var verify = hasher.VerifyHashedPassword(adminUser, adminUser.PasswordHash, "Admin@123");
-        if (verify == PasswordVerificationResult.Failed)
-        {
-            adminUser.PasswordHash = hasher.HashPassword(adminUser, "Admin@123");
-            changed = true;
-        }
-        if (changed)
-        {
-            adminUser.UpdatedAt = DateTime.UtcNow;
-            db.Users.Update(adminUser);
-            db.SaveChanges();
-        }
+        // Restore if soft-deleted and ensure correct state and deterministic encryption
+        adminUser.IsDeleted = false;
+        adminUser.IsActive = true;
+        adminUser.IsSystemAdmin = true;
+        adminUser.Email = "admin@uabindia.in";
+        adminUser.PasswordHash = hasher.HashPassword(adminUser, "Admin@123");
+        adminUser.UpdatedAt = DateTime.UtcNow;
+        db.Users.Update(adminUser);
+        db.SaveChanges();
     }
 
     var adminUserRole = db.UserRoles.IgnoreQueryFilters().FirstOrDefault(ur => ur.TenantId == tenant.Id && ur.UserId == adminUser.Id && ur.RoleId == adminRole.Id);
@@ -1451,8 +1470,11 @@ if (!app.Environment.IsEnvironment("Test"))
 {
     try
     {
-        // Hangfire Dashboard (admin-only: /hangfire)
-        app.UseHangfireDashboard("/hangfire");
+        // Hangfire Dashboard — restricted to SuperAdmin/Admin roles only
+        app.UseHangfireDashboard("/hangfire", new Hangfire.DashboardOptions
+        {
+            Authorization = new[] { new HangfireAdminAuthFilter() }
+        });
 
         // Schedule recurring background jobs
         using var connection = JobStorage.Current.GetConnection();
@@ -1679,7 +1701,6 @@ static string NormalizeSqlServerConnectionString(string connectionString, IWebHo
     if (env.IsDevelopment())
     {
         builder.TrustServerCertificate = true;
-        builder.Encrypt = false;
     }
 
     return builder.ConnectionString;

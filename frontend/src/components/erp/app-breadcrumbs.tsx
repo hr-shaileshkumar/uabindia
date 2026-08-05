@@ -99,8 +99,8 @@ export function AppBreadcrumbs() {
   }
 
   return (
-    <nav aria-label="Breadcrumb" className="overflow-x-auto">
-      <ol className="flex min-w-max items-center gap-2 rounded-2xl border border-slate-200/80 bg-white/75 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 shadow-[var(--erp-shadow-sm)] backdrop-blur-sm">
+    <nav aria-label="Breadcrumb" className="overflow-x-auto [scrollbar-width:none]">
+      <ol className="flex min-w-max items-center gap-1.5 rounded-[var(--erp-radius-control)] border border-[var(--erp-border)] bg-white/90 px-2 py-1 text-[11px] font-semibold text-slate-500 shadow-[var(--erp-shadow-sm)]">
         <li>
           <Link
             href={crumbs[0]?.href || "/context"}

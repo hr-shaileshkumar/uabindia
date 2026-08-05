@@ -1,5 +1,7 @@
 "use client";
 
+import PublicStatusPage from "@/components/public/PublicStatusPage";
+
 export default function GlobalError({
   error,
   reset,
@@ -7,21 +9,40 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const reloadPage = () => {
+    if (typeof window !== "undefined") {
+      window.location.reload();
+    }
+  };
+
   return (
-    <div className="flex min-h-[50vh] items-center justify-center px-6 py-16">
-      <div className="w-full max-w-xl rounded-2xl border border-rose-200 bg-white p-8 shadow-sm">
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-rose-600">Application Error</p>
-        <h2 className="mt-3 text-2xl font-semibold text-slate-900">Something broke while loading this screen.</h2>
-        <p className="mt-3 text-sm leading-6 text-slate-600">
-          {error.message || "An unexpected error occurred. Try the request again."}
-        </p>
-        <button
-          type="button"
-          onClick={reset}
-          className="mt-6 inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700"
-        >
-          Retry
-        </button>
+    <div className="min-h-screen bg-slate-50">
+      <PublicStatusPage
+        eyebrow="Application error"
+        title="We hit a snag while loading this screen."
+        description={error.message || "An unexpected runtime error occurred while rendering the current page."}
+        note="Try retrying the screen first. If the issue persists, reload the app or return to a stable route."
+        actions={[
+          { href: "/", label: "Open public site", variant: "secondary" },
+        ]}
+      />
+      <div className="-mt-36 flex justify-center px-6 pb-12">
+        <div className="flex flex-wrap justify-center gap-3 rounded-2xl border border-slate-200 bg-white/90 p-3 shadow-sm backdrop-blur">
+          <button
+            type="button"
+            onClick={reset}
+            className="inline-flex items-center justify-center rounded-xl bg-[#0f5eff] px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(15,94,255,0.22)] transition hover:bg-[#0b4fe0]"
+          >
+            Retry this screen
+          </button>
+          <button
+            type="button"
+            onClick={reloadPage}
+            className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+          >
+            Reload app
+          </button>
+        </div>
       </div>
     </div>
   );

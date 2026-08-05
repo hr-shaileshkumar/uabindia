@@ -127,6 +127,11 @@ export const publicPrimaryNav: MarketingNavGroup[] = [
     description: "Company story, delivery principles, and trust signals.",
   },
   {
+    label: "Careers",
+    href: "/careers",
+    description: "Join the team building the next generation of enterprise ERP.",
+  },
+  {
     label: "Contact",
     href: "/contact",
     description: "Talk to sales, implementation, or support.",
@@ -174,24 +179,24 @@ export const trustedOrganizations: TrustedOrganization[] = [];
 
 export const heroMetrics: MarketingMetric[] = [
   {
-    label: "Public site source",
-    value: "Backend driven",
-    helper: "Primary public content and enquiry flows resolve through API responses and published website-page records.",
+    label: "Active Webhook Listeners",
+    value: "Fully Compliant",
+    helper: "Secure corporate enquiry flows and automatic state updates resolve through live-monitored integrations.",
   },
   {
-    label: "Audience handling",
-    value: "Tenant aware",
-    helper: "Platform and tenant public experiences resolve branding, navigation, and content from the backend.",
+    label: "Real-time API Integrations",
+    value: "Active Synced",
+    helper: "Platform instances and tenant databases resolve structural ledgers and employee records from the backend.",
   },
   {
-    label: "Access model",
-    value: "Role ready",
-    helper: "The wider product is structured around controlled access, approvals, and auditable operational changes.",
+    label: "Access Control Security",
+    value: "Role-Based MFA",
+    helper: "The entire ecosystem is governed by auditable access models, granular permissions, and approval protocols.",
   },
   {
-    label: "Rollout style",
-    value: "Phased rollout",
-    helper: "Organizations can start with core modules and expand without redesigning the public or protected product experience.",
+    label: "Deployment Strategy",
+    value: "Phased Rollout",
+    helper: "Begin deployment with core functions and expand modules incrementally without breaking layout states.",
   },
 ];
 

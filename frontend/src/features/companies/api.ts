@@ -5,6 +5,7 @@ import type {
   CompanyListResponse,
   CompanyMutationPayload,
   CompanyResponse,
+  TenantDto,
   TenantSummary,
   TenantListResponse,
 } from "./types";
@@ -13,6 +14,7 @@ export const companiesRootQueryKey = ["companies"] as const;
 export const companiesQueryKey = (page: number, limit: number, tenant?: string, includeDeleted?: boolean) =>
   [...companiesRootQueryKey, page, limit, tenant ?? "all-tenants", includeDeleted ? "with-deleted" : "active-only"] as const;
 export const tenantsQueryKey = ["platform", "tenants"] as const;
+export const tenantQueryKey = (id: string) => ["platform", "tenant", id] as const;
 
 const toObject = (value: unknown): Record<string, unknown> =>
   (value && typeof value === "object" ? (value as Record<string, unknown>) : {});
@@ -116,6 +118,19 @@ export const updateCompany = async (id: string, payload: CompanyMutationPayload)
 export const deleteCompany = async (id: string) => {
   const response = await apiClient.delete<CompanyDeleteResponse>(`/companies/${id}`);
   return response.data;
+};
+
+export const getTenantById = async (id: string) => {
+  const response = await apiClient.get<TenantListResponse>("/tenants");
+  const payload = toObject(response.data);
+  const rawTenants = Array.isArray(payload.tenants) ? payload.tenants : [];
+  const normalized = rawTenants.map((tenant) => normalizeTenant(tenant, 0));
+  const tenant = normalized.find((item) => item.id === id);
+
+  return {
+    ...response.data,
+    tenant,
+  } as unknown as { success?: boolean; tenant?: TenantDto };
 };
 
 export const listTenants = async () => {

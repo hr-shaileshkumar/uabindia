@@ -4,6 +4,8 @@ namespace UabIndia.Core.Entities
 {
     public class AuditLog : BaseEntity
     {
+        public Guid? CompanyId { get; set; }
+        public Guid? ProjectId { get; set; }
         public string? EntityName { get; set; }
         public Guid? EntityId { get; set; }
         public string? Action { get; set; }

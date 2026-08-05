@@ -106,3 +106,7 @@ export const hasTenantScopedHost = (value: string | null | undefined): boolean =
   const hostname = normalizeHostname(value);
   return Boolean(hostname) && (Boolean(getTenantSubdomainFromHost(hostname)) || isPotentialCustomTenantHost(hostname));
 };
+
+export const getPlatformBaseDomain = (): string => {
+  return stripLeadingWww(PLATFORM_HOSTNAME);
+};

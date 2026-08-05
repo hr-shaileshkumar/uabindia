@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
+import ErpHeaderSummary from "@/components/layout/ErpHeaderSummary";
 import { hrApi } from "@/services/hrApi";
 import { notifyError } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
@@ -44,12 +45,15 @@ export default function CommunicationEmailTemplatesPage() {
       rows={records}
       countLabel={(count) => `${count} templates`}
       emptyMessage="No email templates found."
-      kpiCards={
-        <div className="erp-kpi-grid">
-          <div className="erp-kpi-card"><p className="erp-kpi-label">Total</p><p className="erp-kpi-value">{records.length}</p><p className="erp-kpi-meta">Templates</p></div>
-          <div className="erp-kpi-card erp-kpi-card-success"><p className="erp-kpi-label">Active</p><p className="erp-kpi-value erp-kpi-value-success">{records.filter(r => r.status === "Active").length}</p><p className="erp-kpi-meta">In use</p></div>
-          <div className="erp-kpi-card erp-kpi-card-warning"><p className="erp-kpi-label">Draft</p><p className="erp-kpi-value">{records.filter(r => r.status === "Draft").length}</p><p className="erp-kpi-meta">Not deployed</p></div>
-        </div>
+      headerStats={
+        <ErpHeaderSummary
+          items={[
+            { label: "Templates", value: records.length },
+            { label: "Active", value: records.filter((r) => r.status === "Active").length, tone: "success" },
+            { label: "Draft", value: records.filter((r) => r.status === "Draft").length, tone: "warning" },
+            { label: "Events", value: new Set(records.map((r) => r.triggerEvent).filter(Boolean)).size, tone: "info" },
+          ]}
+        />
       }
       columns={[{ label: "Name" }, { label: "Subject" }, { label: "Trigger Event" }, { label: "Language" }, { label: "Status" }]}
       renderRow={(r) => (

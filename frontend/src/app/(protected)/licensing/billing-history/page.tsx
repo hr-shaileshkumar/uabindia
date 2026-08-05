@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
+import { CrudHeaderStats } from "@/components/erp/crud-workspace";
 
 type BillingRow = {
   id: string;
@@ -28,13 +29,28 @@ export default function LicensingBillingHistoryPage() {
       rows={records}
       countLabel={(count) => `${count} billing records`}
       emptyMessage="No billing records found."
-      kpiCards={
-        <div className="erp-kpi-grid">
-          <div className="erp-kpi-card"><p className="erp-kpi-label">Total Invoices</p><p className="erp-kpi-value">{records.length}</p><p className="erp-kpi-meta">All billing entries</p></div>
-          <div className="erp-kpi-card erp-kpi-card-success"><p className="erp-kpi-label">Paid</p><p className="erp-kpi-value erp-kpi-value-success">{records.filter(r => r.status === "Paid").length}</p><p className="erp-kpi-meta">Cleared invoices</p></div>
-          <div className="erp-kpi-card erp-kpi-card-warning"><p className="erp-kpi-label">Pending</p><p className="erp-kpi-value">{records.filter(r => r.status === "Pending").length}</p><p className="erp-kpi-meta">Outstanding</p></div>
-          <div className="erp-kpi-card erp-kpi-card-info"><p className="erp-kpi-label">Total Billed</p><p className="erp-kpi-value">{records.reduce((s, r) => s + r.amount, 0).toLocaleString()}</p><p className="erp-kpi-meta">Cumulative billing</p></div>
-        </div>
+      headerStats={
+        <CrudHeaderStats
+          items={[
+            { label: "Invoices", value: records.length, helper: "total" },
+            {
+              label: "Paid",
+              value: records.filter((record) => record.status === "Paid").length,
+              tone: "positive",
+            },
+            {
+              label: "Pending",
+              value: records.filter((record) => record.status === "Pending").length,
+              tone: "warning",
+            },
+            {
+              label: "Billed",
+              value: records.reduce((total, record) => total + record.amount, 0).toLocaleString(),
+              helper: "cumulative",
+              tone: "info",
+            },
+          ]}
+        />
       }
       columns={[
         { label: "Invoice #" },

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
+import { CrudHeaderStats } from "@/components/erp/crud-workspace";
 import { hrApi } from "@/services/hrApi";
 
 type PayrollStructure = {
@@ -46,13 +47,31 @@ export default function PayrollStructuresPage() {
       rows={structures}
       countLabel={(count) => `${count} structures`}
       emptyMessage="No structures found."
-      kpiCards={
-        <div className="erp-kpi-grid">
-          <div className="erp-kpi-card"><p className="erp-kpi-label">Total Structures</p><p className="erp-kpi-value">{structures.length}</p><p className="erp-kpi-meta">Salary structures</p></div>
-          <div className="erp-kpi-card erp-kpi-card-success"><p className="erp-kpi-label">Active</p><p className="erp-kpi-value erp-kpi-value-success">{structures.filter(s => !s.status || (s.status || '').toLowerCase() === 'active').length}</p><p className="erp-kpi-meta">In use</p></div>
-          <div className="erp-kpi-card erp-kpi-card-warning"><p className="erp-kpi-label">Inactive</p><p className="erp-kpi-value">{structures.filter(s => (s.status || '').toLowerCase() === 'inactive').length}</p><p className="erp-kpi-meta">Archived structures</p></div>
-          <div className="erp-kpi-card erp-kpi-card-info"><p className="erp-kpi-label">Recently Added</p><p className="erp-kpi-value">{structures.filter(s => { const d = s.createdAt ? new Date(s.createdAt) : null; return d !== null && d.getTime() >= recentCutoff; }).length}</p><p className="erp-kpi-meta">Added in last 30 days</p></div>
-        </div>
+      headerStats={
+        <CrudHeaderStats
+          items={[
+            { label: "Structures", value: structures.length, helper: "total" },
+            {
+              label: "Active",
+              value: structures.filter((structure) => !structure.status || (structure.status || "").toLowerCase() === "active").length,
+              tone: "positive",
+            },
+            {
+              label: "Inactive",
+              value: structures.filter((structure) => (structure.status || "").toLowerCase() === "inactive").length,
+              tone: "warning",
+            },
+            {
+              label: "Recent",
+              value: structures.filter((structure) => {
+                const createdAt = structure.createdAt ? new Date(structure.createdAt) : null;
+                return createdAt !== null && createdAt.getTime() >= recentCutoff;
+              }).length,
+              helper: "30 days",
+              tone: "info",
+            },
+          ]}
+        />
       }
       columns={[
         { label: "Name" },

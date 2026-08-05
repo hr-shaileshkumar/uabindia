@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { hrApi } from "@/services/hrApi";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import { hrApi } from "@/services/hrApi";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
 
-type WhRow = {
+type WarehouseRow = {
   id: string;
   warehouseCode: string;
   warehouseName: string;
@@ -18,7 +18,7 @@ type WhRow = {
 };
 
 export default function WarehousesPage() {
-  const [rows, setRows] = useState<WhRow[]>([]);
+  const [rows, setRows] = useState<WarehouseRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState("list");
@@ -33,11 +33,11 @@ export default function WarehousesPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await hrApi.erp.warehouses.list(1, 100);
-      setRows((res.data?.data as WhRow[]) || []);
+      const response = await hrApi.erp.warehouses.list(1, 100);
+      setRows((response.data?.data as WarehouseRow[]) || []);
       setError(null);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to load warehouses");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to load warehouses.");
     } finally {
       setLoading(false);
     }
@@ -49,9 +49,10 @@ export default function WarehousesPage() {
 
   const save = async () => {
     if (!form.warehouseCode.trim() || !form.warehouseName.trim()) {
-      setError("Code and name are required.");
+      setError("Warehouse code and warehouse name are required.");
       return;
     }
+
     setError(null);
     try {
       setLoading(true);
@@ -63,131 +64,171 @@ export default function WarehousesPage() {
         isDefault: form.isDefault,
       });
       setTab("list");
-      setForm({ warehouseCode: "", warehouseName: "", city: "", state: "", isDefault: false });
+      setForm({
+        warehouseCode: "",
+        warehouseName: "",
+        city: "",
+        state: "",
+        isDefault: false,
+      });
       await load();
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Save failed (Admin may be required).");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Save failed. Admin access may be required.");
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <StandardPageLayout title="Warehouses" subtitle="Storage locations for inventory">
-      {error && <div className="erp-alert-error text-sm">{error}</div>}
+  const activeCount = rows.filter((row) => row.isActive).length;
+  const defaultCount = rows.filter((row) => row.isDefault).length;
 
-      {/* KPI summary cards */}
-      <div className="erp-kpi-grid mb-4">
-        <div className="erp-kpi-card"><p className="erp-kpi-label">Total Warehouses</p><p className="erp-kpi-value">{rows.length}</p><p className="erp-kpi-meta">Storage locations</p></div>
-        <div className="erp-kpi-card erp-kpi-card-success"><p className="erp-kpi-label">Active</p><p className="erp-kpi-value erp-kpi-value-success">{rows.filter(r => r.isActive).length}</p><p className="erp-kpi-meta">Operational warehouses</p></div>
-        <div className="erp-kpi-card erp-kpi-card-info"><p className="erp-kpi-label">Default</p><p className="erp-kpi-value">{rows.filter(r => r.isDefault).length}</p><p className="erp-kpi-meta">Default storage</p></div>
-        <div className="erp-kpi-card erp-kpi-card-warning"><p className="erp-kpi-label">Inactive</p><p className="erp-kpi-value">{rows.filter(r => !r.isActive).length}</p><p className="erp-kpi-meta">Closed warehouses</p></div>
-      </div>
+  return (
+    <StandardPageLayout
+      title="Warehouses"
+      subtitle="Configure inventory storage points used by receipts, transfers, issue flows, and stock accountability."
+      eyebrow="Inventory / Warehouse Setup"
+      icon="warehouse"
+      meta={
+        <>
+          <CrudHeaderStats
+            items={[
+              { label: "Warehouses", value: rows.length, helper: "locations" },
+              { label: "Active", value: activeCount, tone: "positive" },
+              { label: "Default", value: defaultCount, tone: "info" },
+              { label: "Inactive", value: rows.length - activeCount, tone: "warning" },
+            ]}
+          />
+        </>
+      }
+    >
+      {error && <div className="erp-alert-error text-sm">{error}</div>}
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="erp-tabs-list">
-          <TabsTrigger value="list" className="erp-tab-trigger data-[state=active]:erp-tab-trigger-active">List</TabsTrigger>
-          <TabsTrigger value="new" className="erp-tab-trigger data-[state=active]:erp-tab-trigger-active">New warehouse</TabsTrigger>
+          <TabsTrigger
+            value="list"
+            className="erp-tab-trigger data-[state=active]:erp-tab-trigger-active"
+          >
+            Warehouse Register
+          </TabsTrigger>
+          <TabsTrigger
+            value="new"
+            className="erp-tab-trigger data-[state=active]:erp-tab-trigger-active"
+          >
+            New Warehouse
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="list">
-          <Card className="erp-panel">
-            <CardHeader className="border-b border-slate-100 bg-white/75">
-              <CardTitle>Warehouses</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <CrudCard title="Warehouse Register" description="Keep the listing dense and operational. Only show columns needed for stock flow decisions.">
               {loading && rows.length === 0 ? (
-                <div className="erp-loading">Loading…</div>
+                <div className="erp-loading">Loading...</div>
               ) : rows.length === 0 ? (
-                <div className="erp-empty">No warehouses yet.</div>
+                <div className="erp-empty">No warehouses created yet.</div>
               ) : (
                 <div className="erp-table-wrap border-0 bg-white/80 shadow-none">
                   <table className="erp-table">
                     <thead className="erp-thead">
                       <tr>
                         <th className="erp-th">Code</th>
-                        <th className="erp-th">Name</th>
+                        <th className="erp-th">Warehouse</th>
                         <th className="erp-th">Location</th>
                         <th className="erp-th">Default</th>
-                        <th className="erp-th">Active</th>
+                        <th className="erp-th">Status</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {rows.map((r) => (
-                        <tr key={r.id} className="erp-tr">
-                          <td className="erp-td font-medium text-slate-900">{r.warehouseCode}</td>
-                          <td className="erp-td">{r.warehouseName}</td>
-                          <td className="erp-td">{[r.city, r.state].filter(Boolean).join(", ") || "—"}</td>
-                          <td className="erp-td">{r.isDefault ? "Yes" : "—"}</td>
-                          <td className="erp-td">{r.isActive ? "Yes" : "No"}</td>
+                      {rows.map((row) => (
+                        <tr key={row.id} className="erp-tr">
+                          <td className="erp-td font-medium text-slate-900">{row.warehouseCode}</td>
+                          <td className="erp-td">{row.warehouseName}</td>
+                          <td className="erp-td">
+                            {[row.city, row.state].filter(Boolean).join(", ") || "-"}
+                          </td>
+                          <td className="erp-td">
+                            {row.isDefault ? (
+                              <span className="erp-chip erp-chip-info">Default</span>
+                            ) : (
+                              "-"
+                            )}
+                          </td>
+                          <td className="erp-td">
+                            <span
+                              className={
+                                row.isActive ? "erp-chip erp-chip-success" : "erp-chip erp-chip-neutral"
+                              }
+                            >
+                              {row.isActive ? "Active" : "Inactive"}
+                            </span>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
-                  </table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    </table>
+                  </div>
+                )}
+          </CrudCard>
         </TabsContent>
 
         <TabsContent value="new">
-          <Card className="erp-panel">
-            <CardHeader className="border-b border-slate-100 bg-white/75">
-              <CardTitle>Create warehouse</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CrudCard title="Create Warehouse" description="Capture only the location setup data needed for inventory operations.">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <label className="text-sm font-medium text-slate-600">Code</label>
+                <label className="erp-label">Warehouse Code</label>
                 <input
                   value={form.warehouseCode}
-                  onChange={(e) => setForm((f) => ({ ...f, warehouseCode: e.target.value }))}
+                  onChange={(event) => setForm((current) => ({ ...current, warehouseCode: event.target.value }))}
                   className="erp-input mt-1"
+                  placeholder="WH-DEL-01"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-600">Name</label>
+                <label className="erp-label">Warehouse Name</label>
                 <input
                   value={form.warehouseName}
-                  onChange={(e) => setForm((f) => ({ ...f, warehouseName: e.target.value }))}
+                  onChange={(event) => setForm((current) => ({ ...current, warehouseName: event.target.value }))}
                   className="erp-input mt-1"
+                  placeholder="Delhi Central Warehouse"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-600">City</label>
+                <label className="erp-label">City</label>
                 <input
                   value={form.city}
-                  onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+                  onChange={(event) => setForm((current) => ({ ...current, city: event.target.value }))}
                   className="erp-input mt-1"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-600">State</label>
+                <label className="erp-label">State</label>
                 <input
                   value={form.state}
-                  onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))}
+                  onChange={(event) => setForm((current) => ({ ...current, state: event.target.value }))}
                   className="erp-input mt-1"
                 />
               </div>
               <div className="md:col-span-2 flex items-center gap-2">
                 <input
-                  id="def"
+                  id="default-warehouse"
                   type="checkbox"
                   checked={form.isDefault}
-                  onChange={(e) => setForm((f) => ({ ...f, isDefault: e.target.checked }))}
+                  onChange={(event) => setForm((current) => ({ ...current, isDefault: event.target.checked }))}
                   className="h-4 w-4 rounded border-slate-300 text-(--erp-primary)"
                 />
-                <label htmlFor="def" className="text-sm text-slate-700">
+                <label htmlFor="default-warehouse" className="text-sm text-slate-700">
                   Set as default warehouse
                 </label>
               </div>
-              <div className="md:col-span-2 erp-form-actions">
-                <Button type="button" variant="outline" onClick={() => setTab("list")}>Cancel</Button>
+              <div className="erp-form-actions md:col-span-2">
+                <Button type="button" variant="outline" onClick={() => setTab("list")}>
+                  Cancel
+                </Button>
                 <Button type="button" onClick={() => void save()} disabled={loading}>
-                  Save
+                  Save Warehouse
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CrudCard>
         </TabsContent>
       </Tabs>
     </StandardPageLayout>

@@ -4,6 +4,8 @@ namespace UabIndia.Core.Entities
 {
     public class User : BaseEntity
     {
+        public Guid? CompanyId { get; set; }
+        public Guid? ProjectId { get; set; }
         public string Email { get; set; } = string.Empty;
         public string PasswordHash { get; set; } = string.Empty;
         public string? FullName { get; set; }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import ErpHeaderSummary from "@/components/layout/ErpHeaderSummary";
 import { hrApi } from "@/services/hrApi";
 
 type AuditEntry = { id?: string; action?: string; entityName?: string; performedBy?: string; createdAt?: string; description?: string };
@@ -34,7 +35,6 @@ export default function ComplianceReportsPage() {
   }, []);
 
   const score = dataQuality?.score ?? 0;
-  const scoreColor = score >= 90 ? "text-emerald-600" : score >= 70 ? "text-amber-600" : "text-red-600";
 
   return (
     <StandardPageLayout
@@ -42,46 +42,33 @@ export default function ComplianceReportsPage() {
       subtitle="Audit trails, data quality scores, and module usage analytics for governance reporting."
       eyebrow="Reports / Compliance & Governance"
       icon="shield"
+      meta={
+        <ErpHeaderSummary
+          items={[
+            { label: "Audit Entries", value: auditLog.length, tone: "info" },
+            {
+              label: "Quality Score",
+              value: `${score}%`,
+              tone: score >= 90 ? "success" : score >= 70 ? "warning" : "danger",
+            },
+            { label: "Records", value: dataQuality?.totalRecords ?? "-" },
+            { label: "Issues", value: dataQuality?.issueCount ?? "-", tone: "warning" },
+          ]}
+        />
+      }
     >
-      <div className="erp-kpi-grid">
-        <div className="erp-kpi-card erp-kpi-card-info">
-          <p className="erp-kpi-label">Audit Entries</p>
-          <p className="erp-kpi-value">{auditLog.length}</p>
-          <p className="erp-kpi-meta">Loaded audit log records</p>
-        </div>
-        <div className={`erp-kpi-card ${score >= 90 ? "erp-kpi-card-success" : score >= 70 ? "erp-kpi-card-warning" : "erp-kpi-card-danger"}`}>
-          <p className="erp-kpi-label">Data Quality Score</p>
-          <p className={`erp-kpi-value ${scoreColor}`}>{score}%</p>
-          <p className="erp-kpi-meta">Overall data health rating</p>
-        </div>
-        <div className="erp-kpi-card">
-          <p className="erp-kpi-label">Total Records</p>
-          <p className="erp-kpi-value">{dataQuality?.totalRecords ?? "—"}</p>
-          <p className="erp-kpi-meta">Records analysed</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-warning">
-          <p className="erp-kpi-label">Issues Found</p>
-          <p className="erp-kpi-value">{dataQuality?.issueCount ?? "—"}</p>
-          <p className="erp-kpi-meta">Data quality issues</p>
-        </div>
-      </div>
-
       {error && <div className="erp-alert-error">{error}</div>}
 
       <div className="erp-panel">
         <div className="erp-panel-header">
           <div className="erp-tabs-list">
-            <button type="button" onClick={() => setActiveTab("audit")} className={activeTab === "audit" ? "erp-tab-trigger erp-tab-trigger-active" : "erp-tab-trigger"}>
-              Audit Log
-            </button>
-            <button type="button" onClick={() => setActiveTab("quality")} className={activeTab === "quality" ? "erp-tab-trigger erp-tab-trigger-active" : "erp-tab-trigger"}>
-              Data Quality
-            </button>
+            <button type="button" onClick={() => setActiveTab("audit")} className={activeTab === "audit" ? "erp-tab-trigger erp-tab-trigger-active" : "erp-tab-trigger"}>Audit Log</button>
+            <button type="button" onClick={() => setActiveTab("quality")} className={activeTab === "quality" ? "erp-tab-trigger erp-tab-trigger-active" : "erp-tab-trigger"}>Data Quality</button>
           </div>
         </div>
         <div className="erp-panel-body">
           {loading ? (
-            <div className="erp-loading">Loading compliance data…</div>
+            <div className="erp-loading">Loading compliance data...</div>
           ) : (
             <>
               {activeTab === "audit" && (
@@ -100,17 +87,15 @@ export default function ComplianceReportsPage() {
                       {auditLog.length === 0 ? (
                         <tr><td colSpan={5} className="erp-td py-10 text-center text-slate-400">No audit records found.</td></tr>
                       ) : (
-                        auditLog.slice(0, 50).map((entry, i) => (
-                          <tr key={entry.id || i} className="erp-tr">
-                            <td className="erp-td text-slate-600 text-xs font-mono">
-                              {entry.createdAt ? new Date(entry.createdAt).toLocaleString("en-IN") : "—"}
+                        auditLog.slice(0, 50).map((entry, index) => (
+                          <tr key={entry.id || index} className="erp-tr">
+                            <td className="erp-td text-xs font-mono text-slate-600">
+                              {entry.createdAt ? new Date(entry.createdAt).toLocaleString("en-IN") : "-"}
                             </td>
-                            <td className="erp-td">
-                              <span className="erp-chip erp-chip-info">{entry.action || "—"}</span>
-                            </td>
-                            <td className="erp-td text-slate-700">{entry.entityName || "—"}</td>
-                            <td className="erp-td text-slate-600">{entry.performedBy || "—"}</td>
-                            <td className="erp-td text-slate-500 text-xs max-w-xs truncate">{entry.description || "—"}</td>
+                            <td className="erp-td"><span className="erp-chip erp-chip-info">{entry.action || "-"}</span></td>
+                            <td className="erp-td text-slate-700">{entry.entityName || "-"}</td>
+                            <td className="erp-td text-slate-600">{entry.performedBy || "-"}</td>
+                            <td className="erp-td max-w-xs truncate text-xs text-slate-500">{entry.description || "-"}</td>
                           </tr>
                         ))
                       )}
@@ -132,9 +117,9 @@ export default function ComplianceReportsPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {dataQuality.issues.map((issue, i) => (
-                            <tr key={i} className="erp-tr">
-                              <td className="erp-td text-slate-900 font-medium">{issue.entity}</td>
+                          {dataQuality.issues.map((issue, index) => (
+                            <tr key={index} className="erp-tr">
+                              <td className="erp-td font-medium text-slate-900">{issue.entity}</td>
                               <td className="erp-td"><span className="erp-chip erp-chip-warning">{issue.type}</span></td>
                               <td className="erp-td text-slate-600">{issue.count}</td>
                             </tr>

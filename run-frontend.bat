@@ -21,6 +21,18 @@ echo npm version:
 npm --version
 
 echo.
+echo Checking for an existing frontend process on port 3000...
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$pidOn3000 = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -First 1; " ^
+  "if ($pidOn3000) { " ^
+  "  Write-Host 'Stopping existing process on port 3000 (PID '$pidOn3000')...' -ForegroundColor Yellow; " ^
+  "  Stop-Process -Id $pidOn3000 -Force; " ^
+  "  Start-Sleep -Seconds 2; " ^
+  "} else { " ^
+  "  Write-Host 'No existing frontend process found on port 3000.'; " ^
+  "}"
+
+echo.
 echo Entering frontend directory...
 cd frontend
 

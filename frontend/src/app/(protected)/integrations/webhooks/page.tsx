@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
+import { CrudHeaderStats } from "@/components/erp/crud-workspace";
 
 type WebhookRow = { id: string; url: string; events: string; deliveries: number; failures: number; status: string };
 
@@ -20,12 +21,14 @@ export default function IntegrationsWebhooksPage() {
       rows={records}
       countLabel={(count) => `${count} webhooks`}
       emptyMessage="No webhooks configured."
-      kpiCards={
-        <div className="erp-kpi-grid">
-          <div className="erp-kpi-card"><p className="erp-kpi-label">Total</p><p className="erp-kpi-value">{records.length}</p><p className="erp-kpi-meta">Webhooks</p></div>
-          <div className="erp-kpi-card erp-kpi-card-success"><p className="erp-kpi-label">Active</p><p className="erp-kpi-value erp-kpi-value-success">{records.filter(r => r.status === "Active").length}</p><p className="erp-kpi-meta">Delivering</p></div>
-          <div className="erp-kpi-card erp-kpi-card-danger"><p className="erp-kpi-label">Failures</p><p className="erp-kpi-value">{records.reduce((a, r) => a + r.failures, 0)}</p><p className="erp-kpi-meta">Total failed</p></div>
-        </div>
+      headerStats={
+        <CrudHeaderStats
+          items={[
+            { label: "Webhooks", value: records.length, helper: "total" },
+            { label: "Active", value: records.filter((r) => r.status === "Active").length, tone: "positive" },
+            { label: "Failures", value: records.reduce((a, r) => a + r.failures, 0), tone: "danger" },
+          ]}
+        />
       }
       columns={[{ label: "Endpoint URL" }, { label: "Events" }, { label: "Deliveries" }, { label: "Failures" }, { label: "Status" }]}
       renderRow={(r) => (

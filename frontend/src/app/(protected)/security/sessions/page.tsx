@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
+import { CrudHeaderStats } from "@/components/erp/crud-workspace";
 import { hrApi } from "@/services/hrApi";
 
 type SessionRow = {
@@ -40,13 +41,15 @@ export default function RefreshTokensPage() {
       rows={sessions}
       countLabel={(count) => `${count} sessions`}
       emptyMessage="No refresh tokens found."
-      kpiCards={
-        <div className="erp-kpi-grid">
-          <div className="erp-kpi-card"><p className="erp-kpi-label">Total Sessions</p><p className="erp-kpi-value">{sessions.length}</p><p className="erp-kpi-meta">All refresh tokens</p></div>
-          <div className="erp-kpi-card erp-kpi-card-success"><p className="erp-kpi-label">Active</p><p className="erp-kpi-value erp-kpi-value-success">{sessions.filter(s => !s.isRevoked).length}</p><p className="erp-kpi-meta">Valid sessions</p></div>
-          <div className="erp-kpi-card erp-kpi-card-danger"><p className="erp-kpi-label">Revoked</p><p className="erp-kpi-value erp-kpi-value-danger">{sessions.filter(s => s.isRevoked).length}</p><p className="erp-kpi-meta">Invalidated sessions</p></div>
-          <div className="erp-kpi-card erp-kpi-card-warning"><p className="erp-kpi-label">Devices</p><p className="erp-kpi-value">{new Set(sessions.map(s => s.deviceId).filter(Boolean)).size}</p><p className="erp-kpi-meta">Unique devices</p></div>
-        </div>
+      headerStats={
+        <CrudHeaderStats
+          items={[
+            { label: "Sessions", value: sessions.length, helper: "tokens" },
+            { label: "Active", value: sessions.filter((s) => !s.isRevoked).length, tone: "positive" },
+            { label: "Revoked", value: sessions.filter((s) => s.isRevoked).length, tone: "danger" },
+            { label: "Devices", value: new Set(sessions.map((s) => s.deviceId).filter(Boolean)).size, tone: "warning" },
+          ]}
+        />
       }
       columns={[
         { label: "Device" },

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
+import { CrudHeaderStats } from "@/components/erp/crud-workspace";
 import { hrApi } from "@/services/hrApi";
 import { notifyError } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
@@ -44,12 +45,23 @@ export default function HelpdeskFaqPage() {
       rows={records}
       countLabel={(count) => `${count} articles`}
       emptyMessage="No FAQ articles found."
-      kpiCards={
-        <div className="erp-kpi-grid">
-          <div className="erp-kpi-card"><p className="erp-kpi-label">Articles</p><p className="erp-kpi-value">{records.length}</p><p className="erp-kpi-meta">Total FAQs</p></div>
-          <div className="erp-kpi-card erp-kpi-card-success"><p className="erp-kpi-label">Published</p><p className="erp-kpi-value erp-kpi-value-success">{records.filter(r => r.status === "Published").length}</p><p className="erp-kpi-meta">Live</p></div>
-          <div className="erp-kpi-card erp-kpi-card-info"><p className="erp-kpi-label">Total Views</p><p className="erp-kpi-value">{records.reduce((a, r) => a + r.views, 0)}</p><p className="erp-kpi-meta">All time</p></div>
-        </div>
+      headerStats={
+        <CrudHeaderStats
+          items={[
+            { label: "Articles", value: records.length, helper: "faq" },
+            {
+              label: "Published",
+              value: records.filter((record) => record.status === "Published").length,
+              tone: "positive",
+            },
+            {
+              label: "Views",
+              value: records.reduce((total, record) => total + record.views, 0),
+              helper: "all time",
+              tone: "info",
+            },
+          ]}
+        />
       }
       columns={[{ label: "Question" }, { label: "Category" }, { label: "Views" }, { label: "Helpful" }, { label: "Status" }]}
       renderRow={(r) => (

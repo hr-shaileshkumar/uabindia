@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import ErpHeaderSummary from "@/components/layout/ErpHeaderSummary";
 import WebsitePageEditor from "@/components/admin/website/WebsitePageEditor";
 import { platformApi, type WebsitePageSummary, type WebsitePageTenantGroup } from "@/services/modules/platform";
 import { getWebsitePageDefinition } from "@/lib/website-page-config";
@@ -111,42 +112,29 @@ export default function WebsitePagesPage() {
       subtitle="Manage the backend-driven public website pages, edit structured content, and control publish state from one workspace."
       eyebrow="Platform / Website"
       icon="file-text"
+      meta={
+        <ErpHeaderSummary
+          items={[
+            { label: "Pages", value: pageStats.total },
+            { label: "Published", value: pageStats.published, tone: "success" },
+            { label: "Drafts", value: pageStats.draft, tone: "warning" },
+            { label: "Definitions", value: pages.filter((page) => getWebsitePageDefinition(page.pageType)).length, tone: "info" },
+          ]}
+        />
+      }
       actions={
         <button type="button" onClick={() => void loadPages()} className="erp-action-btn erp-action-btn-secondary">
           Refresh
         </button>
       }
     >
-      <div className="erp-kpi-grid">
-        <div className="erp-kpi-card">
-          <p className="erp-kpi-label">Pages</p>
-          <p className="erp-kpi-value">{pageStats.total}</p>
-          <p className="erp-kpi-meta">Website page records returned by the backend.</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-success">
-          <p className="erp-kpi-label">Published</p>
-          <p className="erp-kpi-value erp-kpi-value-success">{pageStats.published}</p>
-          <p className="erp-kpi-meta">Pages currently live on the public site.</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-warning">
-          <p className="erp-kpi-label">Drafts</p>
-          <p className="erp-kpi-value">{pageStats.draft}</p>
-          <p className="erp-kpi-meta">Structured pages not yet published.</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-info">
-          <p className="erp-kpi-label">Definitions</p>
-          <p className="erp-kpi-value">{pages.filter((page) => getWebsitePageDefinition(page.pageType)).length}</p>
-          <p className="erp-kpi-meta">Known page types with built-in templates.</p>
-        </div>
-      </div>
-
       {error ? <div className="erp-alert-error">{error}</div> : null}
 
       <div className="erp-panel">
         <div className="erp-panel-header">
           <div>
-            <h2 className="erp-panel-title">Pages</h2>
-            <p className="mt-1 text-sm text-slate-500">Edit, publish, or unpublish any managed website page.</p>
+            <h2 className="erp-panel-title">Page Directory</h2>
+            <p className="mt-1 text-sm text-slate-500">Edit, publish, or unpublish managed website pages from one directory.</p>
           </div>
         </div>
         <div className="erp-panel-body">

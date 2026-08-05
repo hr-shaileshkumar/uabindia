@@ -16,6 +16,8 @@ type PublicAudiencePageFrameProps = {
   allowedPaths?: string[];
   footerVariant?: "full" | "minimal";
   pageVisible?: boolean;
+  showHeader?: boolean;
+  showFooter?: boolean;
   children: ReactNode;
 };
 
@@ -27,6 +29,8 @@ export default function PublicAudiencePageFrame({
   allowedPaths,
   footerVariant = "full",
   pageVisible = true,
+  showHeader = true,
+  showFooter = true,
   children,
 }: PublicAudiencePageFrameProps) {
   return (
@@ -37,20 +41,22 @@ export default function PublicAudiencePageFrame({
       footerContent={footerContent}
       allowedPaths={allowedPaths}
       footerVariant={footerVariant}
+      showHeader={showHeader}
+      showFooter={showFooter}
     >
       {pageVisible ? (
         children
       ) : (
-        <section className="py-20 sm:py-24">
+        <section className="py-20 sm:py-28">
           <div className={publicSectionClassName}>
-            <div className="mx-auto max-w-2xl rounded-[1.6rem] border border-slate-200 bg-white p-8 text-center shadow-[0_20px_48px_rgba(15,23,42,0.06)]">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--erp-primary)]">
-                Public Page Disabled
+            <div className="mx-auto max-w-2xl rounded-2xl border border-white/8 bg-white/4 p-8 text-center backdrop-blur-xl shadow-[0_16px_48px_rgba(0,0,0,0.4)]">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-indigo-400">
+                Page Unavailable
               </p>
-              <h1 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-slate-950">
+              <h1 className="mt-3 text-2xl font-bold tracking-tight text-white sm:text-3xl">
                 This page is not available for this workspace.
               </h1>
-              <p className="mt-4 text-sm leading-7 text-slate-600">
+              <p className="mt-4 text-sm leading-7 text-slate-400">
                 Backend public access rules for this domain or tenant subdomain do not allow this page right now.
               </p>
               <div className="mt-8 flex flex-wrap justify-center gap-3">
@@ -70,6 +76,7 @@ export default function PublicAudiencePageFrame({
             </div>
           </div>
         </section>
+
       )}
     </PublicSiteFrame>
   );

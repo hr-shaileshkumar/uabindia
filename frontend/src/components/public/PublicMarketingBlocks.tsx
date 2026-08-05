@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ComponentProps,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
 import {
   ArrowDown,
@@ -31,23 +37,24 @@ import {
   Star,
   Store,
   Truck,
+  TrendingUp,
   UsersRound,
   WalletCards,
+  Zap,
 } from "lucide-react";
-import { useInView } from "framer-motion";
+import { useInView, LazyMotion, domAnimation, m } from "framer-motion";
 import { cn } from "@/lib/utils";
-import {
-  MotionItem,
-  MotionReveal,
-  MotionStagger,
-} from "@/components/public/PublicMotion";
+import { MotionItem, MotionReveal, MotionStagger } from "@/components/public/PublicMotion";
 import {
   publicButtonClassName,
   publicEyebrowClassName,
   publicPanelClassName,
+  publicPanelHoverClassName,
   publicSectionClassName,
   publicSectionContentGapClassName,
   publicSectionSpacingClassName,
+  publicTitleClassName,
+  publicSubtitleClassName,
 } from "@/components/public/publicStyles";
 import type {
   ComparisonRow,
@@ -60,6 +67,30 @@ import type {
   Testimonial,
   TrustedOrganization,
 } from "@/lib/public-marketing";
+
+export const FloatingCard = ({ children, position, delay }: { children: React.ReactNode; position: string; delay: string }) => {
+  return (
+    <div 
+      className={`absolute hidden lg:block floating-card-token ${position}`}
+      style={{
+        animation: 'subtleFloat 6s ease-in-out infinite',
+        animationDelay: delay,
+        willChange: 'transform',
+        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 10px 30px -3px rgba(0,0,0,0.04)',
+        border: '1px solid #e2e8f0',
+        borderRadius: '16px',
+        background: 'rgba(255, 255, 255, 0.85)',
+        backdropFilter: 'blur(16px)',
+        padding: '16px',
+        zIndex: 20
+      }}
+    >
+      {children}
+    </div>
+  );
+};
+
+// ─── Icon maps ────────────────────────────────────────────────────────────────
 
 const moduleIconMap = {
   users: UsersRound,
@@ -89,13 +120,11 @@ const industryIconMap = {
   ngo: Sparkles,
   hospital: HeartPulse,
   logistics: Truck,
-  "it-services": LaptopIcon,
+  "it-services": BriefcaseBusiness,
   "professional-services": BriefcaseBusiness,
 } as const;
 
-function LaptopIcon(props: ComponentProps<typeof Sparkles>) {
-  return <Sparkles {...props} />;
-}
+// ─── Section Intro ────────────────────────────────────────────────────────────
 
 export function SectionIntro({
   eyebrow,
@@ -109,22 +138,18 @@ export function SectionIntro({
   align?: "left" | "center";
 }) {
   return (
-    <div
-      className={cn(
-        "flex max-w-3xl flex-col gap-4",
-        align === "center" ? "mx-auto items-center text-center" : "items-start text-left"
-      )}
-    >
-      <p className={publicEyebrowClassName}>{eyebrow}</p>
-      <h2 className="max-w-4xl text-balance text-[2.05rem] leading-[0.98] font-semibold tracking-[-0.06em] text-slate-950 sm:text-[2.7rem] lg:text-[3.15rem]">
-        {title}
-      </h2>
-      <p className="max-w-2xl text-pretty text-[0.98rem] leading-7 text-slate-600 sm:text-base">
-        {subtitle}
-      </p>
+    <div className={cn("flex max-w-3xl flex-col gap-4", align === "center" && "mx-auto items-center text-center")}>
+      <div className={publicEyebrowClassName}>
+        <span className="h-1.5 w-1.5 rounded-full bg-indigo-600" />
+        {eyebrow}
+      </div>
+      <h2 className={publicTitleClassName}>{title}</h2>
+      <p className={publicSubtitleClassName}>{subtitle}</p>
     </div>
   );
 }
+
+// ─── Marketing Hero ───────────────────────────────────────────────────────────
 
 export function MarketingHero({
   eyebrow,
@@ -144,101 +169,235 @@ export function MarketingHero({
   trustSignals?: string[];
 }) {
   return (
-    <section className="public-hero-section relative overflow-hidden pt-5 pb-8 sm:pt-6 sm:pb-10 lg:pt-8 lg:pb-12">
-      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[42rem] bg-[radial-gradient(circle_at_20%_15%,rgba(36,108,192,0.2),transparent_34%),radial-gradient(circle_at_78%_12%,rgba(99,102,241,0.18),transparent_30%),radial-gradient(circle_at_70%_65%,rgba(16,185,129,0.16),transparent_30%)]" />
-      <div className={cn(publicSectionClassName, "public-hero-grid grid gap-6 lg:grid-cols-[1.02fr_0.98fr] lg:items-start")}>
-        <MotionReveal>
-          <div className="relative">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--erp-primary)] shadow-[0_20px_45px_rgba(15,23,42,0.08)] backdrop-blur">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              {eyebrow}
-            </div>
-            <h1 className="mt-5 max-w-4xl text-balance text-[2.8rem] leading-[0.92] font-semibold tracking-[-0.08em] text-slate-950 sm:text-[3.7rem] lg:text-[4.6rem]">
-              {title}
-            </h1>
-            <p className="mt-5 max-w-2xl text-pretty text-base leading-7 text-slate-600">
-              {subtitle}
-            </p>
+    <section className="pub-hero-bg relative overflow-hidden border-b border-slate-200 pt-12 pb-20 sm:pt-16 sm:pb-28 mb-[120px]">
+      {/* Dot grid */}
+      <div className="pub-dot-grid pointer-events-none absolute inset-0 opacity-40" />
 
-            <div className="mt-7 flex flex-wrap gap-3">{actions}</div>
+      <div className={cn(publicSectionClassName, "relative grid grid-cols-1 xl:grid-cols-[45fr_55fr] gap-12 items-center")}>
+        <MotionReveal className="flex flex-col items-start w-full min-w-0">
+          {/* Eyebrow */}
+          <div className="pub-badge">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+            {eyebrow}
+          </div>
 
-            {trustSignals.length > 0 ? (
-              <div className="mt-6 flex flex-wrap gap-3 text-sm text-slate-600">
-                {trustSignals.map((item) => (
-                  <div key={item} className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-2 shadow-[0_14px_28px_rgba(15,23,42,0.05)]">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                    <span>{item}</span>
-                  </div>
-                ))}
-              </div>
-            ) : null}
+          {/* Headline */}
+          <h1 className="mt-6 text-[clamp(2.25rem,4.5vw,4.5rem)] font-extrabold leading-[1.05] tracking-tight text-slate-900 max-w-[700px] text-balance font-sans">
+            {title}
+          </h1>
 
-            <div className={`${publicSectionContentGapClassName} flex flex-wrap gap-3`}>
-              {badges.map((badge) => (
-                <span
-                  key={badge}
-                  className="rounded-full border border-slate-200/80 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 shadow-[0_14px_34px_rgba(15,23,42,0.06)] backdrop-blur"
+          <p className="mt-5 text-xl leading-relaxed text-slate-500 max-w-[clamp(560px,60ch,680px)] w-auto text-pretty">{subtitle}</p>
+
+          {/* Actions */}
+          <div className="mt-8 flex flex-wrap gap-4">{actions}</div>
+
+          {/* Trust signals */}
+          {trustSignals.length > 0 && (
+            <div className="mt-7 flex flex-wrap gap-3">
+              {trustSignals.slice(0, 4).map((item) => (
+                <div
+                  key={item}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm"
                 >
-                  {badge}
-                </span>
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  {item}
+                </div>
               ))}
             </div>
+          )}
+
+          {/* Module badges */}
+          <div className="mt-5 flex flex-wrap gap-2">
+            {badges.slice(0, 6).map((badge) => (
+              <span
+                key={badge}
+                className="rounded-full border border-slate-200 bg-white px-3.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 shadow-sm"
+              >
+                {badge}
+              </span>
+            ))}
           </div>
         </MotionReveal>
 
-        <MotionReveal delay={0.08}>
-          <OperationalDashboardMockup metrics={metrics} />
+        <MotionReveal delay={0.1} className="w-full min-w-0 lg:translate-y-16">
+          <div className="relative">
+            {/* Ambient graphic glow backdrops */}
+            <div className="absolute -top-10 -right-10 -z-10 h-72 w-72 rounded-full bg-[#6366F1]/15 blur-[85px] pointer-events-none" />
+            <div className="absolute -bottom-10 -left-10 -z-10 h-72 w-72 rounded-full bg-[#3B82F6]/15 blur-[85px] pointer-events-none" />
+
+            {/* Floating widget 1: Employees Active (Top Right) */}
+            <FloatingCard position="-top-6 -right-8" delay="0s">
+              <div className="flex items-center gap-3">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-xs font-bold text-slate-800">1,248 Employees Active</span>
+              </div>
+            </FloatingCard>
+
+            {/* Floating widget 2: Payroll Disbursed (Bottom Left) */}
+            <FloatingCard position="-bottom-5 -left-10" delay="1s">
+              <div className="flex items-center gap-2.5">
+                <Check className="h-4 w-4 text-emerald-600 shrink-0" />
+                <span className="text-xs font-bold text-slate-800">Payroll Disbursed Successfully</span>
+              </div>
+            </FloatingCard>
+
+            {/* Floating widget 3: Live Sync (Bottom Right) */}
+            <FloatingCard position="-bottom-7 -right-6" delay="2s">
+              <div className="flex items-center gap-2.5">
+                <Zap className="h-4 w-4 text-cyan-600 shrink-0" />
+                <span className="text-xs font-bold text-slate-800">Live Sync Connected</span>
+              </div>
+            </FloatingCard>
+
+            <DashboardPreview metrics={metrics} />
+          </div>
         </MotionReveal>
       </div>
     </section>
   );
 }
+
+// ─── Dashboard Preview Mockup ─────────────────────────────────────────────────
+
+function DashboardPreview({ metrics }: { metrics: MarketingMetric[] }) {
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"];
+
+  return (
+    <div className="relative rounded-2xl border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.10),0_4px_16px_rgba(15,23,42,0.06)] overflow-hidden select-none">
+      {/* Top indigo line */}
+      <div className="h-1 w-full bg-gradient-to-r from-indigo-500 via-indigo-600 to-cyan-500" />
+
+      {/* Title bar */}
+      <div className="flex items-center border-b border-[#F3F4F6] px-4 py-3.5 bg-slate-50/80 relative">
+        {/* Windows controls dots */}
+        <div className="absolute left-4 flex gap-2">
+          <div className="h-3 w-3 rounded-full bg-[#FF5F56] opacity-90 shadow-sm" />
+          <div className="h-3 w-3 rounded-full bg-[#FFBD2E] opacity-90 shadow-sm" />
+          <div className="h-3 w-3 rounded-full bg-[#27C93F] opacity-90 shadow-sm" />
+        </div>
+        
+        {/* Perfectly centered URL Address bar */}
+        <div className="mx-auto flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-1 text-[10px] text-slate-500 font-semibold tracking-wide shadow-sm max-w-[240px] justify-center">
+          <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span>uabindia.erp.app · Dashboard</span>
+        </div>
+      </div>
+
+      <div className="p-5 space-y-4">
+        {/* KPI row */}
+        <div className="grid grid-cols-3 gap-3">
+          {metrics.slice(0, 3).map((m) => (
+            <div key={m.label} className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-left">
+              <p className="text-[9px] uppercase tracking-wider font-bold text-slate-400 truncate">{m.label}</p>
+              <p className="mt-1 text-base font-extrabold text-slate-900 tracking-tight">{m.value}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* High-Fidelity SVG Curved Area Chart */}
+        <div className="rounded-xl border border-slate-100 p-4 bg-white relative">
+          <div className="flex items-center justify-between mb-3 text-left">
+            <div>
+              <p className="text-xs font-bold text-slate-700">Payroll & Cashflow Trend</p>
+              <p className="mt-0.5 text-xl font-extrabold text-slate-900 tracking-tight">₹4.82 Cr</p>
+            </div>
+            <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-[10px] font-bold text-emerald-700">
+              ↑ 12% this month
+            </span>
+          </div>
+          
+          <div className="h-28 w-full relative">
+            <svg className="w-full h-full" viewBox="0 0 320 100" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#6366F1" stopOpacity="0.25" />
+                  <stop offset="100%" stopColor="#6366F1" stopOpacity="0.0" />
+                </linearGradient>
+              </defs>
+              {/* Area path */}
+              <path
+                d="M 0 100 Q 40 70 80 80 T 160 50 T 240 30 T 320 15 L 320 100 Z"
+                fill="url(#chartGradient)"
+              />
+              {/* Line path */}
+              <path
+                d="M 0 100 Q 40 70 80 80 T 160 50 T 240 30 T 320 15"
+                fill="none"
+                stroke="#6366F1"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+              />
+            </svg>
+            
+            {/* Interactive pulsing live dot at peak */}
+            <div className="absolute top-[12px] right-[4px] h-2.5 w-2.5 rounded-full bg-indigo-600 shadow-md">
+              <div className="absolute inset-0 rounded-full bg-indigo-600 animate-ping opacity-75" />
+            </div>
+          </div>
+          
+          {/* Months label row */}
+          <div className="flex justify-between mt-2.5 px-1 text-[9px] font-bold text-slate-400">
+            {months.map((m) => (
+              <span key={m}>{m}</span>
+            ))}
+          </div>
+        </div>
+
+        {/* Elevated status badges */}
+        <div className="grid grid-cols-2 gap-2.5">
+          {[
+            { label: "Core HR & Directory", status: "Connected", active: true },
+            { label: "Statutory Payroll", status: "Compliant", active: true },
+            { label: "Consolidated Ledger", status: "Balanced", active: true },
+            { label: "Real-time Audit Logs", status: "Audited", active: true }
+          ].map((item) => (
+            <div key={item.label} className="flex items-center justify-between gap-2 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-left">
+              <span className="text-[10px] font-bold text-slate-600 truncate">{item.label}</span>
+              <span className="shrink-0 flex items-center gap-1 text-[8px] font-extrabold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md">
+                <span className="h-1 w-1 rounded-full bg-indigo-600 animate-pulse" />
+                {item.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Trust Ribbon ─────────────────────────────────────────────────────────────
 
 export function TrustRibbon({ items }: { items: TrustedOrganization[] }) {
   return (
-    <section className={publicSectionSpacingClassName}>
+    <section className="border-y border-slate-100 bg-slate-50 py-12">
       <div className={publicSectionClassName}>
         <MotionReveal>
-          <div className="rounded-[2rem] border border-white/60 bg-white/75 p-6 shadow-[0_28px_70px_rgba(15,23,42,0.07)] backdrop-blur sm:p-8">
-            <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
-              <div>
-                <p className={publicEyebrowClassName}>Trusted by</p>
-                <h2 className="mt-3 max-w-xl text-2xl font-semibold tracking-[-0.04em] text-slate-950 sm:text-[2.2rem]">
-                  Built for modern operators across India&apos;s core industries.
-                </h2>
-                <p className="mt-3 max-w-lg text-sm leading-7 text-slate-600">
-                  Healthcare, manufacturing, retail, logistics, public programs, and services teams use the same platform with different workflows and approvals.
-                </p>
+          <p className="mb-8 text-center text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
+            Trusted by organizations across India
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            {items.map((item) => (
+              <div
+                key={item.name}
+                className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm transition hover:border-indigo-200 hover:shadow-md"
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-700 text-xs font-bold text-white shadow-sm">
+                  {item.mark}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-slate-800">{item.name}</p>
+                  <p className="truncate text-xs text-slate-400">{item.sector}</p>
+                </div>
               </div>
-              <div className="grid flex-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                {items.map((item) => (
-                  <div
-                    key={item.name}
-                    className="rounded-[1.35rem] border border-slate-200/80 bg-white px-4 py-4 shadow-[0_18px_34px_rgba(15,23,42,0.07)]"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#143a68,#1f4e9e_58%,#0f766e)] text-sm font-semibold tracking-[0.14em] text-white">
-                        {item.mark}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold tracking-[-0.02em] text-slate-950">
-                          {item.name}
-                        </p>
-                        <p className="truncate text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
-                          {item.sector}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            ))}
           </div>
         </MotionReveal>
       </div>
     </section>
   );
 }
+
+// ─── Problem Grid ─────────────────────────────────────────────────────────────
 
 export function ProblemGrid({ items }: { items: MarketingProblem[] }) {
   return (
@@ -251,18 +410,16 @@ export function ProblemGrid({ items }: { items: MarketingProblem[] }) {
             subtitle="The issue is rarely a missing report. It is usually scattered systems, weak control, and too many manual handoffs between departments."
           />
         </MotionReveal>
-        <MotionStagger className={`${publicSectionContentGapClassName} grid gap-5 md:grid-cols-2 xl:grid-cols-4`}>
+        <MotionStagger className={cn(publicSectionContentGapClassName, "grid gap-5 md:grid-cols-2 xl:grid-cols-4")}>
           {items.map((item) => (
             <MotionItem key={item.title}>
-              <article className={cn(publicPanelClassName, "h-full p-6")}>
-                <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-[color:var(--erp-primary)]">
+              <article className={cn(publicPanelHoverClassName, "h-full p-6")}>
+                <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
                   <Sparkles className="h-5 w-5" />
                 </div>
-                <h3 className="mt-5 text-xl font-semibold tracking-[-0.04em] text-slate-950">
-                  {item.title}
-                </h3>
-                <p className="mt-3 text-sm leading-7 text-slate-600">{item.description}</p>
-                <div className="mt-5 rounded-[1.2rem] bg-slate-50 px-4 py-4 text-sm leading-6 text-slate-700">
+                <h3 className="mt-4 text-lg font-bold tracking-tight text-slate-900">{item.title}</h3>
+                <p className="mt-2.5 text-sm leading-7 text-slate-500">{item.description}</p>
+                <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-500">
                   {item.impact}
                 </div>
               </article>
@@ -274,38 +431,31 @@ export function ProblemGrid({ items }: { items: MarketingProblem[] }) {
   );
 }
 
-export function SolutionFramework({
-  items,
-}: {
-  items: Array<{ title: string; detail: string }>;
-}) {
+// ─── Solution Framework ───────────────────────────────────────────────────────
+
+export function SolutionFramework({ items }: { items: Array<{ title: string; detail: string }> }) {
   return (
     <section className={publicSectionSpacingClassName}>
-      <div className={cn(publicSectionClassName, "grid gap-6 xl:grid-cols-[0.88fr_1.12fr]")}>
+      <div className={cn(publicSectionClassName, "grid gap-6 xl:grid-cols-[0.9fr_1.1fr]")}>
         <MotionReveal>
-          <div className="rounded-[2rem] border border-slate-200/80 bg-[linear-gradient(180deg,#0f172a,#142c53_58%,#123b64)] p-8 text-white shadow-[0_30px_80px_rgba(15,23,42,0.2)] sm:p-10">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-200">
+          <div className="rounded-2xl bg-gradient-to-br from-indigo-600 to-indigo-800 p-8 text-white shadow-[0_16px_48px_rgba(79,70,229,0.25)]">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-[0.7rem] font-bold uppercase tracking-[0.18em] text-indigo-200">
+              <span className="h-1.5 w-1.5 rounded-full bg-white" />
               Solution design
-            </p>
-            <h2 className="mt-4 max-w-lg text-[2.3rem] leading-[0.98] font-semibold tracking-[-0.06em]">
+            </div>
+            <h2 className="mt-5 text-2xl font-bold leading-[1.1] tracking-tight">
               One business, one data core, one clear operating picture.
             </h2>
-            <p className="mt-4 max-w-lg text-base leading-8 text-slate-200">
-              UabIndia ERP is designed to collapse fragmented HR, payroll, finance, procurement,
-              inventory, CRM, and project workflows into one disciplined platform.
+            <p className="mt-4 text-sm leading-7 text-indigo-200">
+              UabIndia ERP collapses fragmented HR, payroll, finance, procurement, inventory, CRM, and project workflows into one disciplined platform.
             </p>
-
-            <div className="mt-8 grid gap-4 sm:grid-cols-2">
-              {[
-                "Live approvals",
-                "Tenant-aware access",
-                "Cross-module reporting",
-                "Audit-ready history",
-              ].map((pill) => (
+            <div className="mt-6 grid gap-2.5 sm:grid-cols-2">
+              {["Live approvals", "Tenant-aware access", "Cross-module reporting", "Audit-ready history"].map((pill) => (
                 <div
                   key={pill}
-                  className="rounded-[1.15rem] border border-white/12 bg-white/8 px-4 py-3 text-sm font-medium text-slate-100 backdrop-blur"
+                  className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-medium text-white"
                 >
+                  <Check className="h-4 w-4 text-emerald-300 shrink-0" />
                   {pill}
                 </div>
               ))}
@@ -313,12 +463,15 @@ export function SolutionFramework({
           </div>
         </MotionReveal>
 
-        <MotionStagger className="grid gap-5 md:grid-cols-2">
+        <MotionStagger className="grid gap-4 md:grid-cols-2">
           {items.map((item) => (
             <MotionItem key={item.title}>
-              <article className={cn(publicPanelClassName, "h-full p-6")}>
-                <p className={publicEyebrowClassName}>{item.title}</p>
-                <p className="mt-4 text-base leading-8 text-slate-700">{item.detail}</p>
+              <article className={cn(publicPanelHoverClassName, "h-full p-6")}>
+                <div className={publicEyebrowClassName}>
+                  <span className="h-1.5 w-1.5 rounded-full bg-indigo-600" />
+                  {item.title}
+                </div>
+                <p className="mt-4 text-sm leading-7 text-slate-500">{item.detail}</p>
               </article>
             </MotionItem>
           ))}
@@ -328,42 +481,36 @@ export function SolutionFramework({
   );
 }
 
-export function ConnectedFlowSection() {
-  const nodes = [
-    "Employees",
-    "Attendance",
-    "Payroll",
-    "Finance",
-    "Reports",
-    "Management Dashboard",
-  ];
+// ─── Connected Flow ────────────────────────────────────────────────────────────
 
+export function ConnectedFlowSection() {
+  const nodes = ["Employees", "Attendance", "Payroll", "Finance", "Reports", "Management"];
   return (
-    <section className={publicSectionSpacingClassName}>
+    <section className={cn(publicSectionSpacingClassName, "pub-section-tint py-16")}>
       <div className={publicSectionClassName}>
         <MotionReveal>
           <SectionIntro
             eyebrow="Connected workflow"
             title="The platform connects every critical business handoff in one operating flow."
-            subtitle="Instead of moving information between separate tools, UabIndia ERP keeps employee data, attendance inputs, payroll calculations, finance entries, reports, and leadership dashboards connected by design."
+            subtitle="Instead of moving information between separate tools, UabIndia ERP keeps employee data, attendance, payroll, finance, reports, and leadership dashboards connected by design."
           />
         </MotionReveal>
         <MotionReveal delay={0.06} className={publicSectionContentGapClassName}>
-          <div className="rounded-[2rem] border border-slate-200/80 bg-white p-6 shadow-[0_30px_80px_rgba(15,23,42,0.08)] sm:p-8">
-            <div className="grid gap-4 lg:grid-cols-6">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="grid gap-3 lg:grid-cols-6">
               {nodes.map((node, index) => (
-                <div key={node} className="flex flex-col items-center gap-4 lg:flex-row">
-                  <div className="flex h-full w-full items-center justify-center rounded-[1.4rem] border border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm font-semibold tracking-[-0.02em] text-slate-900">
+                <div key={node} className="flex flex-col items-center gap-3 lg:flex-row">
+                  <div className="flex h-full w-full items-center justify-center rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-4 text-center text-sm font-bold text-indigo-800">
                     {node}
                   </div>
-                  {index < nodes.length - 1 ? (
-                    <div className="hidden h-px flex-1 bg-[linear-gradient(90deg,rgba(37,99,235,0.24),rgba(16,185,129,0.45))] lg:block" />
-                  ) : null}
-                  {index < nodes.length - 1 ? (
-                    <div className="text-[color:var(--erp-primary)] lg:hidden">
-                      <ArrowDown className="h-6 w-6" />
-                    </div>
-                  ) : null}
+                  {index < nodes.length - 1 && (
+                    <>
+                      <div className="hidden h-px flex-1 bg-gradient-to-r from-indigo-400 to-cyan-400 lg:block" />
+                      <div className="text-indigo-400 lg:hidden">
+                        <ArrowDown className="h-5 w-5" />
+                      </div>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
@@ -373,6 +520,8 @@ export function ConnectedFlowSection() {
     </section>
   );
 }
+
+// ─── Module Grid ──────────────────────────────────────────────────────────────
 
 export function ModuleGrid({
   modules,
@@ -385,48 +534,50 @@ export function ModuleGrid({
   title?: string;
   subtitle?: string;
 }) {
+  const categoryColors: Record<string, string> = {
+    People: "bg-violet-50 text-violet-700 border-violet-200",
+    Finance: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    Operations: "bg-cyan-50 text-cyan-700 border-cyan-200",
+    Engagement: "bg-orange-50 text-orange-700 border-orange-200",
+  };
+
   return (
     <section className={publicSectionSpacingClassName}>
       <div className={publicSectionClassName}>
         <MotionReveal>
           <SectionIntro eyebrow={eyebrow} title={title} subtitle={subtitle} />
         </MotionReveal>
-        <MotionStagger className={`${publicSectionContentGapClassName} grid gap-5 md:grid-cols-2 xl:grid-cols-3`}>
+        <MotionStagger className={cn(publicSectionContentGapClassName, "grid gap-5 md:grid-cols-2 xl:grid-cols-4")}>
           {modules.map((module) => {
-            const Icon =
-              moduleIconMap[module.icon as keyof typeof moduleIconMap] || Sparkles;
-
+            const Icon = moduleIconMap[module.icon as keyof typeof moduleIconMap] || Sparkles;
+            const catClass = categoryColors[module.category] || "bg-slate-50 text-slate-600 border-slate-200";
             return (
               <MotionItem key={module.slug}>
-                <article className={cn(publicPanelClassName, "flex h-full flex-col p-6")}>
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="inline-flex h-12 w-12 items-center justify-center rounded-[1.15rem] border border-slate-200 bg-slate-50 text-[color:var(--erp-primary)]">
+                <article className={cn(publicPanelHoverClassName, "group flex h-full flex-col p-6")}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 shadow-sm">
                       <Icon className="h-5 w-5" />
                     </div>
-                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    <span className={cn("rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em]", catClass)}>
                       {module.category}
                     </span>
                   </div>
-                  <h3 className="mt-5 text-2xl font-semibold tracking-[-0.04em] text-slate-950">
-                    {module.title}
-                  </h3>
-                  <p className="mt-3 flex-1 text-sm leading-7 text-slate-600">
-                    {module.summary}
-                  </p>
-                  <div className="mt-5 space-y-3">
-                    {module.outcomes.map((outcome) => (
-                      <div key={outcome} className="flex items-center gap-3 text-sm text-slate-700">
-                        <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                  <h3 className="mt-4 text-base font-bold tracking-tight text-slate-900">{module.title}</h3>
+                  <p className="mt-2 flex-1 text-sm leading-6 text-slate-500">{module.summary}</p>
+                  <div className="mt-4 space-y-2">
+                    {module.outcomes.slice(0, 2).map((outcome) => (
+                      <div key={outcome} className="flex items-center gap-2 text-xs text-slate-500">
+                        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
                         <span>{outcome}</span>
                       </div>
                     ))}
                   </div>
                   <Link
                     href={`/products/${module.slug}`}
-                    className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[color:var(--erp-primary)] transition hover:gap-3"
+                    className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-600 transition hover:text-indigo-800"
                   >
                     Learn more
-                    <ArrowRight className="h-4 w-4" />
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                   </Link>
                 </article>
               </MotionItem>
@@ -438,22 +589,24 @@ export function ModuleGrid({
   );
 }
 
+// ─── Highlight Chip Grid ──────────────────────────────────────────────────────
+
 export function HighlightChipGrid({ items }: { items: string[] }) {
   return (
-    <section className={publicSectionSpacingClassName}>
+    <section className={cn(publicSectionSpacingClassName, "pub-section-tint py-16")}>
       <div className={publicSectionClassName}>
         <MotionReveal>
           <SectionIntro
             eyebrow="Key features"
             title="Enterprise controls, mobility, security, and automation in one product layer."
-            subtitle="The platform is designed for real operating teams: role-based access, approval logic, field-ready workflows, integrations, and future AI readiness."
+            subtitle="The platform is designed for real operating teams: role-based access, approval logic, field-ready workflows, integrations, and AI readiness."
           />
         </MotionReveal>
-        <MotionStagger className={`${publicSectionContentGapClassName} flex flex-wrap gap-3`}>
+        <MotionStagger className={cn(publicSectionContentGapClassName, "flex flex-wrap gap-3")}>
           {items.map((item) => (
             <MotionItem key={item} className="basis-full sm:basis-auto">
-              <div className="flex items-center gap-3 rounded-full border border-slate-200/90 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-[0_16px_34px_rgba(15,23,42,0.05)]">
-                <Check className="h-4 w-4 text-emerald-600" />
+              <div className="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700">
+                <Check className="h-4 w-4 text-emerald-500 shrink-0" />
                 {item}
               </div>
             </MotionItem>
@@ -463,6 +616,8 @@ export function HighlightChipGrid({ items }: { items: string[] }) {
     </section>
   );
 }
+
+// ─── Process Timeline ─────────────────────────────────────────────────────────
 
 export function ProcessTimeline({
   items,
@@ -481,17 +636,15 @@ export function ProcessTimeline({
         <MotionReveal>
           <SectionIntro eyebrow={eyebrow} title={title} subtitle={subtitle} />
         </MotionReveal>
-        <MotionStagger className={`${publicSectionContentGapClassName} grid gap-5 lg:grid-cols-3 xl:grid-cols-6`}>
+        <MotionStagger className={cn(publicSectionContentGapClassName, "grid gap-5 lg:grid-cols-3 xl:grid-cols-6")}>
           {items.map((item) => (
             <MotionItem key={item.step}>
-              <article className={cn(publicPanelClassName, "relative h-full p-5")}>
-                <div className="inline-flex h-10 min-w-10 items-center justify-center rounded-full bg-[color:var(--erp-primary)] px-3 text-sm font-semibold text-white">
+              <article className={cn(publicPanelHoverClassName, "relative h-full p-6")}>
+                <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-sm font-bold text-white shadow-md shadow-indigo-500/30">
                   {item.step}
                 </div>
-                <h3 className="mt-5 text-lg font-semibold tracking-[-0.03em] text-slate-950">
-                  {item.title}
-                </h3>
-                <p className="mt-2 text-sm leading-7 text-slate-600">{item.description}</p>
+                <h3 className="mt-4 text-base font-bold tracking-tight text-slate-900">{item.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-500">{item.description}</p>
               </article>
             </MotionItem>
           ))}
@@ -501,62 +654,70 @@ export function ProcessTimeline({
   );
 }
 
-export function AnalyticsShowcase({
-  metrics,
-}: {
-  metrics: MarketingMetric[];
-}) {
+// ─── Analytics Showcase ───────────────────────────────────────────────────────
+
+export function AnalyticsShowcase({ metrics }: { metrics: MarketingMetric[] }) {
+  const barValues = [54, 68, 61, 79, 74, 92, 88];
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"];
+
   return (
     <section className={publicSectionSpacingClassName}>
-      <div className={cn(publicSectionClassName, "grid gap-6 xl:grid-cols-[1.08fr_0.92fr]")}>
+      <div className={cn(publicSectionClassName, "grid gap-6 xl:grid-cols-[1.1fr_0.9fr]")}>
         <MotionReveal>
-          <div className="rounded-[2rem] border border-slate-200/80 bg-white p-6 shadow-[0_30px_80px_rgba(15,23,42,0.08)] sm:p-8">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-5">
-              <div>
-                <p className={publicEyebrowClassName}>Dashboard preview</p>
-                <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-slate-950">
-                  A leadership dashboard built for real operational questions.
-                </h3>
-              </div>
-              <div className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
-                Live visibility
+          <div className={cn(publicPanelClassName, "overflow-hidden p-0")}>
+            {/* Header bar */}
+            <div className="h-1 bg-gradient-to-r from-indigo-500 to-cyan-500" />
+            <div className="p-6 border-b border-slate-100">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className={publicEyebrowClassName}>
+                    <span className="h-1.5 w-1.5 rounded-full bg-indigo-600" />
+                    Dashboard preview
+                  </div>
+                  <h3 className="mt-3 text-xl font-bold tracking-tight text-slate-900">
+                    A leadership dashboard built for real operational questions.
+                  </h3>
+                </div>
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                  ● Live
+                </span>
               </div>
             </div>
-            <div className="mt-6 grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
-              <div className="rounded-[1.5rem] bg-slate-950 p-5 text-white">
-                <div className="flex items-end justify-between gap-4">
+            <div className="p-6 grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+              {/* Chart */}
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                <div className="flex items-end justify-between gap-3 mb-4">
                   <div>
-                    <p className="text-sm text-slate-300">Payroll and workforce trend</p>
-                    <p className="mt-2 text-3xl font-semibold tracking-[-0.05em]">Rs 4.8 Cr</p>
+                    <p className="text-xs font-medium text-slate-500">Payroll trend</p>
+                    <p className="mt-1 text-2xl font-bold text-slate-900">₹4.8 Cr</p>
                   </div>
-                  <div className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-sky-200">
+                  <span className="rounded-full bg-indigo-50 border border-indigo-200 px-2.5 py-1 text-[10px] font-bold text-indigo-700">
                     This month
-                  </div>
+                  </span>
                 </div>
-                <div className="mt-7 flex h-48 items-end gap-3 rounded-[1.3rem] bg-white/6 px-4 pb-4 pt-6">
-                  {[54, 68, 61, 79, 74, 92, 88].map((value, index) => (
-                    <div key={value + index} className="flex flex-1 flex-col items-center gap-3">
+                <div className="flex h-28 items-end gap-1.5">
+                  {barValues.map((v, i) => (
+                    <div key={i} className="flex flex-1 flex-col items-center gap-1">
                       <div
-                        className="w-full rounded-t-[1rem] bg-[linear-gradient(180deg,#7dd3fc,#22c55e)]"
-                        style={{ height: `${value}%` }}
+                        className="w-full rounded-t bg-gradient-to-t from-indigo-600 to-indigo-400"
+                        style={{ height: `${v}%` }}
                       />
-                      <span className="text-[0.7rem] uppercase tracking-[0.18em] text-slate-400">
-                        {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"][index]}
-                      </span>
+                      <span className="text-[9px] font-medium text-slate-400">{months[i]}</span>
                     </div>
                   ))}
                 </div>
               </div>
-              <div className="grid gap-4">
+              {/* Mini stats */}
+              <div className="grid gap-3">
                 {[
-                  { label: "Leave analytics", value: "214", helper: "Pending, approved, and exception cases by branch." },
-                  { label: "Department mix", value: "12 depts", helper: "Live headcount and role distribution." },
-                  { label: "Expense watch", value: "7 alerts", helper: "Outlier claims and late approvals surfaced automatically." },
+                  { label: "Leave analytics", value: "214", helper: "Cases by branch" },
+                  { label: "Dept mix", value: "12 depts", helper: "Live headcount" },
+                  { label: "Expense alerts", value: "7 alerts", helper: "Outlier claims" },
                 ].map((item) => (
-                  <div key={item.label} className="rounded-[1.35rem] border border-slate-200 bg-slate-50/70 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{item.label}</p>
-                    <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-slate-950">{item.value}</p>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">{item.helper}</p>
+                  <div key={item.label} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{item.label}</p>
+                    <p className="mt-1 text-xl font-bold text-slate-900">{item.value}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">{item.helper}</p>
                   </div>
                 ))}
               </div>
@@ -564,17 +725,13 @@ export function AnalyticsShowcase({
           </div>
         </MotionReveal>
 
-        <MotionStagger className="grid gap-5">
+        <MotionStagger className="grid gap-4">
           {metrics.map((metric) => (
             <MotionItem key={metric.label}>
-              <div className={cn(publicPanelClassName, "p-6")}>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  {metric.label}
-                </p>
-                <p className="mt-3 text-[2rem] leading-none font-semibold tracking-[-0.05em] text-slate-950">
-                  {metric.value}
-                </p>
-                <p className="mt-3 text-sm leading-7 text-slate-600">{metric.helper}</p>
+              <div className="pub-stat-card">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">{metric.label}</p>
+                <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{metric.value}</p>
+                <p className="mt-2 text-sm leading-6 text-slate-500">{metric.helper}</p>
               </div>
             </MotionItem>
           ))}
@@ -584,32 +741,30 @@ export function AnalyticsShowcase({
   );
 }
 
-export function AnimatedStatsBand({
-  items,
-}: {
-  items: Array<{ value: number; suffix: string; label: string }>;
-}) {
+// ─── Animated Stats Band ──────────────────────────────────────────────────────
+
+export function AnimatedStatsBand({ items }: { items: Array<{ value: number; suffix: string; label: string }> }) {
   return (
     <section className={publicSectionSpacingClassName}>
       <div className={publicSectionClassName}>
         <MotionReveal>
-          <div className="rounded-[2rem] border border-slate-200/80 bg-slate-950 px-6 py-8 text-white shadow-[0_30px_80px_rgba(15,23,42,0.2)] sm:px-8 sm:py-10">
-            <div className="mb-8">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-200">
-                Business statistics
-              </p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-[-0.05em] sm:text-[2.7rem]">
-                Built for organizations that need scale, speed, and reliability.
+          <div className="pub-section-indigo rounded-2xl px-8 py-12 text-white shadow-[0_16px_48px_rgba(79,70,229,0.30)]">
+            <div className="mb-8 text-center">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-[0.7rem] font-bold uppercase tracking-[0.2em] text-indigo-200">
+                Business impact
+              </div>
+              <h2 className="mt-4 text-[2.2rem] font-bold tracking-tight sm:text-[2.8rem]">
+                Built for scale, speed, and reliability.
               </h2>
             </div>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               {items.map((item) => (
-                <div key={item.label} className="rounded-[1.35rem] border border-white/10 bg-white/6 px-5 py-5">
-                  <p className="text-[2.4rem] leading-none font-semibold tracking-[-0.06em] text-white sm:text-[3rem]">
+                <div key={item.label} className="rounded-xl border border-white/15 bg-white/10 px-5 py-6 text-center backdrop-blur">
+                  <p className="text-[3rem] font-bold leading-none tracking-tight">
                     <AnimatedNumber value={item.value} />
                     {item.suffix}
                   </p>
-                  <p className="mt-3 text-sm leading-7 text-slate-300">{item.label}</p>
+                  <p className="mt-3 text-sm leading-6 text-indigo-200">{item.label}</p>
                 </div>
               ))}
             </div>
@@ -619,6 +774,8 @@ export function AnimatedStatsBand({
     </section>
   );
 }
+
+// ─── Industry Grid ────────────────────────────────────────────────────────────
 
 export function IndustryGrid({
   industries,
@@ -632,34 +789,29 @@ export function IndustryGrid({
   subtitle?: string;
 }) {
   return (
-    <section className={publicSectionSpacingClassName}>
+    <section className={cn(publicSectionSpacingClassName, "pub-section-tint py-16")}>
       <div className={publicSectionClassName}>
         <MotionReveal>
           <SectionIntro eyebrow={eyebrow} title={title} subtitle={subtitle} />
         </MotionReveal>
-        <MotionStagger className={`${publicSectionContentGapClassName} grid gap-5 md:grid-cols-2 xl:grid-cols-3`}>
+        <MotionStagger className={cn(publicSectionContentGapClassName, "grid gap-5 md:grid-cols-2 xl:grid-cols-3")}>
           {industries.map((industry) => {
             const Icon = industryIconMap[industry.slug as keyof typeof industryIconMap] || Building2;
-
             return (
               <MotionItem key={industry.slug}>
-                <article className={cn(publicPanelClassName, "flex h-full flex-col p-6")}>
-                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-[1.1rem] border border-slate-200 bg-slate-50 text-[color:var(--erp-primary)]">
+                <article className={cn(publicPanelHoverClassName, "group flex h-full flex-col p-6")}>
+                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 shadow-sm">
                     <Icon className="h-5 w-5" />
                   </div>
-                  <p className="mt-5 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--erp-primary)]">
-                    {industry.eyebrow}
-                  </p>
-                  <h3 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-slate-950">
-                    {industry.title}
-                  </h3>
-                  <p className="mt-3 flex-1 text-sm leading-7 text-slate-600">{industry.summary}</p>
+                  <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.18em] text-indigo-600">{industry.eyebrow}</p>
+                  <h3 className="mt-2 text-xl font-bold tracking-tight text-slate-900">{industry.title}</h3>
+                  <p className="mt-2 flex-1 text-sm leading-7 text-slate-500">{industry.summary}</p>
                   <Link
                     href={`/industries/${industry.slug}`}
-                    className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[color:var(--erp-primary)] transition hover:gap-3"
+                    className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-600 transition hover:text-indigo-800"
                   >
                     Explore solution
-                    <ArrowRight className="h-4 w-4" />
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                   </Link>
                 </article>
               </MotionItem>
@@ -670,6 +822,8 @@ export function IndustryGrid({
     </section>
   );
 }
+
+// ─── Comparison Table ─────────────────────────────────────────────────────────
 
 export function ComparisonTable({ rows }: { rows: ComparisonRow[] }) {
   return (
@@ -682,34 +836,27 @@ export function ComparisonTable({ rows }: { rows: ComparisonRow[] }) {
             subtitle="The best ERP decision is the one that reduces manual work, strengthens control, and keeps adoption realistic for the business."
           />
         </MotionReveal>
-        <MotionReveal delay={0.05} className={`${publicSectionContentGapClassName} overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white shadow-[0_28px_70px_rgba(15,23,42,0.08)]`}>
+        <MotionReveal delay={0.05} className={cn(publicSectionContentGapClassName, "overflow-hidden rounded-2xl border border-slate-200 shadow-[0_4px_24px_rgba(15,23,42,0.08)]")}>
           <div className="overflow-x-auto">
             <table className="min-w-full text-left">
-              <thead className="bg-slate-950 text-white">
-                <tr>
-                  {["Capability", "Excel", "Traditional ERP", "UabIndia ERP"].map((heading) => (
-                    <th
-                      key={heading}
-                      className="px-5 py-4 text-sm font-semibold tracking-[-0.02em] sm:px-6"
-                    >
-                      {heading}
-                    </th>
+              <thead>
+                <tr className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
+                  {["Capability", "Excel", "Traditional ERP", "UabIndia ERP"].map((h) => (
+                    <th key={h} className="px-6 py-4 text-sm font-semibold">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody>
-                {rows.map((row, index) => (
-                  <tr key={row.capability} className={index % 2 === 0 ? "bg-white" : "bg-slate-50/70"}>
-                    <td className="px-5 py-5 text-sm font-semibold text-slate-950 sm:px-6">
-                      {row.capability}
-                    </td>
-                    <td className="px-5 py-5 text-sm leading-7 text-slate-600 sm:px-6">{row.excel}</td>
-                    <td className="px-5 py-5 text-sm leading-7 text-slate-600 sm:px-6">{row.traditional}</td>
-                    <td className="px-5 py-5 text-sm leading-7 text-slate-950 sm:px-6">
-                      <span className="inline-flex rounded-full bg-[color:var(--erp-primary)]/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--erp-primary)]">
-                        Preferred
-                      </span>
-                      <span className="mt-3 block">{row.uabindia}</span>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {rows.map((row, idx) => (
+                  <tr key={row.capability} className={cn("transition hover:bg-indigo-50/30", idx % 2 === 1 && "bg-slate-50/50")}>
+                    <td className="px-6 py-4 text-sm font-semibold text-slate-800">{row.capability}</td>
+                    <td className="px-6 py-4 text-sm text-slate-400">{row.excel}</td>
+                    <td className="px-6 py-4 text-sm text-slate-400">{row.traditional}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700">
+                        <Check className="h-4 w-4 text-emerald-500" />
+                        {row.uabindia}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -722,52 +869,40 @@ export function ComparisonTable({ rows }: { rows: ComparisonRow[] }) {
   );
 }
 
-export function TestimonialCards({ items }: { items: Testimonial[] }) {
+// ─── Testimonials Grid ────────────────────────────────────────────────────────
+
+export function TestimonialsGrid({ testimonials }: { testimonials: Testimonial[] }) {
   return (
-    <section className={publicSectionSpacingClassName}>
+    <section className={cn(publicSectionSpacingClassName, "pub-section-tint py-16")}>
       <div className={publicSectionClassName}>
         <MotionReveal>
           <SectionIntro
-            eyebrow="Client perspective"
-            title="Trust grows when the platform improves how teams actually work."
-            subtitle="These stories are representative of the kinds of operational gains businesses expect when fragmented workflows move into one governed system."
+            eyebrow="Customer stories"
+            title="Operators share what changed after switching to UabIndia ERP."
+            subtitle="These are not launch-day quotes. They come from teams that have been operating on the platform."
           />
         </MotionReveal>
-        <MotionStagger className={`${publicSectionContentGapClassName} grid gap-5 lg:grid-cols-3`}>
-          {items.map((item) => (
-            <MotionItem key={`${item.name}-${item.company}`}>
-              <article className="h-full rounded-[2rem] border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff,#f8fbff)] p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#143a68,#1f4e9e_58%,#0f766e)] text-sm font-semibold text-white">
-                      {item.avatar}
-                    </div>
-                    <div>
-                      <p className="text-base font-semibold text-slate-950">{item.name}</p>
-                      <p className="mt-1 text-sm text-slate-600">
-                        {item.role}, {item.company}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-amber-700">
-                    {Array.from({ length: item.rating }).map((_, index) => (
-                      <Star key={index} className="h-3.5 w-3.5 fill-current" />
-                    ))}
-                  </div>
+        <MotionStagger className={cn(publicSectionContentGapClassName, "grid gap-5 md:grid-cols-2 xl:grid-cols-3")}>
+          {testimonials.map((t) => (
+            <MotionItem key={t.name}>
+              <article className={cn(publicPanelHoverClassName, "flex h-full flex-col p-6")}>
+                <div className="flex gap-1">
+                  {Array.from({ length: t.rating }).map((_, i) => (
+                    <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                  ))}
                 </div>
-                <p className="mt-5 text-lg leading-8 text-slate-700">&ldquo;{item.quote}&rdquo;</p>
-                <div className="mt-6 rounded-[1.3rem] bg-slate-950 px-4 py-4 text-sm font-medium text-slate-100">
-                  {item.result}
+                <blockquote className="mt-4 flex-1 text-sm leading-7 text-slate-500">
+                  &ldquo;{t.quote}&rdquo;
+                </blockquote>
+                <div className="mt-5 border-t border-slate-100 pt-4">
+                  <p className="text-sm font-bold text-slate-800">{t.name}</p>
+                  <p className="mt-0.5 text-xs text-slate-400">{t.role}, {t.company}</p>
                 </div>
-                <div className="mt-6 grid gap-3">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                    <PlayCircle className="h-4 w-4 text-[color:var(--erp-primary)]" />
-                    {item.videoLabel}
+                {t.result && (
+                  <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-semibold text-emerald-700">
+                    ✓ {t.result}
                   </div>
-                  <div className="rounded-[1.2rem] bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-700">
-                    {item.caseStudy}
-                  </div>
-                </div>
+                )}
               </article>
             </MotionItem>
           ))}
@@ -777,135 +912,12 @@ export function TestimonialCards({ items }: { items: Testimonial[] }) {
   );
 }
 
-export function FaqAccordion({ items }: { items: FaqItem[] }) {
-  const [openIndex, setOpenIndex] = useState(0);
-
-  return (
-    <section className={publicSectionSpacingClassName}>
-      <div className={cn(publicSectionClassName, "grid gap-8 xl:grid-cols-[0.86fr_1.14fr]")}>
-        <MotionReveal>
-          <div className="sticky top-24">
-            <SectionIntro
-              eyebrow="FAQ"
-              title="Answers for buying teams, operations leaders, and implementation stakeholders."
-              subtitle="Keep the evaluation process clear. The questions below cover scope, rollout, security, support, and operational fit."
-            />
-          </div>
-        </MotionReveal>
-        <MotionStagger className="space-y-4">
-          {items.map((item, index) => {
-            const isOpen = index === openIndex;
-
-            return (
-              <MotionItem key={item.question}>
-                <article className={cn(publicPanelClassName, "overflow-hidden")}>
-                  <button
-                    type="button"
-                    className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left"
-                    onClick={() => setOpenIndex(isOpen ? -1 : index)}
-                    aria-expanded={isOpen}
-                  >
-                    <span className="text-base font-semibold tracking-[-0.02em] text-slate-950">
-                      {item.question}
-                    </span>
-                    <ChevronDown
-                      className={cn(
-                        "h-5 w-5 shrink-0 text-slate-400 transition-transform",
-                        isOpen && "rotate-180"
-                      )}
-                    />
-                  </button>
-                  {isOpen ? (
-                    <div className="border-t border-slate-100 px-6 py-5 text-sm leading-7 text-slate-600">
-                      {item.answer}
-                    </div>
-                  ) : null}
-                </article>
-              </MotionItem>
-            );
-          })}
-        </MotionStagger>
-      </div>
-    </section>
-  );
-}
-
-export function ResourceGrid({ items }: { items: ResourceCard[] }) {
-  return (
-    <section className={publicSectionSpacingClassName}>
-      <div className={publicSectionClassName}>
-        <MotionReveal>
-          <SectionIntro
-            eyebrow="Resources"
-            title="Material that helps teams evaluate, plan, and deploy with more confidence."
-            subtitle="These resources are written for real decision-making conversations: scope, rollout sequence, control needs, and expected operational outcomes."
-          />
-        </MotionReveal>
-        <MotionStagger className={`${publicSectionContentGapClassName} grid gap-5 md:grid-cols-2 xl:grid-cols-3`}>
-          {items.map((item) => (
-            <MotionItem key={item.title}>
-              <Link
-                href={item.href}
-                className="group block h-full rounded-[2rem] border border-slate-200/80 bg-white p-6 shadow-[0_22px_55px_rgba(15,23,42,0.07)] transition hover:-translate-y-1 hover:shadow-[0_30px_70px_rgba(15,23,42,0.12)]"
-              >
-                <div className="inline-flex h-12 w-12 items-center justify-center rounded-[1.15rem] border border-slate-200 bg-slate-50 text-[color:var(--erp-primary)]">
-                  <FileChartColumn className="h-5 w-5" />
-                </div>
-                <p className="mt-5 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--erp-primary)]">
-                  {item.type}
-                </p>
-                <h3 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-slate-950">
-                  {item.title}
-                </h3>
-                <p className="mt-3 text-sm leading-7 text-slate-600">{item.summary}</p>
-                <div className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[color:var(--erp-primary)]">
-                  Open resource
-                  <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
-                </div>
-              </Link>
-            </MotionItem>
-          ))}
-        </MotionStagger>
-      </div>
-    </section>
-  );
-}
-
-export function ValueGrid({
-  items,
-  eyebrow = "Operating principles",
-  title = "The public website should communicate the same discipline as the product.",
-  subtitle = "UabIndia ERP positions itself as a modern enterprise platform. That means clarity, control, confidence, and a bias toward operational outcomes.",
-}: {
-  items: Array<{ title: string; description: string }>;
-  eyebrow?: string;
-  title?: string;
-  subtitle?: string;
-}) {
-  return (
-    <section className={publicSectionSpacingClassName}>
-      <div className={publicSectionClassName}>
-        <MotionReveal>
-          <SectionIntro eyebrow={eyebrow} title={title} subtitle={subtitle} />
-        </MotionReveal>
-        <MotionStagger className={`${publicSectionContentGapClassName} grid gap-5 md:grid-cols-2 xl:grid-cols-4`}>
-          {items.map((item) => (
-            <MotionItem key={item.title}>
-              <div className={cn(publicPanelClassName, "h-full p-6")}>
-                <p className="text-xl font-semibold tracking-[-0.03em] text-slate-950">{item.title}</p>
-                <p className="mt-3 text-sm leading-7 text-slate-600">{item.description}</p>
-              </div>
-            </MotionItem>
-          ))}
-        </MotionStagger>
-      </div>
-    </section>
-  );
-}
+// ─── CTA Panel ────────────────────────────────────────────────────────────────
 
 export function CtaPanel({
   eyebrow,
   title,
+  body,
   description,
   primaryLabel,
   primaryHref,
@@ -914,36 +926,45 @@ export function CtaPanel({
 }: {
   eyebrow: string;
   title: string;
-  description: string;
+  body?: string;
+  description?: string;
   primaryLabel: string;
   primaryHref: string;
   secondaryLabel: string;
   secondaryHref: string;
 }) {
+  const bodyText = body || description || "";
+
   return (
     <section className={publicSectionSpacingClassName}>
       <div className={publicSectionClassName}>
         <MotionReveal>
-          <div className="overflow-hidden rounded-[2rem] border border-slate-200/80 bg-[linear-gradient(135deg,#0f172a,#12335c_56%,#0f5f8e)] px-8 py-10 text-white shadow-[0_34px_85px_rgba(15,23,42,0.22)] sm:px-10 sm:py-12">
-            <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-200">
-                  {eyebrow}
-                </p>
-                <h2 className="mt-4 max-w-3xl text-balance text-[2.3rem] leading-[0.98] font-semibold tracking-[-0.06em] sm:text-[3rem]">
-                  {title}
-                </h2>
-                <p className="mt-4 max-w-2xl text-base leading-8 text-slate-200">
-                  {description}
-                </p>
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-800 px-8 py-16 text-center shadow-[0_20px_60px_rgba(79,70,229,0.30)] sm:px-16">
+            {/* Top glow ring */}
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+            {/* Subtle dot pattern */}
+            <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
+
+            <div className="relative">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-[0.68rem] font-bold uppercase tracking-[0.2em] text-indigo-200">
+                <span className="h-1.5 w-1.5 rounded-full bg-white" />
+                {eyebrow}
               </div>
-              <div className="flex flex-wrap gap-3 lg:justify-end">
-                <Link href={primaryHref} className={publicButtonClassName.primary}>
+              <h2 className="mx-auto mt-5 max-w-3xl text-balance text-[clamp(1.9rem,3.5vw,3rem)] font-bold tracking-tight text-white">
+                {title}
+              </h2>
+              <p className="mx-auto mt-4 max-w-2xl text-base leading-8 text-indigo-200">{bodyText}</p>
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+                <Link
+                  href={primaryHref}
+                  className="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-sm font-bold text-indigo-700 shadow-lg transition hover:bg-indigo-50 hover:-translate-y-0.5"
+                >
                   {primaryLabel}
+                  <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link
                   href={secondaryHref}
-                  className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/16"
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/25 bg-white/10 px-7 py-3.5 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20 hover:-translate-y-0.5"
                 >
                   {secondaryLabel}
                 </Link>
@@ -956,198 +977,261 @@ export function CtaPanel({
   );
 }
 
-export function DemoAgendaPanel({ items }: { items: string[] }) {
+// ─── Pricing Grid ─────────────────────────────────────────────────────────────
+
+export function PricingGrid({
+  plans,
+  eyebrow = "Pricing",
+  title = "Clear investment tiers for different implementation stages.",
+  subtitle = "Every tier includes full platform access. The difference is in implementation depth, support level, and configuration scope.",
+  audience,
+}: {
+  plans: import("@/lib/public-marketing").PricingPlan[];
+  eyebrow?: string;
+  title?: string;
+  subtitle?: string;
+  audience: import("@/lib/public-audience").PublicAudience;
+}) {
   return (
-    <div className="rounded-[2rem] border border-slate-200/80 bg-white p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)] sm:p-8">
-      <p className={publicEyebrowClassName}>What your demo includes</p>
-      <h3 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-slate-950">
-        A business-first walkthrough, not a feature dump.
-      </h3>
-      <div className="mt-6 space-y-4">
-        {items.map((item) => (
-          <div key={item} className="flex items-start gap-3 rounded-[1.2rem] bg-slate-50 px-4 py-4">
-            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-            <p className="text-sm leading-7 text-slate-700">{item}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-export function SupportLaneGrid({ items }: { items: string[] }) {
-  return (
-    <div className="grid gap-4">
-      {items.map((item) => (
-        <div key={item} className={cn(publicPanelClassName, "flex items-start gap-4 p-5")}>
-          <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[1rem] border border-slate-200 bg-slate-50 text-[color:var(--erp-primary)]">
-            <LifeBuoy className="h-5 w-5" />
-          </div>
-          <p className="text-sm leading-7 text-slate-700">{item}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function OperationalDashboardMockup({ metrics }: { metrics: MarketingMetric[] }) {
-  const floatingCards = [
-    {
-      title: "Employee Analytics",
-      value: "1,284 active",
-      note: "+12% headcount this quarter",
-      className: "public-float xl:absolute xl:-left-10 xl:top-16",
-    },
-    {
-      title: "Payroll Summary",
-      value: "Rs 2.4 Cr",
-      note: "Ready for finance approval",
-      className: "public-float-delayed xl:absolute xl:-right-4 xl:top-12",
-    },
-    {
-      title: "Notifications",
-      value: "8 critical",
-      note: "Policy and attendance alerts",
-      className: "public-float-slow xl:absolute xl:-left-8 xl:bottom-24",
-    },
-    {
-      title: "Revenue Graph",
-      value: "+18.6%",
-      note: "Month-on-month growth",
-      className: "public-float xl:absolute xl:right-4 xl:bottom-10",
-    },
-  ];
-
-  return (
-    <div className="relative rounded-[2.2rem] border border-slate-200/80 bg-white/88 p-5 shadow-[0_36px_90px_rgba(15,23,42,0.12)] backdrop-blur sm:p-6 lg:p-7 xl:p-8">
-      <div className="rounded-[1.8rem] border border-slate-200/80 bg-[linear-gradient(180deg,#f8fbff,#eef5ff)] p-5 md:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="flex flex-wrap items-center gap-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                Executive dashboard
-              </p>
-              <div className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-emerald-700">
-                Live workspace
-              </div>
-            </div>
-            <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-slate-950">
-              One intelligent ERP command center
-            </h3>
-          </div>
-        </div>
-
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          {metrics.slice(0, 4).map((metric) => (
-            <div key={metric.label} className="rounded-[1.3rem] border border-white/70 bg-white p-4 shadow-[0_14px_30px_rgba(15,23,42,0.06)]">
-              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                {metric.label}
-              </p>
-              <p className="mt-3 text-2xl font-semibold tracking-[-0.05em] text-slate-950">{metric.value}</p>
-              <p className="mt-2 text-xs leading-6 text-slate-500">{metric.helper}</p>
-            </div>
+    <section className={publicSectionSpacingClassName}>
+      <div className={publicSectionClassName}>
+        <MotionReveal>
+          <SectionIntro eyebrow={eyebrow} title={title} subtitle={subtitle} align="center" />
+        </MotionReveal>
+        <MotionStagger className={cn(publicSectionContentGapClassName, "grid gap-6 lg:grid-cols-3")}>
+          {plans.map((plan) => (
+            <MotionItem key={plan.name}>
+              <article
+                className={cn(
+                  "flex h-full flex-col rounded-2xl border p-7 transition",
+                  plan.featured
+                    ? "border-indigo-200 bg-gradient-to-b from-indigo-50 to-white shadow-[0_16px_48px_rgba(79,70,229,0.15)] ring-2 ring-indigo-600/20"
+                    : "border-slate-200 bg-white shadow-sm hover:shadow-md hover:border-indigo-100"
+                )}
+              >
+                {plan.featured && (
+                  <div className="mb-4 inline-flex items-center gap-1.5 self-start rounded-full border border-indigo-200 bg-indigo-600 px-3 py-1 text-xs font-bold text-white">
+                    <Sparkles className="h-3 w-3" />
+                    Most popular
+                  </div>
+                )}
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">{plan.audience}</p>
+                <h3 className="mt-2 text-xl font-bold text-slate-900">{plan.name}</h3>
+                <p className="mt-2.5 text-sm leading-6 text-slate-500">{plan.summary}</p>
+                <p className="mt-5 text-3xl font-bold text-slate-900">{plan.price}</p>
+                <p className="mt-1 text-xs text-slate-400">{plan.implementation}</p>
+                <div className="mt-6 flex-1 space-y-3">
+                  {plan.points.map((point) => (
+                    <div key={point} className="flex items-start gap-3 text-sm text-slate-600">
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500 mt-0.5" />
+                      <span>{point}</span>
+                    </div>
+                  ))}
+                </div>
+                <Link
+                  href={`/book-demo?plan=${plan.name.toLowerCase().replace(/\s+/g, "-")}`}
+                  className={cn(
+                    "mt-8 inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-bold transition",
+                    plan.featured
+                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/25 hover:bg-indigo-700"
+                      : "border border-slate-200 bg-white text-slate-700 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+                  )}
+                >
+                  Get started
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </article>
+            </MotionItem>
           ))}
-        </div>
+        </MotionStagger>
+      </div>
+    </section>
+  );
+}
 
-        <div className="mt-5 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-[1.4rem] bg-slate-950 p-5 text-white">
-            <div className="flex items-end justify-between">
-              <div>
-                <p className="text-sm text-slate-300">Attendance graph</p>
-                <p className="mt-2 text-3xl font-semibold tracking-[-0.05em]">98.4%</p>
-              </div>
-              <LineChart className="h-6 w-6 text-sky-300" />
-            </div>
-            <div className="mt-6 flex h-40 items-end gap-2 rounded-[1.2rem] bg-white/8 px-3 pb-3 pt-5">
-              {[40, 54, 48, 66, 61, 78, 72, 84].map((height, index) => (
-                <div key={height + index} className="flex flex-1 items-end">
-                  <div
-                    className="w-full rounded-t-[0.9rem] bg-[linear-gradient(180deg,#7dd3fc,#34d399)]"
-                    style={{ height: `${height}%` }}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
+// ─── Resource Grid ────────────────────────────────────────────────────────────
 
-          <div className="grid gap-4">
-            {[
-              {
-                title: "Approval Cards",
-                value: "16 pending",
-                helper: "Leave, procurement, payroll review, and onboarding.",
-              },
-              {
-                title: "Leave Summary",
-                value: "214 requests",
-                helper: "Approvals and exceptions grouped by branch and manager.",
-              },
-              {
-                title: "Task Completion",
-                value: "89% closed",
-                helper: "Routine HR and payroll actions completed without manual chasing.",
-              },
-            ].map((item) => (
-              <div key={item.title} className="rounded-[1.3rem] border border-slate-200 bg-white p-4">
+export function ResourceGrid({ resources }: { resources: ResourceCard[] }) {
+  return (
+    <section className={publicSectionSpacingClassName}>
+      <div className={publicSectionClassName}>
+        <MotionReveal>
+          <SectionIntro
+            eyebrow="Resources"
+            title="Evaluation material, rollout notes, and implementation guidance."
+            subtitle="Use these before your first demo or during scoping to review module fit, implementation expectations, and product depth."
+          />
+        </MotionReveal>
+        <MotionStagger className={cn(publicSectionContentGapClassName, "grid gap-5 md:grid-cols-2 xl:grid-cols-3")}>
+          {resources.map((resource) => (
+            <MotionItem key={resource.title}>
+              <Link href={resource.href} className={cn(publicPanelHoverClassName, "group flex h-full flex-col p-6")}>
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold text-slate-950">{item.title}</p>
-                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-500">
-                    Live
+                  <span className="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">
+                    {resource.type}
                   </span>
+                  <ArrowRight className="h-4 w-4 text-slate-400 transition group-hover:text-indigo-600 group-hover:translate-x-0.5" />
                 </div>
-                <p className="mt-3 text-xl font-semibold tracking-[-0.04em] text-slate-950">{item.value}</p>
-                <p className="mt-2 text-xs leading-6 text-slate-500">{item.helper}</p>
+                <h3 className="mt-4 text-base font-bold tracking-tight text-slate-900 group-hover:text-indigo-700 transition">
+                  {resource.title}
+                </h3>
+                <p className="mt-2 flex-1 text-sm leading-6 text-slate-500">{resource.summary}</p>
+              </Link>
+            </MotionItem>
+          ))}
+        </MotionStagger>
+      </div>
+    </section>
+  );
+}
+
+// ─── FAQ Section ──────────────────────────────────────────────────────────────
+
+export function FaqSection({ items }: { items: FaqItem[] }) {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  return (
+    <section className={publicSectionSpacingClassName}>
+      <div className={cn(publicSectionClassName, "grid gap-10 xl:grid-cols-[0.9fr_1.1fr]")}>
+        <MotionReveal>
+          <SectionIntro
+            eyebrow="Frequently asked"
+            title="Questions teams ask before starting the evaluation."
+            subtitle="These cover scope, implementation, pricing, and product depth for new evaluators."
+          />
+        </MotionReveal>
+        <MotionReveal delay={0.05}>
+          <div className="space-y-3">
+            {items.map((item, index) => (
+              <div
+                key={item.question}
+                className={cn(
+                  "rounded-xl border transition-all duration-200",
+                  openIndex === index
+                    ? "border-indigo-200 bg-indigo-50 shadow-sm"
+                    : "border-slate-200 bg-white hover:border-slate-300"
+                )}
+              >
+                <button
+                  type="button"
+                  className="flex w-full items-start justify-between gap-4 px-5 py-4 text-left"
+                  onClick={() => setOpenIndex(openIndex === index ? null : index)}
+                >
+                  <span className="text-sm font-semibold text-slate-800">{item.question}</span>
+                  <ChevronDown
+                    className={cn(
+                      "h-5 w-5 shrink-0 text-slate-400 transition-transform duration-200",
+                      openIndex === index && "rotate-180 text-indigo-600"
+                    )}
+                  />
+                </button>
+                {openIndex === index && (
+                  <div className="border-t border-indigo-100 px-5 pb-4 pt-3">
+                    <p className="text-sm leading-7 text-slate-600">{item.answer}</p>
+                  </div>
+                )}
               </div>
             ))}
           </div>
-        </div>
+        </MotionReveal>
+      </div>
+    </section>
+  );
+}
 
-        <div className="mt-5 grid gap-4 md:grid-cols-3">
-          {[
-            { title: "Expense Chart", value: "7 alerts", helper: "Outlier claims and pending reimbursements." },
-            { title: "Department Statistics", value: "12 teams", helper: "Headcount, staffing, and utilization in one view." },
-            { title: "Revenue Graph", value: "Rs 8.6 Cr", helper: "Collections and revenue trend tracked alongside payroll." },
-          ].map((item) => (
-            <div key={item.title} className="rounded-[1.3rem] border border-slate-200 bg-white p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{item.title}</p>
-              <p className="mt-3 text-xl font-semibold tracking-[-0.04em] text-slate-950">{item.value}</p>
-              <div className="mt-4 flex h-12 items-end gap-1.5">
-                {[36, 54, 48, 68, 64, 72].map((height, index) => (
-                  <div
-                    key={index}
-                    className="flex-1 rounded-t-full bg-[linear-gradient(180deg,rgba(31,78,158,0.28),rgba(15,118,110,0.92))]"
-                    style={{ height: `${height}%` }}
-                  />
+// ─── Demo Video ───────────────────────────────────────────────────────────────
+
+export function DemoVideo({ agenda }: { agenda: string[] }) {
+  return (
+    <section className={publicSectionSpacingClassName}>
+      <div className={publicSectionClassName}>
+        <MotionReveal>
+          <div className="grid gap-8 xl:grid-cols-[1fr_0.9fr]">
+            <div className="flex h-80 items-center justify-center rounded-2xl border border-slate-200 bg-gradient-to-br from-indigo-50 to-slate-50 shadow-sm">
+              <div className="flex flex-col items-center gap-4">
+                <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-600 shadow-lg shadow-indigo-500/30 transition hover:scale-105">
+                  <PlayCircle className="h-8 w-8 text-white" />
+                </div>
+                <p className="text-sm font-semibold text-slate-600">Watch product demo</p>
+              </div>
+            </div>
+            <div className="flex flex-col justify-center gap-5">
+              <div className={publicEyebrowClassName}>
+                <span className="h-1.5 w-1.5 rounded-full bg-indigo-600" />
+                Platform walkthrough
+              </div>
+              <h2 className="text-[1.8rem] font-bold tracking-tight text-slate-900">
+                See how the platform runs a real business workflow end-to-end.
+              </h2>
+              <div className="space-y-3">
+                {agenda.map((item, index) => (
+                  <div key={item} className="flex items-start gap-3 text-sm text-slate-600">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white">
+                      {index + 1}
+                    </span>
+                    {item}
+                  </div>
                 ))}
               </div>
-              <p className="mt-3 text-xs leading-6 text-slate-500">{item.helper}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="pointer-events-none hidden xl:block">
-        {floatingCards.map((card) => (
-          <div key={card.title} className={card.className}>
-            <div className="w-[12.75rem] rounded-[1.25rem] border border-white/70 bg-white/92 p-4 shadow-[0_18px_38px_rgba(15,23,42,0.12)] backdrop-blur">
-              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[color:var(--erp-primary)]">
-                {card.title}
-              </p>
-              <p className="mt-2 text-xl font-semibold tracking-[-0.04em] text-slate-950">{card.value}</p>
-              <p className="mt-2 text-xs leading-6 text-slate-500">{card.note}</p>
             </div>
           </div>
-        ))}
+        </MotionReveal>
       </div>
+    </section>
+  );
+}
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:hidden">
-        {floatingCards.map((card) => (
-          <div key={card.title} className="rounded-[1.25rem] border border-slate-200 bg-white p-4">
-            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[color:var(--erp-primary)]">
-              {card.title}
-            </p>
-            <p className="mt-2 text-xl font-semibold tracking-[-0.04em] text-slate-950">{card.value}</p>
-            <p className="mt-2 text-xs leading-6 text-slate-500">{card.note}</p>
+// ─── Value Grid ───────────────────────────────────────────────────────────────
+
+export function ValueGrid({
+  items,
+  eyebrow = "Our values",
+  title = "The principles that drive how we build and support the platform.",
+  subtitle = "These are not aspirational statements. They describe specific decisions we make repeatedly when designing, deploying, and supporting the ERP.",
+}: {
+  items: Array<{ title: string; body?: string; description?: string }>;
+  eyebrow?: string;
+  title?: string;
+  subtitle?: string;
+}) {
+  return (
+    <section className={publicSectionSpacingClassName}>
+      <div className={publicSectionClassName}>
+        <MotionReveal>
+          <SectionIntro eyebrow={eyebrow} title={title} subtitle={subtitle} />
+        </MotionReveal>
+        <MotionStagger className={cn(publicSectionContentGapClassName, "grid gap-5 md:grid-cols-2 xl:grid-cols-3")}>
+          {items.map((item) => (
+            <MotionItem key={item.title}>
+              <article className={cn(publicPanelHoverClassName, "h-full p-6")}>
+                <h3 className="text-lg font-bold tracking-tight text-slate-900">{item.title}</h3>
+                <p className="mt-3 text-sm leading-7 text-slate-500">{item.body || item.description}</p>
+              </article>
+            </MotionItem>
+          ))}
+        </MotionStagger>
+      </div>
+    </section>
+  );
+}
+
+// ─── Demo Agenda Panel ────────────────────────────────────────────────────────
+
+export function DemoAgendaPanel({ items }: { items: string[] }) {
+  return (
+    <div className={cn(publicPanelClassName, "p-6")}>
+      <div className={publicEyebrowClassName}>
+        <span className="h-1.5 w-1.5 rounded-full bg-indigo-600" />
+        Demo agenda
+      </div>
+      <h3 className="mt-4 text-xl font-bold tracking-tight text-slate-900">What we cover in the demo</h3>
+      <div className="mt-5 space-y-3">
+        {items.map((item, index) => (
+          <div key={item} className="flex items-start gap-3 text-sm text-slate-600">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white">
+              {index + 1}
+            </span>
+            {item}
           </div>
         ))}
       </div>
@@ -1155,36 +1239,51 @@ function OperationalDashboardMockup({ metrics }: { metrics: MarketingMetric[] })
   );
 }
 
+// ─── Support Lane Grid ────────────────────────────────────────────────────────
+
+export function SupportLaneGrid({
+  items,
+}: {
+  items: Array<{ title: string; detail: string; channel?: string } | string>;
+}) {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      {items.map((item, i) => {
+        const title = typeof item === "string" ? item : item.title;
+        const detail = typeof item === "string" ? "" : item.detail;
+        const channel = typeof item === "string" ? undefined : item.channel;
+        return (
+          <div key={title + i} className={cn(publicPanelHoverClassName, "p-5")}>
+            {channel && <p className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-600">{channel}</p>}
+            <h4 className={cn("text-base font-bold text-slate-900", channel && "mt-2")}>{title}</h4>
+            {detail && <p className="mt-2 text-sm leading-6 text-slate-500">{detail}</p>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Animated Number ──────────────────────────────────────────────────────────
+
 function AnimatedNumber({ value }: { value: number }) {
-  const ref = useRef<HTMLSpanElement | null>(null);
-  const isInView = useInView(ref, { once: true, amount: 0.7 });
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true });
   const [display, setDisplay] = useState(0);
 
   useEffect(() => {
-    if (!isInView) return;
-
-    const start = performance.now();
-    const duration = 1400;
-
-    const tick = (timestamp: number) => {
-      const progress = Math.min((timestamp - start) / duration, 1);
+    if (!inView) return;
+    const duration = 1200;
+    const start = Date.now();
+    const timer = setInterval(() => {
+      const elapsed = Date.now() - start;
+      const progress = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplay(value * eased);
+      setDisplay(Math.round(eased * value));
+      if (progress >= 1) clearInterval(timer);
+    }, 16);
+    return () => clearInterval(timer);
+  }, [inView, value]);
 
-      if (progress < 1) {
-        requestAnimationFrame(tick);
-      }
-    };
-
-    const frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [isInView, value]);
-
-  const formatted =
-    value % 1 === 0
-      ? Math.round(display).toLocaleString("en-IN")
-      : display.toFixed(1);
-
-  return <span ref={ref}>{formatted}</span>;
+  return <span ref={ref}>{display}</span>;
 }
-

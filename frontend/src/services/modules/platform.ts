@@ -159,6 +159,7 @@ export const platformApi = {
       update: (id: string, data: { isResolved: boolean }) =>
         apiClient.put(`/contactsubmissions/${id}`, data),
     },
+    systemHealth: () => apiClient.get("/health", { headers: { "X-Silent-Error": "1" } }),
   },
   website: {
     listPages: () => apiClient.get<WebsitePagesResponse>("/website/pages"),

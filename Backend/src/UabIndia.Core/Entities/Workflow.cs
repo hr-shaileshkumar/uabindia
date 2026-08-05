@@ -5,6 +5,8 @@ namespace UabIndia.Core.Entities
 {
     public class WorkflowDefinition : BaseEntity
     {
+        public Guid? CompanyId { get; set; }
+        public Guid? ProjectId { get; set; }
         public string ModuleKey { get; set; } = string.Empty; // hrms, finance, procurement, etc.
         public string Name { get; set; } = string.Empty;
         public bool IsActive { get; set; } = true;
@@ -23,6 +25,8 @@ namespace UabIndia.Core.Entities
 
     public class ApprovalRequest : BaseEntity
     {
+        public Guid? CompanyId { get; set; }
+        public Guid? ProjectId { get; set; }
         public string ModuleKey { get; set; } = string.Empty;
         public string EntityType { get; set; } = string.Empty; // e.g., PurchaseOrder
         public Guid EntityId { get; set; }

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Plus, Gift } from "lucide-react";
+import { CrudHeaderStats } from "@/components/erp/crud-workspace";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { hrApi } from "@/services/hrApi";
 import { notifyError } from "@/lib/notifications";
@@ -146,30 +147,17 @@ export default function PayrollBonusPage() {
           )}
         </div>
       }
+      meta={
+        <CrudHeaderStats
+          items={[
+            { label: "Bonuses", value: filtered.length, helper: "entries" },
+            { label: "Paid", value: paidCount, helper: "disbursed", tone: "positive" },
+            { label: "Pending", value: pendingCount, helper: "approval", tone: "warning" },
+            { label: "Outlay", value: formatCurrency(totalBonus), helper: "filtered", tone: "info" },
+          ]}
+        />
+      }
     >
-      <div className="erp-kpi-grid">
-        <div className="erp-kpi-card">
-          <p className="erp-kpi-label">Total Bonuses</p>
-          <p className="erp-kpi-value">{filtered.length}</p>
-          <p className="erp-kpi-meta">Bonus entries this period</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-success">
-          <p className="erp-kpi-label">Paid</p>
-          <p className="erp-kpi-value erp-kpi-value-success">{paidCount}</p>
-          <p className="erp-kpi-meta">Disbursed bonuses</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-warning">
-          <p className="erp-kpi-label">Pending Approval</p>
-          <p className="erp-kpi-value">{pendingCount}</p>
-          <p className="erp-kpi-meta">Awaiting manager sign-off</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-info">
-          <p className="erp-kpi-label">Total Outlay</p>
-          <p className="erp-kpi-value">{formatCurrency(totalBonus)}</p>
-          <p className="erp-kpi-meta">Sum of filtered bonuses</p>
-        </div>
-      </div>
-
       {error && <div className="erp-alert-error">{error}</div>}
 
       {showForm && (

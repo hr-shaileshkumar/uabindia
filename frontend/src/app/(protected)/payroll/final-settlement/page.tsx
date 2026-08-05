@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
+import { CrudHeaderStats } from "@/components/erp/crud-workspace";
 
 type FinalSettlementRecord = {
   id: string;
@@ -28,13 +29,28 @@ export default function FinalSettlementPage() {
       rows={records}
       countLabel={(count) => `${count} settlement records`}
       emptyMessage="No final settlement records found."
-      kpiCards={
-        <div className="erp-kpi-grid">
-          <div className="erp-kpi-card"><p className="erp-kpi-label">Total</p><p className="erp-kpi-value">{records.length}</p><p className="erp-kpi-meta">All settlements</p></div>
-          <div className="erp-kpi-card erp-kpi-card-success"><p className="erp-kpi-label">Settled</p><p className="erp-kpi-value erp-kpi-value-success">{records.filter(r => r.status === "Settled").length}</p><p className="erp-kpi-meta">Fully processed</p></div>
-          <div className="erp-kpi-card erp-kpi-card-warning"><p className="erp-kpi-label">Pending</p><p className="erp-kpi-value">{records.filter(r => r.status === "Pending").length}</p><p className="erp-kpi-meta">Under process</p></div>
-          <div className="erp-kpi-card erp-kpi-card-info"><p className="erp-kpi-label">Total Paid Out</p><p className="erp-kpi-value">{records.reduce((s, r) => s + r.totalSettlement, 0).toLocaleString()}</p><p className="erp-kpi-meta">Sum of F&amp;F</p></div>
-        </div>
+      headerStats={
+        <CrudHeaderStats
+          items={[
+            { label: "Settlements", value: records.length, helper: "total" },
+            {
+              label: "Settled",
+              value: records.filter((record) => record.status === "Settled").length,
+              tone: "positive",
+            },
+            {
+              label: "Pending",
+              value: records.filter((record) => record.status === "Pending").length,
+              tone: "warning",
+            },
+            {
+              label: "Paid Out",
+              value: records.reduce((total, record) => total + record.totalSettlement, 0).toLocaleString(),
+              helper: "f&f",
+              tone: "info",
+            },
+          ]}
+        />
       }
       columns={[
         { label: "Employee" },

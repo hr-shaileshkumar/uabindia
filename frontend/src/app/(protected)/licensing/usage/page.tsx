@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
+import { CrudHeaderStats } from "@/components/erp/crud-workspace";
 
 type UsageRow = {
   id: string;
@@ -28,13 +29,30 @@ export default function LicensingUsagePage() {
       rows={records}
       countLabel={(count) => `${count} modules tracked`}
       emptyMessage="No usage data available."
-      kpiCards={
-        <div className="erp-kpi-grid">
-          <div className="erp-kpi-card"><p className="erp-kpi-label">Modules Active</p><p className="erp-kpi-value">{records.length}</p><p className="erp-kpi-meta">Tracked modules</p></div>
-          <div className="erp-kpi-card erp-kpi-card-info"><p className="erp-kpi-label">Total Active Users</p><p className="erp-kpi-value">{records.reduce((s, r) => s + r.activeUsers, 0)}</p><p className="erp-kpi-meta">Across all modules</p></div>
-          <div className="erp-kpi-card erp-kpi-card-warning"><p className="erp-kpi-label">Total API Calls</p><p className="erp-kpi-value">{records.reduce((s, r) => s + r.apiCalls, 0).toLocaleString()}</p><p className="erp-kpi-meta">This period</p></div>
-          <div className="erp-kpi-card erp-kpi-card-success"><p className="erp-kpi-label">Storage Used</p><p className="erp-kpi-value">{records.reduce((s, r) => s + r.storageUsedMb, 0).toLocaleString()} MB</p><p className="erp-kpi-meta">Total consumed</p></div>
-        </div>
+      headerStats={
+        <CrudHeaderStats
+          items={[
+            { label: "Modules", value: records.length, helper: "tracked" },
+            {
+              label: "Users",
+              value: records.reduce((total, record) => total + record.activeUsers, 0),
+              helper: "active",
+              tone: "info",
+            },
+            {
+              label: "API Calls",
+              value: records.reduce((total, record) => total + record.apiCalls, 0).toLocaleString(),
+              helper: "period",
+              tone: "warning",
+            },
+            {
+              label: "Storage",
+              value: `${records.reduce((total, record) => total + record.storageUsedMb, 0).toLocaleString()} MB`,
+              helper: "used",
+              tone: "positive",
+            },
+          ]}
+        />
       }
       columns={[
         { label: "Module" },

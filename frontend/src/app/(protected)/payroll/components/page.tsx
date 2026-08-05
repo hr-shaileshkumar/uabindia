@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
+import { CrudHeaderStats } from "@/components/erp/crud-workspace";
 import { hrApi } from "@/services/hrApi";
 
 type PayrollComponent = {
@@ -45,13 +46,27 @@ export default function PayrollComponentsPage() {
       rows={components}
       countLabel={(count) => `${count} components`}
       emptyMessage="No components found."
-      kpiCards={
-        <div className="erp-kpi-grid">
-          <div className="erp-kpi-card"><p className="erp-kpi-label">Total Components</p><p className="erp-kpi-value">{components.length}</p><p className="erp-kpi-meta">Payroll components</p></div>
-          <div className="erp-kpi-card erp-kpi-card-success"><p className="erp-kpi-label">Earnings</p><p className="erp-kpi-value erp-kpi-value-success">{components.filter(c => (c.type || '').toLowerCase() === 'earning').length}</p><p className="erp-kpi-meta">Earning components</p></div>
-          <div className="erp-kpi-card erp-kpi-card-danger"><p className="erp-kpi-label">Deductions</p><p className="erp-kpi-value erp-kpi-value-danger">{components.filter(c => (c.type || '').toLowerCase() === 'deduction').length}</p><p className="erp-kpi-meta">Deduction components</p></div>
-          <div className="erp-kpi-card erp-kpi-card-info"><p className="erp-kpi-label">Statutory</p><p className="erp-kpi-value">{components.filter(c => c.isStatutory).length}</p><p className="erp-kpi-meta">Government-mandated</p></div>
-        </div>
+      headerStats={
+        <CrudHeaderStats
+          items={[
+            { label: "Components", value: components.length, helper: "total" },
+            {
+              label: "Earnings",
+              value: components.filter((component) => (component.type || "").toLowerCase() === "earning").length,
+              tone: "positive",
+            },
+            {
+              label: "Deductions",
+              value: components.filter((component) => (component.type || "").toLowerCase() === "deduction").length,
+              tone: "danger",
+            },
+            {
+              label: "Statutory",
+              value: components.filter((component) => component.isStatutory).length,
+              tone: "info",
+            },
+          ]}
+        />
       }
       columns={[
         { label: "Name" },

@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using UabIndia.Infrastructure.Data;
 using UabIndia.Core.Entities;
 using UabIndia.Core.Authorization;
+using UabIndia.Core.Services;
 using UabIndia.Api.Models;
 using UabIndia.Api.Services;
 
@@ -34,8 +35,9 @@ namespace UabIndia.Api.Modules.Platform.Controllers
         private readonly ApplicationDbContext _db;
         private readonly IPasswordHasher<User> _hasher;
         private readonly TenantEmailService _tenantEmailService;
+        private readonly IEncryptionService _encryption;
 
-        public AuthController(JwtService jwt, RefreshTokenService refresh, UabIndia.Application.Interfaces.IRefreshTokenRepository refreshRepo, UabIndia.Application.Interfaces.ITenantAccessor tenantAccessor, Microsoft.Extensions.Logging.ILogger<AuthController> logger, Microsoft.Extensions.Hosting.IHostEnvironment env, ApplicationDbContext db, IPasswordHasher<User> hasher, TenantEmailService tenantEmailService)
+        public AuthController(JwtService jwt, RefreshTokenService refresh, UabIndia.Application.Interfaces.IRefreshTokenRepository refreshRepo, UabIndia.Application.Interfaces.ITenantAccessor tenantAccessor, Microsoft.Extensions.Logging.ILogger<AuthController> logger, Microsoft.Extensions.Hosting.IHostEnvironment env, ApplicationDbContext db, IPasswordHasher<User> hasher, TenantEmailService tenantEmailService, IEncryptionService encryption)
         {
             _jwt = jwt;
             _refresh = refresh;
@@ -46,6 +48,7 @@ namespace UabIndia.Api.Modules.Platform.Controllers
             _db = db;
             _hasher = hasher;
             _tenantEmailService = tenantEmailService;
+            _encryption = encryption;
         }
 
         [HttpPost("login")]
@@ -96,9 +99,10 @@ namespace UabIndia.Api.Modules.Platform.Controllers
 
             var requestedTenantId = _tenantAccessor.GetTenantId();
 
+            var rawEmail = req.Email!.Trim();
             var userQuery = _db.Users
                 .IgnoreQueryFilters()
-                .Where(u => u.Email == req.Email && u.IsActive && !u.IsDeleted);
+                .Where(u => u.Email == rawEmail && u.IsActive && !u.IsDeleted);
 
             var requiresTenantWorkspace = false;
             if (requestedTenantId != Guid.Empty)
@@ -110,7 +114,7 @@ namespace UabIndia.Api.Modules.Platform.Controllers
                 userQuery = userQuery.Where(u => u.IsSystemAdmin);
                 requiresTenantWorkspace = await _db.Users
                     .IgnoreQueryFilters()
-                    .AnyAsync(u => u.Email == req.Email && u.IsActive && !u.IsDeleted && !u.IsSystemAdmin);
+                    .AnyAsync(u => u.Email == rawEmail && u.IsActive && !u.IsDeleted && !u.IsSystemAdmin);
             }
 
             var user = await userQuery.FirstOrDefaultAsync();
@@ -441,9 +445,10 @@ namespace UabIndia.Api.Modules.Platform.Controllers
 
             // Always return success to prevent email enumeration
             var requestedTenantId = _tenantAccessor.GetTenantId();
+            var rawEmailFp = req.Email!.Trim();
             var userQuery = _db.Users
                 .IgnoreQueryFilters()
-                .Where(u => u.Email == req.Email && u.IsActive && !u.IsDeleted);
+                .Where(u => u.Email == rawEmailFp && u.IsActive && !u.IsDeleted);
 
             if (requestedTenantId != Guid.Empty)
             {

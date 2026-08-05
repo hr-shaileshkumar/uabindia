@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import ErpHeaderSummary from "@/components/layout/ErpHeaderSummary";
 import { hrApi } from "@/services/hrApi";
 
-const formatCurrency = (v?: number) => v != null ? `₹${v.toLocaleString("en-IN")}` : "—";
+const formatCurrency = (v?: number) => (v != null ? `Rs${v.toLocaleString("en-IN")}` : "-");
 
 export default function FinancialReportsPage() {
   const [accounts, setAccounts] = useState<{ id: string; name?: string; accountType?: string; balance?: number }[]>([]);
@@ -22,8 +23,8 @@ export default function FinancialReportsPage() {
           hrApi.erp.journalEntries.list(1, 20, "Posted"),
         ]);
         setAccounts(Array.isArray(acctRes.data) ? acctRes.data : []);
-        const jRaw = journalRes.data;
-        setJournalEntries(Array.isArray(jRaw) ? jRaw : Array.isArray(jRaw?.data) ? jRaw.data : []);
+        const journalRaw = journalRes.data;
+        setJournalEntries(Array.isArray(journalRaw) ? journalRaw : Array.isArray(journalRaw?.data) ? journalRaw.data : []);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Failed to load financial reports");
       } finally {
@@ -33,9 +34,9 @@ export default function FinancialReportsPage() {
     void load();
   }, []);
 
-  const totalAssets = accounts.filter((a) => (a.accountType || "").toLowerCase().includes("asset")).reduce((s, a) => s + (a.balance || 0), 0);
-  const totalLiabilities = accounts.filter((a) => (a.accountType || "").toLowerCase().includes("liabilit")).reduce((s, a) => s + (a.balance || 0), 0);
-  const totalJournalValue = journalEntries.reduce((s, j) => s + (j.totalDebit || 0), 0);
+  const totalAssets = accounts.filter((account) => (account.accountType || "").toLowerCase().includes("asset")).reduce((sum, account) => sum + (account.balance || 0), 0);
+  const totalLiabilities = accounts.filter((account) => (account.accountType || "").toLowerCase().includes("liabilit")).reduce((sum, account) => sum + (account.balance || 0), 0);
+  const totalJournalValue = journalEntries.reduce((sum, entry) => sum + (entry.totalDebit || 0), 0);
 
   return (
     <StandardPageLayout
@@ -43,30 +44,17 @@ export default function FinancialReportsPage() {
       subtitle="Account balances, journal entry summaries, and period financial snapshots."
       eyebrow="Reports / Finance"
       icon="bar-chart"
+      meta={
+        <ErpHeaderSummary
+          items={[
+            { label: "Accounts", value: accounts.length, tone: "info" },
+            { label: "Assets", value: formatCurrency(totalAssets), tone: "success" },
+            { label: "Liabilities", value: formatCurrency(totalLiabilities), tone: "danger" },
+            { label: "Journal Debit", value: formatCurrency(totalJournalValue), tone: "info" },
+          ]}
+        />
+      }
     >
-      <div className="erp-kpi-grid">
-        <div className="erp-kpi-card erp-kpi-card-info">
-          <p className="erp-kpi-label">Chart Accounts</p>
-          <p className="erp-kpi-value">{accounts.length}</p>
-          <p className="erp-kpi-meta">Active accounts in COA</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-success">
-          <p className="erp-kpi-label">Total Assets</p>
-          <p className="erp-kpi-value erp-kpi-value-success">{formatCurrency(totalAssets)}</p>
-          <p className="erp-kpi-meta">Asset account balances</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-danger">
-          <p className="erp-kpi-label">Total Liabilities</p>
-          <p className="erp-kpi-value">{formatCurrency(totalLiabilities)}</p>
-          <p className="erp-kpi-meta">Liability account balances</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-info">
-          <p className="erp-kpi-label">Journal Debit Total</p>
-          <p className="erp-kpi-value">{formatCurrency(totalJournalValue)}</p>
-          <p className="erp-kpi-meta">Posted entries this page</p>
-        </div>
-      </div>
-
       {error && <div className="erp-alert-error">{error}</div>}
 
       <div className="erp-panel">
@@ -78,7 +66,7 @@ export default function FinancialReportsPage() {
         </div>
         <div className="erp-panel-body">
           {loading ? (
-            <div className="erp-loading">Loading financial data…</div>
+            <div className="erp-loading">Loading financial data...</div>
           ) : (
             <>
               {activeTab === "balances" && (
@@ -95,11 +83,11 @@ export default function FinancialReportsPage() {
                       {accounts.length === 0 ? (
                         <tr><td colSpan={3} className="erp-td py-10 text-center text-slate-400">No account balances found.</td></tr>
                       ) : (
-                        accounts.map((a) => (
-                          <tr key={a.id} className="erp-tr">
-                            <td className="erp-td font-medium text-slate-900">{a.name || "—"}</td>
-                            <td className="erp-td"><span className="erp-chip erp-chip-neutral">{a.accountType || "—"}</span></td>
-                            <td className="erp-td text-right font-semibold text-slate-900">{formatCurrency(a.balance)}</td>
+                        accounts.map((account) => (
+                          <tr key={account.id} className="erp-tr">
+                            <td className="erp-td font-medium text-slate-900">{account.name || "-"}</td>
+                            <td className="erp-td"><span className="erp-chip erp-chip-neutral">{account.accountType || "-"}</span></td>
+                            <td className="erp-td text-right font-semibold text-slate-900">{formatCurrency(account.balance)}</td>
                           </tr>
                         ))
                       )}
@@ -123,13 +111,13 @@ export default function FinancialReportsPage() {
                       {journalEntries.length === 0 ? (
                         <tr><td colSpan={5} className="erp-td py-10 text-center text-slate-400">No posted journal entries.</td></tr>
                       ) : (
-                        journalEntries.map((j) => (
-                          <tr key={j.id} className="erp-tr">
-                            <td className="erp-td text-slate-600">{j.entryDate ? new Date(j.entryDate).toLocaleDateString("en-IN") : "—"}</td>
-                            <td className="erp-td text-slate-700">{j.description || "—"}</td>
-                            <td className="erp-td font-medium text-slate-900">{formatCurrency(j.totalDebit)}</td>
-                            <td className="erp-td font-medium text-slate-900">{formatCurrency(j.totalCredit)}</td>
-                            <td className="erp-td"><span className="erp-chip erp-chip-success">{j.status || "Posted"}</span></td>
+                        journalEntries.map((entry) => (
+                          <tr key={entry.id} className="erp-tr">
+                            <td className="erp-td text-slate-600">{entry.entryDate ? new Date(entry.entryDate).toLocaleDateString("en-IN") : "-"}</td>
+                            <td className="erp-td text-slate-700">{entry.description || "-"}</td>
+                            <td className="erp-td font-medium text-slate-900">{formatCurrency(entry.totalDebit)}</td>
+                            <td className="erp-td font-medium text-slate-900">{formatCurrency(entry.totalCredit)}</td>
+                            <td className="erp-td"><span className="erp-chip erp-chip-success">{entry.status || "Posted"}</span></td>
                           </tr>
                         ))
                       )}

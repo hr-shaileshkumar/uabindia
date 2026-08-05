@@ -1,11 +1,11 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 
 const W = 1.75;
 
 export default function ModuleIcon({ name, className }: { name?: string | null; className?: string }) {
-  const sz = className || "w-5 h-5";
+  const sz = (className || "w-5 h-5") + " transition-transform duration-300 hover:scale-115 hover:rotate-6";
   const p = { strokeLinecap: "round" as const, strokeLinejoin: "round" as const, strokeWidth: W };
 
   if (!name) {
@@ -501,30 +501,52 @@ export default function ModuleIcon({ name, className }: { name?: string | null; 
           <path {...p} d="M22 4L12 14.01l-3-3" />
         </svg>
       );
-    default: {
-      const segments = name.split(/[^a-zA-Z0-9]+/).filter(Boolean);
-      const first = (segments[segments.length - 2] || segments[0] || "?").charAt(0);
-      const second = (segments[segments.length - 1] || "").charAt(0);
-      const initials = `${first}${second}`.trim().toUpperCase() || "?";
-      const seed = name.split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
-      const palettes = [
-        { bg: "#EFF6FF", fg: "#1D4ED8", border: "#BFDBFE" },
-        { bg: "#ECFDF5", fg: "#047857", border: "#A7F3D0" },
-        { bg: "#FDF2F8", fg: "#BE185D", border: "#FBCFE8" },
-        { bg: "#FFFBEB", fg: "#B45309", border: "#FDE68A" },
-        { bg: "#F5F3FF", fg: "#6D28D9", border: "#DDD6FE" },
-        { bg: "#F0F9FF", fg: "#0369A1", border: "#BAE6FD" },
-      ] as const;
-      const palette = palettes[seed % palettes.length];
+    case "contact-round":
+    case "crm":
       return (
-        <span
-          className={`${sz} inline-flex items-center justify-center rounded-md border text-[9px] font-semibold leading-none`}
-          style={{ backgroundColor: palette.bg, color: palette.fg, borderColor: palette.border }}
-          aria-hidden
-        >
-          {initials}
-        </span>
+        <svg className={sz} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <circle cx="12" cy="12" r="10" {...p} />
+          <circle cx="12" cy="10" r="3" {...p} />
+          <path {...p} d="M7 20.662V19a2 2 0 012-2h6a2 2 0 012 2v1.662" />
+        </svg>
+      );
+    case "git-branch":
+      return (
+        <svg className={sz} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <line x1="6" y1="3" x2="6" y2="15" {...p} />
+          <circle cx="18" cy="6" r="3" {...p} />
+          <circle cx="6" cy="18" r="3" {...p} />
+          <path {...p} d="M18 9a9 9 0 01-9 9" />
+        </svg>
+      );
+    case "settings-2":
+      return (
+        <svg className={sz} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path {...p} d="M20 7h-9M14 17H5M17 12H3M7 7H3" />
+          <circle cx="17" cy="7" r="3" {...p} />
+          <circle cx="7" cy="12" r="3" {...p} />
+          <circle cx="14" cy="17" r="3" {...p} />
+        </svg>
+      );
+    case "calendar":
+      return (
+        <svg className={sz} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" {...p} />
+          <line x1="16" y1="2" x2="16" y2="6" {...p} />
+          <line x1="8" y1="2" x2="8" y2="6" {...p} />
+          <line x1="3" y1="10" x2="21" y2="10" {...p} />
+        </svg>
+      );
+    default: {
+      return (
+        <svg className={sz} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <rect x="3" y="3" width="7" height="7" rx="1" {...p} />
+          <rect x="14" y="3" width="7" height="7" rx="1" {...p} />
+          <rect x="3" y="14" width="7" height="7" rx="1" {...p} />
+          <rect x="14" y="14" width="7" height="7" rx="1" {...p} />
+        </svg>
       );
     }
   }
 }
+

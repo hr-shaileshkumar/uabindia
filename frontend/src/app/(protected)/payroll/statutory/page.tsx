@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
+import { CrudHeaderStats } from "@/components/erp/crud-workspace";
 import { hrApi } from "@/services/hrApi";
 
 type StatutoryRow = {
@@ -65,13 +66,28 @@ export default function PayrollStatutoryPage() {
       rows={statutory}
       countLabel={(count) => `${count} statutory buckets`}
       emptyMessage="No statutory records found."
-      kpiCards={
-        <div className="erp-kpi-grid">
-          <div className="erp-kpi-card"><p className="erp-kpi-label">Total Filings</p><p className="erp-kpi-value">{statutory.length}</p><p className="erp-kpi-meta">Statutory records</p></div>
-          <div className="erp-kpi-card erp-kpi-card-success"><p className="erp-kpi-label">Filed</p><p className="erp-kpi-value erp-kpi-value-success">{statutory.filter(s => (s.status || '').toLowerCase() === 'filed').length}</p><p className="erp-kpi-meta">Completed filings</p></div>
-          <div className="erp-kpi-card erp-kpi-card-warning"><p className="erp-kpi-label">Pending</p><p className="erp-kpi-value">{statutory.filter(s => (s.status || '').toLowerCase() === 'pending').length}</p><p className="erp-kpi-meta">Awaiting filing</p></div>
-          <div className="erp-kpi-card erp-kpi-card-info"><p className="erp-kpi-label">Total Amount</p><p className="erp-kpi-value">{statutory.reduce((s, r) => s + (r.total || 0), 0).toLocaleString()}</p><p className="erp-kpi-meta">Sum of all amounts</p></div>
-        </div>
+      headerStats={
+        <CrudHeaderStats
+          items={[
+            { label: "Filings", value: statutory.length, helper: "statutory" },
+            {
+              label: "Filed",
+              value: statutory.filter((record) => (record.status || "").toLowerCase() === "filed").length,
+              tone: "positive",
+            },
+            {
+              label: "Pending",
+              value: statutory.filter((record) => (record.status || "").toLowerCase() === "pending").length,
+              tone: "warning",
+            },
+            {
+              label: "Amount",
+              value: statutory.reduce((total, record) => total + (record.total || 0), 0).toLocaleString(),
+              helper: "sum",
+              tone: "info",
+            },
+          ]}
+        />
       }
       columns={[
         { label: "Type" },

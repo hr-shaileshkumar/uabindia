@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
+import { CrudHeaderStats } from "@/components/erp/crud-workspace";
 
 type TaxDeclarationRecord = {
   id: string;
@@ -28,13 +29,27 @@ export default function TaxDeclarationsPage() {
       rows={records}
       countLabel={(count) => `${count} declarations`}
       emptyMessage="No tax declarations found."
-      kpiCards={
-        <div className="erp-kpi-grid">
-          <div className="erp-kpi-card"><p className="erp-kpi-label">Total</p><p className="erp-kpi-value">{records.length}</p><p className="erp-kpi-meta">All declarations</p></div>
-          <div className="erp-kpi-card erp-kpi-card-success"><p className="erp-kpi-label">Approved</p><p className="erp-kpi-value erp-kpi-value-success">{records.filter(r => r.status === "Approved").length}</p><p className="erp-kpi-meta">Verified proofs</p></div>
-          <div className="erp-kpi-card erp-kpi-card-warning"><p className="erp-kpi-label">Pending</p><p className="erp-kpi-value">{records.filter(r => r.status === "Pending").length}</p><p className="erp-kpi-meta">Awaiting review</p></div>
-          <div className="erp-kpi-card erp-kpi-card-info"><p className="erp-kpi-label">New Regime</p><p className="erp-kpi-value">{records.filter(r => r.regime === "New").length}</p><p className="erp-kpi-meta">New tax regime</p></div>
-        </div>
+      headerStats={
+        <CrudHeaderStats
+          items={[
+            { label: "Declarations", value: records.length, helper: "total" },
+            {
+              label: "Approved",
+              value: records.filter((record) => record.status === "Approved").length,
+              tone: "positive",
+            },
+            {
+              label: "Pending",
+              value: records.filter((record) => record.status === "Pending").length,
+              tone: "warning",
+            },
+            {
+              label: "New Regime",
+              value: records.filter((record) => record.regime === "New").length,
+              tone: "info",
+            },
+          ]}
+        />
       }
       columns={[
         { label: "Employee" },

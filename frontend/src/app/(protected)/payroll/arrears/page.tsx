@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Plus, DollarSign } from "lucide-react";
+import { CrudHeaderStats } from "@/components/erp/crud-workspace";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { hrApi } from "@/services/hrApi";
 import { notifyError } from "@/lib/notifications";
@@ -144,30 +145,17 @@ export default function PayrollArrearsPage() {
           {search && <button type="button" onClick={() => setSearch("")} className="erp-action-btn erp-action-btn-secondary">Clear</button>}
         </div>
       }
+      meta={
+        <CrudHeaderStats
+          items={[
+            { label: "Entries", value: filtered.length, helper: "arrears" },
+            { label: "Processed", value: processed, helper: "done", tone: "positive" },
+            { label: "Pending", value: pending, helper: "awaiting", tone: "warning" },
+            { label: "Amount", value: formatCurrency(totalAmt), helper: "filtered", tone: "info" },
+          ]}
+        />
+      }
     >
-      <div className="erp-kpi-grid">
-        <div className="erp-kpi-card">
-          <p className="erp-kpi-label">Total Entries</p>
-          <p className="erp-kpi-value">{filtered.length}</p>
-          <p className="erp-kpi-meta">All arrears records</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-success">
-          <p className="erp-kpi-label">Processed</p>
-          <p className="erp-kpi-value erp-kpi-value-success">{processed}</p>
-          <p className="erp-kpi-meta">Disbursed arrears</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-warning">
-          <p className="erp-kpi-label">Pending</p>
-          <p className="erp-kpi-value">{pending}</p>
-          <p className="erp-kpi-meta">Awaiting processing</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-info">
-          <p className="erp-kpi-label">Total Amount</p>
-          <p className="erp-kpi-value">{formatCurrency(totalAmt)}</p>
-          <p className="erp-kpi-meta">Sum of filtered arrears</p>
-        </div>
-      </div>
-
       {error && <div className="erp-alert-error">{error}</div>}
 
       {showForm && (

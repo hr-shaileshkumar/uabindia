@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import PublicStatusPage from "@/components/public/PublicStatusPage";
 
 const messages: Record<string, { title: string; body: string; note: string }> = {
   "access-not-configured": {
@@ -32,26 +32,15 @@ export default function NotAuthorizedPage() {
   const message = messages[reason] || messages["access-denied"];
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-(--erp-canvas) px-6 text-slate-900">
-      <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-8 shadow-xl">
-        <h1 className="text-2xl font-semibold">{message.title}</h1>
-        <p className="mt-3 text-sm text-slate-600">{message.body}</p>
-        <p className="mt-2 text-xs text-slate-500">{message.note}</p>
-        <div className="mt-6 flex gap-3">
-          <Link
-            href="/context"
-            className="inline-flex items-center justify-center rounded-md bg-(--erp-primary) px-4 py-2 text-sm font-medium text-white hover:bg-(--erp-primary-hover)"
-          >
-            Re-check workspace
-          </Link>
-          <Link
-            href="/login"
-            className="inline-flex items-center justify-center rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
-          >
-            Re-authenticate
-          </Link>
-        </div>
-      </div>
-    </main>
+    <PublicStatusPage
+      eyebrow="Access control"
+      title={message.title}
+      description={message.body}
+      note={message.note}
+      actions={[
+        { href: "/context", label: "Re-check workspace" },
+        { href: "/login", label: "Re-authenticate", variant: "secondary" },
+      ]}
+    />
   );
 }

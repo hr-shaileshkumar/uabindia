@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 
 export type ModalType = "default" | "success" | "warning" | "danger";
 export type ModalSize = "sm" | "md" | "lg" | "xl";
@@ -59,11 +59,23 @@ export default function AdminModal({
   cancelLabel = "Cancel",
   hideClose = false,
 }: Props) {
+  const titleId = useId();
+  const subtitleId = useId();
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
   useEffect(() => {
     if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.body.style.overflow = "hidden";
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    window.requestAnimationFrame(() => closeButtonRef.current?.focus());
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKey);
+      previouslyFocused?.focus();
+    };
   }, [open, onClose]);
 
   if (!open) return null;
@@ -93,7 +105,8 @@ export default function AdminModal({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        aria-labelledby={titleId}
+        aria-describedby={subtitle ? subtitleId : undefined}
         className={`erp-modal-card erp-modal-${size}`}
         onClick={(e) => e.stopPropagation()}
       >
@@ -102,12 +115,12 @@ export default function AdminModal({
           <div className="flex min-w-0 items-center gap-3">
             <span className={iconClass}>{TYPE_ICONS[type]}</span>
             <div className="min-w-0">
-              <div className="erp-modal-title">{title}</div>
-              {subtitle ? <div className="erp-modal-subtitle">{subtitle}</div> : null}
+              <div id={titleId} className="erp-modal-title">{title}</div>
+              {subtitle ? <div id={subtitleId} className="erp-modal-subtitle">{subtitle}</div> : null}
             </div>
           </div>
           {!hideClose && (
-            <button type="button" className="erp-modal-close" onClick={onClose} title="Close (Esc)">
+            <button ref={closeButtonRef} type="button" className="erp-modal-close" onClick={onClose} title="Close (Esc)" aria-label={`Close ${title}`}>
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 6l12 12M18 6L6 18" />
               </svg>

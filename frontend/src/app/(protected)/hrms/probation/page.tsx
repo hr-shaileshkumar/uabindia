@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Clock, CheckCircle, AlertCircle, XCircle, Star } from "lucide-react";
+import ErpHeaderSummary from "@/components/layout/ErpHeaderSummary";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { hrApi } from "@/services/hrApi";
 import { notifyError } from "@/lib/notifications";
@@ -147,30 +148,17 @@ export default function ProbationPage() {
           )}
         </div>
       }
+      meta={
+        <ErpHeaderSummary
+          items={[
+            { label: "Probation", value: records.length },
+            { label: "Active", value: active, tone: "info" },
+            { label: "Confirmed", value: confirmed, tone: "success" },
+            { label: "Extended", value: `${extended}${avgScore ? ` / ${avgScore}%` : ""}`, tone: "warning" },
+          ]}
+        />
+      }
     >
-      <div className="erp-kpi-grid">
-        <div className="erp-kpi-card">
-          <p className="erp-kpi-label">Total Probation</p>
-          <p className="erp-kpi-value">{records.length}</p>
-          <p className="erp-kpi-meta">Within 6-month window</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-info">
-          <p className="erp-kpi-label">Active</p>
-          <p className="erp-kpi-value">{active}</p>
-          <p className="erp-kpi-meta">Currently on probation</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-success">
-          <p className="erp-kpi-label">Confirmed</p>
-          <p className="erp-kpi-value erp-kpi-value-success">{confirmed}</p>
-          <p className="erp-kpi-meta">Passed probation period</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-warning">
-          <p className="erp-kpi-label">Extended / Avg Score</p>
-          <p className="erp-kpi-value">{extended} {avgScore ? `/ ${avgScore}%` : ""}</p>
-          <p className="erp-kpi-meta">Extensions + avg review score</p>
-        </div>
-      </div>
-
       {error && <div className="erp-alert-error">{error}</div>}
 
       {/* Review Modal */}

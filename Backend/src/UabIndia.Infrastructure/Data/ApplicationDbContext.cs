@@ -334,8 +334,9 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<StockMovement>().ToTable("StockMovements");
             modelBuilder.Entity<StockBalance>().ToTable("StockBalances");
 
-            // Asset Management
+            // Asset Management (consolidated — no duplicates)
             modelBuilder.Entity<FixedAsset>().ToTable("FixedAssets");
+            modelBuilder.Entity<AssetAllocation>().ToTable("AssetAllocations");
             modelBuilder.Entity<AssetDepreciation>().ToTable("AssetDepreciations");
             modelBuilder.Entity<AssetMaintenance>().ToTable("AssetMaintenances");
 
@@ -345,12 +346,6 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<TrainingAssessment>().ToTable("TrainingAssessments");
             modelBuilder.Entity<TrainingCertificate>().ToTable("TrainingCertificates");
             modelBuilder.Entity<TrainingRequest>().ToTable("TrainingRequests");
-
-            // Asset Management Module
-            modelBuilder.Entity<FixedAsset>().ToTable("FixedAssets");
-            modelBuilder.Entity<AssetAllocation>().ToTable("AssetAllocations");
-            modelBuilder.Entity<AssetDepreciation>().ToTable("AssetDepreciations");
-            modelBuilder.Entity<AssetMaintenance>().ToTable("AssetMaintenances");
 
             // Shift Management Module
             modelBuilder.Entity<Shift>().ToTable("Shifts");
@@ -467,8 +462,9 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<StockMovement>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<StockBalance>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
 
-            // Asset Management Query Filters
+            // Asset Management Query Filters (consolidated — no duplicates)
             modelBuilder.Entity<FixedAsset>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<AssetAllocation>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<AssetDepreciation>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<AssetMaintenance>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
 
@@ -478,12 +474,6 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<TrainingAssessment>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<TrainingCertificate>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<TrainingRequest>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
-
-            // Asset Management Query Filters
-            modelBuilder.Entity<FixedAsset>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
-            modelBuilder.Entity<AssetAllocation>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
-            modelBuilder.Entity<AssetDepreciation>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
-            modelBuilder.Entity<AssetMaintenance>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
 
             // Performance Management Query Filters
             modelBuilder.Entity<AppraisalCycle>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
@@ -525,6 +515,16 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<AttendanceRecord>().HasIndex(a => new { a.TenantId, a.EmployeeId, a.Timestamp });
             modelBuilder.Entity<HelpdeskTicket>().HasIndex(t => new { t.TenantId, t.TicketNumber }).IsUnique();
             modelBuilder.Entity<HelpdeskEscalation>().HasIndex(e => new { e.TenantId, e.HelpdeskTicketId, e.EscalatedAt });
+
+            // Previously missing query filters — prevents cross-tenant data leakage
+            modelBuilder.Entity<Permission>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<RolePermission>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<WebsitePage>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<JobPosting>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<Candidate>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<CandidateScreening>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<JobApplication>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<OfferLetter>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
         }
 
         public override int SaveChanges()

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+import ErpHeaderSummary from '@/components/layout/ErpHeaderSummary';
 import StandardPageLayout from '@/components/layout/StandardPageLayout';
 import { useAssets } from '@/hooks/useHrmsApi';
 import { notifyError } from '@/lib/notifications';
@@ -132,30 +133,17 @@ export default function AssetsPage() {
           </button>
         </div>
       }
+      meta={
+        <ErpHeaderSummary
+          items={[
+            { label: 'Assets', value: assets.length },
+            { label: 'Allocations', value: allocations.length, tone: 'info' },
+            { label: 'Categories', value: categoryCount, tone: 'warning' },
+            { label: 'Avg Value', value: formatCurrency(averageAssetValue), tone: 'success' },
+          ]}
+        />
+      }
     >
-      <div className="erp-kpi-grid">
-        <div className="erp-kpi-card">
-          <p className="erp-kpi-label">Assets</p>
-          <p className="erp-kpi-value">{assets.length}</p>
-          <p className="erp-kpi-meta">Master asset records currently active in the catalog.</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-info">
-          <p className="erp-kpi-label">Allocations</p>
-          <p className="erp-kpi-value">{allocations.length}</p>
-          <p className="erp-kpi-meta">Employee-linked allocation transactions recorded in the system.</p>
-        </div>
-        <div className="erp-kpi-card">
-          <p className="erp-kpi-label">Asset categories</p>
-          <p className="erp-kpi-value">{categoryCount}</p>
-          <p className="erp-kpi-meta">Distinct asset groups represented in the current asset base.</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-success">
-          <p className="erp-kpi-label">Average value</p>
-          <p className="erp-kpi-value erp-kpi-value-success">{formatCurrency(averageAssetValue)}</p>
-          <p className="erp-kpi-meta">Average purchase value across active assets.</p>
-        </div>
-      </div>
-
       {error ? <div className="erp-alert-error">Error: {error}</div> : null}
 
       <div className="erp-section-grid">

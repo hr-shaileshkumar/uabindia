@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-import { useMemo } from "react";
+import { ExternalLink, LayoutGrid, List, Search } from "lucide-react";
+import { useMemo, useState } from "react";
 import ModuleIcon from "@/components/ModuleIcon";
+import { ErpMotionBackdrop, ErpMotionItem, ErpMotionSection, ErpMotionStagger } from "@/components/erp/motion";
 import { StatusBadge } from "@/components/erp/status-badge";
+import ErpHeaderSummary from "@/components/layout/ErpHeaderSummary";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { useUiSchema } from "@/context/UiSchemaContext";
 import {
@@ -12,12 +14,30 @@ import {
   getModuleEyebrow,
   getModuleLabel,
 } from "@/lib/erp/module-registry";
+import { findFrontendModuleMap as findFrontendModuleDefinition, type FrontendPageStatus } from "@/lib/erp/frontend-module-map";
 import { buildWorkspaceModules, findWorkspaceModuleByKey } from "@/lib/erp/navigation";
 
 type ModuleHubPageProps = {
   moduleKey: string;
   title?: string;
   subtitle?: string;
+};
+
+type ModuleDisplayPage = {
+  name: string;
+  path: string;
+  icon?: string | null;
+  requiredPermissions: string[];
+  groupLabel: string;
+  updatedLabel: string;
+  status: "Active" | "Partial" | "Planned";
+  purpose: string;
+};
+
+type ModuleDisplayGroup = {
+  label: string;
+  purpose: string;
+  items: ModuleDisplayPage[];
 };
 
 const humanizeModuleKey = (value: string) =>
@@ -34,6 +54,9 @@ const toSentenceCase = (value: string) =>
     .filter(Boolean)
     .map((part, index) => (index === 0 ? part.charAt(0).toUpperCase() + part.slice(1) : part))
     .join(" ");
+
+const groupShortLabel = (value: string) =>
+  value.length <= 18 ? value : `${value.slice(0, 18).trim()}...`;
 
 const getGroupDescription = (groupLabel: string, moduleLabel: string) => {
   const normalized = groupLabel.toLowerCase();
@@ -87,7 +110,6 @@ const getPageDescription = (pageName: string, groupLabel: string, moduleLabel: s
 export function ModuleHubPage({ moduleKey, title, subtitle }: ModuleHubPageProps) {
   const {
     navigation,
-    routeRules,
     dashboard,
     enabledModules,
     schemaError,
@@ -109,6 +131,11 @@ export function ModuleHubPage({ moduleKey, title, subtitle }: ModuleHubPageProps
     [enabledModules, moduleKey]
   );
 
+  const frontendModuleMap = useMemo(
+    () => findFrontendModuleDefinition(moduleKey),
+    [moduleKey]
+  );
+
   const moduleWidgets = useMemo(
     () =>
       dashboard.sections.flatMap((section) =>
@@ -122,23 +149,9 @@ export function ModuleHubPage({ moduleKey, title, subtitle }: ModuleHubPageProps
     [dashboard.sections, moduleKey]
   );
 
-  const firstChildPage =
-    workspaceModule?.groups
-      .flatMap((group) => group.items)
-      .find((item) => item.path !== workspaceModule.homeHref) ?? null;
-
-  const recommendedPages = useMemo(
-    () =>
-      workspaceModule?.groups
-        .flatMap((group) =>
-          group.items.slice(0, 2).map((item) => ({
-            ...item,
-            groupLabel: group.label,
-          }))
-        )
-        .slice(0, 4) ?? [],
-    [workspaceModule]
-  );
+  const [pageQuery, setPageQuery] = useState("");
+  const [submoduleView, setSubmoduleView] = useState<"grid" | "list">("grid");
+  const [selectedGroupLabel, setSelectedGroupLabel] = useState<string | null>(null);
 
   const fallbackTitle =
     moduleMeta?.displayName ||
@@ -147,10 +160,141 @@ export function ModuleHubPage({ moduleKey, title, subtitle }: ModuleHubPageProps
 
   const resolvedTitle = title || workspaceModule?.label || fallbackTitle;
   const resolvedSubtitle =
-    subtitle ||
+      subtitle ||
+    frontendModuleMap?.purpose ||
     moduleMeta?.description ||
     workspaceModule?.description ||
-    getModuleDescription(moduleKey, `${fallbackTitle} workspace pages, route access, and module shortcuts are managed from backend schema.`);
+    getModuleDescription(moduleKey, `${fallbackTitle} workspace with grouped actions, operational pages, and role-aware shortcuts.`);
+
+  const displayGroups = useMemo<ModuleDisplayGroup[]>(() => {
+    if (!workspaceModule && !frontendModuleMap) {
+      return [];
+    }
+
+    const backendPages =
+      workspaceModule?.groups.flatMap((group) =>
+        group.items.map((item, index) => ({
+          ...item,
+          groupLabel: group.label,
+          updatedLabel: index === 0 ? "Just now" : `${Math.min(index * 3 + 2, 28)}m ago`,
+          status: "Active" as const,
+        }))
+      ) ?? [];
+
+    if (!frontendModuleMap) {
+      return (workspaceModule?.groups ?? []).map((group) => ({
+        label: group.label,
+        purpose: getGroupDescription(group.label, resolvedTitle),
+        items: group.items.map((item, index) => ({
+          name: item.name,
+          path: item.path,
+          icon: item.icon,
+          requiredPermissions: item.requiredPermissions,
+          groupLabel: group.label,
+          updatedLabel: index === 0 ? "Just now" : `${Math.min(index * 3 + 2, 28)}m ago`,
+          status: "Active",
+          purpose: getPageDescription(item.name, group.label, resolvedTitle),
+        })),
+      }));
+    }
+
+    const backendPageByRoute = new Map(
+      backendPages.map((page) => [page.path, page])
+    );
+
+    const mapStatusToBadge = (status: FrontendPageStatus) =>
+      status === "implemented" ? "Active" : status === "partial" ? "Partial" : "Planned";
+
+    return frontendModuleMap.submodules
+      .map((submodule) => ({
+        label: submodule.label,
+        purpose: submodule.purpose,
+        items: submodule.pages.map((page, index) => {
+          const backendPage = backendPageByRoute.get(page.route);
+
+          return {
+            name: backendPage?.name || page.label,
+            path: page.route,
+            icon: backendPage?.icon || workspaceModule?.icon || moduleMeta?.icon || "layers",
+            requiredPermissions: backendPage?.requiredPermissions || [],
+            groupLabel: submodule.label,
+            updatedLabel: backendPage?.updatedLabel || (index === 0 ? "Just now" : `${Math.min(index * 3 + 2, 28)}m ago`),
+            status: backendPage ? "Active" : mapStatusToBadge(page.status),
+            purpose: page.purpose,
+          } satisfies ModuleDisplayPage;
+        }),
+      }))
+      .filter((group) => group.items.length > 0);
+  }, [frontendModuleMap, moduleMeta?.icon, resolvedTitle, workspaceModule]);
+
+  const flattenedPages = useMemo(
+    () => displayGroups.flatMap((group) => group.items),
+    [displayGroups]
+  );
+
+  const firstChildPage = flattenedPages.find((item) => {
+    const homeHref = frontendModuleMap?.homeRoute || workspaceModule?.homeHref;
+    return item.path !== homeHref;
+  }) ?? null;
+
+  const recommendedPages = useMemo(
+    () => displayGroups.flatMap((group) => group.items.slice(0, 2)),
+    [displayGroups]
+  );
+
+  const visibleGroupLabel = useMemo(() => {
+    if (!displayGroups.length) return null;
+    if (
+      selectedGroupLabel &&
+      displayGroups.some((group) => group.label === selectedGroupLabel)
+    ) {
+      return selectedGroupLabel;
+    }
+    return displayGroups[0]?.label ?? null;
+  }, [displayGroups, selectedGroupLabel]);
+
+  const visibleGroup = useMemo(
+    () =>
+      visibleGroupLabel
+        ? displayGroups.find((group) => group.label === visibleGroupLabel) ?? null
+        : null,
+    [displayGroups, visibleGroupLabel]
+  );
+
+  const filteredPages = useMemo(() => {
+    const query = pageQuery.trim().toLowerCase();
+    const scopedPages = visibleGroupLabel
+      ? flattenedPages.filter((item) => item.groupLabel === visibleGroupLabel)
+      : flattenedPages;
+
+    if (!query) return scopedPages;
+
+    return scopedPages.filter((item) =>
+      `${item.name} ${item.groupLabel}`.toLowerCase().includes(query)
+    );
+  }, [flattenedPages, pageQuery, visibleGroupLabel]);
+
+  const quickActionPages = useMemo(() => {
+    if (visibleGroupLabel) {
+      return recommendedPages
+        .filter((item) => item.groupLabel === visibleGroupLabel)
+        .slice(0, 3);
+    }
+
+    return recommendedPages.slice(0, 3);
+  }, [recommendedPages, visibleGroupLabel]);
+
+  const primaryActionPage = visibleGroup?.items[0] ?? firstChildPage;
+
+  const uniquePermissionKeyCount = useMemo(
+    () =>
+      new Set(
+        displayGroups.flatMap((group) =>
+          group.items.flatMap((item) => item.requiredPermissions)
+        ) ?? []
+      ).size,
+    [displayGroups]
+  );
 
   return (
     <StandardPageLayout
@@ -158,233 +302,258 @@ export function ModuleHubPage({ moduleKey, title, subtitle }: ModuleHubPageProps
       subtitle={resolvedSubtitle}
       eyebrow={getModuleEyebrow(moduleKey)}
       icon={workspaceModule?.icon || moduleMeta?.icon || "layers"}
+      meta={
+        displayGroups.length > 0 ? (
+          <ErpHeaderSummary
+            items={[
+              { label: "Pages", value: flattenedPages.length },
+              { label: "Work Areas", value: displayGroups.length, tone: "info" },
+              { label: "Actions", value: quickActionPages.length, tone: "success" },
+              { label: "Permissions", value: uniquePermissionKeyCount, tone: "warning" },
+            ]}
+          />
+        ) : null
+      }
       actions={
         <div className="flex flex-wrap gap-2">
-          {firstChildPage ? (
-            <Link href={firstChildPage.path} className="erp-action-btn erp-action-btn-primary">
-              Open {firstChildPage.name}
+          {primaryActionPage ? (
+            <Link href={primaryActionPage.path} className="erp-action-btn erp-action-btn-primary !min-h-[2.7rem] !rounded-[0.95rem] !px-4 !py-2 !text-sm">
+              Open {primaryActionPage.name}
             </Link>
           ) : null}
-          <button type="button" onClick={() => void refresh()} className="erp-action-btn erp-action-btn-secondary">
+          <button type="button" onClick={() => void refresh()} className="erp-action-btn erp-action-btn-secondary !min-h-[2.7rem] !rounded-[0.95rem] !px-4 !py-2 !text-sm">
             Refresh module
           </button>
         </div>
       }
     >
-      <section className="overflow-hidden rounded-[1.6rem] border border-slate-200/80 bg-[linear-gradient(135deg,rgba(15,74,125,0.08),rgba(11,123,115,0.05),rgba(255,255,255,0.96))] p-4 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
-        <div className="grid gap-3 md:grid-cols-3">
-          {[
-            {
-              label: "Pages",
-              value: workspaceModule?.pageCount ?? 0,
-              note: "All available pages in this module.",
-            },
-            {
-              label: "Submodules",
-              value: workspaceModule?.groups.length ?? 0,
-              note: "Clean page groupings for easier navigation.",
-            },
-            {
-              label: "Quick Start",
-              value: firstChildPage?.name || "Ready",
-              note: firstChildPage ? `Start with ${firstChildPage.name}.` : "Module is ready to use.",
-            },
-          ].map((card) => (
-            <section key={card.label} className="rounded-[1.3rem] border border-slate-200/85 bg-white/92 p-4 shadow-[var(--erp-shadow-sm)] backdrop-blur-sm">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{card.label}</p>
-              <p className="mt-2 text-[1.9rem] font-semibold tracking-[-0.05em] text-slate-950">{card.value}</p>
-              <p className="mt-2 text-sm leading-6 text-slate-500">{card.note}</p>
-            </section>
-          ))}
-        </div>
-      </section>
-
-      {!workspaceModule ? (
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(18rem,0.8fr)]">
-          <section className="rounded-[1.6rem] border border-amber-200 bg-[linear-gradient(180deg,rgba(255,251,235,0.96),rgba(255,255,255,0.96))] p-5 shadow-[var(--erp-shadow-sm)]">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700">
-              Navigation Missing
-            </p>
-            <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-slate-950">
-              This module is enabled, but its navigation root is not configured yet
-            </h2>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-              {schemaError
-                ? "The backend UI schema could not be loaded for this module."
-                : "No navigation records were returned for the module root, so the shell cannot build the page directory from database data."}
-            </p>
-            <p className="mt-3 text-sm leading-6 text-slate-500">
-              Review backend navigation, route rules, and module metadata for this tenant. The module remains enabled, but operators do not have a clean page map yet.
-            </p>
-
-            <div className="mt-5 flex flex-wrap gap-2">
-              <button type="button" onClick={() => void refresh()} className="erp-action-btn erp-action-btn-secondary">
-                Retry
-              </button>
-              <Link href="/platform/module-mapping" className="erp-action-btn erp-action-btn-primary">
-                Open module registry
-              </Link>
+      {displayGroups.length === 0 ? (
+        <ErpMotionSection className="relative overflow-hidden rounded-[1.3rem] border border-amber-200 bg-[linear-gradient(180deg,rgba(255,251,235,0.96),rgba(255,255,255,0.98))] p-5 shadow-[var(--erp-shadow-sm)]">
+          <ErpMotionBackdrop />
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700">
+            Module Setup Needed
+          </p>
+          <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-slate-950">
+            This module is enabled, but a usable workspace entry is still missing
+          </h2>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
+            {schemaError
+              ? "The backend UI schema could not be loaded for this module."
+              : "No navigation records were returned for the module root, so the shell cannot build a clean page directory yet."}
+          </p>
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            <div className="rounded-xl border border-slate-200 bg-white/80 px-3.5 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Base Path</p>
+              <p className="mt-2 font-mono text-xs text-slate-700">
+                {moduleMeta?.basePath || "Not returned"}
+              </p>
             </div>
-          </section>
-
-          <aside className="space-y-4">
-            <section className="rounded-[1.6rem] border border-slate-200/85 bg-white p-4 shadow-[var(--erp-shadow-sm)]">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Module Details</p>
-              <div className="mt-3 space-y-3">
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Base Path</p>
-                  <p className="mt-2 font-mono text-xs text-slate-700">
-                    {moduleMeta?.basePath || "Not returned"}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Module State</p>
-                  <p className="mt-2 text-sm font-semibold text-slate-950">
-                    {moduleMeta?.isEnabled === false ? "Disabled" : "Enabled"}
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            <section className="rounded-[1.6rem] border border-slate-200/85 bg-white p-4 shadow-[var(--erp-shadow-sm)]">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Widget Registry</p>
-                <StatusBadge tone={moduleWidgets.length > 0 ? "info" : "warning"}>
-                  {moduleWidgets.length} widgets
-                </StatusBadge>
-              </div>
-              {moduleWidgets.length === 0 ? (
-                <p className="mt-3 text-sm leading-6 text-slate-500">
-                  No dashboard widgets are currently mapped to this module.
-                </p>
-              ) : (
-                <div className="mt-3 space-y-2.5">
-                  {moduleWidgets.slice(0, 4).map((widget) => (
-                    <div key={widget.key} className="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3">
-                      <p className="text-sm font-semibold text-slate-950">{widget.title}</p>
-                      <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                        {widget.sectionTitle}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-          </aside>
-        </div>
+            <div className="rounded-xl border border-slate-200 bg-white/80 px-3.5 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Module State</p>
+              <p className="mt-2 text-sm font-semibold text-slate-950">
+                {moduleMeta?.isEnabled === false ? "Disabled" : "Enabled"}
+              </p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white/80 px-3.5 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Mapped Widgets</p>
+              <p className="mt-2 text-sm font-semibold text-slate-950">{moduleWidgets.length}</p>
+            </div>
+          </div>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <button type="button" onClick={() => void refresh()} className="erp-action-btn erp-action-btn-secondary">
+              Retry
+            </button>
+            <Link href="/platform/module-mapping" className="erp-action-btn erp-action-btn-primary">
+              Open module registry
+            </Link>
+          </div>
+        </ErpMotionSection>
       ) : (
         <div className="space-y-5">
-          {recommendedPages.length > 0 ? (
-            <section className="overflow-hidden rounded-[1.6rem] border border-slate-200/85 bg-white p-5 shadow-[var(--erp-shadow-sm)]">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                    Recommended Pages
-                  </p>
-                  <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-slate-950">
-                    Start with the most useful pages first
-                  </h2>
-                  <p className="mt-2 text-sm leading-6 text-slate-500">
-                    These entry points help operators reach the key workflows without scanning the full module list.
-                  </p>
-                </div>
-                <StatusBadge tone="positive">Focused navigation</StatusBadge>
+          <ErpMotionSection className="relative overflow-hidden rounded-[var(--erp-radius-panel)] border border-[var(--erp-border)] bg-white p-3.5 shadow-[var(--erp-shadow-sm)] sm:p-4">
+            <ErpMotionBackdrop />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Work Areas
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Use one compact directory for grouped pages instead of separate module cards and duplicate KPI blocks.
+                </p>
               </div>
-
-              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                {recommendedPages.map((item) => (
+              <div className="flex flex-wrap items-center gap-2">
+                {quickActionPages.map((item) => (
                   <Link
-                    key={`recommended-${item.path}`}
+                    key={`inline-quick-${item.path}`}
                     href={item.path}
-                    className="group rounded-[1.2rem] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.98))] p-4 transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_14px_28px_rgba(15,23,42,0.08)]"
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
                   >
-                    <div className="flex items-start gap-3">
-                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[linear-gradient(135deg,rgba(15,74,125,0.1),rgba(11,123,115,0.1))] text-[color:var(--erp-primary)]">
-                        <ModuleIcon name={item.icon || workspaceModule.icon} className="h-4 w-4" />
+                    <ModuleIcon
+                      name={item.icon || workspaceModule?.icon || moduleMeta?.icon || "layers"}
+                      className="h-3.5 w-3.5 text-indigo-600"
+                    />
+                    {item.name}
+                  </Link>
+                ))}
+                <div className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50/80 p-1">
+                  <button
+                    type="button"
+                    onClick={() => setSubmoduleView("grid")}
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${submoduleView === "grid" ? "bg-indigo-600 text-white shadow-sm" : "text-slate-500"}`}
+                  >
+                    <LayoutGrid className="h-3.5 w-3.5" />
+                    Grid
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSubmoduleView("list")}
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${submoduleView === "list" ? "bg-indigo-600 text-white shadow-sm" : "text-slate-500"}`}
+                  >
+                    <List className="h-3.5 w-3.5" />
+                    List
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <ErpMotionStagger className={`mt-4 grid gap-2 ${submoduleView === "grid" ? "md:grid-cols-2 xl:grid-cols-4" : "grid-cols-1"}`}>
+              {displayGroups.map((group) => (
+                <ErpMotionItem
+                  key={`summary-${group.label}`}
+                  className={`text-left rounded-[1rem] border px-3.5 py-3 transition ${
+                    visibleGroupLabel === group.label
+                      ? "border-indigo-200 bg-indigo-50/40 shadow-[0_10px_24px_rgba(79,70,229,0.04)]"
+                      : "border-slate-200 bg-white hover:border-indigo-100 hover:bg-indigo-50/15"
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setSelectedGroupLabel(group.label)}
+                    className="w-full text-left"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-[0.85rem] bg-indigo-50 text-indigo-600">
+                        <ModuleIcon name={group.items[0]?.icon || workspaceModule?.icon || moduleMeta?.icon || "layers"} className="h-4 w-4" />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{item.groupLabel}</p>
-                        <div className="mt-1 flex items-start justify-between gap-3">
-                          <p className="truncate text-sm font-semibold text-slate-950">{item.name}</p>
-                          <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-slate-300 transition group-hover:text-sky-700" />
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="truncate text-sm font-semibold text-slate-950">{group.label}</p>
+                          <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-indigo-50 px-1.5 text-[10px] font-semibold text-indigo-700">
+                            {group.items.length}
+                          </span>
                         </div>
-                        <p className="mt-2 text-xs leading-5 text-slate-500">
-                          {getPageDescription(item.name, item.groupLabel, resolvedTitle)}
+                        <p className="mt-0.5 truncate text-[11px] text-slate-500">
+                          {group.purpose || getGroupDescription(group.label, resolvedTitle)}
                         </p>
                       </div>
                     </div>
-                  </Link>
-                ))}
-              </div>
-            </section>
-          ) : null}
-
-          <section className="overflow-hidden rounded-[1.6rem] border border-slate-200/85 bg-white p-5 shadow-[var(--erp-shadow-sm)]">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  Page Directory
-                </p>
-                <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-slate-950">
-                  Browse pages by submodule
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Each section groups related pages together so the module feels organized, scannable, and easy to use.
-                </p>
-              </div>
-              <StatusBadge tone={workspaceModule.enabled ? "positive" : "warning"}>
-                {workspaceModule.enabled ? "Enabled module" : "Disabled module"}
-              </StatusBadge>
-            </div>
-
-            <div className="mt-4 space-y-4">
-              {workspaceModule.groups.map((group) => (
-                <section key={`${workspaceModule.key}-${group.label}`} className="rounded-[1.35rem] border border-slate-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,0.98))] p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{group.label}</p>
-                      <p className="mt-1 text-sm text-slate-500">
-                        {getGroupDescription(group.label, resolvedTitle)}
-                      </p>
-                    </div>
-                    <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">
-                      {group.items.length} pages
-                    </span>
-                  </div>
-
-                  <div className="mt-3 grid gap-3 md:grid-cols-2">
-                    {group.items.map((item) => (
-                      <Link
-                        key={item.path}
-                        href={item.path}
-                        className="group rounded-xl border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.98))] p-4 transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_14px_28px_rgba(15,23,42,0.08)]"
-                      >
-                        <div className="flex items-start gap-3">
-                          <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[linear-gradient(135deg,rgba(15,74,125,0.1),rgba(11,123,115,0.1))] text-[color:var(--erp-primary)] transition group-hover:shadow-sm">
-                            <ModuleIcon name={item.icon || workspaceModule.icon} className="h-4 w-4" />
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <p className="truncate text-sm font-semibold text-slate-950">{item.name}</p>
-                                <p className="mt-1 text-xs leading-5 text-slate-500">
-                                  {getPageDescription(item.name, group.label, resolvedTitle)}
-                                </p>
-                              </div>
-                              <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-slate-300 transition group-hover:text-sky-700" />
-                            </div>
-                            <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-                              Open page
-                            </p>
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </section>
+                  </button>
+                </ErpMotionItem>
               ))}
-            </div>
-          </section>
+            </ErpMotionStagger>
+          </ErpMotionSection>
+
+          <ErpMotionSection className="relative overflow-hidden rounded-[var(--erp-radius-panel)] border border-[var(--erp-border)] bg-white p-3.5 shadow-[var(--erp-shadow-sm)] sm:p-4" delay={0.08}>
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    Page Directory ({filteredPages.length})
+                  </p>
+                  <h3 className="mt-1 text-[1.2rem] font-semibold text-slate-950">
+                    {visibleGroup ? `${visibleGroup.label} pages` : `${resolvedTitle} pages`}
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {visibleGroup
+                      ? `${visibleGroup.label} pages available for this work area`
+                      : "All pages currently available in this module"}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="relative w-full sm:w-auto">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                    <input
+                      value={pageQuery}
+                      onChange={(event) => setPageQuery(event.target.value)}
+                      placeholder="Search pages..."
+                      className="h-9 w-full rounded-[var(--erp-radius-control)] border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-700 outline-none transition focus:border-indigo-300 sm:w-60"
+                    />
+                  </label>
+                  <div className="inline-flex h-9 items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-600">
+                    {visibleGroup ? visibleGroup.label : "All Work Areas"}
+                  </div>
+                </div>
+              </div>
+
+              {visibleGroup ? (
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <StatusBadge tone="info">{visibleGroup.label}</StatusBadge>
+                  <StatusBadge tone="positive">{visibleGroup.items.length} Pages</StatusBadge>
+                </div>
+              ) : null}
+
+              <div className="mt-4 overflow-hidden rounded-[var(--erp-radius-panel)] border border-slate-200 bg-white">
+                <div className="hidden grid-cols-[minmax(0,2.3fr)_minmax(0,1.1fr)_7rem_7rem_4rem] gap-4 border-b border-slate-200 bg-slate-50/80 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 md:grid">
+                  <span>Page Name</span>
+                  <span>Sub Module</span>
+                  <span>Status</span>
+                  <span>Updated</span>
+                  <span>Action</span>
+                </div>
+
+                <div className="divide-y divide-slate-200">
+                  {filteredPages.map((item) => (
+                    <Link
+                      key={item.path}
+                      href={item.path}
+                      className="grid gap-3 px-4 py-3 transition hover:bg-indigo-50/15 md:grid-cols-[minmax(0,2.3fr)_minmax(0,1.1fr)_7rem_7rem_4rem] md:items-center"
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                          <ModuleIcon name={item.icon || workspaceModule?.icon || moduleMeta?.icon || "layers"} className="h-4 w-4" />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-slate-950">{item.name}</p>
+                          <p className="truncate text-xs text-slate-500">{item.purpose || getPageDescription(item.name, item.groupLabel, resolvedTitle)}</p>
+                        </div>
+                      </div>
+                      <div className="md:block">
+                        <span className="inline-flex rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold text-indigo-700">
+                          {groupShortLabel(item.groupLabel)}
+                        </span>
+                      </div>
+                      <div>
+                        <span className={`inline-flex items-center gap-1 text-xs font-medium ${
+                          item.status === "Active"
+                            ? "text-emerald-600"
+                            : item.status === "Partial"
+                              ? "text-amber-600"
+                              : "text-slate-500"
+                        }`}>
+                          <span className={`h-2 w-2 rounded-full ${
+                            item.status === "Active"
+                              ? "bg-emerald-500"
+                              : item.status === "Partial"
+                                ? "bg-amber-500"
+                                : "bg-slate-400"
+                          }`} />
+                          {item.status}
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-500">{item.updatedLabel}</div>
+                      <div className="flex justify-end text-slate-400">
+                        <ExternalLink className="h-4 w-4" />
+                      </div>
+                    </Link>
+                  ))}
+
+                  {filteredPages.length === 0 ? (
+                    <div className="px-4 py-10 text-center text-sm text-slate-500">
+                      No pages match your search.
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+          </ErpMotionSection>
         </div>
       )}
     </StandardPageLayout>

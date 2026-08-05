@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
+import ErpHeaderSummary from "@/components/layout/ErpHeaderSummary";
 
 type CustomReportRow = {
   id: string;
@@ -27,13 +28,27 @@ export default function CustomReportsPage() {
       rows={records}
       countLabel={(count) => `${count} custom reports`}
       emptyMessage="No custom reports found. Create your first report."
-      kpiCards={
-        <div className="erp-kpi-grid">
-          <div className="erp-kpi-card"><p className="erp-kpi-label">Total</p><p className="erp-kpi-value">{records.length}</p><p className="erp-kpi-meta">Custom reports</p></div>
-          <div className="erp-kpi-card erp-kpi-card-success"><p className="erp-kpi-label">Scheduled</p><p className="erp-kpi-value erp-kpi-value-success">{records.filter(r => r.schedule !== "Manual").length}</p><p className="erp-kpi-meta">Auto-run reports</p></div>
-          <div className="erp-kpi-card erp-kpi-card-warning"><p className="erp-kpi-label">Manual</p><p className="erp-kpi-value">{records.filter(r => r.schedule === "Manual").length}</p><p className="erp-kpi-meta">On-demand only</p></div>
-          <div className="erp-kpi-card erp-kpi-card-info"><p className="erp-kpi-label">Active</p><p className="erp-kpi-value">{records.filter(r => r.status === "Active").length}</p><p className="erp-kpi-meta">Enabled reports</p></div>
-        </div>
+      headerStats={
+        <ErpHeaderSummary
+          items={[
+            { label: "Reports", value: records.length },
+            {
+              label: "Scheduled",
+              value: records.filter((record) => record.schedule !== "Manual").length,
+              tone: "success",
+            },
+            {
+              label: "Manual",
+              value: records.filter((record) => record.schedule === "Manual").length,
+              tone: "warning",
+            },
+            {
+              label: "Active",
+              value: records.filter((record) => record.status === "Active").length,
+              tone: "info",
+            },
+          ]}
+        />
       }
       columns={[
         { label: "Report Name" },

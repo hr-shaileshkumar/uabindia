@@ -30,6 +30,13 @@ type AuthContextType = {
 const asOptionalString = (value: unknown): string | undefined =>
   typeof value === "string" && value.trim().length > 0 ? value : undefined;
 
+const resolveAvatarUrl = (data: Record<string, unknown>) =>
+  asOptionalString(data.avatarUrl) ??
+  asOptionalString(data.profilePhotoUrl) ??
+  asOptionalString(data.profileImageUrl) ??
+  asOptionalString(data.photoUrl) ??
+  asOptionalString(data.imageUrl);
+
 const clearClientSessionArtifacts = () => {
   if (typeof window === "undefined") return;
   const keys = [
@@ -69,6 +76,7 @@ const normalizeAuthUser = (payload: unknown): AuthUser | null => {
     companyId: asOptionalString(data.companyId),
     tenantId: asOptionalString(data.tenantId),
     isActive: typeof data.isActive === "boolean" ? data.isActive : true,
+    avatarUrl: resolveAvatarUrl(data),
   };
 };
 

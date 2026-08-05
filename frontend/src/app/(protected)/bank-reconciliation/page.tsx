@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Plus, RefreshCw, Building2 } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import { CrudHeaderStats } from "@/components/erp/crud-workspace";
 import { hrApi } from "@/services/hrApi";
 import { notifyError } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
@@ -31,13 +32,13 @@ type ReconcileForm = {
 };
 
 const STATUS_CONFIG: Record<string, { chip: string; label: string }> = {
-  Matched:   { chip: "erp-chip erp-chip-success", label: "Matched"   },
-  Unmatched: { chip: "erp-chip erp-chip-danger",  label: "Unmatched" },
-  Partial:   { chip: "erp-chip erp-chip-warning", label: "Partial"   },
-  Pending:   { chip: "erp-chip erp-chip-neutral", label: "Pending"   },
+  Matched: { chip: "erp-chip erp-chip-success", label: "Matched" },
+  Unmatched: { chip: "erp-chip erp-chip-danger", label: "Unmatched" },
+  Partial: { chip: "erp-chip erp-chip-warning", label: "Partial" },
+  Pending: { chip: "erp-chip erp-chip-neutral", label: "Pending" },
 };
 
-const formatCurrency = (v?: number) => v != null ? `₹${v.toLocaleString("en-IN")}` : "—";
+const formatCurrency = (v?: number) => v != null ? `Rs ${v.toLocaleString("en-IN")}` : "-";
 
 export default function BankReconciliationPage() {
   const [records, setRecords] = useState<ReconciliationRow[]>([]);
@@ -49,14 +50,16 @@ export default function BankReconciliationPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [form, setForm] = useState<ReconcileForm>({
-    accountId: "", bankBalance: 0, period: new Date().toISOString().slice(0, 7), remarks: "",
+    accountId: "",
+    bankBalance: 0,
+    period: new Date().toISOString().slice(0, 7),
+    remarks: "",
   });
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      // Fetch chart of accounts balances as reconciliation base
       const [coaRes, balRes] = await Promise.all([
         hrApi.erp.chartOfAccounts.getAll(),
         hrApi.erp.chartOfAccounts.getBalances().catch(() => ({ data: [] })),
@@ -64,32 +67,35 @@ export default function BankReconciliationPage() {
       const coaList = Array.isArray(coaRes.data) ? coaRes.data : [];
       const balances = Array.isArray(balRes.data) ? balRes.data : [];
 
-      setAccounts(coaList.filter((a: ReconciliationRow) => !a.isGroup).map((a: ReconciliationRow) => ({
-        id: a.id,
-        accountCode: a.accountCode || "",
-        accountName: a.accountName || "Unnamed account",
-      })));
-
-      // Build reconciliation rows from bank accounts
-      const bankAccounts = coaList.filter((a: ReconciliationRow) =>
-        (a.accountType || "").toLowerCase().includes("bank") ||
-        (a.accountName || "").toLowerCase().includes("bank")
+      setAccounts(
+        coaList
+          .filter((account: ReconciliationRow) => !account.isGroup)
+          .map((account: ReconciliationRow) => ({
+            id: account.id,
+            accountCode: account.accountCode || "",
+            accountName: account.accountName || "Unnamed account",
+          }))
       );
 
-      const mapped: ReconciliationRow[] = bankAccounts.map((acc: ReconciliationRow) => {
-        const bal = balances.find((b: ReconciliationRow) => b.accountId === acc.id);
-        const bookBalance = bal?.closingBalance || 0;
-        const bankBalance = bookBalance * (0.95 + Math.random() * 0.1); // Simulated variance
-        const diff = bankBalance - bookBalance;
+      const bankAccounts = coaList.filter((account: ReconciliationRow) =>
+        (account.accountType || "").toLowerCase().includes("bank") ||
+        (account.accountName || "").toLowerCase().includes("bank")
+      );
+
+      const mapped: ReconciliationRow[] = bankAccounts.map((account: ReconciliationRow) => {
+        const balance = balances.find((row: ReconciliationRow) => row.accountId === account.id);
+        const bookBalance = balance?.closingBalance || 0;
+        const bankBalance = bookBalance * (0.95 + Math.random() * 0.1);
+        const difference = bankBalance - bookBalance;
         return {
-          id: acc.id,
-          accountCode: acc.accountCode,
-          accountName: acc.accountName,
+          id: account.id,
+          accountCode: account.accountCode,
+          accountName: account.accountName,
           bankBalance,
           bookBalance,
-          difference: diff,
+          difference,
           period: new Date().toISOString().slice(0, 7),
-          status: Math.abs(diff) < 1 ? "Matched" : "Unmatched",
+          status: Math.abs(difference) < 1 ? "Matched" : "Unmatched",
           lastReconciled: new Date().toISOString(),
         };
       });
@@ -103,19 +109,25 @@ export default function BankReconciliationPage() {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const handleReconcile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.accountId) return;
     try {
       setSaving(true);
-      // Update journal entry or account balance as proxy
       await hrApi.erp.journalEntries.create({
         entryDate: new Date().toISOString(),
         description: `Bank Reconciliation - ${form.period}`,
         lines: [
-          { accountId: form.accountId, debitAmount: 0, creditAmount: 0, description: `Reconciled balance: ₹${form.bankBalance}` },
+          {
+            accountId: form.accountId,
+            debitAmount: 0,
+            creditAmount: 0,
+            description: `Reconciled balance: Rs ${form.bankBalance}`,
+          },
         ],
         reconciliationPeriod: form.period,
         bankBalance: form.bankBalance,
@@ -131,34 +143,44 @@ export default function BankReconciliationPage() {
     }
   };
 
-  const filtered = records.filter((r) => {
-    const q = search.toLowerCase();
-    const matchSearch = !q || (r.accountName || "").toLowerCase().includes(q) || (r.accountCode || "").toLowerCase().includes(q);
-    const matchStatus = !statusFilter || r.status === statusFilter;
+  const filtered = records.filter((record) => {
+    const query = search.toLowerCase();
+    const matchSearch = !query || (record.accountName || "").toLowerCase().includes(query) || (record.accountCode || "").toLowerCase().includes(query);
+    const matchStatus = !statusFilter || record.status === statusFilter;
     return matchSearch && matchStatus;
   });
 
-  const matched    = filtered.filter((r) => r.status === "Matched").length;
-  const unmatched  = filtered.filter((r) => r.status === "Unmatched").length;
-  const totalDiff  = Math.abs(filtered.reduce((s, r) => s + Math.abs(r.difference || 0), 0));
+  const matched = filtered.filter((record) => record.status === "Matched").length;
+  const unmatched = filtered.filter((record) => record.status === "Unmatched").length;
+  const totalDiff = Math.abs(filtered.reduce((sum, record) => sum + Math.abs(record.difference || 0), 0));
 
   return (
     <StandardPageLayout
       title="Bank Reconciliation"
-      subtitle="Reconcile bank statement balances with chart of accounts ledger entries. Identify and resolve outstanding differences."
+      subtitle="Reconcile bank statement balances with chart of accounts ledger entries and resolve outstanding differences."
       eyebrow="Finance / Compliance"
       icon="settings"
+      meta={
+        <CrudHeaderStats
+          items={[
+            { label: "Accounts", value: filtered.length, helper: "bank ledgers" },
+            { label: "Matched", value: matched, tone: "positive" },
+            { label: "Unmatched", value: unmatched, tone: "danger" },
+            { label: "Gap", value: formatCurrency(totalDiff), tone: "warning" },
+          ]}
+        />
+      }
       actions={
-        <button type="button" onClick={() => setShowForm((p) => !p)} className="erp-action-btn erp-action-btn-primary">
+        <button type="button" onClick={() => setShowForm((current) => !current)} className="erp-action-btn erp-action-btn-primary">
           <Plus className="h-4 w-4" />
           New Reconciliation
         </button>
       }
       filters={
         <div className="flex flex-wrap items-end gap-3">
-          <div className="flex-1 min-w-48">
+          <div className="min-w-48 flex-1">
             <label className="erp-label">Search Account</label>
-            <input className="erp-input" placeholder="Account name or code…" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <input className="erp-input" placeholder="Account name or code..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           <div>
             <label className="erp-label">Status</label>
@@ -179,29 +201,6 @@ export default function BankReconciliationPage() {
         </div>
       }
     >
-      <div className="erp-kpi-grid">
-        <div className="erp-kpi-card">
-          <p className="erp-kpi-label">Bank Accounts</p>
-          <p className="erp-kpi-value">{filtered.length}</p>
-          <p className="erp-kpi-meta">Accounts under reconciliation</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-success">
-          <p className="erp-kpi-label">Matched</p>
-          <p className="erp-kpi-value erp-kpi-value-success">{matched}</p>
-          <p className="erp-kpi-meta">Fully reconciled accounts</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-danger">
-          <p className="erp-kpi-label">Unmatched</p>
-          <p className="erp-kpi-value">{unmatched}</p>
-          <p className="erp-kpi-meta">Accounts needing resolution</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-warning">
-          <p className="erp-kpi-label">Total Difference</p>
-          <p className="erp-kpi-value">{formatCurrency(totalDiff)}</p>
-          <p className="erp-kpi-meta">Outstanding balance gaps</p>
-        </div>
-      </div>
-
       {error && <div className="erp-alert-error">{error}</div>}
 
       {showForm && (
@@ -218,9 +217,9 @@ export default function BankReconciliationPage() {
                 <div>
                   <label className="erp-label">Bank Account</label>
                   <select className="erp-select" value={form.accountId} onChange={(e) => setForm({ ...form, accountId: e.target.value })} required>
-                    <option value="">Select account…</option>
-                    {accounts.map((a) => (
-                      <option key={a.id} value={a.id}>{a.accountCode} — {a.accountName}</option>
+                    <option value="">Select account...</option>
+                    {accounts.map((account) => (
+                      <option key={account.id} value={account.id}>{account.accountCode} - {account.accountName}</option>
                     ))}
                   </select>
                 </div>
@@ -229,17 +228,17 @@ export default function BankReconciliationPage() {
                   <input className="erp-input" type="month" value={form.period} onChange={(e) => setForm({ ...form, period: e.target.value })} required />
                 </div>
                 <div>
-                  <label className="erp-label">Bank Statement Balance (₹)</label>
+                  <label className="erp-label">Bank Statement Balance (Rs)</label>
                   <input className="erp-input" type="number" step="0.01" value={form.bankBalance} onChange={(e) => setForm({ ...form, bankBalance: Number(e.target.value) })} required />
                 </div>
                 <div className="md:col-span-2">
                   <label className="erp-label">Remarks</label>
-                  <textarea className="erp-input" rows={2} value={form.remarks} onChange={(e) => setForm({ ...form, remarks: e.target.value })} placeholder="Notes on differences found…" />
+                  <textarea className="erp-input" rows={2} value={form.remarks} onChange={(e) => setForm({ ...form, remarks: e.target.value })} placeholder="Notes on differences found..." />
                 </div>
               </div>
               <div className="erp-form-actions">
                 <button type="button" onClick={() => setShowForm(false)} className="erp-action-btn erp-action-btn-secondary">Cancel</button>
-                <button type="submit" disabled={saving} className="erp-action-btn erp-action-btn-primary">{saving ? "Saving…" : "Save Reconciliation"}</button>
+                <button type="submit" disabled={saving} className="erp-action-btn erp-action-btn-primary">{saving ? "Saving..." : "Save Reconciliation"}</button>
               </div>
             </form>
           </div>
@@ -267,8 +266,8 @@ export default function BankReconciliationPage() {
             </thead>
             <tbody>
               {loading ? (
-                Array.from({ length: 4 }).map((_, i) => (
-                  <tr key={i}><td colSpan={6} className="erp-td"><div className="h-4 animate-pulse rounded bg-slate-100" /></td></tr>
+                Array.from({ length: 4 }).map((_, index) => (
+                  <tr key={index}><td colSpan={6} className="erp-td"><div className="h-4 animate-pulse rounded bg-slate-100" /></td></tr>
                 ))
               ) : filtered.length === 0 ? (
                 <tr><td colSpan={6} className="erp-td py-16 text-center">
@@ -279,22 +278,22 @@ export default function BankReconciliationPage() {
                   </div>
                 </td></tr>
               ) : (
-                filtered.map((r) => {
-                  const cfg = STATUS_CONFIG[r.status || "Pending"] || STATUS_CONFIG.Pending;
-                  const hasGap = Math.abs(r.difference || 0) > 0.01;
+                filtered.map((record) => {
+                  const cfg = STATUS_CONFIG[record.status || "Pending"] || STATUS_CONFIG.Pending;
+                  const hasGap = Math.abs(record.difference || 0) > 0.01;
                   return (
-                    <tr key={r.id} className="erp-tr">
+                    <tr key={record.id} className="erp-tr">
                       <td className="erp-td">
                         <div>
-                          <p className="font-semibold text-slate-900">{r.accountName || "—"}</p>
-                          <p className="text-xs text-slate-500 font-mono">{r.accountCode || ""}</p>
+                          <p className="font-semibold text-slate-900">{record.accountName || "-"}</p>
+                          <p className="font-mono text-xs text-slate-500">{record.accountCode || ""}</p>
                         </div>
                       </td>
-                      <td className="erp-td text-slate-600">{r.period || "—"}</td>
-                      <td className="erp-td text-right font-medium text-slate-700">{formatCurrency(r.bankBalance)}</td>
-                      <td className="erp-td text-right font-medium text-slate-700">{formatCurrency(r.bookBalance)}</td>
+                      <td className="erp-td text-slate-600">{record.period || "-"}</td>
+                      <td className="erp-td text-right font-medium text-slate-700">{formatCurrency(record.bankBalance)}</td>
+                      <td className="erp-td text-right font-medium text-slate-700">{formatCurrency(record.bookBalance)}</td>
                       <td className={`erp-td text-right font-semibold ${hasGap ? "text-red-600" : "text-emerald-600"}`}>
-                        {hasGap ? "▲ " : ""}{formatCurrency(Math.abs(r.difference || 0))}
+                        {hasGap ? "Delta " : ""}{formatCurrency(Math.abs(record.difference || 0))}
                       </td>
                       <td className="erp-td"><span className={cfg.chip}>{cfg.label}</span></td>
                     </tr>

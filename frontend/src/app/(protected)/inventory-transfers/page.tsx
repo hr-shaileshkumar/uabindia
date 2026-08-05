@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Plus, ArrowRight, Package, Truck, CheckCircle, Clock } from "lucide-react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { ArrowRight, CheckCircle, Clock, Package, Plus, Truck } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import { CrudHeaderStats } from "@/components/erp/crud-workspace";
 import { hrApi } from "@/services/hrApi";
 import { notifyError } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
@@ -38,11 +39,27 @@ type TransferForm = {
   reason: string;
 };
 
-const STATUS_CONFIG: Record<string, { chip: string; label: string; icon: React.ReactNode }> = {
-  Completed:  { chip: "erp-chip erp-chip-success", label: "Completed",  icon: <CheckCircle className="h-3.5 w-3.5" /> },
-  InTransit:  { chip: "erp-chip erp-chip-info",    label: "In Transit", icon: <Truck       className="h-3.5 w-3.5" /> },
-  Pending:    { chip: "erp-chip erp-chip-warning",  label: "Pending",   icon: <Clock       className="h-3.5 w-3.5" /> },
-  Cancelled:  { chip: "erp-chip erp-chip-danger",   label: "Cancelled", icon: null },
+const STATUS_CONFIG: Record<string, { chip: string; label: string; icon: ReactNode }> = {
+  Completed: {
+    chip: "erp-chip erp-chip-success",
+    label: "Completed",
+    icon: <CheckCircle className="h-3.5 w-3.5" />,
+  },
+  InTransit: {
+    chip: "erp-chip erp-chip-info",
+    label: "In Transit",
+    icon: <Truck className="h-3.5 w-3.5" />,
+  },
+  Pending: {
+    chip: "erp-chip erp-chip-warning",
+    label: "Pending",
+    icon: <Clock className="h-3.5 w-3.5" />,
+  },
+  Cancelled: {
+    chip: "erp-chip erp-chip-danger",
+    label: "Cancelled",
+    icon: null,
+  },
 };
 
 export default function InventoryTransfersPage() {
@@ -56,62 +73,96 @@ export default function InventoryTransfersPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [form, setForm] = useState<TransferForm>({
-    itemId: "", fromWarehouseId: "", toWarehouseId: "", quantity: 1, transferDate: new Date().toISOString().split("T")[0], reason: "",
+    itemId: "",
+    fromWarehouseId: "",
+    toWarehouseId: "",
+    quantity: 1,
+    transferDate: new Date().toISOString().split("T")[0],
+    reason: "",
   });
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const [movRes, itemsRes, whRes] = await Promise.all([
+
+      const [movementResponse, itemsResponse, warehousesResponse] = await Promise.all([
         hrApi.erp.stockMovements.list(1, 50),
         hrApi.erp.items.getAll(1, 100),
         hrApi.erp.warehouses.list(1, 50),
       ]);
-      const movList = Array.isArray(movRes.data) ? movRes.data : Array.isArray(movRes.data?.data) ? movRes.data.data : [];
-      const itemList = Array.isArray(itemsRes.data) ? itemsRes.data : Array.isArray(itemsRes.data?.data) ? itemsRes.data.data : [];
-      const whList = Array.isArray(whRes.data) ? whRes.data : Array.isArray(whRes.data?.data) ? whRes.data.data : [];
+
+      const movementList = Array.isArray(movementResponse.data)
+        ? movementResponse.data
+        : Array.isArray(movementResponse.data?.data)
+          ? movementResponse.data.data
+          : [];
+      const itemList = Array.isArray(itemsResponse.data)
+        ? itemsResponse.data
+        : Array.isArray(itemsResponse.data?.data)
+          ? itemsResponse.data.data
+          : [];
+      const warehouseList = Array.isArray(warehousesResponse.data)
+        ? warehousesResponse.data
+        : Array.isArray(warehousesResponse.data?.data)
+          ? warehousesResponse.data.data
+          : [];
 
       setItems(itemList);
-      setWarehouses(whList);
+      setWarehouses(warehouseList);
 
-      // Filter transfer movements
-      const transfers: TransferRow[] = movList
-        .filter((m: TransferRow) => m.movementType === "Transfer" || (m.fromWarehouseId && m.toWarehouseId))
-        .map((m: TransferRow) => ({
-          id: m.id,
-          transferNumber: m.referenceNumber || `TRF-${m.id?.slice(0, 8)}`,
-          fromWarehouseId: m.fromWarehouseId,
-          fromWarehouseName: whList.find((w: TransferRow) => w.id === m.fromWarehouseId)?.warehouseName || m.fromWarehouseName,
-          toWarehouseId: m.toWarehouseId,
-          toWarehouseName: whList.find((w: TransferRow) => w.id === m.toWarehouseId)?.warehouseName || m.toWarehouseName,
-          itemId: m.itemId,
-          itemName: itemList.find((i: TransferRow) => i.id === m.itemId)?.itemName || m.itemName,
-          itemCode: itemList.find((i: TransferRow) => i.id === m.itemId)?.itemCode,
-          quantity: m.quantity,
-          transferDate: m.movementDate || m.createdAt,
+      const transfers: TransferRow[] = movementList
+        .filter(
+          (movement: TransferRow) =>
+            movement.movementType === "Transfer" ||
+            (movement.fromWarehouseId && movement.toWarehouseId),
+        )
+        .map((movement: TransferRow) => ({
+          id: movement.id,
+          transferNumber: movement.referenceNumber || `TRF-${movement.id?.slice(0, 8)}`,
+          fromWarehouseId: movement.fromWarehouseId,
+          fromWarehouseName:
+            warehouseList.find((warehouse: TransferRow) => warehouse.id === movement.fromWarehouseId)
+              ?.warehouseName || movement.fromWarehouseName,
+          toWarehouseId: movement.toWarehouseId,
+          toWarehouseName:
+            warehouseList.find((warehouse: TransferRow) => warehouse.id === movement.toWarehouseId)
+              ?.warehouseName || movement.toWarehouseName,
+          itemId: movement.itemId,
+          itemName:
+            itemList.find((item: TransferRow) => item.id === movement.itemId)?.itemName ||
+            movement.itemName,
+          itemCode: itemList.find((item: TransferRow) => item.id === movement.itemId)?.itemCode,
+          quantity: movement.quantity,
+          transferDate: movement.movementDate || movement.createdAt,
           status: "Completed",
-          reason: m.remarks,
+          reason: movement.remarks,
         }));
+
       setRecords(transfers);
     } catch (err) {
-      const msg = getApiErrorMessage(err, "Failed to load inventory transfers.");
-      setError(msg);
-      notifyError(msg, "Inventory Transfers");
+      const message = getApiErrorMessage(err, "Failed to load inventory transfers.");
+      setError(message);
+      notifyError(message, "Inventory Transfers");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.itemId || !form.fromWarehouseId || !form.toWarehouseId || form.quantity <= 0) return;
+  const handleSave = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!form.itemId || !form.fromWarehouseId || !form.toWarehouseId || form.quantity <= 0) {
+      return;
+    }
     if (form.fromWarehouseId === form.toWarehouseId) {
       notifyError("Source and destination warehouses must be different.", "Transfer");
       return;
     }
+
     try {
       setSaving(true);
       await hrApi.erp.stockMovements.create({
@@ -125,7 +176,14 @@ export default function InventoryTransfersPage() {
         referenceNumber: `TRF-${Date.now()}`,
       });
       setShowForm(false);
-      setForm({ itemId: "", fromWarehouseId: "", toWarehouseId: "", quantity: 1, transferDate: new Date().toISOString().split("T")[0], reason: "" });
+      setForm({
+        itemId: "",
+        fromWarehouseId: "",
+        toWarehouseId: "",
+        quantity: 1,
+        transferDate: new Date().toISOString().split("T")[0],
+        reason: "",
+      });
       void load();
     } catch (err) {
       notifyError(getApiErrorMessage(err, "Failed to create transfer."), "Transfer");
@@ -134,43 +192,67 @@ export default function InventoryTransfersPage() {
     }
   };
 
-  const filtered = records.filter((r) => {
-    const q = search.toLowerCase();
-    const matchSearch = !q
-      || (r.transferNumber || "").toLowerCase().includes(q)
-      || (r.itemName || "").toLowerCase().includes(q)
-      || (r.fromWarehouseName || "").toLowerCase().includes(q)
-      || (r.toWarehouseName || "").toLowerCase().includes(q);
-    const matchStatus = !statusFilter || r.status === statusFilter;
+  const filtered = records.filter((record) => {
+    const query = search.toLowerCase();
+    const matchSearch =
+      !query ||
+      (record.transferNumber || "").toLowerCase().includes(query) ||
+      (record.itemName || "").toLowerCase().includes(query) ||
+      (record.fromWarehouseName || "").toLowerCase().includes(query) ||
+      (record.toWarehouseName || "").toLowerCase().includes(query);
+    const matchStatus = !statusFilter || record.status === statusFilter;
     return matchSearch && matchStatus;
   });
 
-  const completed = filtered.filter((r) => r.status === "Completed").length;
-  const inTransit = filtered.filter((r) => r.status === "InTransit").length;
-  const pending   = filtered.filter((r) => r.status === "Pending").length;
-  const totalQty  = filtered.reduce((s, r) => s + (r.quantity || 0), 0);
+  const completed = filtered.filter((record) => record.status === "Completed").length;
+  const inTransit = filtered.filter((record) => record.status === "InTransit").length;
+  const _pending = filtered.filter((record) => record.status === "Pending").length;
+  const totalQuantity = filtered.reduce((sum, record) => sum + (record.quantity || 0), 0);
 
   return (
     <StandardPageLayout
       title="Inventory Transfers"
-      subtitle="Move stock between warehouses and locations. Track transfer requests, in-transit quantities, and completion status."
-      eyebrow="Inventory / Operations"
+      subtitle="Move stock between warehouses with a cleaner transfer log, clear route visibility, and one focused action flow."
+      eyebrow="Inventory / Movement Control"
       icon="warehouse"
+      meta={
+        <CrudHeaderStats
+          items={[
+            { label: "Transfers", value: filtered.length, helper: "visible" },
+            { label: "Completed", value: completed, tone: "positive" },
+            { label: "In Transit", value: inTransit, tone: "info" },
+            { label: "Units", value: totalQuantity.toLocaleString("en-IN"), tone: "warning" },
+          ]}
+        />
+      }
       actions={
-        <button type="button" onClick={() => setShowForm((p) => !p)} className="erp-action-btn erp-action-btn-primary">
+        <button
+          type="button"
+          onClick={() => setShowForm((current) => !current)}
+          className="erp-action-btn erp-action-btn-primary"
+        >
           <Plus className="h-4 w-4" />
           Create Transfer
         </button>
       }
       filters={
         <div className="flex flex-wrap items-end gap-3">
-          <div className="flex-1 min-w-48">
+          <div className="min-w-48 flex-1">
             <label className="erp-label">Search</label>
-            <input className="erp-input" placeholder="Transfer #, item, warehouse…" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <input
+              className="erp-input"
+              placeholder="Transfer number, item, or warehouse..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
           </div>
           <div>
             <label className="erp-label">Status</label>
-            <select className="erp-select w-36" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <select
+              className="erp-select w-36"
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+            >
               <option value="">All Status</option>
               <option value="Pending">Pending</option>
               <option value="InTransit">In Transit</option>
@@ -179,34 +261,20 @@ export default function InventoryTransfersPage() {
             </select>
           </div>
           {(search || statusFilter) && (
-            <button type="button" onClick={() => { setSearch(""); setStatusFilter(""); }} className="erp-action-btn erp-action-btn-secondary">Clear</button>
+            <button
+              type="button"
+              onClick={() => {
+                setSearch("");
+                setStatusFilter("");
+              }}
+              className="erp-action-btn erp-action-btn-secondary"
+            >
+              Clear
+            </button>
           )}
         </div>
       }
     >
-      <div className="erp-kpi-grid">
-        <div className="erp-kpi-card">
-          <p className="erp-kpi-label">Total Transfers</p>
-          <p className="erp-kpi-value">{filtered.length}</p>
-          <p className="erp-kpi-meta">All stock movement records</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-success">
-          <p className="erp-kpi-label">Completed</p>
-          <p className="erp-kpi-value erp-kpi-value-success">{completed}</p>
-          <p className="erp-kpi-meta">Transfers finalized</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-info">
-          <p className="erp-kpi-label">In Transit</p>
-          <p className="erp-kpi-value">{inTransit}</p>
-          <p className="erp-kpi-meta">Currently being moved</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-warning">
-          <p className="erp-kpi-label">Pending / Total Qty</p>
-          <p className="erp-kpi-value">{pending} / {totalQty.toLocaleString()}</p>
-          <p className="erp-kpi-meta">Pending requests and total units</p>
-        </div>
-      </div>
-
       {error && <div className="erp-alert-error">{error}</div>}
 
       {showForm && (
@@ -214,7 +282,9 @@ export default function InventoryTransfersPage() {
           <div className="erp-panel-header">
             <div>
               <h2 className="erp-panel-title">Create Stock Transfer</h2>
-              <p className="mt-1 text-sm text-slate-500">Transfer inventory between warehouses or storage locations.</p>
+              <p className="mt-1 text-sm text-slate-500">
+                Select the item, source warehouse, destination warehouse, and transfer reason.
+              </p>
             </div>
           </div>
           <div className="erp-panel-body">
@@ -222,41 +292,97 @@ export default function InventoryTransfersPage() {
               <div className="erp-form-grid erp-form-grid-2">
                 <div className="md:col-span-2">
                   <label className="erp-label">Item</label>
-                  <select className="erp-select" value={form.itemId} onChange={(e) => setForm({ ...form, itemId: e.target.value })} required>
-                    <option value="">Select item to transfer…</option>
-                    {items.map((i) => <option key={i.id} value={i.id}>{i.itemCode} — {i.itemName}</option>)}
+                  <select
+                    className="erp-select"
+                    value={form.itemId}
+                    onChange={(event) => setForm({ ...form, itemId: event.target.value })}
+                    required
+                  >
+                    <option value="">Select item...</option>
+                    {items.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.itemCode} - {item.itemName}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
                   <label className="erp-label">From Warehouse</label>
-                  <select className="erp-select" value={form.fromWarehouseId} onChange={(e) => setForm({ ...form, fromWarehouseId: e.target.value })} required>
-                    <option value="">Source warehouse…</option>
-                    {warehouses.map((w) => <option key={w.id} value={w.id}>{w.warehouseName}</option>)}
+                  <select
+                    className="erp-select"
+                    value={form.fromWarehouseId}
+                    onChange={(event) => setForm({ ...form, fromWarehouseId: event.target.value })}
+                    required
+                  >
+                    <option value="">Select source warehouse...</option>
+                    {warehouses.map((warehouse) => (
+                      <option key={warehouse.id} value={warehouse.id}>
+                        {warehouse.warehouseName}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
                   <label className="erp-label">To Warehouse</label>
-                  <select className="erp-select" value={form.toWarehouseId} onChange={(e) => setForm({ ...form, toWarehouseId: e.target.value })} required>
-                    <option value="">Destination warehouse…</option>
-                    {warehouses.filter((w) => w.id !== form.fromWarehouseId).map((w) => <option key={w.id} value={w.id}>{w.warehouseName}</option>)}
+                  <select
+                    className="erp-select"
+                    value={form.toWarehouseId}
+                    onChange={(event) => setForm({ ...form, toWarehouseId: event.target.value })}
+                    required
+                  >
+                    <option value="">Select destination warehouse...</option>
+                    {warehouses
+                      .filter((warehouse) => warehouse.id !== form.fromWarehouseId)
+                      .map((warehouse) => (
+                        <option key={warehouse.id} value={warehouse.id}>
+                          {warehouse.warehouseName}
+                        </option>
+                      ))}
                   </select>
                 </div>
                 <div>
                   <label className="erp-label">Quantity</label>
-                  <input className="erp-input" type="number" min={1} value={form.quantity} onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) })} required />
+                  <input
+                    className="erp-input"
+                    type="number"
+                    min={1}
+                    value={form.quantity}
+                    onChange={(event) => setForm({ ...form, quantity: Number(event.target.value) })}
+                    required
+                  />
                 </div>
                 <div>
                   <label className="erp-label">Transfer Date</label>
-                  <input className="erp-input" type="date" value={form.transferDate} onChange={(e) => setForm({ ...form, transferDate: e.target.value })} required />
+                  <input
+                    className="erp-input"
+                    type="date"
+                    value={form.transferDate}
+                    onChange={(event) => setForm({ ...form, transferDate: event.target.value })}
+                    required
+                  />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="erp-label">Reason / Notes</label>
-                  <textarea className="erp-input" rows={2} value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder="Business reason for transfer…" />
+                  <label className="erp-label">Reason or Notes</label>
+                  <textarea
+                    className="erp-input"
+                    rows={3}
+                    value={form.reason}
+                    onChange={(event) => setForm({ ...form, reason: event.target.value })}
+                    placeholder="Reason for stock movement..."
+                  />
                 </div>
               </div>
               <div className="erp-form-actions">
-                <button type="button" onClick={() => setShowForm(false)} className="erp-action-btn erp-action-btn-secondary">Cancel</button>
-                <button type="submit" disabled={saving} className="erp-action-btn erp-action-btn-primary">{saving ? "Creating…" : "Create Transfer"}</button>
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  className="erp-action-btn erp-action-btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button type="submit" disabled={saving} className="erp-action-btn erp-action-btn-primary">
+                  {saving ? "Creating..." : "Create Transfer"}
+                </button>
               </div>
             </form>
           </div>
@@ -267,14 +393,16 @@ export default function InventoryTransfersPage() {
         <div className="erp-panel-header">
           <div>
             <h2 className="erp-panel-title">Transfer Log</h2>
-            <p className="mt-1 text-sm text-slate-500">{filtered.length} transfer records</p>
+            <p className="mt-1 text-sm text-slate-500">
+              Review item movement routes, quantities, and transfer completion state.
+            </p>
           </div>
         </div>
         <div className="overflow-x-auto bg-white/80">
           <table className="erp-table">
             <thead className="erp-thead">
               <tr>
-                <th className="erp-th">Transfer #</th>
+                <th className="erp-th">Transfer</th>
                 <th className="erp-th">Item</th>
                 <th className="erp-th">Route</th>
                 <th className="erp-th text-right">Qty</th>
@@ -284,40 +412,64 @@ export default function InventoryTransfersPage() {
             </thead>
             <tbody>
               {loading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}><td colSpan={6} className="erp-td"><div className="h-4 animate-pulse rounded bg-slate-100" /></td></tr>
+                Array.from({ length: 5 }).map((_, index) => (
+                  <tr key={index}>
+                    <td colSpan={6} className="erp-td">
+                      <div className="h-4 animate-pulse rounded bg-slate-100" />
+                    </td>
+                  </tr>
                 ))
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={6} className="erp-td py-16 text-center">
-                  <div className="flex flex-col items-center gap-3">
-                    <Package className="h-10 w-10 text-slate-300" />
-                    <p className="text-sm text-slate-400">No inventory transfers found.</p>
-                    <button type="button" onClick={() => setShowForm(true)} className="erp-action-btn erp-action-btn-secondary text-xs">Create Transfer</button>
-                  </div>
-                </td></tr>
+                <tr>
+                  <td colSpan={6} className="erp-td py-16 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <Package className="h-10 w-10 text-slate-300" />
+                      <p className="text-sm text-slate-400">No inventory transfers found.</p>
+                      <button
+                        type="button"
+                        onClick={() => setShowForm(true)}
+                        className="erp-action-btn erp-action-btn-secondary text-xs"
+                      >
+                        Create Transfer
+                      </button>
+                    </div>
+                  </td>
+                </tr>
               ) : (
-                filtered.map((r) => {
-                  const cfg = STATUS_CONFIG[r.status || "Completed"] || STATUS_CONFIG.Completed;
+                filtered.map((record) => {
+                  const status = STATUS_CONFIG[record.status || "Completed"] || STATUS_CONFIG.Completed;
                   return (
-                    <tr key={r.id} className="erp-tr">
-                      <td className="erp-td font-mono text-xs font-semibold text-slate-700">{r.transferNumber || "—"}</td>
+                    <tr key={record.id} className="erp-tr">
+                      <td className="erp-td font-mono text-xs font-semibold text-slate-700">
+                        {record.transferNumber || "-"}
+                      </td>
                       <td className="erp-td">
-                        <p className="font-semibold text-slate-900">{r.itemName || "—"}</p>
-                        {r.itemCode && <p className="text-xs text-slate-500">{r.itemCode}</p>}
+                        <p className="font-semibold text-slate-900">{record.itemName || "-"}</p>
+                        {record.itemCode && <p className="text-xs text-slate-500">{record.itemCode}</p>}
                       </td>
                       <td className="erp-td">
                         <div className="flex items-center gap-2 text-sm">
-                          <span className="rounded-md bg-slate-100 px-2 py-0.5 text-slate-700">{r.fromWarehouseName || "—"}</span>
-                          <ArrowRight className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
-                          <span className="rounded-md bg-blue-50 px-2 py-0.5 text-blue-700">{r.toWarehouseName || "—"}</span>
+                          <span className="rounded-md bg-slate-100 px-2 py-0.5 text-slate-700">
+                            {record.fromWarehouseName || "-"}
+                          </span>
+                          <ArrowRight className="h-3.5 w-3.5 flex-shrink-0 text-slate-400" />
+                          <span className="rounded-md bg-blue-50 px-2 py-0.5 text-blue-700">
+                            {record.toWarehouseName || "-"}
+                          </span>
                         </div>
                       </td>
-                      <td className="erp-td text-right font-semibold text-slate-900">{r.quantity || 0}</td>
-                      <td className="erp-td text-slate-600">{r.transferDate ? new Date(r.transferDate).toLocaleDateString("en-IN") : "—"}</td>
+                      <td className="erp-td text-right font-semibold text-slate-900">
+                        {record.quantity || 0}
+                      </td>
+                      <td className="erp-td text-slate-600">
+                        {record.transferDate
+                          ? new Date(record.transferDate).toLocaleDateString("en-IN")
+                          : "-"}
+                      </td>
                       <td className="erp-td">
-                        <span className={`${cfg.chip} flex w-fit items-center gap-1`}>
-                          {cfg.icon}
-                          {cfg.label}
+                        <span className={`${status.chip} flex w-fit items-center gap-1`}>
+                          {status.icon}
+                          {status.label}
                         </span>
                       </td>
                     </tr>

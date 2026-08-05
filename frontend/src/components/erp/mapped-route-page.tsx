@@ -5,6 +5,7 @@ import { ArrowRight, LayoutList, Network } from "lucide-react";
 import { useMemo } from "react";
 import { usePathname } from "next/navigation";
 import ModuleIcon from "@/components/ModuleIcon";
+import { CrudHeaderStats } from "@/components/erp/crud-workspace";
 import { StatusBadge } from "@/components/erp/status-badge";
 import { WorkspaceStatusPanel } from "@/components/erp/workspace-status-panel";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
@@ -70,6 +71,18 @@ export function MappedRoutePage({
       subtitle={resolvedSubtitle}
       eyebrow={eyebrow}
       icon={resolvedModule?.icon || "layers"}
+      meta={
+        resolvedModule ? (
+          <CrudHeaderStats
+            items={[
+              { label: "Module", value: resolvedModule.label, helper: "owner" },
+              { label: "Group", value: pageMatch?.group.label || "Module home", tone: "info" },
+              { label: "Pages", value: resolvedModule.pageCount, tone: "positive" },
+              { label: "Related", value: relatedPages.length, tone: "warning" },
+            ]}
+          />
+        ) : null
+      }
       actions={
         <div className="flex flex-wrap gap-2">
           {resolvedModule?.homeHref ? (
@@ -99,29 +112,6 @@ export function MappedRoutePage({
         />
       ) : (
         <div className="space-y-6">
-          <div className="erp-kpi-grid">
-            <div className="erp-kpi-card">
-              <p className="erp-kpi-label">Module</p>
-              <p className="erp-kpi-value">{resolvedModule.label}</p>
-              <p className="erp-kpi-meta">Current workspace owner</p>
-            </div>
-            <div className="erp-kpi-card erp-kpi-card-info">
-              <p className="erp-kpi-label">Group</p>
-              <p className="erp-kpi-value">{pageMatch?.group.label || "Module home"}</p>
-              <p className="erp-kpi-meta">Navigation cluster</p>
-            </div>
-            <div className="erp-kpi-card erp-kpi-card-success">
-              <p className="erp-kpi-label">Pages</p>
-              <p className="erp-kpi-value erp-kpi-value-success">{resolvedModule.pageCount}</p>
-              <p className="erp-kpi-meta">Accessible module routes</p>
-            </div>
-            <div className="erp-kpi-card erp-kpi-card-warning">
-              <p className="erp-kpi-label">Related</p>
-              <p className="erp-kpi-value">{relatedPages.length}</p>
-              <p className="erp-kpi-meta">Nearby task routes</p>
-            </div>
-          </div>
-
           {notice ? <div className="erp-alert-info">{notice}</div> : null}
 
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(19rem,0.75fr)]">

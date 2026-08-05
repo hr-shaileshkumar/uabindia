@@ -26,7 +26,8 @@ const TabsList = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivEl
   ({ className = "", ...props }, ref) => (
     <div
       ref={ref}
-      className={`inline-flex min-h-11 items-center gap-1 rounded-xl border border-slate-200/90 bg-linear-to-b from-slate-50 to-white p-1 text-slate-600 shadow-sm ${className}`}
+      role="tablist"
+      className={`flex min-h-10 max-w-full items-center gap-1 overflow-x-auto rounded-[var(--erp-radius-control)] border border-[var(--erp-border)] bg-slate-50 p-1 text-slate-600 [scrollbar-width:thin] ${className}`}
       {...props}
     />
   )
@@ -48,6 +49,9 @@ const TabsTrigger = React.forwardRef<HTMLButtonElement, TabsTriggerProps>(
       <button
         ref={ref}
         type="button"
+        role="tab"
+        aria-selected={isActive}
+        tabIndex={isActive ? 0 : -1}
         data-erp-tabs-trigger="true"
         className={`inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--erp-primary) focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${
           isActive
@@ -76,6 +80,8 @@ const TabsContent = React.forwardRef<HTMLDivElement, TabsContentProps>(
     return (
       <div
         ref={ref}
+        role="tabpanel"
+        tabIndex={0}
         className={`mt-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--erp-primary) focus-visible:ring-offset-2 ${className}`}
         {...props}
       />

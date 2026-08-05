@@ -33,7 +33,20 @@ export const getApiErrorMessage = (error: unknown, fallback = "Something went wr
     return payload.message;
   }
 
-  if (error instanceof Error && error.message) {
+  if (error instanceof AxiosError) {
+    const status = error.response?.status;
+    if (status === 500) {
+      return "Server error (500). The backend service encountered an internal issue. Please try again shortly.";
+    }
+    if (status === 502 || status === 503 || status === 504) {
+      return "Server temporarily unavailable. Please check your network connection and try again.";
+    }
+    if (!error.response) {
+      return "Unable to connect to the server. Please verify the API backend is running.";
+    }
+  }
+
+  if (error instanceof Error && error.message && !error.message.includes("status code")) {
     return error.message;
   }
 
@@ -57,5 +70,5 @@ export const isApiConnectivityError = (error: unknown): boolean => {
     return true;
   }
 
-  return [404, 502, 503, 504].includes(error.response.status);
+  return [404, 500, 502, 503, 504].includes(error.response.status);
 };

@@ -19,6 +19,15 @@ const resolveSafeNextPath = (value: string | null): string | null => {
   return value;
 };
 
+/** Administration module merged into Platform — redirect old routes */
+const ADMINISTRATION_REDIRECTS: [string, string][] = [
+  ["/administration/approvals", "/platform/permissions"],
+  ["/administration/notifications", "/platform/notification-templates"],
+  ["/administration/documents", "/platform/backup"],
+  ["/administration/profile", "/profile"],
+  ["/administration", "/platform/settings"],
+];
+
 export async function middleware(request: NextRequest) {
   const hostname = request.nextUrl.hostname.toLowerCase();
   const pathname = request.nextUrl.pathname;
@@ -26,6 +35,13 @@ export async function middleware(request: NextRequest) {
 
   if (pathname.startsWith("/tenant-not-found")) {
     return NextResponse.next();
+  }
+
+  // ── Administration → Platform redirects (longest prefix first) ───────
+  for (const [from, to] of ADMINISTRATION_REDIRECTS) {
+    if (pathname === from || pathname.startsWith(from + "/")) {
+      return NextResponse.redirect(new URL(to, request.url));
+    }
   }
 
   if (matchesAnyPrefix(pathname, AUTH_PATH_PREFIXES) && hasAccessToken) {
@@ -70,5 +86,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next|favicon.ico|assets).*)"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|woff2?)).*)"],
 };

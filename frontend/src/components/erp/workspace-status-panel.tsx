@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle, RefreshCcw, Settings2, ShieldAlert } from "lucide-react";
+import { AlertTriangle, Settings2, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ArcLoader } from "@/components/erp/arc-loader";
 
 type WorkspaceStatusPanelProps = {
   title: string;
@@ -37,13 +38,13 @@ export function WorkspaceStatusPanel({
   return (
     <section
       className={cn(
-        "rounded-3xl border shadow-[0_16px_40px_rgba(15,23,42,0.08)]",
+        "rounded-[var(--erp-radius-panel)] border shadow-[var(--erp-shadow-sm)]",
         toneClasses[tone],
-        compact ? "p-4" : "p-6 sm:p-7"
+        compact ? "p-3.5" : "p-4 sm:p-5"
       )}
     >
       <div className={cn("flex gap-4", compact ? "items-start" : "items-start sm:items-center")}>
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/90 text-current shadow-[0_10px_24px_rgba(15,23,42,0.08)]">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/90 text-current shadow-sm">
           {tone === "critical" ? (
             <ShieldAlert className="h-5 w-5" />
           ) : tone === "warning" ? (
@@ -66,7 +67,7 @@ export function WorkspaceStatusPanel({
             <div className="mt-4 flex flex-wrap gap-3">
               {onRetry ? (
                 <Button type="button" variant="outline" onClick={onRetry}>
-                  <RefreshCcw className="mr-2 h-4 w-4" />
+                  <ArcLoader size="sm" className="mr-2" label="Retrying workspace" />
                   {retryLabel}
                 </Button>
               ) : null}

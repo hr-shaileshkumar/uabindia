@@ -4,6 +4,8 @@ namespace UabIndia.Core.Entities
 {
     public class CommunicationTemplate : BaseEntity
     {
+        public Guid? CompanyId { get; set; }
+        public Guid? ProjectId { get; set; }
         public string TemplateKind { get; set; } = "Email";
         public string Name { get; set; } = string.Empty;
         public string? Subject { get; set; }

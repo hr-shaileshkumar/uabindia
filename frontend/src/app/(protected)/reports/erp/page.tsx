@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import ErpHeaderSummary from "@/components/layout/ErpHeaderSummary";
 import { hrApi } from "@/services/hrApi";
 import { ROUTES } from "@/constants/routes";
 
-const formatCurrency = (v?: number) => v != null ? `₹${v.toLocaleString("en-IN")}` : "—";
+const formatCurrency = (v?: number) => (v != null ? `Rs${v.toLocaleString("en-IN")}` : "-");
 
 export default function ErpReportsPage() {
   const [customers, setCustomers] = useState(0);
@@ -42,48 +43,35 @@ export default function ErpReportsPage() {
     void load();
   }, []);
 
-  const totalSOValue = salesOrders.reduce((s, o) => s + (o.totalAmount || 0), 0);
+  const totalSOValue = salesOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+
   return (
     <StandardPageLayout
       title="Business Operations Reports"
       subtitle="Sales performance, procurement analysis, and inventory overview across all business operations."
       eyebrow="Reports / Business Operations"
       icon="bar-chart"
+      meta={
+        <ErpHeaderSummary
+          items={[
+            { label: "Customers", value: customers, tone: "info" },
+            { label: "Vendors", value: vendors, tone: "info" },
+            { label: "Items", value: items },
+            { label: "SO Value", value: formatCurrency(totalSOValue), tone: "success" },
+          ]}
+        />
+      }
     >
-      <div className="erp-kpi-grid">
-        <div className="erp-kpi-card erp-kpi-card-info">
-          <p className="erp-kpi-label">Customers</p>
-          <p className="erp-kpi-value">{customers}</p>
-          <p className="erp-kpi-meta">Total customer records</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-info">
-          <p className="erp-kpi-label">Vendors</p>
-          <p className="erp-kpi-value">{vendors}</p>
-          <p className="erp-kpi-meta">Total vendor records</p>
-        </div>
-        <div className="erp-kpi-card">
-          <p className="erp-kpi-label">Inventory Items</p>
-          <p className="erp-kpi-value">{items}</p>
-          <p className="erp-kpi-meta">Items in catalog</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-success">
-          <p className="erp-kpi-label">Sales Order Value</p>
-          <p className="erp-kpi-value erp-kpi-value-success">{formatCurrency(totalSOValue)}</p>
-          <p className="erp-kpi-meta">This page total</p>
-        </div>
-      </div>
-
       {error && <div className="erp-alert-error">{error}</div>}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        {/* Sales Orders */}
         <div className="erp-panel">
           <div className="erp-panel-header">
             <div>
               <h2 className="erp-panel-title">Recent Sales Orders</h2>
               <p className="mt-1 text-sm text-slate-500">Latest 10 sales orders</p>
             </div>
-            <Link href={ROUTES.SALES_ORDERS} className="erp-action-btn erp-action-btn-secondary text-xs px-3">View All</Link>
+            <Link href={ROUTES.SALES_ORDERS} className="erp-action-btn erp-action-btn-secondary px-3 text-xs">View All</Link>
           </div>
           <div className="overflow-x-auto bg-white/80">
             <table className="erp-table">
@@ -96,15 +84,17 @@ export default function ErpReportsPage() {
               </thead>
               <tbody>
                 {loading ? (
-                  Array.from({ length: 4 }).map((_, i) => <tr key={i}><td colSpan={3} className="erp-td"><div className="h-4 animate-pulse rounded bg-slate-100" /></td></tr>)
+                  Array.from({ length: 4 }).map((_, index) => (
+                    <tr key={index}><td colSpan={3} className="erp-td"><div className="h-4 animate-pulse rounded bg-slate-100" /></td></tr>
+                  ))
                 ) : salesOrders.length === 0 ? (
                   <tr><td colSpan={3} className="erp-td py-8 text-center text-slate-400">No sales orders found.</td></tr>
                 ) : (
-                  salesOrders.map((o) => (
-                    <tr key={o.id} className="erp-tr">
-                      <td className="erp-td text-slate-900">{o.orderNumber || o.id.slice(0, 8)}</td>
-                      <td className="erp-td font-medium text-slate-900">{formatCurrency(o.totalAmount)}</td>
-                      <td className="erp-td"><span className="erp-chip erp-chip-info">{o.status || "—"}</span></td>
+                  salesOrders.map((order) => (
+                    <tr key={order.id} className="erp-tr">
+                      <td className="erp-td text-slate-900">{order.orderNumber || order.id.slice(0, 8)}</td>
+                      <td className="erp-td font-medium text-slate-900">{formatCurrency(order.totalAmount)}</td>
+                      <td className="erp-td"><span className="erp-chip erp-chip-info">{order.status || "-"}</span></td>
                     </tr>
                   ))
                 )}
@@ -113,14 +103,13 @@ export default function ErpReportsPage() {
           </div>
         </div>
 
-        {/* Purchase Orders */}
         <div className="erp-panel">
           <div className="erp-panel-header">
             <div>
               <h2 className="erp-panel-title">Recent Purchase Orders</h2>
               <p className="mt-1 text-sm text-slate-500">Latest 10 purchase orders</p>
             </div>
-            <Link href={ROUTES.PURCHASE_ORDERS} className="erp-action-btn erp-action-btn-secondary text-xs px-3">View All</Link>
+            <Link href={ROUTES.PURCHASE_ORDERS} className="erp-action-btn erp-action-btn-secondary px-3 text-xs">View All</Link>
           </div>
           <div className="overflow-x-auto bg-white/80">
             <table className="erp-table">
@@ -133,15 +122,17 @@ export default function ErpReportsPage() {
               </thead>
               <tbody>
                 {loading ? (
-                  Array.from({ length: 4 }).map((_, i) => <tr key={i}><td colSpan={3} className="erp-td"><div className="h-4 animate-pulse rounded bg-slate-100" /></td></tr>)
+                  Array.from({ length: 4 }).map((_, index) => (
+                    <tr key={index}><td colSpan={3} className="erp-td"><div className="h-4 animate-pulse rounded bg-slate-100" /></td></tr>
+                  ))
                 ) : purchaseOrders.length === 0 ? (
                   <tr><td colSpan={3} className="erp-td py-8 text-center text-slate-400">No purchase orders found.</td></tr>
                 ) : (
-                  purchaseOrders.map((o) => (
-                    <tr key={o.id} className="erp-tr">
-                      <td className="erp-td text-slate-900">{o.orderNumber || o.id.slice(0, 8)}</td>
-                      <td className="erp-td font-medium text-slate-900">{formatCurrency(o.totalAmount)}</td>
-                      <td className="erp-td"><span className="erp-chip erp-chip-warning">{o.status || "—"}</span></td>
+                  purchaseOrders.map((order) => (
+                    <tr key={order.id} className="erp-tr">
+                      <td className="erp-td text-slate-900">{order.orderNumber || order.id.slice(0, 8)}</td>
+                      <td className="erp-td font-medium text-slate-900">{formatCurrency(order.totalAmount)}</td>
+                      <td className="erp-td"><span className="erp-chip erp-chip-warning">{order.status || "-"}</span></td>
                     </tr>
                   ))
                 )}
@@ -151,7 +142,6 @@ export default function ErpReportsPage() {
         </div>
       </div>
 
-      {/* Quick links */}
       <div className="erp-panel">
         <div className="erp-panel-header">
           <h2 className="erp-panel-title">Quick Access</h2>

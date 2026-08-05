@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import ErpHeaderSummary from "@/components/layout/ErpHeaderSummary";
 import { hrApi } from "@/services/hrApi";
 
 type PayrollOverview = { totalRuns?: number; totalDisbursed?: number; avgNetSalary?: number; processedCount?: number };
 type MonthlyRow = { month?: string; totalGross?: number; totalNet?: number; totalDeductions?: number; employeeCount?: number };
 
-const formatCurrency = (v?: number) => v != null ? `₹${v.toLocaleString("en-IN")}` : "—";
+const formatCurrency = (v?: number) => (v != null ? `Rs${v.toLocaleString("en-IN")}` : "-");
 
 export default function PayrollReportsPage() {
   const [overview, setOverview] = useState<PayrollOverview | null>(null);
@@ -35,7 +36,7 @@ export default function PayrollReportsPage() {
     void load();
   }, [year]);
 
-  const totalNet = monthly.reduce((s, r) => s + (r.totalNet || 0), 0);
+  const totalNet = monthly.reduce((sum, row) => sum + (row.totalNet || 0), 0);
 
   return (
     <StandardPageLayout
@@ -43,46 +44,35 @@ export default function PayrollReportsPage() {
       subtitle="Monthly payroll breakdowns, disbursement trends, and component analysis."
       eyebrow="Reports / Payroll Analytics"
       icon="bar-chart"
+      meta={
+        <ErpHeaderSummary
+          items={[
+            { label: "Runs", value: overview?.totalRuns ?? "-", tone: "info" },
+            { label: "Disbursed", value: formatCurrency(overview?.totalDisbursed), tone: "success" },
+            { label: "Avg Net", value: formatCurrency(overview?.avgNetSalary) },
+            { label: "Year Net", value: formatCurrency(totalNet), tone: "info" },
+          ]}
+        />
+      }
       filters={
         <div className="flex items-end gap-3">
           <div>
             <label className="erp-label">Financial Year</label>
             <select className="erp-select w-36" value={year} onChange={(e) => setYear(Number(e.target.value))}>
-              {[2024, 2025, 2026].map((y) => <option key={y} value={y}>{y}</option>)}
+              {[2024, 2025, 2026].map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
             </select>
           </div>
         </div>
       }
     >
-      <div className="erp-kpi-grid">
-        <div className="erp-kpi-card erp-kpi-card-info">
-          <p className="erp-kpi-label">Total Runs</p>
-          <p className="erp-kpi-value">{overview?.totalRuns ?? "—"}</p>
-          <p className="erp-kpi-meta">Payroll cycles processed</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-success">
-          <p className="erp-kpi-label">Total Disbursed</p>
-          <p className="erp-kpi-value">{formatCurrency(overview?.totalDisbursed)}</p>
-          <p className="erp-kpi-meta">All-time total net salary</p>
-        </div>
-        <div className="erp-kpi-card">
-          <p className="erp-kpi-label">Avg Net Salary</p>
-          <p className="erp-kpi-value">{formatCurrency(overview?.avgNetSalary)}</p>
-          <p className="erp-kpi-meta">Per employee per run</p>
-        </div>
-        <div className="erp-kpi-card erp-kpi-card-info">
-          <p className="erp-kpi-label">Year Net Total</p>
-          <p className="erp-kpi-value">{formatCurrency(totalNet)}</p>
-          <p className="erp-kpi-meta">Net salary for {year}</p>
-        </div>
-      </div>
-
       {error && <div className="erp-alert-error">{error}</div>}
 
       <div className="erp-panel">
         <div className="erp-panel-header">
           <div>
-            <h2 className="erp-panel-title">Monthly Breakdown — {year}</h2>
+            <h2 className="erp-panel-title">Monthly Breakdown - {year}</h2>
             <p className="mt-1 text-sm text-slate-500">Month-by-month payroll summary</p>
           </div>
         </div>
@@ -99,18 +89,18 @@ export default function PayrollReportsPage() {
             </thead>
             <tbody>
               {loading ? (
-                Array.from({ length: 6 }).map((_, i) => (
-                  <tr key={i}><td colSpan={5} className="erp-td"><div className="h-4 animate-pulse rounded bg-slate-100" /></td></tr>
+                Array.from({ length: 6 }).map((_, index) => (
+                  <tr key={index}><td colSpan={5} className="erp-td"><div className="h-4 animate-pulse rounded bg-slate-100" /></td></tr>
                 ))
               ) : monthly.length === 0 ? (
                 <tr><td colSpan={5} className="erp-td py-10 text-center text-slate-400">No payroll data for {year}.</td></tr>
               ) : (
-                monthly.map((row, i) => (
-                  <tr key={i} className="erp-tr">
+                monthly.map((row, index) => (
+                  <tr key={index} className="erp-tr">
                     <td className="erp-td font-medium text-slate-900">
-                      {row.month ? new Date(`${row.month}-01`).toLocaleDateString("en-IN", { month: "long", year: "numeric" }) : "—"}
+                      {row.month ? new Date(`${row.month}-01`).toLocaleDateString("en-IN", { month: "long", year: "numeric" }) : "-"}
                     </td>
-                    <td className="erp-td text-slate-600">{row.employeeCount ?? "—"}</td>
+                    <td className="erp-td text-slate-600">{row.employeeCount ?? "-"}</td>
                     <td className="erp-td text-slate-700">{formatCurrency(row.totalGross)}</td>
                     <td className="erp-td text-red-600">{formatCurrency(row.totalDeductions)}</td>
                     <td className="erp-td font-semibold text-slate-900">{formatCurrency(row.totalNet)}</td>

@@ -10,7 +10,10 @@ export type ModuleDefinition = {
   tier: WorkspaceTier;
   sourceModuleKey?: string;
   pathPrefixes?: string[];
+  /** When true, module routes still work but it is NOT rendered in the sidebar top-level nav */
+  hiddenFromSidebar?: boolean;
 };
+
 
 const MODULE_REGISTRY: ModuleDefinition[] = [
   {
@@ -49,8 +52,10 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
     shellOrder: 40,
     tier: "cross-cutting",
     sourceModuleKey: "erp",
-    pathPrefixes: ["/dashboard", "/approvals", "/notifications", "/documents", "/profile"],
+    pathPrefixes: ["/dashboard", "/administration"],
+    hiddenFromSidebar: true,  // Merged under Platform — not shown as separate sidebar module
   },
+
   {
     key: "hrms",
     label: "HRMS",
@@ -309,4 +314,9 @@ export function listDerivedModules(sourceModuleKey: string) {
 
 export function listModuleRegistry() {
   return MODULE_REGISTRY.slice();
+}
+
+/** Returns only modules that should appear in the sidebar top-level nav (excludes hiddenFromSidebar) */
+export function listSidebarVisibleModuleRegistry() {
+  return MODULE_REGISTRY.filter((d) => !d.hiddenFromSidebar);
 }

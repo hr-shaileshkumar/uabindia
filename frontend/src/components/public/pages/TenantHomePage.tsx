@@ -2,11 +2,8 @@
 
 import Link from "next/link";
 import { CircleCheckBig, LifeBuoy, UsersRound, WalletCards } from "lucide-react";
-import {
-  PublicActionBand,
-  PublicCardGrid,
-  PublicChecklistPanel,
-} from "@/components/public/PublicContentBlocks";
+import { PublicCardGrid } from "@/components/public/PublicContentBlocks";
+
 import PublicAudiencePageFrame from "@/components/public/PublicAudiencePageFrame";
 import PublicHeroSection from "@/components/public/PublicHeroSection";
 import { PublicPageLoading } from "@/components/public/PublicPageLoading";
@@ -25,8 +22,8 @@ type HomeContent = {
   primaryCtaLabel: string;
   secondaryCtaLabel: string;
   trustPills: string[];
-  testimonial: string;
 };
+
 
 export default function TenantHomePage() {
   const {
@@ -49,9 +46,8 @@ export default function TenantHomePage() {
     primaryCtaLabel: "Login",
     secondaryCtaLabel: "Contact support",
     trustPills: ["Employee access", "Support desk", "Company updates", "Secure login"],
-    testimonial:
-      "Keep your public company surface simple: login, contact, careers, and trusted company information.",
   });
+
 
   if (isTenantContext && loading) {
     return <PublicPageLoading label="Loading company profile from database..." />;
@@ -122,36 +118,52 @@ export default function TenantHomePage() {
       </section>
 
       <section className={publicSectionSpacingClassName}>
-        <div className={`${publicSectionClassName} grid gap-6 xl:grid-cols-[0.95fr_1.05fr]`}>
-          <PublicChecklistPanel
-            eyebrow="What this page is for"
-            title="Keep public access narrow and useful."
-            description="A good company home should help people find the right workspace path quickly."
-            items={[
-              "Guide users into the tenant workspace through the correct company domain.",
-              "Share company profile, contact details, and open hiring positions.",
-              "Avoid exposing platform-only admin or owner controls on public pages.",
-            ]}
-            tone="panel"
-          />
+        <div className={`${publicSectionClassName} grid gap-6 xl:grid-cols-2`}>
+          <div className="rounded-[24px] border border-slate-200 bg-white p-7 sm:p-9 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-600">Employee access</p>
+            <h2 className="mt-4 text-xl font-bold tracking-tight text-slate-900">
+              Everything your team needs, in one place.
+            </h2>
+            <p className="mt-3 text-sm leading-7 text-slate-500">
+              Access payroll records, apply for leave, raise support tickets, and stay updated — all from your company workspace without needing to contact HR directly.
+            </p>
+            <ul className="mt-5 space-y-2.5">
+              {[
+                "View and download payslips anytime",
+                "Apply for leave and track approval status",
+                "Access company announcements and updates",
+                "Raise and track support requests",
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2.5 text-sm text-slate-700">
+                  <CircleCheckBig className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
 
-          <PublicActionBand
-            eyebrow="Operator note"
-            title="Professional public pages build trust before login."
-            description={content.testimonial}
-            actions={
-              <>
-                <Link href={withPublicAudience("/login", "tenant")} className={publicButtonClassName.primary}>
-                  Login
-                </Link>
-                <Link href={withPublicAudience("/contact", "tenant")} className={publicButtonClassName.secondary}>
-                  Contact support
-                </Link>
-              </>
-            }
-          />
+          <div className="rounded-[24px] border border-slate-200 bg-gradient-to-br from-indigo-50 to-white p-7 sm:p-9 shadow-sm flex flex-col justify-between gap-6">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-600">Quick access</p>
+              <h2 className="mt-4 text-xl font-bold tracking-tight text-slate-900">
+                Sign in to your workspace.
+              </h2>
+              <p className="mt-3 text-sm leading-7 text-slate-500">
+                Use your company email and password to access your personal workspace dashboard. Contact your HR admin if you need access or have login issues.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Link href={withPublicAudience("/login", "tenant")} className={publicButtonClassName.primary}>
+                Sign in
+              </Link>
+              <Link href={withPublicAudience("/contact", "tenant")} className={publicButtonClassName.secondary}>
+                Contact support
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
     </PublicAudiencePageFrame>
   );
 }
+
