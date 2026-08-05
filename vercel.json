@@ -1,17 +1,11 @@
 {
-  "buildCommand": "npm run build",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install --prefix frontend --legacy-peer-deps",
+  "buildCommand": "if [ -d \"frontend\" ]; then npm --prefix frontend run build; else npm run build; fi",
+  "devCommand": "if [ -d \"frontend\" ]; then npm --prefix frontend run dev; else npm run dev; fi",
+  "installCommand": "if [ -d \"frontend\" ]; then npm install --prefix frontend --legacy-peer-deps; else npm install --legacy-peer-deps; fi",
   "framework": "nextjs",
-  "outputDirectory": "frontend/.next",
   "env": {
     "NEXT_PUBLIC_API_URL": "https://api.uabindia.in",
     "NEXT_PUBLIC_APP_VERSION": "1.0.0"
   },
-  "regions": ["iad1"],
-  "functions": {
-    "api/**/*.{js,ts}": {
-      "maxDuration": 30
-    }
-  }
+  "regions": ["iad1"]
 }
