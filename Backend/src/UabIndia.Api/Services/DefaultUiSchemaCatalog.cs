@@ -254,6 +254,10 @@ namespace UabIndia.Api.Services
             new("platform", "Monitoring", "platform-contact-submissions", "Contact Submissions", "/platform/contact-submissions", "mail", Perms("platform", "platform.contactsubmissions.view")),
             new("platform", "Monitoring", "platform-recycle-bin", "Recycle Bin", "/platform/recycle-bin", "trash", Perms("platform", "platform.view")),
 
+            new("ai", "AI Copilot Engine", "ai-home", "AI HR Copilot", "/ai", "bot", Perms("platform", "platform.view")),
+            new("documents", "Document Center", "documents-home", "Document Vault", "/documents", "file-text", Perms("platform", "platform.view")),
+            new("helpdesk", "Support", "helpdesk-home", "Service Helpdesk", "/helpdesk", "ticket", LegacyErpPerms()),
+
             new("administration", "Workspace", "admin-dashboard", "Platform Dashboard", "/dashboard", "dashboard", LegacyErpPerms("dashboard.view")),
             new("administration", "Workspace", "admin-approvals", "Approvals", "/approvals", "check-circle", LegacyErpPerms("approvals.view")),
             new("administration", "Workspace", "admin-notifications", "Notifications", "/notifications", "bell", LegacyErpPerms("notifications.view")),

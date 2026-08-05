@@ -57,6 +57,24 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
   },
 
   {
+    key: "ai",
+    label: "AI Copilot Engine",
+    eyebrow: "AI / Copilot",
+    description: "AI HR Copilot assistant for screening, attendance anomaly detection, and natural language analytics.",
+    icon: "bot",
+    shellOrder: 42,
+    tier: "business",
+  },
+  {
+    key: "documents",
+    label: "Document Vault",
+    eyebrow: "Documents / Vault",
+    description: "Document templates, policy vault, employee ID card generators, and cryptographic digital signatures.",
+    icon: "file-text",
+    shellOrder: 43,
+    tier: "business",
+  },
+  {
     key: "ess",
     label: "Employee Self-Service",
     eyebrow: "ESS / Portal",
