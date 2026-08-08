@@ -88,4 +88,17 @@ jobs:
             echo "$forbidden" >&2
             exit 1
           fi
-          echo "No forbidden secret file patterns found."
+
+          credential_hits=$(git ls-files '**/appsettings*.json' | while read -r file; do
+            if grep -Eiq 'Password=[^;\"]+|User ID=SA|Hrms@|DESKTOP-' "$file"; then
+              echo "$file"
+            fi
+          done || true)
+
+          if [ -n "$credential_hits" ]; then
+            echo "Potential credentials found in tracked appsettings JSON:" >&2
+            echo "$credential_hits" >&2
+            exit 1
+          fi
+
+          echo "Secret scan passed."

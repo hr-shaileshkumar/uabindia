@@ -140,6 +140,52 @@ namespace UabIndia.Tests
             Assert.Equal(tenantId, resolved.Tenant.Id);
         }
 
+        [Fact]
+        public async Task Helpdesk_ListTickets_DoesNotLeakCrossTenantUserEmails()
+        {
+            var tenantA = Guid.NewGuid();
+            var tenantB = Guid.NewGuid();
+            var foreignUserId = Guid.NewGuid();
+
+            var tenantBAccessor = new TestTenantAccessor();
+            tenantBAccessor.SetTenantId(tenantB);
+            await using (var dbB = CreateContext(tenantBAccessor))
+            {
+                dbB.Users.Add(new User
+                {
+                    Id = foreignUserId,
+                    Email = "secret-b@other-tenant.test",
+                    PasswordHash = "hash",
+                    IsActive = true,
+                });
+                await dbB.SaveChangesAsync();
+            }
+
+            var tenantAccessor = new TestTenantAccessor();
+            tenantAccessor.SetTenantId(tenantA);
+            await using var db = CreateContext(tenantAccessor);
+            db.HelpdeskTickets.Add(new HelpdeskTicket
+            {
+                TenantId = tenantA,
+                TicketNumber = "TKT-001",
+                Subject = "VPN issue",
+                Description = "Cannot connect",
+                Category = "IT",
+                Priority = "High",
+                Status = "Open",
+                RequesterUserId = foreignUserId,
+            });
+            await db.SaveChangesAsync();
+
+            var controller = new HelpdeskController(db, tenantAccessor);
+            var result = await controller.ListTickets();
+            var ok = Assert.IsType<OkObjectResult>(result);
+            var json = JsonSerializer.Serialize(ok.Value);
+
+            Assert.DoesNotContain("secret-b@other-tenant.test", json, StringComparison.Ordinal);
+            Assert.Contains(foreignUserId.ToString(), json, StringComparison.Ordinal);
+        }
+
         private static Role SeedRole(ApplicationDbContext db, Guid tenantId, string roleName)
         {
             var role = new Role

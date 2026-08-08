@@ -91,9 +91,12 @@ secrets.*
 *.pfx
 *.key
 /.secret
+appsettings.Development.local.json
+appsettings.*.local.json
 
-# Keep example env
+# Keep example env and dev template (no real credentials)
 !/.env.example
+!**/appsettings.Development.json.example
 
 ########################################################
 # OS artifacts

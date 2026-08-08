@@ -1,0 +1,51 @@
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=UabIndia_HRMS_Dev;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true;"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Debug",
+      "Microsoft": "Information",
+      "Microsoft.Hosting.Lifetime": "Information"
+    }
+  },
+  "Jwt": {
+    "Key": "dev-only-change-this-to-a-strong-secret-key-min-32-chars",
+    "Issuer": "UabIndia",
+    "Audience": "UabIndiaUsers"
+  },
+  "Encryption": {
+    "Key": "dev-only-change-this-to-a-strong-secret-key-min-32-chars"
+  },
+  "Cors": {
+    "AllowedOrigins": [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "http://localhost:5173",
+      "http://127.0.0.1:3000",
+      "http://127.0.0.1:3001",
+      "http://127.0.0.1:5173"
+    ]
+  },
+  "TenantProvisioning": {
+    "TemplateSchema": "dbo",
+    "RoleMappings": {
+      "DefaultAdminRole": "ADMIN",
+      "AllowedAdminRoles": [
+        "ADMIN",
+        "SUPER_ADMIN"
+      ],
+      "DefaultEmployeeRole": "EMPLOYEE",
+      "AllowedEmployeeRoles": [
+        "EMPLOYEE",
+        "INTERN",
+        "CONTRACTOR"
+      ]
+    },
+    "TemplateGovernance": {
+      "TemplateVersion": "dev-v1",
+      "TemplateChecksum": "",
+      "EnforceChecksum": false
+    }
+  }
+}

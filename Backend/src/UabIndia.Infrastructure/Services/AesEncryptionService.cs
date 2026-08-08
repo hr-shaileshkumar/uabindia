@@ -16,8 +16,7 @@ namespace UabIndia.Infrastructure.Services
         public AesEncryptionService(IConfiguration configuration)
         {
             var key = configuration["Encryption:Key"]
-                ?? Environment.GetEnvironmentVariable("ENCRYPTION_KEY")
-                ?? "dev-only-change-this-to-a-strong-secret-key-min-32-chars";
+                ?? Environment.GetEnvironmentVariable("ENCRYPTION_KEY");
 
             if (string.IsNullOrWhiteSpace(key))
                 throw new InvalidOperationException("Encryption key missing. Set Encryption:Key or ENCRYPTION_KEY.");

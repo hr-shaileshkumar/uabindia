@@ -62,12 +62,12 @@ namespace UabIndia.Api.Modules.Platform.Controllers
                     Id = t.Id,
                     TicketNumber = t.TicketNumber,
                     Subject = t.Subject,
-                    Requester = _db.Users.IgnoreQueryFilters().Where(u => u.Id == t.RequesterUserId).Select(u => u.Email).FirstOrDefault() ?? t.RequesterUserId.ToString(),
+                    Requester = _db.Users.IgnoreQueryFilters().Where(u => u.TenantId == tenantId && u.Id == t.RequesterUserId).Select(u => u.Email).FirstOrDefault() ?? t.RequesterUserId.ToString(),
                     Category = t.Category,
                     Priority = t.Priority,
                     AssignedTo = t.AssignedToUserId == null
                         ? string.Empty
-                        : _db.Users.IgnoreQueryFilters().Where(u => u.Id == t.AssignedToUserId).Select(u => u.Email).FirstOrDefault() ?? string.Empty,
+                        : _db.Users.IgnoreQueryFilters().Where(u => u.TenantId == tenantId && u.Id == t.AssignedToUserId).Select(u => u.Email).FirstOrDefault() ?? string.Empty,
                     Status = t.Status,
                     CreatedAt = t.CreatedAt,
                     SlaDueAt = t.SlaDueAt
@@ -193,11 +193,11 @@ namespace UabIndia.Api.Modules.Platform.Controllers
                 .Select(e => new HelpdeskEscalationDto
                 {
                     Id = e.Id,
-                    TicketRef = _db.HelpdeskTickets.IgnoreQueryFilters().Where(t => t.Id == e.HelpdeskTicketId).Select(t => t.TicketNumber).FirstOrDefault() ?? e.HelpdeskTicketId.ToString(),
+                    TicketRef = _db.HelpdeskTickets.IgnoreQueryFilters().Where(t => t.TenantId == tenantId && t.Id == e.HelpdeskTicketId).Select(t => t.TicketNumber).FirstOrDefault() ?? e.HelpdeskTicketId.ToString(),
                     Reason = e.Reason,
                     EscalatedTo = e.EscalatedToUserId == null
                         ? string.Empty
-                        : _db.Users.IgnoreQueryFilters().Where(u => u.Id == e.EscalatedToUserId).Select(u => u.Email).FirstOrDefault() ?? string.Empty,
+                        : _db.Users.IgnoreQueryFilters().Where(u => u.TenantId == tenantId && u.Id == e.EscalatedToUserId).Select(u => u.Email).FirstOrDefault() ?? string.Empty,
                     EscalatedAt = e.EscalatedAt,
                     SlaBreached = e.SlaBreached,
                     Status = e.Status

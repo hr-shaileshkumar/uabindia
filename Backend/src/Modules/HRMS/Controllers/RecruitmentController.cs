@@ -94,7 +94,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error creating job posting", error = ex.Message });
+                return StatusCode(500, new { message = "Error creating job posting" });
             }
         }
 
@@ -136,7 +136,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error fetching job postings", error = ex.Message });
+                return StatusCode(500, new { message = "Error fetching job postings" });
             }
         }
 
@@ -194,7 +194,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error fetching job postings", error = ex.Message });
+                return StatusCode(500, new { message = "Error fetching job postings" });
             }
         }
 
@@ -216,7 +216,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error fetching job posting", error = ex.Message });
+                return StatusCode(500, new { message = "Error fetching job posting" });
             }
         }
 
@@ -271,7 +271,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error updating job posting", error = ex.Message });
+                return StatusCode(500, new { message = "Error updating job posting" });
             }
         }
 
@@ -300,7 +300,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error publishing job posting", error = ex.Message });
+                return StatusCode(500, new { message = "Error publishing job posting" });
             }
         }
 
@@ -329,7 +329,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error closing job posting", error = ex.Message });
+                return StatusCode(500, new { message = "Error closing job posting" });
             }
         }
 
@@ -351,7 +351,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error deleting job posting", error = ex.Message });
+                return StatusCode(500, new { message = "Error deleting job posting" });
             }
         }
 
@@ -430,7 +430,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error submitting application", error = ex.Message });
+                return StatusCode(500, new { message = "Error submitting application" });
             }
         }
 
@@ -466,7 +466,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error fetching candidates", error = ex.Message });
+                return StatusCode(500, new { message = "Error fetching candidates" });
             }
         }
 
@@ -489,7 +489,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error fetching candidate", error = ex.Message });
+                return StatusCode(500, new { message = "Error fetching candidate" });
             }
         }
 
@@ -544,7 +544,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error updating candidate", error = ex.Message });
+                return StatusCode(500, new { message = "Error updating candidate" });
             }
         }
 
@@ -600,7 +600,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error scheduling screening", error = ex.Message });
+                return StatusCode(500, new { message = "Error scheduling screening" });
             }
         }
 
@@ -665,7 +665,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error submitting screening results", error = ex.Message });
+                return StatusCode(500, new { message = "Error submitting screening results" });
             }
         }
 

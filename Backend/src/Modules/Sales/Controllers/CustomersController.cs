@@ -59,7 +59,7 @@ namespace UabIndia.Api.Modules.Sales.Controllers
 
     [ApiController]
     [Route("api/v1/[controller]")]
-    [Authorize]
+    [Authorize(Policy = "Module:sales")]
     public class CustomersController : ControllerBase
     {
         private readonly ApplicationDbContext _db;

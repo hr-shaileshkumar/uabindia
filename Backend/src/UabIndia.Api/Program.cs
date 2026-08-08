@@ -65,9 +65,14 @@ var env = builder.Environment;
 
 // Configuration
 var configuration = builder.Configuration;
-var sqlServerConnectionString = NormalizeSqlServerConnectionString(
-    configuration.GetConnectionString("DefaultConnection") ?? @"Server=DESKTOP-6698OV0\SHAILESH;Database=UabIndia_HRMS;User ID=SA;Password=YOUR_PASSWORD;Persist Security Info=True;TrustServerCertificate=True;Encrypt=True;",
-    env);
+var rawConnectionString = configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(rawConnectionString) && !builder.Environment.IsEnvironment("Test"))
+{
+    throw new InvalidOperationException(
+        "ConnectionStrings:DefaultConnection is not configured. Set it via environment variable, user secrets, or appsettings.Development.json.");
+}
+
+var sqlServerConnectionString = NormalizeSqlServerConnectionString(rawConnectionString ?? string.Empty, env);
 configuration["ConnectionStrings:DefaultConnection"] = sqlServerConnectionString;
 
 // Sentry for error tracking and performance monitoring
@@ -765,6 +770,13 @@ app.Use(async (context, next) =>
 
         if (string.IsNullOrWhiteSpace(origin) && string.IsNullOrWhiteSpace(referer))
         {
+            if (!app.Environment.IsDevelopment())
+            {
+                context.Response.StatusCode = 403;
+                await context.Response.WriteAsJsonAsync(new { error = "Invalid origin", message = "Origin or Referer header is required for state-changing requests." });
+                return;
+            }
+
             await next();
             return;
         }

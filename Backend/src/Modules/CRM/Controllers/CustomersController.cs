@@ -13,7 +13,7 @@ namespace UabIndia.Api.Modules.CRM.Controllers
 {
     [ApiController]
     [Route("api/v1/crm/customers")]
-    [Authorize]
+    [Authorize(Policy = "Module:crm")]
     public class CustomersController : ControllerBase
     {
         private readonly ApplicationDbContext _db;
