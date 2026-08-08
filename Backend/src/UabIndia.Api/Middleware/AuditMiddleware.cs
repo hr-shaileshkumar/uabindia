@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Text.Json;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
+using UabIndia.Api.Extensions;
 using UabIndia.Application.Interfaces;
 using UabIndia.Infrastructure.Data;
 using UabIndia.Core.Entities;
@@ -154,7 +155,7 @@ namespace UabIndia.Api.Middleware
         {
             try
             {
-                var userId = context.User?.FindFirst("sub")?.Value ?? context.User?.FindFirst("userId")?.Value;
+                var performedBy = context.User.GetUserId();
                 var tenantId = tenantAccessor.GetTenantId();
                 var path = context.Request.Path.ToString();
                 var method = context.Request.Method;
@@ -165,12 +166,6 @@ namespace UabIndia.Api.Middleware
                 // Extract entityId from response if available, fall back to URL path for DELETE
                 Guid? entityId = ExtractEntityIdFromResponse(responseBody)
                                  ?? (method == "DELETE" ? ExtractEntityIdFromPath(path) : null);
-
-                Guid? performedBy = null;
-                if (!string.IsNullOrEmpty(userId) && Guid.TryParse(userId, out var parsedUserId))
-                {
-                    performedBy = parsedUserId;
-                }
 
                 var sanitizedRequestBody = SanitizePayload(requestBody, context.Request.ContentType);
                 var sanitizedResponseBody = SanitizePayload(responseBody, context.Response.ContentType);
@@ -193,7 +188,7 @@ namespace UabIndia.Api.Middleware
 
                 _logger.LogInformation(
                     "Audit: {Method} {Path} by User {UserId} on Tenant {TenantId}",
-                    method, path, userId ?? "Anonymous", tenantId);
+                    method, path, performedBy?.ToString() ?? "Anonymous", tenantId);
             }
             catch (Exception ex)
             {

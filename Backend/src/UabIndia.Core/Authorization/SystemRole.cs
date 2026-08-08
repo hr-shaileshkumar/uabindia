@@ -45,9 +45,10 @@ namespace UabIndia.Core.Authorization
                 ["businessowner"] = SystemRole.Admin,
                 ["tenantowner"] = SystemRole.Admin,
                 ["companyowner"] = SystemRole.Admin,
-                ["hr"] = SystemRole.Admin,
-                ["finance"] = SystemRole.Admin,
-                ["auditor"] = SystemRole.Admin,
+
+                ["hr"] = SystemRole.Manager,
+                ["finance"] = SystemRole.Manager,
+                ["auditor"] = SystemRole.Manager,
 
                 ["superadmin"] = SystemRole.SuperAdmin,
                 ["systemadmin"] = SystemRole.SuperAdmin,

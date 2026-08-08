@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using UabIndia.Api.Extensions;
 using UabIndia.Application.Interfaces;
 using UabIndia.Core.Authorization;
 using UabIndia.Core.Services;
@@ -79,12 +80,7 @@ namespace UabIndia.Api.Middleware
                 return;
             }
 
-            Guid? userId = null;
-            var sub = principal.Claims.FirstOrDefault(c => c.Type.EndsWith("/sub", StringComparison.OrdinalIgnoreCase) || c.Type.EndsWith("sub", StringComparison.OrdinalIgnoreCase));
-            if (Guid.TryParse(sub?.Value, out var parsedUserId))
-            {
-                userId = parsedUserId;
-            }
+            var userId = principal.GetUserId();
 
             var decision = await policyEngine.EvaluateAsync(new PolicyContext
             {

@@ -25,18 +25,26 @@ using Hangfire.SqlServer;
 using Sentry;
 using Sentry.AspNetCore;
 using System.IO;
+using FluentValidation;
+using FluentValidation.AspNetCore;
+using UabIndia.Api.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
 LoadDotEnvConfiguration(builder.Configuration, builder.Environment.ContentRootPath);
 
 var explicitEnvironment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
     ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
-if (string.IsNullOrWhiteSpace(explicitEnvironment))
+var preserveTestHost = builder.Environment.IsEnvironment("Test");
+if (!preserveTestHost)
 {
-    explicitEnvironment = Environments.Development;
+    if (string.IsNullOrWhiteSpace(explicitEnvironment))
+    {
+        explicitEnvironment = Environments.Development;
+    }
+
+    builder.Environment.EnvironmentName = explicitEnvironment;
+    builder.Configuration.AddJsonFile($"appsettings.{explicitEnvironment}.json", optional: true, reloadOnChange: true);
 }
-builder.Environment.EnvironmentName = explicitEnvironment;
-builder.Configuration.AddJsonFile($"appsettings.{explicitEnvironment}.json", optional: true, reloadOnChange: true);
 
 // Application Insights for production monitoring and telemetry
 if (!builder.Environment.IsDevelopment())
@@ -168,6 +176,9 @@ builder.Services.Configure<Microsoft.AspNetCore.ResponseCompression.BrotliCompre
 
 builder.Services.AddControllers();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IRequestContext, HttpRequestContext>();
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<CreateTenantDtoValidator>();
 
 builder.Services.Configure<FormOptions>(options =>
 {
@@ -336,6 +347,10 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization(options =>
 {
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+
     bool IsAdminRole(Microsoft.AspNetCore.Authorization.AuthorizationHandlerContext context)
     {
         var roleClaims = context.User.Claims

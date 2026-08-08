@@ -13,14 +13,20 @@ namespace UabIndia.Infrastructure.Data
     {
         private readonly ITenantAccessor _tenantAccessor;
         private readonly IEncryptionService _encryptionService;
+        private readonly IRequestContext? _requestContext;
 
         internal string? CurrentTenantSchema => _tenantAccessor.GetTenantSchema();
 
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, ITenantAccessor tenantAccessor, IEncryptionService encryptionService)
+        public ApplicationDbContext(
+            DbContextOptions<ApplicationDbContext> options,
+            ITenantAccessor tenantAccessor,
+            IEncryptionService encryptionService,
+            IRequestContext? requestContext = null)
             : base(options)
         {
             _tenantAccessor = tenantAccessor;
             _encryptionService = encryptionService;
+            _requestContext = requestContext;
         }
 
         public DbSet<Tenant> Tenants { get; set; }
@@ -576,6 +582,13 @@ namespace UabIndia.Infrastructure.Data
 
         private void AddAuditLogs(System.Guid tenantId, System.DateTime now)
         {
+            // HTTP POST/PUT/DELETE audit is captured by AuditMiddleware; skip entity-level
+            // duplicates for API requests while keeping audit for background/offline work.
+            if (_requestContext?.IsHttpRequest == true)
+            {
+                return;
+            }
+
             var entries = ChangeTracker.Entries<BaseEntity>()
                 .Where(e => e.Entity is not AuditLog)
                 .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified || e.State == EntityState.Deleted)
