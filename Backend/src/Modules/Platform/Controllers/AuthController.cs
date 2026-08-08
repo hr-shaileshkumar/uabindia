@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using UabIndia.Infrastructure.Data;
 using UabIndia.Core.Entities;
 using UabIndia.Core.Authorization;
+using UabIndia.Core.Security;
 using UabIndia.Core.Services;
 using UabIndia.Api.Models;
 using UabIndia.Api.Services;
@@ -128,8 +129,34 @@ namespace UabIndia.Api.Modules.Platform.Controllers
                 return Unauthorized(Error("Invalid credentials", "invalid_credentials"));
             }
 
+            var utcNow = DateTime.UtcNow;
+            if (AccountLockoutPolicy.IsLockedOut(user, utcNow))
+            {
+                _logger.LogWarning("Login blocked for locked-out user {UserId}", user.Id);
+                return StatusCode(StatusCodes.Status423Locked, Error(
+                    "Account is temporarily locked due to too many failed sign-in attempts. Try again later.",
+                    "account_locked"));
+            }
+
             var verify = _hasher.VerifyHashedPassword(user, user.PasswordHash, req.Password);
-            if (verify == PasswordVerificationResult.Failed) return Unauthorized(Error("Invalid credentials", "invalid_credentials"));
+            if (verify == PasswordVerificationResult.Failed)
+            {
+                AccountLockoutPolicy.RegisterFailedAttempt(
+                    user,
+                    AccountLockoutPolicy.DefaultMaxFailedAttempts,
+                    AccountLockoutPolicy.DefaultLockoutDuration,
+                    utcNow);
+                user.UpdatedAt = utcNow;
+                await _db.SaveChangesAsync();
+                return Unauthorized(Error("Invalid credentials", "invalid_credentials"));
+            }
+
+            if (user.AccessFailedCount > 0 || user.LockoutEnd.HasValue)
+            {
+                AccountLockoutPolicy.ResetFailedAttempts(user);
+                user.UpdatedAt = utcNow;
+                await _db.SaveChangesAsync();
+            }
 
             var userId = user.Id;
             // Always use the user's own tenant, not the request-context tenant

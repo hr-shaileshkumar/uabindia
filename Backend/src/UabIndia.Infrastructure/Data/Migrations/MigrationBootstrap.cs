@@ -48,8 +48,13 @@ public static class MigrationBootstrap
             ("Users", "ProjectId", "IF OBJECT_ID(N'dbo.Users', N'U') IS NOT NULL AND COL_LENGTH('dbo.Users', 'ProjectId') IS NULL ALTER TABLE dbo.Users ADD ProjectId UNIQUEIDENTIFIER NULL"),
             ("Users", "PasswordResetToken", "IF OBJECT_ID(N'dbo.Users', N'U') IS NOT NULL AND COL_LENGTH('dbo.Users', 'PasswordResetToken') IS NULL ALTER TABLE dbo.Users ADD PasswordResetToken NVARCHAR(512) NULL"),
             ("Users", "PasswordResetExpires", "IF OBJECT_ID(N'dbo.Users', N'U') IS NOT NULL AND COL_LENGTH('dbo.Users', 'PasswordResetExpires') IS NULL ALTER TABLE dbo.Users ADD PasswordResetExpires DATETIME2 NULL"),
+            ("Users", "AccessFailedCount", "IF OBJECT_ID(N'dbo.Users', N'U') IS NOT NULL AND COL_LENGTH('dbo.Users', 'AccessFailedCount') IS NULL ALTER TABLE dbo.Users ADD AccessFailedCount INT NOT NULL DEFAULT 0"),
+            ("Users", "LockoutEnd", "IF OBJECT_ID(N'dbo.Users', N'U') IS NOT NULL AND COL_LENGTH('dbo.Users', 'LockoutEnd') IS NULL ALTER TABLE dbo.Users ADD LockoutEnd DATETIME2 NULL"),
+            ("Users", "LockoutEnabled", "IF OBJECT_ID(N'dbo.Users', N'U') IS NOT NULL AND COL_LENGTH('dbo.Users', 'LockoutEnabled') IS NULL ALTER TABLE dbo.Users ADD LockoutEnabled BIT NOT NULL DEFAULT 1"),
 
-            // AuditLogs
+            // Tenants soft-delete metadata
+            ("Tenants", "DeletedAt", "IF OBJECT_ID(N'dbo.Tenants', N'U') IS NOT NULL AND COL_LENGTH('dbo.Tenants', 'DeletedAt') IS NULL ALTER TABLE dbo.Tenants ADD DeletedAt DATETIME2 NULL"),
+            ("Tenants", "DeletedBy", "IF OBJECT_ID(N'dbo.Tenants', N'U') IS NOT NULL AND COL_LENGTH('dbo.Tenants', 'DeletedBy') IS NULL ALTER TABLE dbo.Tenants ADD DeletedBy UNIQUEIDENTIFIER NULL"),
             ("AuditLogs", "CompanyId", "IF OBJECT_ID(N'dbo.AuditLogs', N'U') IS NOT NULL AND COL_LENGTH('dbo.AuditLogs', 'CompanyId') IS NULL ALTER TABLE dbo.AuditLogs ADD CompanyId UNIQUEIDENTIFIER NULL"),
             ("AuditLogs", "ProjectId", "IF OBJECT_ID(N'dbo.AuditLogs', N'U') IS NOT NULL AND COL_LENGTH('dbo.AuditLogs', 'ProjectId') IS NULL ALTER TABLE dbo.AuditLogs ADD ProjectId UNIQUEIDENTIFIER NULL"),
 
@@ -127,6 +132,53 @@ public static class MigrationBootstrap
             {
                 logger?.LogWarning(ex, "Could not add column {Col} to table {Table} (may already exist).", col, tbl);
             }
+        }
+
+        await EnsurePasswordResetIndexesAsync(db, logger, cancellationToken);
+    }
+
+    private static async Task EnsurePasswordResetIndexesAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        const string ensureIndexesSql = @"
+IF OBJECT_ID(N'[dbo].[Users]', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.Users', 'PasswordResetToken') IS NOT NULL
+       AND NOT EXISTS (
+        SELECT 1
+        FROM sys.indexes
+        WHERE name = N'IX_Users_PasswordResetToken'
+          AND object_id = OBJECT_ID(N'[dbo].[Users]')
+    )
+    BEGIN
+        CREATE INDEX [IX_Users_PasswordResetToken]
+            ON [dbo].[Users]([PasswordResetToken])
+            WHERE [PasswordResetToken] IS NOT NULL;
+    END;
+
+    IF COL_LENGTH('dbo.Users', 'PasswordResetExpires') IS NOT NULL
+       AND NOT EXISTS (
+        SELECT 1
+        FROM sys.indexes
+        WHERE name = N'IX_Users_PasswordResetExpires'
+          AND object_id = OBJECT_ID(N'[dbo].[Users]')
+    )
+    BEGIN
+        CREATE INDEX [IX_Users_PasswordResetExpires]
+            ON [dbo].[Users]([PasswordResetExpires])
+            WHERE [PasswordResetExpires] IS NOT NULL;
+    END;
+END;";
+
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(ensureIndexesSql, cancellationToken);
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure password reset indexes on Users.");
         }
     }
 

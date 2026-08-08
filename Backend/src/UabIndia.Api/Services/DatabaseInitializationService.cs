@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using UabIndia.Application.Interfaces;
 using UabIndia.Core.Entities;
 using UabIndia.Infrastructure.Data;
+using UabIndia.Infrastructure.Data.Migrations;
 
 namespace UabIndia.Api.Services
 {
@@ -66,6 +67,12 @@ namespace UabIndia.Api.Services
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
+            if (_env.IsEnvironment("Test"))
+            {
+                _logger.LogDebug("DatabaseInitializationService: skipped in Test environment.");
+                return;
+            }
+
             _logger.LogInformation("DatabaseInitializationService: starting (schema version {Version})…", SeedSchemaVersion);
             try
             {
@@ -89,7 +96,20 @@ namespace UabIndia.Api.Services
 
             // ── Step 1: Apply pending migrations & schema column updates ──────────────
             _logger.LogInformation("Applying database migrations…");
-            await db.Database.MigrateAsync(ct);
+            if (db.Database.IsRelational())
+            {
+                try
+                {
+                    await db.Database.MigrateAsync(ct);
+                }
+                catch (Microsoft.Data.SqlClient.SqlException sqlEx) when (sqlEx.Number == 2714)
+                {
+                    _logger.LogWarning(sqlEx, "Migration failed because objects already exist. Attempting optional history repair.");
+                    await MigrationHistoryRepair.TryRepairPendingMigrationsAsync(db, _logger, ct);
+                    await db.Database.MigrateAsync(ct);
+                }
+            }
+
             await UabIndia.Infrastructure.Data.Migrations.MigrationBootstrap.EnsureInitialCleanSchemaAsync(
                 db, _logger, ct);
             await UabIndia.Infrastructure.Data.Migrations.MigrationBootstrap.EnsureExtendedSchemaAsync(
@@ -98,9 +118,6 @@ namespace UabIndia.Api.Services
 
             // ── Step 2: Seed global modules (non-tenant-specific) ────────────────────
             await EnsureGlobalModulesAsync(db, ct);
-
-            // ── Step 1b: Apply raw schema patches (idempotent column additions) ───────
-            await EnsureProjectSchemaAsync(db, ct);
 
             // ── Step 3: Check if any tenant already exists ───────────────────────────
             var anyTenant = await db.Tenants.AnyAsync(ct);
@@ -200,54 +217,6 @@ namespace UabIndia.Api.Services
             await EnsurePermissionsAsync(db, tenant.Id, rolesToSeed, ct);
 
             _logger.LogInformation("Default seed complete. Tenant: {TenantId}, SuperAdmin: {Email}", tenant.Id, adminEmail);
-        }
-
-        private async Task EnsureProjectSchemaAsync(ApplicationDbContext db, CancellationToken ct)
-        {
-            _logger.LogInformation("Ensuring extended project schema columns…");
-            try
-            {
-                var columnAlters = new[]
-                {
-                    ("ProjectCode",          "IF COL_LENGTH('dbo.Projects','ProjectCode') IS NULL ALTER TABLE dbo.Projects ADD ProjectCode NVARCHAR(50) NOT NULL DEFAULT ''"),
-                    ("Description",          "IF COL_LENGTH('dbo.Projects','Description') IS NULL ALTER TABLE dbo.Projects ADD Description NVARCHAR(MAX) NULL"),
-                    ("ProjectType",          "IF COL_LENGTH('dbo.Projects','ProjectType') IS NULL ALTER TABLE dbo.Projects ADD ProjectType NVARCHAR(50) NOT NULL DEFAULT 'Internal'"),
-                    ("Priority",             "IF COL_LENGTH('dbo.Projects','Priority') IS NULL ALTER TABLE dbo.Projects ADD Priority NVARCHAR(20) NOT NULL DEFAULT 'Medium'"),
-                    ("Status",               "IF COL_LENGTH('dbo.Projects','Status') IS NULL ALTER TABLE dbo.Projects ADD Status NVARCHAR(30) NOT NULL DEFAULT 'Planned'"),
-                    ("StartDate",            "IF COL_LENGTH('dbo.Projects','StartDate') IS NULL ALTER TABLE dbo.Projects ADD StartDate DATETIME2 NULL"),
-                    ("EndDate",              "IF COL_LENGTH('dbo.Projects','EndDate') IS NULL ALTER TABLE dbo.Projects ADD EndDate DATETIME2 NULL"),
-                    ("ActualStartDate",      "IF COL_LENGTH('dbo.Projects','ActualStartDate') IS NULL ALTER TABLE dbo.Projects ADD ActualStartDate DATETIME2 NULL"),
-                    ("ActualEndDate",        "IF COL_LENGTH('dbo.Projects','ActualEndDate') IS NULL ALTER TABLE dbo.Projects ADD ActualEndDate DATETIME2 NULL"),
-                    ("Budget",               "IF COL_LENGTH('dbo.Projects','Budget') IS NULL ALTER TABLE dbo.Projects ADD Budget DECIMAL(18,2) NULL"),
-                    ("ActualCost",           "IF COL_LENGTH('dbo.Projects','ActualCost') IS NULL ALTER TABLE dbo.Projects ADD ActualCost DECIMAL(18,2) NULL"),
-                    ("CurrencyCode",         "IF COL_LENGTH('dbo.Projects','CurrencyCode') IS NULL ALTER TABLE dbo.Projects ADD CurrencyCode CHAR(3) NOT NULL DEFAULT 'INR'"),
-                    ("ClientName",           "IF COL_LENGTH('dbo.Projects','ClientName') IS NULL ALTER TABLE dbo.Projects ADD ClientName NVARCHAR(256) NULL"),
-                    ("ContractNumber",       "IF COL_LENGTH('dbo.Projects','ContractNumber') IS NULL ALTER TABLE dbo.Projects ADD ContractNumber NVARCHAR(100) NULL"),
-                    ("BillingType",          "IF COL_LENGTH('dbo.Projects','BillingType') IS NULL ALTER TABLE dbo.Projects ADD BillingType NVARCHAR(30) NULL"),
-                    ("CompletionPercentage", "IF COL_LENGTH('dbo.Projects','CompletionPercentage') IS NULL ALTER TABLE dbo.Projects ADD CompletionPercentage INT NOT NULL DEFAULT 0"),
-                    ("ProjectManagerId",     "IF COL_LENGTH('dbo.Projects','ProjectManagerId') IS NULL ALTER TABLE dbo.Projects ADD ProjectManagerId UNIQUEIDENTIFIER NULL"),
-                    ("Location",             "IF COL_LENGTH('dbo.Projects','Location') IS NULL ALTER TABLE dbo.Projects ADD Location NVARCHAR(256) NULL"),
-                    ("UpdatedBy",            "IF COL_LENGTH('dbo.Projects','UpdatedBy') IS NULL ALTER TABLE dbo.Projects ADD UpdatedBy UNIQUEIDENTIFIER NULL"),
-                };
-
-                foreach (var (col, sql) in columnAlters)
-                {
-                    try { await db.Database.ExecuteSqlRawAsync(sql, ct); }
-                    catch (Exception colEx) { _logger.LogWarning(colEx, "Could not add column {Col} to Projects (may already exist).", col); }
-                }
-
-                await db.Database.ExecuteSqlRawAsync(
-                    "UPDATE dbo.Projects SET Status = CASE WHEN IsActive = 1 THEN 'Active' ELSE 'Hold' END WHERE Status = 'Planned' AND CreatedAt < SYSUTCDATETIME()", ct);
-
-                await db.Database.ExecuteSqlRawAsync(
-                    "UPDATE dbo.Projects SET ProjectCode = 'PRJ-' + UPPER(LEFT(REPLACE(CAST(Id AS NVARCHAR(36)),'-',''),6)) WHERE ProjectCode = ''", ct);
-
-                _logger.LogInformation("Extended project schema columns ensured.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "EnsureProjectSchemaAsync encountered an error (non-fatal). Projects page may show limited data until schema is updated.");
-            }
         }
 
         private async Task EnsureGlobalModulesAsync(ApplicationDbContext db, CancellationToken ct)

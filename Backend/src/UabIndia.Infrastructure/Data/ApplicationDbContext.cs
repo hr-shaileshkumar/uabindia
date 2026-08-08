@@ -151,6 +151,7 @@ namespace UabIndia.Infrastructure.Data
         public DbSet<StatutorySettings> StatutorySettings { get; set; }
         public DbSet<ComplianceReport> ComplianceReports { get; set; }
         public DbSet<ComplianceAudit> ComplianceAudits { get; set; }
+        public DbSet<BusinessIdSequence> BusinessIdSequences { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -230,6 +231,7 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<HelpdeskTicket>().ToTable("HelpdeskTickets");
             modelBuilder.Entity<HelpdeskEscalation>().ToTable("HelpdeskEscalations");
             modelBuilder.Entity<HelpdeskFaqArticle>().ToTable("HelpdeskFaqArticles");
+            modelBuilder.Entity<BusinessIdSequence>().ToTable("BusinessIdSequences");
 
             // Performance Management
             modelBuilder.Entity<AppraisalCycle>().ToTable("AppraisalCycles");
@@ -512,6 +514,7 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<StatutorySettings>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<ComplianceReport>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<ComplianceAudit>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<BusinessIdSequence>().HasQueryFilter(e => e.TenantId == _tenantAccessor.GetTenantId());
 
             // Decimal precision for geo coordinates to match SQL schema
             modelBuilder.Entity<AttendanceRecord>().Property(a => a.Latitude).HasPrecision(10,7);
@@ -522,6 +525,7 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<AttendanceRecord>().HasIndex(a => new { a.TenantId, a.EmployeeId, a.Timestamp });
             modelBuilder.Entity<HelpdeskTicket>().HasIndex(t => new { t.TenantId, t.TicketNumber }).IsUnique();
             modelBuilder.Entity<HelpdeskEscalation>().HasIndex(e => new { e.TenantId, e.HelpdeskTicketId, e.EscalatedAt });
+            modelBuilder.Entity<BusinessIdSequence>().HasIndex(e => new { e.TenantId, e.EntityName }).IsUnique();
 
             // Previously missing query filters — prevents cross-tenant data leakage
             modelBuilder.Entity<Permission>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());

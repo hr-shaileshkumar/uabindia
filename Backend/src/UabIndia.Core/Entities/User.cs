@@ -13,5 +13,8 @@ namespace UabIndia.Core.Entities
         public bool IsActive { get; set; } = true;
         public string? PasswordResetToken { get; set; }
         public DateTime? PasswordResetExpires { get; set; }
+        public int AccessFailedCount { get; set; }
+        public DateTime? LockoutEnd { get; set; }
+        public bool LockoutEnabled { get; set; } = true;
     }
 }
