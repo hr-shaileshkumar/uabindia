@@ -107,7 +107,12 @@ export const createCompany = async (payload: CompanyMutationPayload, options?: {
     options?.tenant ? { headers: { "X-Tenant": options.tenant } } : undefined
   );
 
-  return response.data;
+  const body = toObject(response.data);
+  const rawCompany = body.company;
+  return {
+    ...response.data,
+    company: rawCompany ? normalizeCompany(rawCompany, 0) : undefined,
+  } as CompanyResponse;
 };
 
 export const updateCompany = async (id: string, payload: CompanyMutationPayload) => {

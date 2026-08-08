@@ -1,41 +1,39 @@
 "use client";
 
-import React, { useState } from "react";
-import { Building2, Plus, Eye, MapPin, Palette, ShieldCheck, DollarSign, Globe, Bell, FileText, Lock, Activity, Users, Layers, CheckCircle2, Clock, Download, Copy, Archive, ArrowRight, Phone, Mail, FileSpreadsheet, Map, ShieldAlert, Cpu } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { Building2, Plus, Eye, MapPin, Palette, ShieldCheck, DollarSign, Globe, Bell, FileText, Lock, Activity, Users, Layers, CheckCircle2, Clock, Download, Copy, Archive, ArrowRight, Phone, Mail, FileSpreadsheet, Map, ShieldAlert, Cpu, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlatformGlobalPageShell, KpiMetricItem } from "@/components/platform/PlatformGlobalPageShell";
-import { notifySuccess } from "@/lib/notifications";
-
-interface CompanyRow {
-  id: string;
-  companyCode: string;
-  legalName: string;
-  displayName: string;
-  cin: string;
-  pan: string;
-  gstin: string;
-  baseCurrency: string;
-  employeeCount: number;
-  branchCount: number;
-  projectCount: number;
-  status: "Active" | "Inactive" | "Archived";
-  createdAt: string;
-}
-
-const SEED_COMPANIES: CompanyRow[] = [
-  { id: "comp_1", companyCode: "UAB-IND", legalName: "UAB India Technologies Private Limited", displayName: "UAB India Tech", cin: "U72900MH2024PTC392019", pan: "AABCU9603R", gstin: "27AABCU9603R1ZM", baseCurrency: "INR (₹)", employeeCount: 1420, branchCount: 6, projectCount: 24, status: "Active", createdAt: "2024-01-15" },
-  { id: "comp_2", companyCode: "UAB-GLOBAL", legalName: "UAB Global SaaS Holdings LLC", displayName: "UAB Global SaaS", cin: "LLC-992019280", pan: "FBCU10294K", gstin: "99FBCU10294K1Z0", baseCurrency: "USD ($)", employeeCount: 380, branchCount: 2, projectCount: 8, status: "Active", createdAt: "2024-03-20" },
-];
+import { notifyError, notifySuccess } from "@/lib/notifications";
+import { getApiErrorMessage } from "@/lib/api-errors";
+import { useCompanies, useCompanyMutations } from "@/features/companies/hooks";
+import {
+  buildClonePayload,
+  buildCreatePayloadFromWizard,
+  mapCompanyRecordToRow,
+  type CompanyRow,
+} from "@/features/companies/company-utils";
+import { getErrorMessage } from "@/features/companies/tenant-utils";
 
 export default function CompaniesMasterEnginePage() {
-  const [companies, setCompanies] = useState<CompanyRow[]>(SEED_COMPANIES);
-  const [search, setSearch] = useState("");
+  const { data, isLoading, isError, error, refetch } = useCompanies(1, 100);
+  const { createCompanyMutation } = useCompanyMutations();
 
-  const [selectedCompany, setSelectedCompany] = useState<CompanyRow | null>(SEED_COMPANIES[0]);
+  const companies = useMemo(
+    () => (data?.companies ?? []).map(mapCompanyRecordToRow),
+    [data?.companies]
+  );
+
+  const [search, setSearch] = useState("");
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+  const selectedCompany = useMemo(
+    () => companies.find((company) => company.id === selectedCompanyId) ?? companies[0] ?? null,
+    [companies, selectedCompanyId]
+  );
   const [activeTab, setActiveTab] = useState("overview");
 
   // 6-Step Wizard Modal State
@@ -53,47 +51,53 @@ export default function CompaniesMasterEnginePage() {
     if (wizardStep < 6) setWizardStep((prev) => prev + 1);
   };
 
-  const handleCreateCompanyFinal = (e: React.FormEvent) => {
+  const handleCreateCompanyFinal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!wizName.trim()) return;
 
-    const newComp: CompanyRow = {
-      id: `comp_${Date.now()}`,
-      companyCode: wizCode.trim().toUpperCase() || `COMP-0${companies.length + 1}`,
-      legalName: wizLegalName.trim() || `${wizName.trim()} Private Limited`,
-      displayName: wizName.trim(),
-      cin: wizCin.trim() || "U72900MH2026PTC000000",
-      pan: "AABCU9603R",
-      gstin: wizGstin.trim() || "27AABCU9603R1ZM",
-      baseCurrency: wizCurrency,
-      employeeCount: 1,
-      branchCount: 1,
-      projectCount: 0,
-      status: "Active",
-      createdAt: new Date().toISOString().split("T")[0],
-    };
+    try {
+      const response = await createCompanyMutation.mutateAsync({
+        payload: buildCreatePayloadFromWizard({
+          name: wizName,
+          code: wizCode,
+          legalName: wizLegalName,
+          cin: wizCin,
+          gstin: wizGstin,
+          phone: wizPhone,
+        }),
+      });
 
-    setCompanies((prev) => [newComp, ...prev]);
-    setSelectedCompany(newComp);
-    setIsWizardOpen(false);
-    setWizardStep(1);
-    setWizName("");
-    setWizCode("");
-    setWizLegalName("");
-    notifySuccess(`Company Legal Entity "${newComp.displayName}" created with full Master Architecture.`);
+      const created = response.company ? mapCompanyRecordToRow(response.company) : null;
+      if (created) {
+        setSelectedCompanyId(created.id);
+      }
+
+      setIsWizardOpen(false);
+      setWizardStep(1);
+      setWizName("");
+      setWizCode("");
+      setWizLegalName("");
+      notifySuccess(`Company "${wizName.trim()}" created successfully.`);
+    } catch (err) {
+      notifyError(getErrorMessage(err, getApiErrorMessage(err, "Failed to create company.")), "Companies");
+    }
   };
 
-  const handleCloneCompany = (comp: CompanyRow) => {
-    const cloned: CompanyRow = {
-      ...comp,
-      id: `comp_${Date.now()}`,
-      companyCode: `${comp.companyCode}-COPY`,
-      displayName: `${comp.displayName} (Copy)`,
-      legalName: `${comp.legalName} (Copy)`,
-    };
-    setCompanies((prev) => [cloned, ...prev]);
-    setSelectedCompany(cloned);
-    notifySuccess(`Company Master "${comp.displayName}" cloned successfully.`);
+  const handleCloneCompany = async (comp: CompanyRow) => {
+    try {
+      const response = await createCompanyMutation.mutateAsync({
+        payload: buildClonePayload(comp),
+      });
+
+      const cloned = response.company ? mapCompanyRecordToRow(response.company) : null;
+      if (cloned) {
+        setSelectedCompanyId(cloned.id);
+      }
+
+      notifySuccess(`Company "${comp.displayName}" cloned successfully.`);
+    } catch (err) {
+      notifyError(getErrorMessage(err, getApiErrorMessage(err, "Failed to clone company.")), "Companies");
+    }
   };
 
   const filteredCompanies = companies.filter((c) => {
@@ -102,10 +106,10 @@ export default function CompaniesMasterEnginePage() {
   });
 
   const kpis: KpiMetricItem[] = [
-    { label: "Total Companies", value: companies.length, tone: "info", icon: <Building2 className="h-3.5 w-3.5" />, subtext: "Legal Entities" },
-    { label: "Total Employees Mapped", value: companies.reduce((acc, c) => acc + c.employeeCount, 0), tone: "positive", icon: <Users className="h-3.5 w-3.5" />, subtext: "Staff Members" },
-    { label: "Active Branches", value: companies.reduce((acc, c) => acc + c.branchCount, 0), tone: "warning", icon: <MapPin className="h-3.5 w-3.5" />, subtext: "Office Locations" },
-    { label: "Statutory Compliance", value: "100%", tone: "positive", icon: <ShieldCheck className="h-3.5 w-3.5" />, subtext: "GSTIN/PAN/PF" },
+    { label: "Total Companies", value: data?.total ?? companies.length, tone: "info", icon: <Building2 className="h-3.5 w-3.5" />, subtext: "Legal Entities" },
+    { label: "Active Companies", value: companies.filter((c) => c.status === "Active").length, tone: "positive", icon: <Users className="h-3.5 w-3.5" />, subtext: "Operational" },
+    { label: "Inactive / Archived", value: companies.filter((c) => c.status !== "Active").length, tone: "warning", icon: <MapPin className="h-3.5 w-3.5" />, subtext: "Non-active" },
+    { label: "Data Source", value: isLoading ? "…" : "Live API", tone: "positive", icon: <ShieldCheck className="h-3.5 w-3.5" />, subtext: "/api/v1/companies" },
   ];
 
   return (
@@ -124,6 +128,15 @@ export default function CompaniesMasterEnginePage() {
       }}
       primaryActionIcon={<Plus className="h-4 w-4 mr-1.5" />}
     >
+      {isError && (
+        <div className="mx-6 mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
+          {getApiErrorMessage(error, "Failed to load companies.")}
+          <Button variant="ghost" size="sm" className="ml-2 h-auto p-0 text-xs" onClick={() => void refetch()}>
+            Retry
+          </Button>
+        </div>
+      )}
+
       <div className="p-6 grid gap-6 xl:grid-cols-[360px,minmax(0,1fr)]">
         {/* Left: Company Directory Panel */}
         <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3 shadow-xs">
@@ -135,10 +148,20 @@ export default function CompaniesMasterEnginePage() {
           </div>
 
           <div className="space-y-2">
-            {filteredCompanies.map((c) => (
+            {isLoading ? (
+              <div className="flex items-center justify-center gap-2 py-8 text-xs text-slate-500">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading companies…
+              </div>
+            ) : filteredCompanies.length === 0 ? (
+              <div className="py-8 text-center text-xs text-slate-500">
+                No companies found. Create one to get started.
+              </div>
+            ) : (
+              filteredCompanies.map((c) => (
               <div
                 key={c.id}
-                onClick={() => setSelectedCompany(c)}
+                onClick={() => setSelectedCompanyId(c.id)}
                 className={`p-3.5 rounded-xl border text-xs cursor-pointer transition-all ${
                   selectedCompany?.id === c.id
                     ? "border-indigo-500 bg-indigo-50/30 dark:bg-indigo-950/30 ring-1 ring-indigo-500 shadow-xs"
@@ -158,7 +181,8 @@ export default function CompaniesMasterEnginePage() {
                   <span className="font-bold text-indigo-600 dark:text-indigo-400">{c.baseCurrency}</span>
                 </div>
               </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
@@ -174,7 +198,7 @@ export default function CompaniesMasterEnginePage() {
                 <p className="text-xs text-slate-500">{selectedCompany.legalName}</p>
               </div>
               <div className="flex items-center gap-2">
-                <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => handleCloneCompany(selectedCompany)}>
+                <Button size="sm" variant="outline" className="h-8 text-xs" disabled={createCompanyMutation.isPending} onClick={() => void handleCloneCompany(selectedCompany)}>
                   <Copy className="h-3.5 w-3.5 mr-1" /> Clone Company
                 </Button>
                 <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">{selectedCompany.status}</Badge>
@@ -236,10 +260,10 @@ export default function CompaniesMasterEnginePage() {
               {/* Tab 3: Contact */}
               <TabsContent value="contact" className="space-y-3 text-xs">
                 <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border">
-                  <div><span className="text-slate-500">Primary Official Email:</span> <p className="font-mono text-indigo-600 font-bold">contact@{selectedCompany.displayName.toLowerCase().replace(/\s+/g, "")}.com</p></div>
-                  <div><span className="text-slate-500">Contact Number:</span> <p className="font-mono text-slate-800 font-bold">+91 22 4920 0000</p></div>
-                  <div><span className="text-slate-500">Official Website:</span> <p className="font-mono text-indigo-600">https://www.{selectedCompany.displayName.toLowerCase().replace(/\s+/g, "")}.com</p></div>
-                  <div><span className="text-slate-500">Emergency Desk Phone:</span> <p className="font-mono text-rose-600 font-bold">+91 98200 99281</p></div>
+                  <div><span className="text-slate-500">Primary Official Email:</span> <p className="font-mono text-indigo-600 font-bold">{selectedCompany.email || "—"}</p></div>
+                  <div><span className="text-slate-500">Contact Number:</span> <p className="font-mono text-slate-800 font-bold">{selectedCompany.phoneNumber || "—"}</p></div>
+                  <div><span className="text-slate-500">Official Website:</span> <p className="font-mono text-indigo-600">{selectedCompany.websiteUrl || "—"}</p></div>
+                  <div><span className="text-slate-500">City / State:</span> <p className="font-mono text-slate-800 font-bold">{[selectedCompany.city, selectedCompany.state].filter(Boolean).join(", ") || "—"}</p></div>
                 </div>
               </TabsContent>
 
@@ -248,11 +272,11 @@ export default function CompaniesMasterEnginePage() {
                 <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border">
                   <div>
                     <span className="text-slate-500 font-bold block mb-1">Registered Office Address:</span>
-                    <p className="text-slate-700 dark:text-slate-300 leading-relaxed">Unit 802, Supreme Business Park, Hiranandani Gardens, Powai, Mumbai - 400076, Maharashtra, India</p>
+                    <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{selectedCompany.registrationAddress || "—"}</p>
                   </div>
                   <div>
-                    <span className="text-slate-500 font-bold block mb-1">Corporate Headquarters:</span>
-                    <p className="text-slate-700 dark:text-slate-300 leading-relaxed">Level 14, World Trade Center, Brigade Gateway, Malleshwaram, Bengaluru - 560055, Karnataka, India</p>
+                    <span className="text-slate-500 font-bold block mb-1">Operational Address:</span>
+                    <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{selectedCompany.operationalAddress || "—"}</p>
                   </div>
                 </div>
               </TabsContent>
@@ -369,8 +393,15 @@ export default function CompaniesMasterEnginePage() {
                   Next Step <ArrowRight className="h-3.5 w-3.5 ml-1" />
                 </Button>
               ) : (
-                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleCreateCompanyFinal}>
-                  Provision Legal Entity
+                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" disabled={createCompanyMutation.isPending} onClick={handleCreateCompanyFinal}>
+                  {createCompanyMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                      Provisioning…
+                    </>
+                  ) : (
+                    "Provision Legal Entity"
+                  )}
                 </Button>
               )}
             </div>
