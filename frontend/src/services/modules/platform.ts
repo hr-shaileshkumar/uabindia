@@ -159,7 +159,12 @@ export const platformApi = {
       update: (id: string, data: { isResolved: boolean }) =>
         apiClient.put(`/contactsubmissions/${id}`, data),
     },
-    systemHealth: () => apiClient.get("/health", { headers: { "X-Silent-Error": "1" } }),
+    systemHealth: () => fetch("/health", { credentials: "include", headers: { "X-Silent-Error": "1" } }).then(async (response) => {
+      if (!response.ok) {
+        throw new Error(`Health check failed with status ${response.status}`);
+      }
+      return { data: await response.json() };
+    }),
   },
   website: {
     listPages: () => apiClient.get<WebsitePagesResponse>("/website/pages"),

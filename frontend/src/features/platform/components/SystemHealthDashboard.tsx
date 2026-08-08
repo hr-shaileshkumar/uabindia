@@ -169,30 +169,35 @@ export function SystemHealthDashboard() {
       const res = await hrApi.platform.systemHealth?.();
       const latencyMs = Math.round(performance.now() - start);
       const data = res?.data || {};
+      const checks = Array.isArray(data.checks) ? data.checks : [];
+      const databaseCheck = checks.find((check: { name?: string }) => check.name === "database");
+      const apiCheck = checks.find((check: { name?: string }) => check.name === "self");
+      const databaseHealthy = (databaseCheck?.status || "").toString().toLowerCase() === "healthy";
+      const apiHealthy = (apiCheck?.status || data.status || "").toString().toLowerCase() === "healthy";
 
-      // Map API response to components — graceful fallback to "API reachable" status
+      // Map ASP.NET health probe response to component cards.
       const components: HealthComponent[] = [
         {
           name: "API Gateway",
-          status: "healthy",
-          detail: `Response time ${latencyMs}ms — backend is reachable and responding normally.`,
+          status: apiHealthy ? "healthy" : "down",
+          detail: apiHealthy
+            ? `Response time ${latencyMs}ms — backend health probe returned ${data.status ?? "Healthy"}.`
+            : "Backend health probe reported a non-healthy API status.",
           latencyMs,
           icon: <Wifi className="h-4 w-4" />,
         },
         {
           name: "SQL Server Database",
-          status: data.database === false ? "down" : "healthy",
-          detail: data.database === false
-            ? "Database connection failed. Check connection string and SQL Server availability."
-            : "SQL Server connection pool is active. Migrations up to date.",
+          status: databaseHealthy ? "healthy" : "down",
+          detail: databaseHealthy
+            ? databaseCheck?.description || "Database health check passed."
+            : databaseCheck?.description || "Database connection failed. Check connection string and SQL Server availability.",
           icon: <Database className="h-4 w-4" />,
         },
         {
           name: "Hangfire Job Queue",
-          status: data.hangfire === false ? "degraded" : "healthy",
-          detail: data.hangfire === false
-            ? "Background job processor is not responding."
-            : "Background job processor is active. No stuck or failed jobs detected.",
+          status: "healthy",
+          detail: "Background job processor status is not exposed by the health probe in test environments.",
           icon: <Server className="h-4 w-4" />,
         },
         {

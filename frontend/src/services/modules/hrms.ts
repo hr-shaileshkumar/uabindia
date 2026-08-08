@@ -129,6 +129,7 @@ export const hrmsApi = {
     },
   },
   training: {
+    getCourses: (skip = 0, take = 50) => apiClient.get(`/training/courses?skip=${skip}&take=${take}`),
     getAssessments: (params?: { result?: string; assessmentType?: string; search?: string; page?: number; limit?: number }) => {
       const q = new URLSearchParams();
       if (params?.result) q.set("result", params.result);

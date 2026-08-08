@@ -26,69 +26,6 @@ interface AuditLogResponse {
   total?: number;
 }
 
-const SEED_AUDIT_LOGS: AuditRow[] = [
-  {
-    id: "log_101",
-    entityName: "Tenant",
-    entityId: "tnt_849201",
-    action: "CREATE",
-    performedAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-    performedBy: "admin@uabindia.in",
-    ip: "103.21.124.8",
-    details: { tenantName: "Acme Logistics Corp", plan: "Enterprise", maxUsers: 250, whiteLabel: true }
-  },
-  {
-    id: "log_102",
-    entityName: "User",
-    entityId: "usr_55102",
-    action: "ROLE_UPDATE",
-    performedAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    performedBy: "superadmin@uabindia.in",
-    ip: "103.21.124.8",
-    details: { userEmail: "john.doe@acme.com", previousRole: "Staff", newRole: "HR Manager", modifiedFields: ["roleId", "permissions"] }
-  },
-  {
-    id: "log_103",
-    entityName: "SalesOrder",
-    entityId: "so_99201",
-    action: "POST_STATUS",
-    performedAt: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-    performedBy: "sales.lead@acme.com",
-    ip: "49.36.18.91",
-    details: { orderNumber: "SO-2026-0881", amount: 145000, currency: "INR", status: "Approved" }
-  },
-  {
-    id: "log_104",
-    entityName: "Company",
-    entityId: "cmp_1002",
-    action: "UPDATE",
-    performedAt: new Date(Date.now() - 1000 * 60 * 240).toISOString(),
-    performedBy: "admin@uabindia.in",
-    ip: "103.21.124.8",
-    details: { companyName: "UAB India Manufacturing Private Ltd", taxId: "27AABCU9603R1ZM", currency: "INR" }
-  },
-  {
-    id: "log_105",
-    entityName: "SecurityPolicy",
-    entityId: "sec_pol_01",
-    action: "TOGGLE_MFA",
-    performedAt: new Date(Date.now() - 1000 * 60 * 360).toISOString(),
-    performedBy: "superadmin@uabindia.com",
-    ip: "103.21.124.8",
-    details: { enforcedRole: "SuperAdmin", mfaType: "TOTP", requireHardwareKey: false }
-  },
-  {
-    id: "log_106",
-    entityName: "PayrollRun",
-    entityId: "pr_2026_07",
-    action: "EXECUTE",
-    performedAt: new Date(Date.now() - 1000 * 60 * 720).toISOString(),
-    performedBy: "finance.head@uabindia.com",
-    ip: "115.240.92.14",
-    details: { period: "2026-07", totalEmployees: 142, grossPayout: 4820000, currency: "INR" }
-  }
-];
-
 export default function AuditLogsPage() {
   const [logs, setLogs] = useState<AuditRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -115,17 +52,12 @@ export default function AuditLogsPage() {
         action: actionFilter !== "all" ? actionFilter : undefined,
       });
       const data = (res.data || {}) as AuditLogResponse;
-      if (data.logs && data.logs.length > 0) {
-        setLogs(data.logs);
-        setTotal(data.total || data.logs.length);
-      } else {
-        setLogs(SEED_AUDIT_LOGS);
-        setTotal(SEED_AUDIT_LOGS.length);
-      }
+      setLogs(data.logs ?? []);
+      setTotal(data.total ?? data.logs?.length ?? 0);
     } catch (err) {
-      setLogs(SEED_AUDIT_LOGS);
-      setTotal(SEED_AUDIT_LOGS.length);
-      setError(getApiErrorMessage(err, "Loaded audit stream."));
+      setLogs([]);
+      setTotal(0);
+      setError(getApiErrorMessage(err, "Failed to load audit logs."));
     } finally {
       setLoading(false);
     }

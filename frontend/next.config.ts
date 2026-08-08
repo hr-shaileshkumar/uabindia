@@ -38,6 +38,14 @@ const nextConfig: NextConfig = {
         destination: "/:path*",
       },
       {
+        source: "/health",
+        destination: normalizedApiBase ? `${normalizedApiBase}/health` : "http://127.0.0.1:5000/health",
+      },
+      {
+        source: "/health/:path*",
+        destination: normalizedApiBase ? `${normalizedApiBase}/health/:path*` : "http://127.0.0.1:5000/health/:path*",
+      },
+      {
         source: "/api/v1/:path*",
         destination: normalizedApiBase ? `${normalizedApiBase}/api/v1/:path*` : "http://127.0.0.1:5000/api/v1/:path*",
       },

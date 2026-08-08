@@ -205,15 +205,25 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
         }
 
         [HttpGet("requests")]
-        public async Task<IActionResult> GetRequests()
+        public async Task<IActionResult> GetRequests([FromQuery] int page = 1, [FromQuery] int limit = 50)
         {
+            if (page < 1) page = 1;
+            if (limit < 1 || limit > 200) limit = 50;
+
             var tenantId = _tenantAccessor.GetTenantId();
-            var requests = await _db.LeaveRequests
+            var query = _db.LeaveRequests
                 .AsNoTracking()
-                .Where(r => r.TenantId == tenantId)
+                .Where(r => r.TenantId == tenantId);
+
+            var total = await query.CountAsync();
+            var requests = await query
+                .OrderByDescending(r => r.CreatedAt)
+                .Skip((page - 1) * limit)
+                .Take(limit)
                 .ToListAsync();
 
-            return Ok(await MapLeaveRequestsAsync(requests, tenantId));
+            var mapped = await MapLeaveRequestsAsync(requests, tenantId);
+            return Ok(new { requests = mapped, total, page, limit });
         }
 
         [HttpGet("requests/{id:guid}")]

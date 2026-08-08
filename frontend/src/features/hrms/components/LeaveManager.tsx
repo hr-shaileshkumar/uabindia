@@ -46,7 +46,7 @@ export default function LeaveManager() {
     try {
       setLoadingRequests(true);
       const res = await leaveApi.list(1, 50);
-      setRequests(res.data || []);
+      setRequests(res.data?.requests ?? res.data ?? []);
     } catch (err: any) {
       setError(err.message || "Failed to load leave requests");
     } finally {
@@ -97,7 +97,7 @@ export default function LeaveManager() {
 
         setLeaveTypes(typesRes.data || []);
         setPolicies(policiesRes.data || []);
-        setRequests(requestsRes.data || []);
+        setRequests(requestsRes.data?.requests ?? requestsRes.data ?? []);
         setApprovals(approvalsRes.data || []);
         setBalances(balancesRes.data || []);
         setHolidays(holidaysRes.data || []);

@@ -4,11 +4,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using UabIndia.Application.Interfaces;
 using UabIndia.Api.Models;
 using UabIndia.Core.Entities;
 using UabIndia.Core.Services;
+using UabIndia.Infrastructure.Data;
 
 namespace UabIndia.Api.Modules.HRMS.Controllers
 {
@@ -24,17 +26,20 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
     public class TrainingController : ControllerBase
     {
         private readonly ITrainingRepository _repository;
+        private readonly ApplicationDbContext _db;
         private readonly ITenantAccessor _tenantAccessor;
         private readonly ILogger<TrainingController> _logger;
         private readonly ICacheService _cacheService;
 
         public TrainingController(
             ITrainingRepository repository,
+            ApplicationDbContext db,
             ITenantAccessor tenantAccessor,
             ILogger<TrainingController> logger,
             ICacheService cacheService)
         {
             _repository = repository;
+            _db = db;
             _tenantAccessor = tenantAccessor;
             _logger = logger;
             _cacheService = cacheService;
@@ -491,6 +496,82 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
         #region TrainingAssessment Endpoints
 
         /// <summary>
+        /// List all training assessments across enrollments (paginated projection).
+        /// </summary>
+        [HttpGet("assessments")]
+        [Authorize(Roles = "Admin,HR,Manager")]
+        public async Task<IActionResult> GetAssessments(
+            [FromQuery] string? result,
+            [FromQuery] string? assessmentType,
+            [FromQuery] string? search,
+            [FromQuery] int page = 1,
+            [FromQuery] int limit = 20)
+        {
+            if (page < 1) page = 1;
+            if (limit < 1 || limit > 100) limit = 20;
+
+            var tenantId = _tenantAccessor.GetTenantId();
+
+            var query =
+                from assessment in _db.TrainingAssessments.Where(a => a.TenantId == tenantId && !a.IsDeleted)
+                join enrollment in _db.CourseEnrollments.Where(e => e.TenantId == tenantId && !e.IsDeleted)
+                    on assessment.EnrollmentId equals enrollment.Id
+                join course in _db.TrainingCourses.Where(c => c.TenantId == tenantId && !c.IsDeleted)
+                    on enrollment.CourseId equals course.Id
+                select new { assessment, enrollment, course };
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var q = search.ToLower();
+                query = query.Where(x =>
+                    x.assessment.Title.ToLower().Contains(q) ||
+                    x.course.Title.ToLower().Contains(q) ||
+                    x.course.Category.ToLower().Contains(q));
+            }
+
+            if (!string.IsNullOrWhiteSpace(assessmentType))
+            {
+                query = query.Where(x => x.assessment.AssessmentType == assessmentType);
+            }
+
+            if (string.Equals(result, "pass", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(x => x.assessment.Result == AssessmentResult.Pass);
+            }
+            else if (string.Equals(result, "fail", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(x => x.assessment.Result == AssessmentResult.Fail);
+            }
+
+            var total = await query.CountAsync();
+
+            var assessments = await query
+                .OrderByDescending(x => x.assessment.AssessmentDate)
+                .Skip((page - 1) * limit)
+                .Take(limit)
+                .Select(x => new
+                {
+                    id = x.assessment.Id,
+                    enrollmentId = x.assessment.EnrollmentId,
+                    courseTitle = x.course.Title,
+                    courseCategory = x.course.Category,
+                    title = x.assessment.Title,
+                    assessmentType = x.assessment.AssessmentType,
+                    assessmentDate = x.assessment.AssessmentDate,
+                    totalMarks = x.assessment.TotalMarks,
+                    obtainedMarks = x.assessment.ObtainedMarks,
+                    percentageScore = x.assessment.PercentageScore,
+                    result = x.assessment.Result.ToString(),
+                    comments = x.assessment.Comments,
+                    reviewedBy = x.assessment.ReviewedBy,
+                    reviewDate = x.assessment.ReviewDate
+                })
+                .ToListAsync();
+
+            return Ok(new { assessments, total, page, limit });
+        }
+
+        /// <summary>
         /// Get assessments for an enrollment.
         /// </summary>
         [HttpGet("assessments/enrollment/{enrollmentId:guid}")]
@@ -647,6 +728,74 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
         #endregion
 
         #region TrainingCertificate Endpoints
+
+        /// <summary>
+        /// List all training certificates across enrollments (paginated projection).
+        /// </summary>
+        [HttpGet("certificates")]
+        [Authorize(Roles = "Admin,HR,Manager,Employee")]
+        public async Task<IActionResult> GetCertificates(
+            [FromQuery] bool? expired,
+            [FromQuery] string? search,
+            [FromQuery] int page = 1,
+            [FromQuery] int limit = 20)
+        {
+            if (page < 1) page = 1;
+            if (limit < 1 || limit > 100) limit = 20;
+
+            var tenantId = _tenantAccessor.GetTenantId();
+            var utcNow = DateTime.UtcNow;
+
+            var query =
+                from certificate in _db.TrainingCertificates.Where(c => c.TenantId == tenantId && !c.IsDeleted)
+                join enrollment in _db.CourseEnrollments.Where(e => e.TenantId == tenantId && !e.IsDeleted)
+                    on certificate.EnrollmentId equals enrollment.Id
+                join course in _db.TrainingCourses.Where(c => c.TenantId == tenantId && !c.IsDeleted)
+                    on enrollment.CourseId equals course.Id
+                select new { certificate, course };
+
+            if (expired.HasValue)
+            {
+                query = expired.Value
+                    ? query.Where(x => x.certificate.IsExpired || (x.certificate.ExpiryDate != null && x.certificate.ExpiryDate < utcNow))
+                    : query.Where(x => !x.certificate.IsExpired && (x.certificate.ExpiryDate == null || x.certificate.ExpiryDate >= utcNow));
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var q = search.ToLower();
+                query = query.Where(x =>
+                    x.certificate.CertificateNumber.ToLower().Contains(q) ||
+                    x.certificate.Title.ToLower().Contains(q) ||
+                    x.course.Title.ToLower().Contains(q) ||
+                    x.course.Category.ToLower().Contains(q));
+            }
+
+            var total = await query.CountAsync();
+
+            var certificates = await query
+                .OrderByDescending(x => x.certificate.IssuedDate)
+                .Skip((page - 1) * limit)
+                .Take(limit)
+                .Select(x => new
+                {
+                    id = x.certificate.Id,
+                    enrollmentId = x.certificate.EnrollmentId,
+                    courseTitle = x.course.Title,
+                    courseCategory = x.course.Category,
+                    certificateNumber = x.certificate.CertificateNumber,
+                    title = x.certificate.Title,
+                    issuedDate = x.certificate.IssuedDate,
+                    expiryDate = x.certificate.ExpiryDate,
+                    isExpired = x.certificate.IsExpired || (x.certificate.ExpiryDate != null && x.certificate.ExpiryDate < utcNow),
+                    finalScore = x.certificate.FinalScore,
+                    digitalCertificateUrl = x.certificate.DigitalCertificateUrl,
+                    notes = x.certificate.Notes
+                })
+                .ToListAsync();
+
+            return Ok(new { certificates, total, page, limit });
+        }
 
         /// <summary>
         /// Get certificates for an employee.
