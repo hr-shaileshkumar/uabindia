@@ -104,13 +104,18 @@ if (string.IsNullOrWhiteSpace(jwtAudience))
 }
 if (env.IsEnvironment("Test"))
 {
-    jwtKey ??= "test_jwt_key_1234567890";
+    jwtKey ??= "test_jwt_key_for_automated_tests_only_0123456789";
     jwtIssuer ??= "test-issuer";
     jwtAudience ??= "test-audience";
 }
 if (string.IsNullOrWhiteSpace(jwtKey) || string.IsNullOrWhiteSpace(jwtIssuer) || string.IsNullOrWhiteSpace(jwtAudience))
 {
     throw new InvalidOperationException("JWT configuration missing. Please set 'Jwt:Key', 'Jwt:Issuer' and 'Jwt:Audience' via appsettings or environment variables (Jwt__Key/JWT_KEY etc.).");
+}
+// HMAC-SHA256 derives its security from key length; anything under 256 bits is signable by brute force.
+if (System.Text.Encoding.UTF8.GetByteCount(jwtKey) < 32)
+{
+    throw new InvalidOperationException("'Jwt:Key' must be at least 32 bytes (256 bits) to sign tokens with HMAC-SHA256.");
 }
 
 // Ensure Encryption key is provided via configuration or environment variables
