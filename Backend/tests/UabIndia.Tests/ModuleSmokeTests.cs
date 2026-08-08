@@ -75,6 +75,11 @@ namespace UabIndia.Tests
         [InlineData("/api/v1/reports/hr/headcount")]
         [InlineData("/api/v1/reports/payroll/summary")]
         [InlineData("/api/v1/reports/compliance/pf")]
+        [InlineData("/api/v1/crm/customers")]
+        [InlineData("/api/v1/admin/settings")]
+        [InlineData("/api/v1/training/assessments")]
+        [InlineData("/api/v1/training/certificates")]
+        [InlineData("/api/v1/companies")]
         public async Task ProtectedEndpoints_RequireAuth(string url)
         {
             var response = await _client.GetAsync(url);
