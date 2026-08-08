@@ -2546,6 +2546,12 @@ EXEC(N'CREATE SCHEMA [' + @schema + N']');";
             {
                 config.ConfigJson = root.ToJsonString();
             }
+
+            config.CustomDomain = TenantResolutionService.NormalizeHost(profile.CustomDomain);
+            if (string.IsNullOrWhiteSpace(config.CustomDomain))
+            {
+                config.CustomDomain = null;
+            }
         }
 
         private string? EncryptOptionalSecret(string? value)

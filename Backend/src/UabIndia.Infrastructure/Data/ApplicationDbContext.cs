@@ -521,6 +521,9 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<AttendanceRecord>().Property(a => a.Longitude).HasPrecision(10,7);
 
             modelBuilder.Entity<User>().HasIndex(u => new { u.TenantId, u.Email }).IsUnique();
+            modelBuilder.Entity<Customer>().HasIndex(c => c.TenantId);
+            modelBuilder.Entity<Customer>().HasIndex(c => new { c.TenantId, c.CustomerCode }).IsUnique().HasFilter("[IsDeleted] = 0");
+            modelBuilder.Entity<TenantConfig>().HasIndex(c => c.CustomDomain).HasFilter("[CustomDomain] IS NOT NULL AND [IsDeleted] = 0");
             modelBuilder.Entity<Employee>().HasIndex(e => new { e.TenantId, e.CompanyId });
             modelBuilder.Entity<AttendanceRecord>().HasIndex(a => new { a.TenantId, a.EmployeeId, a.Timestamp });
             modelBuilder.Entity<HelpdeskTicket>().HasIndex(t => new { t.TenantId, t.TicketNumber }).IsUnique();

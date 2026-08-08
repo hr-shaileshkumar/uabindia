@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using UabIndia.Application.Interfaces;
+using UabIndia.Core.Authorization;
 using UabIndia.Core.Entities;
 using UabIndia.Infrastructure.Data;
 
@@ -40,7 +41,8 @@ namespace UabIndia.Api.Modules.Platform.Controllers
 
     [ApiController]
     [Route("api/v1/admin")]
-    [Authorize]
+    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Policy = "Module:platform")]
     public class AdminSettingsController : ControllerBase
     {
         private readonly ApplicationDbContext _db;
@@ -166,20 +168,47 @@ namespace UabIndia.Api.Modules.Platform.Controllers
                 return BadRequest(new { success = false, error = "User already exists in this organization" });
             }
 
+            var systemRole = RoleCatalog.Parse(dto.Role);
+            if (systemRole == SystemRole.Unknown)
+            {
+                return BadRequest(new { success = false, error = "Invalid role. Allowed roles: Employee, Manager, Admin." });
+            }
+
+            if (systemRole == SystemRole.SuperAdmin)
+            {
+                return BadRequest(new { success = false, error = "SuperAdmin cannot be assigned via invitation." });
+            }
+
+            var canonicalRoleName = RoleCatalog.ToCanonicalRoleName(systemRole);
+            var role = await _db.Roles
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(r => r.TenantId == tenantId && !r.IsDeleted && r.Name == canonicalRoleName);
+
+            if (role == null)
+            {
+                return BadRequest(new { success = false, error = $"Role '{canonicalRoleName}' is not configured for this organization." });
+            }
+
             var user = new User
             {
                 Email = dto.Email,
                 FullName = string.IsNullOrWhiteSpace(dto.FullName) ? dto.Email.Split('@')[0] : dto.FullName,
-                IsSystemAdmin = dto.Role != null && (dto.Role.Equals("Admin", StringComparison.OrdinalIgnoreCase) || dto.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)),
+                IsSystemAdmin = false,
                 TenantId = tenantId,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
 
             _db.Users.Add(user);
+            _db.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = role.Id, TenantId = tenantId });
             await _db.SaveChangesAsync();
 
-            return Ok(new { success = true, message = $"User invitation sent to {dto.Email}", data = user });
+            return Ok(new
+            {
+                success = true,
+                message = $"User invitation sent to {dto.Email}",
+                data = new { user.Id, user.Email, user.FullName, user.IsActive, role = canonicalRoleName }
+            });
         }
     }
 }

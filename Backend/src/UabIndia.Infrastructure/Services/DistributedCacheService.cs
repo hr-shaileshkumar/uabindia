@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Caching.Distributed;
 using System;
+using System.Collections.Concurrent;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using UabIndia.Core.Services;
@@ -11,6 +13,8 @@ namespace UabIndia.Infrastructure.Services
     /// </summary>
     public class DistributedCacheService : ICacheService
     {
+        private static readonly ConcurrentDictionary<string, byte> TrackedKeys = new(StringComparer.Ordinal);
+
         private readonly IDistributedCache _cache;
 
         public DistributedCacheService(IDistributedCache cache)
@@ -60,6 +64,7 @@ namespace UabIndia.Infrastructure.Services
                     options.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10); // Default 10 min
 
                 await _cache.SetStringAsync(key, json, options);
+                TrackedKeys.TryAdd(key, 0);
             }
             catch
             {
@@ -78,6 +83,7 @@ namespace UabIndia.Infrastructure.Services
             try
             {
                 await _cache.RemoveAsync(key);
+                TrackedKeys.TryRemove(key, out _);
             }
             catch
             {
@@ -87,7 +93,6 @@ namespace UabIndia.Infrastructure.Services
 
         /// <summary>
         /// Removes all cache entries with a given prefix.
-        /// Note: Works efficiently with Redis, fallback limited with in-memory cache.
         /// </summary>
         public async Task RemoveByPrefixAsync(string prefix)
         {
@@ -96,10 +101,14 @@ namespace UabIndia.Infrastructure.Services
 
             try
             {
-                // For Redis, this would require script execution
-                // For in-memory, this is a limitation
-                // Placeholder for future Redis SCAN implementation
-                await Task.CompletedTask;
+                var keysToRemove = TrackedKeys.Keys
+                    .Where(key => key.StartsWith(prefix, StringComparison.Ordinal))
+                    .ToList();
+
+                foreach (var key in keysToRemove)
+                {
+                    await RemoveAsync(key);
+                }
             }
             catch
             {

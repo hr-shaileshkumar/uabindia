@@ -161,7 +161,7 @@ namespace UabIndia.Api.Modules.Assets.Controllers
                 };
 
                 var created = await _repository.CreateAssetAsync(asset);
-                await _cacheService.RemoveAsync($"assets:all:{tenantId}:*");
+                await _cacheService.RemoveByPrefixAsync($"assets:all:{tenantId}:");
 
                 return CreatedAtAction(nameof(GetAssetById), new { id = created.Id }, MapAssetToDto(created));
             }
@@ -204,7 +204,7 @@ namespace UabIndia.Api.Modules.Assets.Controllers
 
                 await _repository.UpdateAssetAsync(asset);
                 await _cacheService.RemoveAsync($"asset:{id}:{tenantId}");
-                await _cacheService.RemoveAsync($"assets:all:{tenantId}:*");
+                await _cacheService.RemoveByPrefixAsync($"assets:all:{tenantId}:");
 
                 return Ok(new { message = "Asset updated successfully" });
             }
@@ -228,7 +228,7 @@ namespace UabIndia.Api.Modules.Assets.Controllers
                 await _repository.DeleteAssetAsync(id, tenantId);
 
                 await _cacheService.RemoveAsync($"asset:{id}:{tenantId}");
-                await _cacheService.RemoveAsync($"assets:all:{tenantId}:*");
+                await _cacheService.RemoveByPrefixAsync($"assets:all:{tenantId}:");
 
                 return Ok(new { message = "Asset deleted successfully" });
             }

@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace UabIndia.Api.Modules.CRM.Controllers
 {
     [ApiController]
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/crm/customers")]
     [Authorize]
     public class CustomersController : ControllerBase
     {
@@ -30,9 +30,9 @@ namespace UabIndia.Api.Modules.CRM.Controllers
         {
             var tenantId = _tenantAccessor.GetTenantId();
             
-            var total = await _db.Customers.CountAsync();
+            var total = await _db.Customers.CountAsync(c => c.TenantId == tenantId && !c.IsDeleted);
             var customers = await _db.Customers
-                .Where(c => c.TenantId == tenantId)
+                .Where(c => c.TenantId == tenantId && !c.IsDeleted)
                 .OrderBy(c => c.CustomerName)
                 .Skip((page - 1) * limit)
                 .Take(limit)

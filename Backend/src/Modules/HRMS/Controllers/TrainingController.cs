@@ -222,7 +222,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                 var created = await _repository.CreateCourseAsync(course);
 
                 // Invalidate cache
-                await _cacheService.RemoveAsync($"courses:all:{tenantId}:*");
+                await _cacheService.RemoveByPrefixAsync($"courses:all:{tenantId}:");
 
                 return CreatedAtAction(nameof(GetCourseById), new { id = created.Id }, new { id = created.Id });
             }
@@ -268,7 +268,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
 
                 // Invalidate cache
                 await _cacheService.RemoveAsync($"course:{id}:{tenantId}");
-                await _cacheService.RemoveAsync($"courses:all:{tenantId}:*");
+                await _cacheService.RemoveByPrefixAsync($"courses:all:{tenantId}:");
 
                 return Ok(new { message = "Course updated successfully" });
             }
@@ -293,7 +293,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
 
                 // Invalidate cache
                 await _cacheService.RemoveAsync($"course:{id}:{tenantId}");
-                await _cacheService.RemoveAsync($"courses:all:{tenantId}:*");
+                await _cacheService.RemoveByPrefixAsync($"courses:all:{tenantId}:");
 
                 return Ok(new { message = "Course deleted successfully" });
             }

@@ -139,35 +139,39 @@ namespace UabIndia.Api.Services
             {
                 entry.SlidingExpiration = TimeSpan.FromMinutes(30);
 
-                var candidates = await _db.TenantConfigs
+                var hostWithoutWww = StripLeadingWww(normalizedHost);
+                var hostWithWww = normalizedHost.StartsWith("www.", StringComparison.OrdinalIgnoreCase)
+                    ? normalizedHost
+                    : $"www.{normalizedHost}";
+
+                var match = await _db.TenantConfigs
                     .IgnoreQueryFilters()
                     .AsNoTracking()
-                    .Where(config => !config.IsDeleted)
+                    .Where(config =>
+                        !config.IsDeleted
+                        && config.CustomDomain != null
+                        && (config.CustomDomain == normalizedHost
+                            || config.CustomDomain == hostWithoutWww
+                            || config.CustomDomain == hostWithWww))
                     .Join(
                         _db.Tenants.IgnoreQueryFilters().AsNoTracking().Where(tenant => !tenant.IsDeleted),
                         config => config.TenantId,
                         tenant => tenant.Id,
-                        (config, tenant) => new { tenant, config.ConfigJson })
-                    .ToListAsync(cancellationToken);
+                        (config, tenant) => new { tenant, config.CustomDomain })
+                    .FirstOrDefaultAsync(cancellationToken);
 
-                foreach (var candidate in candidates)
+                if (match == null)
                 {
-                    var customDomain = ReadCustomDomain(candidate.ConfigJson);
-                    if (!DomainsMatch(normalizedHost, customDomain))
-                    {
-                        continue;
-                    }
-
-                    return new TenantResolutionResult
-                    {
-                        Tenant = candidate.tenant,
-                        MatchType = "custom-domain",
-                        RequestedHost = normalizedHost,
-                        CustomDomain = NormalizeHost(customDomain)
-                    };
+                    return null;
                 }
 
-                return null;
+                return new TenantResolutionResult
+                {
+                    Tenant = match.tenant,
+                    MatchType = "custom-domain",
+                    RequestedHost = normalizedHost,
+                    CustomDomain = NormalizeHost(match.CustomDomain)
+                };
             });
         }
 

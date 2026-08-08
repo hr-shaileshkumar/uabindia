@@ -1448,7 +1448,7 @@ namespace UabIndia.Infrastructure.Data.Migrations
 
                     b.Property<string>("CustomerCode")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("CustomerName")
                         .IsRequired()
@@ -1506,6 +1506,12 @@ namespace UabIndia.Infrastructure.Data.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("TenantId", "CustomerCode")
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("Customers", (string)null);
                 });
@@ -6158,6 +6164,9 @@ namespace UabIndia.Infrastructure.Data.Migrations
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("CustomDomain")
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -6179,6 +6188,9 @@ namespace UabIndia.Infrastructure.Data.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CustomDomain")
+                        .HasFilter("[CustomDomain] IS NOT NULL AND [IsDeleted] = 0");
 
                     b.ToTable("TenantConfigs", "dbo");
                 });

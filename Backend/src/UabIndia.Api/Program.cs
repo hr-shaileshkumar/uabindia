@@ -798,15 +798,10 @@ app.UseMiddleware<CsrfValidationMiddleware>();
 // File upload validation (size/type limits)
 app.UseMiddleware<FileUploadValidationMiddleware>();
 
-// Structured request/response logging
-app.UseMiddleware<RequestResponseLoggingMiddleware>();
-
-app.UseRateLimiter();
-
-// Log request/response bodies only in development to avoid sensitive data exposure
+// Structured request/response logging (development only — reads request/response bodies)
 if (app.Environment.IsDevelopment())
 {
-    app.UseMiddleware<UabIndia.Api.Middleware.RequestResponseLoggingMiddleware>();
+    app.UseMiddleware<RequestResponseLoggingMiddleware>();
     app.Use(async (context, next) =>
     {
         if (context.Request.Path.StartsWithSegments("/api/v1/auth/me"))
@@ -824,6 +819,8 @@ if (app.Environment.IsDevelopment())
         await next();
     });
 }
+
+app.UseRateLimiter();
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseAuthentication();
 app.UseMiddleware<TenantResolverMiddleware>();
