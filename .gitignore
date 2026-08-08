@@ -180,6 +180,10 @@ ngrok.exe
 ngrok.zip
 backend_deployment.zip
 
+# Publish output: build artifacts, and it also carried a committed copy of
+# appsettings.Development.json with real credentials.
+Backend/publish/
+
 ########################################################
 # Keep migration SQL artifacts tracked
 ########################################################
