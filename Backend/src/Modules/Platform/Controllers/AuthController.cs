@@ -285,7 +285,35 @@ namespace UabIndia.Api.Modules.Platform.Controllers
         {
             if (!ModelState.IsValid) return ValidationError("Revoke-all request is invalid.");
             var tenantId = _tenantAccessor.GetTenantId();
-            await _refreshRepo.RevokeAllForUserAsync(tenantId, req.UserId);
+
+            var callerIdClaim = User?.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value
+                ?? User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                ?? User?.FindFirst("nameidentifier")?.Value
+                ?? User?.FindFirst("sub")?.Value;
+            if (string.IsNullOrWhiteSpace(callerIdClaim) || !Guid.TryParse(callerIdClaim, out var callerId))
+            {
+                return Unauthorized(Error("User context is invalid.", "unauthorized"));
+            }
+
+            // Revoking sessions for a different user is an administrative action. Without this the
+            // caller-supplied UserId would let any authenticated user sign out anyone in the tenant.
+            var targetUserId = req.UserId == Guid.Empty ? callerId : req.UserId;
+            if (targetUserId != callerId)
+            {
+                var roleNames = User?.Claims
+                    .Where(c => c.Type == System.Security.Claims.ClaimTypes.Role
+                        || c.Type.EndsWith("/role", StringComparison.OrdinalIgnoreCase))
+                    .Select(c => c.Value) ?? Enumerable.Empty<string>();
+
+                if (!RoleCatalog.IsAdminLike(roleNames))
+                {
+                    return StatusCode(
+                        StatusCodes.Status403Forbidden,
+                        Error("Cannot revoke sessions for another user.", "forbidden"));
+                }
+            }
+
+            await _refreshRepo.RevokeAllForUserAsync(tenantId, targetUserId);
             return Ok();
         }
 
