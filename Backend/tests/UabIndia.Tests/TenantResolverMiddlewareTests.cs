@@ -77,6 +77,184 @@ namespace UabIndia.Tests
             Assert.Equal(Guid.Empty, tenantAccessor.GetTenantId());
         }
 
+        [Fact]
+        public async Task Invoke_ReturnsForbidden_WhenHeaderTenantGuidDiffersFromAuthenticatedClaim()
+        {
+            var callerTenantId = Guid.NewGuid();
+            var victimTenantId = Guid.NewGuid();
+            var sentinelTenantId = Guid.NewGuid();
+
+            var tenantAccessor = new TestTenantAccessor();
+            tenantAccessor.SetTenantId(sentinelTenantId);
+            var nextCalled = false;
+            var middleware = new TenantResolverMiddleware(_ =>
+            {
+                nextCalled = true;
+                return Task.CompletedTask;
+            });
+            var context = BuildContext("/api/v1/employees", authenticatedTenantId: callerTenantId);
+            context.Request.Headers["X-Tenant"] = victimTenantId.ToString();
+
+            await middleware.Invoke(context, tenantAccessor, new TenantResolutionService(_context, _cache));
+
+            Assert.Equal(StatusCodes.Status403Forbidden, context.Response.StatusCode);
+            Assert.False(nextCalled);
+            Assert.Equal(sentinelTenantId, tenantAccessor.GetTenantId());
+        }
+
+        [Fact]
+        public async Task Invoke_AllowsHeaderTenant_WhenGuidMatchesAuthenticatedClaim()
+        {
+            var tenantId = Guid.NewGuid();
+            var tenantAccessor = new TestTenantAccessor();
+            var nextCalled = false;
+            var middleware = new TenantResolverMiddleware(_ =>
+            {
+                nextCalled = true;
+                return Task.CompletedTask;
+            });
+            var context = BuildContext("/api/v1/employees", authenticatedTenantId: tenantId);
+            context.Request.Headers["X-Tenant"] = tenantId.ToString();
+
+            await middleware.Invoke(context, tenantAccessor, new TenantResolutionService(_context, _cache));
+
+            Assert.True(nextCalled);
+            Assert.Equal(tenantId, tenantAccessor.GetTenantId());
+        }
+
+        [Fact]
+        public async Task Invoke_AllowsCrossTenantHeader_WhenCallerIsSuperAdmin()
+        {
+            var callerTenantId = Guid.NewGuid();
+            var otherTenantId = Guid.NewGuid();
+            var tenantAccessor = new TestTenantAccessor();
+            var nextCalled = false;
+            var middleware = new TenantResolverMiddleware(_ =>
+            {
+                nextCalled = true;
+                return Task.CompletedTask;
+            });
+            var context = BuildContext("/api/v1/employees", authenticatedTenantId: callerTenantId, roles: new[] { "SuperAdmin" });
+            context.Request.Headers["X-Tenant"] = otherTenantId.ToString();
+
+            await middleware.Invoke(context, tenantAccessor, new TenantResolutionService(_context, _cache));
+
+            Assert.True(nextCalled);
+            Assert.Equal(otherTenantId, tenantAccessor.GetTenantId());
+        }
+
+        [Fact]
+        public async Task Invoke_AllowsHeaderTenant_WhenRequestIsAnonymous()
+        {
+            // Pre-authentication flows (login on a tenant subdomain) must keep working.
+            var tenantId = Guid.NewGuid();
+            var tenantAccessor = new TestTenantAccessor();
+            var nextCalled = false;
+            var middleware = new TenantResolverMiddleware(_ =>
+            {
+                nextCalled = true;
+                return Task.CompletedTask;
+            });
+            var context = BuildContext("/api/v1/auth/login", authenticatedTenantId: null);
+            context.Request.Headers["X-Tenant"] = tenantId.ToString();
+
+            await middleware.Invoke(context, tenantAccessor, new TenantResolutionService(_context, _cache));
+
+            Assert.True(nextCalled);
+            Assert.Equal(tenantId, tenantAccessor.GetTenantId());
+        }
+
+        [Fact]
+        public async Task Invoke_ReturnsForbidden_WhenHeaderSubdomainResolvesToDifferentTenant()
+        {
+            var victimTenantId = await SeedTenantAsync("victimco");
+            var callerTenantId = Guid.NewGuid();
+            var sentinelTenantId = Guid.NewGuid();
+
+            var tenantAccessor = new TestTenantAccessor();
+            tenantAccessor.SetTenantId(sentinelTenantId);
+            var nextCalled = false;
+            var middleware = new TenantResolverMiddleware(_ =>
+            {
+                nextCalled = true;
+                return Task.CompletedTask;
+            });
+            var context = BuildContext("/api/v1/employees", authenticatedTenantId: callerTenantId);
+            context.Request.Headers["X-Tenant"] = "victimco";
+
+            await middleware.Invoke(context, tenantAccessor, new TenantResolutionService(_context, _cache));
+
+            Assert.NotEqual(callerTenantId, victimTenantId);
+            Assert.Equal(StatusCodes.Status403Forbidden, context.Response.StatusCode);
+            Assert.False(nextCalled);
+            Assert.Equal(sentinelTenantId, tenantAccessor.GetTenantId());
+        }
+
+        [Fact]
+        public async Task Invoke_ReturnsForbidden_WhenHostResolvesToDifferentTenant()
+        {
+            var victimTenantId = await SeedTenantAsync("victimhost");
+            var callerTenantId = Guid.NewGuid();
+            var sentinelTenantId = Guid.NewGuid();
+
+            var tenantAccessor = new TestTenantAccessor();
+            tenantAccessor.SetTenantId(sentinelTenantId);
+            var nextCalled = false;
+            var middleware = new TenantResolverMiddleware(_ =>
+            {
+                nextCalled = true;
+                return Task.CompletedTask;
+            });
+            var context = BuildContext("/api/v1/employees", authenticatedTenantId: callerTenantId);
+            context.Request.Host = new HostString("victimhost.uabindia.com");
+
+            await middleware.Invoke(context, tenantAccessor, new TenantResolutionService(_context, _cache));
+
+            Assert.NotEqual(callerTenantId, victimTenantId);
+            Assert.Equal(StatusCodes.Status403Forbidden, context.Response.StatusCode);
+            Assert.False(nextCalled);
+            Assert.Equal(sentinelTenantId, tenantAccessor.GetTenantId());
+        }
+
+        private async Task<Guid> SeedTenantAsync(string subdomain)
+        {
+            var tenant = new UabIndia.Core.Entities.Tenant
+            {
+                Id = Guid.NewGuid(),
+                Name = subdomain,
+                Subdomain = subdomain,
+                IsActive = true
+            };
+            _context.Tenants.Add(tenant);
+            await _context.SaveChangesAsync();
+            return tenant.Id;
+        }
+
+        private static DefaultHttpContext BuildContext(string path, Guid? authenticatedTenantId, string[]? roles = null)
+        {
+            var context = new DefaultHttpContext();
+            context.Request.Path = path;
+            context.Request.Host = new HostString("localhost");
+
+            if (authenticatedTenantId is null)
+            {
+                return context;
+            }
+
+            var claims = new System.Collections.Generic.List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
+                new Claim("tenant_id", authenticatedTenantId.Value.ToString())
+            };
+            foreach (var role in roles ?? Array.Empty<string>())
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
+
+            context.User = new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth"));
+            return context;
+        }
+
         public void Dispose()
         {
             _cache.Dispose();

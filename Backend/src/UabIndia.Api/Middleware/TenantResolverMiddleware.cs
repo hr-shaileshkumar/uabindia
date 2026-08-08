@@ -1,9 +1,11 @@
 using System;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using UabIndia.Application.Interfaces;
 using UabIndia.Api.Services;
+using UabIndia.Core.Authorization;
 
 namespace UabIndia.Api.Middleware
 {
@@ -25,35 +27,52 @@ namespace UabIndia.Api.Middleware
                 return;
             }
 
+            // Tenant asserted by the validated access token. Once a caller is authenticated this
+            // claim is the only authority for tenant scope: request-supplied hints (X-Tenant header,
+            // Host header) may confirm it but must never widen it to a different tenant.
+            var authenticatedTenantId = GetAuthenticatedTenantId(context);
+            var isSuperAdmin = IsSuperAdmin(context);
+
             // Accept explicit tenant override via header for shared-host and subdomainless flows.
             if (context.Request.Headers.TryGetValue("X-Tenant", out var headerTenant)
                 && !string.IsNullOrWhiteSpace(headerTenant)
                 && !IsReservedInfrastructureTenantLabel(headerTenant.ToString()))
             {
                 var headerValue = headerTenant.ToString();
+                Guid requestedTenantId;
+                string? requestedSubdomain = null;
+
                 // Accept either a tenant GUID or a subdomain string
                 if (Guid.TryParse(headerValue, out var guid))
                 {
-                    tenantAccessor.SetTenantId(guid);
-                    tenantAccessor.SetTenantSchema(BuildSchemaName(null, guid));
-                    await _next(context);
-                    return;
+                    requestedTenantId = guid;
                 }
-
-                var headerResolution = headerValue.Contains('.', StringComparison.Ordinal)
-                    ? await tenantResolutionService.ResolveAsync(host: headerValue, cancellationToken: context.RequestAborted)
-                    : await tenantResolutionService.ResolveAsync(subdomain: headerValue, cancellationToken: context.RequestAborted);
-
-                if (headerResolution != null)
+                else
                 {
-                    tenantAccessor.SetTenantId(headerResolution.Tenant.Id);
-                    tenantAccessor.SetTenantSchema(BuildSchemaName(headerResolution.Tenant.Subdomain, headerResolution.Tenant.Id));
-                    await _next(context);
+                    var headerResolution = headerValue.Contains('.', StringComparison.Ordinal)
+                        ? await tenantResolutionService.ResolveAsync(host: headerValue, cancellationToken: context.RequestAborted)
+                        : await tenantResolutionService.ResolveAsync(subdomain: headerValue, cancellationToken: context.RequestAborted);
+
+                    if (headerResolution == null)
+                    {
+                        context.Response.StatusCode = 404;
+                        await context.Response.WriteAsync("Tenant not found");
+                        return;
+                    }
+
+                    requestedTenantId = headerResolution.Tenant.Id;
+                    requestedSubdomain = headerResolution.Tenant.Subdomain;
+                }
+
+                if (!IsTenantScopeAllowed(authenticatedTenantId, requestedTenantId, isSuperAdmin))
+                {
+                    await WriteTenantScopeDeniedAsync(context);
                     return;
                 }
 
-                context.Response.StatusCode = 404;
-                await context.Response.WriteAsync("Tenant not found");
+                tenantAccessor.SetTenantId(requestedTenantId);
+                tenantAccessor.SetTenantSchema(BuildSchemaName(requestedSubdomain, requestedTenantId));
+                await _next(context);
                 return;
             }
 
@@ -78,28 +97,87 @@ namespace UabIndia.Api.Middleware
                 return;
             }
 
+            if (!IsTenantScopeAllowed(authenticatedTenantId, resolution.Tenant.Id, isSuperAdmin))
+            {
+                await WriteTenantScopeDeniedAsync(context);
+                return;
+            }
+
             tenantAccessor.SetTenantId(resolution.Tenant.Id);
             tenantAccessor.SetTenantSchema(BuildSchemaName(resolution.Tenant.Subdomain, resolution.Tenant.Id));
             await _next(context);
         }
 
-        private static bool TrySetTenantContextFromAuthenticatedUser(HttpContext context, ITenantAccessor tenantAccessor, bool skipTenantSchema)
+        /// <summary>
+        /// A resolved tenant is only usable when it matches the authenticated caller's tenant claim.
+        /// Anonymous requests are unconstrained because login and public flows resolve tenant from
+        /// the host or header before any token exists. SuperAdmin is exempt because platform
+        /// administration legitimately spans tenants.
+        /// </summary>
+        private static bool IsTenantScopeAllowed(Guid? authenticatedTenantId, Guid requestedTenantId, bool isSuperAdmin)
+        {
+            if (isSuperAdmin)
+            {
+                return true;
+            }
+
+            if (authenticatedTenantId is null)
+            {
+                return true;
+            }
+
+            return authenticatedTenantId.Value == requestedTenantId;
+        }
+
+        private static async Task WriteTenantScopeDeniedAsync(HttpContext context)
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await context.Response.WriteAsJsonAsync(new
+            {
+                message = "Tenant scope denied.",
+                code = "tenant_scope_denied"
+            });
+        }
+
+        private static Guid? GetAuthenticatedTenantId(HttpContext context)
+        {
+            if (context.User?.Identity?.IsAuthenticated != true)
+            {
+                return null;
+            }
+
+            var tenantClaim = context.User.FindFirst("tenant_id")?.Value
+                ?? context.User.FindFirst("tenantId")?.Value;
+
+            return Guid.TryParse(tenantClaim, out var tenantId) && tenantId != Guid.Empty
+                ? tenantId
+                : null;
+        }
+
+        private static bool IsSuperAdmin(HttpContext context)
         {
             if (context.User?.Identity?.IsAuthenticated != true)
             {
                 return false;
             }
 
-            var tenantClaim = context.User.FindFirst("tenant_id")?.Value
-                ?? context.User.FindFirst("tenantId")?.Value;
+            var roleClaims = context.User.Claims
+                .Where(c => c.Type == ClaimTypes.Role || c.Type.EndsWith("/role", StringComparison.OrdinalIgnoreCase))
+                .Select(c => c.Value);
 
-            if (!Guid.TryParse(tenantClaim, out var tenantId) || tenantId == Guid.Empty)
+            return RoleCatalog.HasAnyRole(roleClaims, SystemRole.SuperAdmin);
+        }
+
+        private static bool TrySetTenantContextFromAuthenticatedUser(HttpContext context, ITenantAccessor tenantAccessor, bool skipTenantSchema)
+        {
+            var tenantId = GetAuthenticatedTenantId(context);
+            if (tenantId is null)
             {
                 return false;
             }
 
-            tenantAccessor.SetTenantId(tenantId);
-            tenantAccessor.SetTenantSchema(skipTenantSchema ? null : BuildSchemaName(null, tenantId));
+            tenantAccessor.SetTenantId(tenantId.Value);
+            tenantAccessor.SetTenantSchema(skipTenantSchema ? null : BuildSchemaName(null, tenantId.Value));
             return true;
         }
 
