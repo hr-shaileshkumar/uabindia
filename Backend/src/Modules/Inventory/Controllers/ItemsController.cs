@@ -39,7 +39,7 @@ namespace UabIndia.Api.Modules.Inventory.Controllers
                 .Take(limit)
                 .ToListAsync();
 
-            return Ok(new { data = items, total, page, limit, pages = (total + limit - 1) / limit });
+            return Ok(new { success = true, data = items, total, page, limit, pages = (total + limit - 1) / limit });
         }
 
         [HttpGet("{id}")]

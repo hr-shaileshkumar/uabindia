@@ -136,6 +136,42 @@ export function canonicalizeProtectedPath(pathname: string) {
   return normalized;
 }
 
-export function getDefaultAppPath() {
+export function getRoleDefaultPath(roleOrRoles?: string | string[], isSuperAdmin?: boolean): string {
+  if (isSuperAdmin) {
+    return ROUTES.PLATFORM_HOME; // "/platform" (Admin Overview)
+  }
+
+  const roleList = Array.isArray(roleOrRoles)
+    ? roleOrRoles
+    : typeof roleOrRoles === "string"
+    ? [roleOrRoles]
+    : [];
+
+  const normalizedRoles = roleList.map((r) => r.toLowerCase().trim());
+  const isSuper = normalizedRoles.some(
+    (r) => r.includes("superadmin") || r.includes("super_admin") || r.includes("platform_owner")
+  );
+
+  if (isSuper) {
+    return ROUTES.PLATFORM_HOME; // "/platform" (Admin Overview)
+  }
+
+  const isAdmin = normalizedRoles.some(
+    (r) => r.includes("admin") || r.includes("manager") || r.includes("hr") || r.includes("accountant")
+  );
+
+  if (isAdmin) {
+    return ROUTES.DASHBOARD; // "/dashboard" (HR Dashboard)
+  }
+
+  // Other users (Standard Employees / ESS Users)
+  return "/ess"; // ESS (Employee Self-Service)
+}
+
+export function getDefaultAppPath(roleOrRoles?: string | string[], isSuperAdmin?: boolean) {
+  if (roleOrRoles || isSuperAdmin !== undefined) {
+    return getRoleDefaultPath(roleOrRoles, isSuperAdmin);
+  }
   return ROUTES.CONTEXT;
 }
+

@@ -9,6 +9,7 @@ import { hrApi } from "@/services/hrApi";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
+import { GlobalLoading } from "@/components/ui/GlobalLoading";
 
 export interface DeletedItem {
   id: string;
@@ -101,9 +102,7 @@ export function RecycleBinManager() {
       )}
 
       {loading ? (
-        <div className="py-12 text-center text-sm text-slate-500 animate-pulse">
-          Loading deleted items from database...
-        </div>
+        <GlobalLoading label="Loading deleted items from database..." variant="inline" />
       ) : (
         <div className="space-y-3">
           {items.map((item) => (

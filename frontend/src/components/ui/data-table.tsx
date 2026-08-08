@@ -3,14 +3,15 @@ import { cn } from "@/lib/utils";
 import {
   flexRender,
   getCoreRowModel,
+  getPaginationRowModel,
   getSortedRowModel,
+  getFilteredRowModel,
   useReactTable,
   type ColumnDef,
   type SortingState,
 } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Inbox, ChevronDown, ChevronUp, Filter, Search } from "lucide-react";
+import { Inbox, ChevronDown, ChevronUp, Filter, Search, Loader2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -19,50 +20,50 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
-type RowData = Record<string, string | number>;
-
-function inferTone(value: string) {
-  const normalized = value.toLowerCase();
-  if (normalized.includes("approve") || normalized.includes("active") || normalized.includes("healthy") || normalized.includes("present") || normalized.includes("resolved")) {
-    return "positive" as const;
-  }
-  if (normalized.includes("pending") || normalized.includes("late") || normalized.includes("probation") || normalized.includes("scheduled") || normalized.includes("hold")) {
-    return "warning" as const;
-  }
-  if (normalized.includes("critical") || normalized.includes("escalated") || normalized.includes("notice") || normalized.includes("low stock")) {
-    return "danger" as const;
-  }
-  return "neutral" as const;
+export interface DataTableProps<TData> {
+  title?: string;
+  description?: string;
+  columns: ColumnDef<TData, any>[];
+  data: TData[];
+  enableSorting?: boolean;
+  enableFiltering?: boolean;
+  striped?: boolean;
+  isLoading?: boolean;
+  skeletonRows?: number;
+  className?: string;
+  actions?: React.ReactNode;
 }
 
-export function DataTable({
+export function DataTable<TData>({
   title,
   description,
   columns,
   data,
   enableSorting = true,
-  enableFiltering = false,
-}: {
-  title: string;
-  description: string;
-  columns: ColumnDef<RowData>[];
-  data: RowData[];
-  enableSorting?: boolean;
-  enableFiltering?: boolean;
-}) {
+  enableFiltering = true,
+  striped = false,
+  isLoading = false,
+  skeletonRows = 5,
+  className = "",
+  actions,
+}: DataTableProps<TData>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [filterValue, setFilterValue] = React.useState("");
+  const [globalFilter, setGlobalFilter] = React.useState("");
 
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
     state: {
       sorting,
-      globalFilter: filterValue,
+      globalFilter,
     },
     initialState: {
       pagination: {
@@ -72,122 +73,161 @@ export function DataTable({
   });
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <CardTitle>{title}</CardTitle>
-            <CardDescription>{description}</CardDescription>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {enableFiltering && (
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
-                <Input
-                  placeholder="Filter..."
-                  value={filterValue}
-                  onChange={(event) => setFilterValue(event.target.value)}
-                  className="pl-9 w-48"
-                />
-              </div>
-            )}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="ml-auto">
-                  <Filter className="mr-2 h-4 w-4" />
-                  Filter
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {table.getAllColumns().filter((column) => column.getCanHide()).map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                    >
-                      {column.id}
-                    </DropdownMenuCheckboxItem>
-                  );
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="rounded-md border">
-          <div className="overflow-x-auto">
-            <table className="w-full caption-bottom text-sm">
-              <thead className="[&_tr]:border-b">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <tr key={headerGroup.id} className="border-b border-slate-200 transition-colors hover:bg-slate-50/50">
-                    {headerGroup.headers.map((header) => {
+    <Card className={cn("border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-sm", className)}>
+      {(title || description || actions || enableFiltering) && (
+        <CardHeader className="border-b border-[var(--border-subtle)] pb-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              {title && <CardTitle className="text-base font-semibold text-[var(--text-main)]">{title}</CardTitle>}
+              {description && <CardDescription className="text-xs text-[var(--text-muted)] mt-1">{description}</CardDescription>}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {enableFiltering && (
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[var(--text-muted)]" />
+                  <Input
+                    placeholder="Search all records..."
+                    value={globalFilter ?? ""}
+                    onChange={(e) => setGlobalFilter(e.target.value)}
+                    className="pl-9 h-9 w-48 sm:w-64 text-xs bg-[var(--bg-app)] border-[var(--border-subtle)] text-[var(--text-main)] focus-visible:ring-[var(--primary)]"
+                  />
+                </div>
+              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9 border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-surface-hover)]">
+                    <Filter className="mr-1.5 h-3.5 w-3.5" />
+                    Columns
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-[var(--bg-surface)] border-[var(--border-subtle)] text-[var(--text-main)]">
+                  {table
+                    .getAllColumns()
+                    .filter((column) => column.getCanHide())
+                    .map((column) => {
                       return (
-                        <th key={header.id} className="h-12 px-4 text-left align-middle font-medium text-slate-500 [&:has([role=checkbox])]:pr-0">
-                          {header.isPlaceholder ? null : (
-                            <div
-                              className={cn(
-                                "flex items-center",
-                                enableSorting && header.column.getCanSort() ? "cursor-pointer select-none" : ""
-                              )}
-                              onClick={() => header.column.toggleSorting()}
-                            >
-                              {flexRender(header.column.columnDef.header, header.getContext())}
-                              {enableSorting && header.column.getCanSort() && (
-                                <span className="ml-2">
-                                  {header.column.getIsSorted() === "asc" ? (
-                                    <ChevronUp className="h-4 w-4" />
-                                  ) : header.column.getIsSorted() === "desc" ? (
-                                    <ChevronDown className="h-4 w-4" />
-                                  ) : (
-                                    <ChevronDown className="h-4 w-4 opacity-30" />
-                                  )}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </th>
+                        <DropdownMenuCheckboxItem
+                          key={column.id}
+                          className="capitalize text-xs"
+                          checked={column.getIsVisible()}
+                          onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                        >
+                          {column.id}
+                        </DropdownMenuCheckboxItem>
                       );
                     })}
-                  </tr>
-                ))}
-              </thead>
-              <tbody className="[&_tr:last-child]:border-0">
-                {table.getRowModel().rows.length === 0 ? (
-                  <tr>
-                    <td colSpan={columns.length} className="h-24 text-center">
-                      <div className="flex flex-col items-center justify-center gap-2 py-12">
-                        <Inbox className="h-8 w-8 text-slate-400" />
-                        <p className="text-sm font-medium text-slate-900">No results found</p>
-                        <p className="text-sm text-slate-500">Try adjusting your filters or check back later.</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  table.getRowModel().rows.map((row) => (
-                    <tr key={row.id} className="border-b border-slate-200 transition-colors hover:bg-slate-50/50">
-                      {row.getVisibleCells().map((cell) => (
-                        <td key={cell.id} className="p-4 align-middle">
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </td>
-                      ))}
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              {actions}
+            </div>
           </div>
+        </CardHeader>
+      )}
+      <CardContent className="p-0">
+        <div className="relative overflow-x-auto max-h-[600px] border-b border-[var(--border-subtle)]">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead className="sticky top-0 z-10 bg-[var(--bg-surface)] border-b border-[var(--border-subtle)] shadow-xs">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <th
+                        key={header.id}
+                        className="px-4 py-3 font-semibold text-[var(--text-muted)] uppercase tracking-wider bg-[var(--bg-muted)]/50 select-none whitespace-nowrap"
+                      >
+                        {header.isPlaceholder ? null : (
+                          <div
+                            className={cn(
+                              "flex items-center gap-1.5",
+                              enableSorting && header.column.getCanSort() ? "cursor-pointer hover:text-[var(--text-main)] transition-colors" : ""
+                            )}
+                            onClick={() => enableSorting && header.column.getCanSort() && header.column.toggleSorting()}
+                          >
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                            {enableSorting && header.column.getCanSort() && (
+                              <span>
+                                {header.column.getIsSorted() === "asc" ? (
+                                  <ChevronUp className="h-3.5 w-3.5 text-[var(--primary)]" />
+                                ) : header.column.getIsSorted() === "desc" ? (
+                                  <ChevronDown className="h-3.5 w-3.5 text-[var(--primary)]" />
+                                ) : (
+                                  <ChevronDown className="h-3.5 w-3.5 text-[var(--text-muted)] opacity-30" />
+                                )}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </th>
+                    );
+                  })}
+                </tr>
+              ))}
+            </thead>
+            <tbody className="divide-y divide-[var(--border-subtle)] bg-[var(--bg-surface)]">
+              {isLoading ? (
+                Array.from({ length: skeletonRows }).map((_, idx) => (
+                  <tr key={`skeleton-row-${idx}`}>
+                    {columns.map((_, colIdx) => (
+                      <td key={`skeleton-col-${colIdx}`} className="px-4 py-3">
+                        <Skeleton className="h-4 w-full bg-[var(--border-subtle)]" />
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              ) : table.getRowModel().rows.length === 0 ? (
+                <tr>
+                  <td colSpan={columns.length} className="px-4 py-12 text-center">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <Inbox className="h-8 w-8 text-[var(--text-muted)] opacity-60" />
+                      <p className="text-sm font-medium text-[var(--text-main)]">No records found</p>
+                      <p className="text-xs text-[var(--text-muted)]">Try adjusting your filters or search terms.</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                table.getRowModel().rows.map((row, rowIndex) => (
+                  <tr
+                    key={row.id}
+                    className={cn(
+                      "transition-colors hover:bg-[var(--bg-surface-hover)]",
+                      striped && rowIndex % 2 === 1 ? "bg-[var(--bg-app)]/50" : ""
+                    )}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <td key={cell.id} className="px-4 py-3 align-middle text-[var(--text-main)] whitespace-nowrap">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-        <div className="flex items-center justify-between py-4">
-          <div className="flex-1 text-sm text-slate-500">
-            {table.getFilteredRowModel().rows.length} of {table.getFilteredRowModel().rows.length} row(s) displayed
+        {/* Pagination Bar */}
+        <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 gap-3 text-xs text-[var(--text-muted)] bg-[var(--bg-surface)]">
+          <div className="flex items-center gap-2">
+            <span>
+              Showing Page <strong className="text-[var(--text-main)]">{table.getState().pagination.pageIndex + 1}</strong> of{" "}
+              <strong className="text-[var(--text-main)]">{table.getPageCount() || 1}</strong> ({table.getFilteredRowModel().rows.length} total items)
+            </span>
           </div>
           <div className="flex items-center gap-2">
+            <select
+              value={table.getState().pagination.pageSize}
+              onChange={(e) => table.setPageSize(Number(e.target.value))}
+              className="h-8 px-2 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-main)] text-xs focus:ring-[var(--primary)]"
+            >
+              {[10, 20, 30, 50, 100].map((pageSize) => (
+                <option key={pageSize} value={pageSize}>
+                  Show {pageSize}
+                </option>
+              ))}
+            </select>
             <Button
               variant="outline"
               size="sm"
+              className="h-8 px-3 text-xs border-[var(--border-subtle)] text-[var(--text-main)] hover:bg-[var(--bg-surface-hover)] disabled:opacity-40"
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
             >
@@ -196,6 +236,7 @@ export function DataTable({
             <Button
               variant="outline"
               size="sm"
+              className="h-8 px-3 text-xs border-[var(--border-subtle)] text-[var(--text-main)] hover:bg-[var(--bg-surface-hover)] disabled:opacity-40"
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
             >

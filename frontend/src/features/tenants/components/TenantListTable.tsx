@@ -16,6 +16,8 @@ import { StatusBadge } from "@/components/erp/status-badge";
 import { Search, Download, Upload, Plus, Globe, Shield, User, Users } from "lucide-react";
 import type { Tenant } from "../types";
 
+import { GlobalLoading } from "@/components/ui/GlobalLoading";
+
 export function TenantListTable() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -95,7 +97,7 @@ export function TenantListTable() {
     }
   };
 
-  if (isLoading) return <div className="p-12 text-center text-slate-500 font-medium">Loading tenants...</div>;
+  if (isLoading) return <GlobalLoading label="Loading tenants..." variant="inline" />;
   if (error) return <div className="p-12 text-center text-red-500 font-medium">Failed to load tenants.</div>;
 
   const tenants = paginatedData?.data || [];

@@ -40,7 +40,7 @@ namespace UabIndia.Api.Modules.Procurement.Controllers
                 .Take(limit)
                 .ToListAsync();
 
-            return Ok(new { data = vendors, total, page, limit, pages = (total + limit - 1) / limit });
+            return Ok(new { success = true, data = vendors, total, page, limit, pages = (total + limit - 1) / limit });
         }
 
         [HttpGet("{id}")]

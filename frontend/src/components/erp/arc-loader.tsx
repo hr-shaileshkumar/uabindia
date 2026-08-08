@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { RoundArcSpinner, GlobalLoadingSize } from "@/components/ui/GlobalLoading";
 
 type ArcLoaderProps = {
   size?: "sm" | "md" | "lg";
@@ -8,16 +9,16 @@ type ArcLoaderProps = {
   className?: string;
 };
 
-const sizeClasses: Record<NonNullable<ArcLoaderProps["size"]>, string> = {
-  sm: "h-4 w-4",
-  md: "h-6 w-6",
-  lg: "h-8 w-8",
-};
-
 export function ArcLoader({ size = "md", label = "Loading", className }: ArcLoaderProps) {
+  const mappedSize: GlobalLoadingSize = size === "lg" ? "lg" : size === "sm" ? "sm" : "md";
   return (
-    <span className={cn("relative inline-flex items-center justify-center", sizeClasses[size], className)} role="status" aria-live="polite" aria-label={label}>
-      <span className="erp-arc-loader" aria-hidden="true" />
+    <span
+      className={cn("inline-flex items-center justify-center gap-2", className)}
+      role="status"
+      aria-live="polite"
+      aria-label={label}
+    >
+      <RoundArcSpinner size={mappedSize} />
     </span>
   );
 }

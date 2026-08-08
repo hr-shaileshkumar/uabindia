@@ -70,5 +70,5 @@ export const isApiConnectivityError = (error: unknown): boolean => {
     return true;
   }
 
-  return [404, 500, 502, 503, 504].includes(error.response.status);
+  return [502, 503, 504].includes(error.response.status);
 };

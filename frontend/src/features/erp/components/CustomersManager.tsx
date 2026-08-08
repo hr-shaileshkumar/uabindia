@@ -1,12 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { notifyError, notifySuccess } from "@/lib/notifications";
+import { GlobalLoading } from "@/components/ui/GlobalLoading";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SideDrawer } from "@/components/ui/side-drawer";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { hrApi } from "@/services/hrApi";
+import { Search, Plus, Eye, Edit3, Trash2, Mail, Phone, MapPin, Building2, CreditCard, ShieldCheck } from "lucide-react";
 
 type Customer = {
   id: string;
@@ -45,15 +49,21 @@ const getErrorMessage = (err: unknown, fallback: string) => {
 };
 
 const formatCurrency = (value?: number) =>
-  value != null ? `Rs ${value.toLocaleString("en-IN")}` : "-";
+  value != null ? `₹${value.toLocaleString("en-IN")}` : "-";
 
 export default function CustomersManager() {
   const { confirm, confirmDialog } = useConfirmDialog();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("list");
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Drawer state management
+  const [isFormDrawerOpen, setIsFormDrawerOpen] = useState(false);
+  const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+
   const [formData, setFormData] = useState<CustomerForm>({
     customerCode: "",
     customerName: "",
@@ -74,7 +84,7 @@ export default function CustomersManager() {
       const response = await customersApi.getAll();
       setCustomers(response.data?.data || []);
       setError(null);
-    } catch (err) {
+    } catch (err: unknown) {
       setError(getErrorMessage(err, "Failed to fetch customers"));
     } finally {
       setLoading(false);
@@ -85,16 +95,25 @@ export default function CustomersManager() {
     void fetchCustomers();
   }, []);
 
-  const activeCustomers = useMemo(
-    () => customers.filter((customer) => (customer.status || "Active") === "Active").length,
-    [customers]
-  );
-  const totalCreditLimit = useMemo(
-    () => customers.reduce((sum, customer) => sum + (customer.creditLimit || 0), 0),
+  const filteredCustomers = useMemo(() => {
+    if (!searchTerm.trim()) return customers;
+    const term = searchTerm.toLowerCase();
+    return customers.filter(
+      (c) =>
+        c.customerName.toLowerCase().includes(term) ||
+        c.customerCode.toLowerCase().includes(term) ||
+        (c.email && c.email.toLowerCase().includes(term)) ||
+        (c.city && c.city.toLowerCase().includes(term)) ||
+        (c.gstNumber && c.gstNumber.toLowerCase().includes(term))
+    );
+  }, [customers, searchTerm]);
+
+  const activeCount = useMemo(
+    () => customers.filter((c) => (c.status || "active").toLowerCase() === "active").length,
     [customers]
   );
 
-  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -116,34 +135,15 @@ export default function CustomersManager() {
       paymentTerms: 30,
       status: "Active",
     });
+    setEditingId(null);
   };
 
-  const handleSave = async () => {
-    if (!formData.customerName.trim() || !formData.customerCode.trim()) {
-      setError("Customer name and code are required");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      if (editingId) {
-        await customersApi.update(editingId, formData);
-      } else {
-        await customersApi.create(formData);
-      }
-      setActiveTab("list");
-      setEditingId(null);
-      resetForm();
-      await fetchCustomers();
-      setError(null);
-    } catch (err) {
-      setError(getErrorMessage(err, "Failed to save customer"));
-    } finally {
-      setLoading(false);
-    }
+  const openCreateDrawer = () => {
+    resetForm();
+    setIsFormDrawerOpen(true);
   };
 
-  const handleEdit = (customer: Customer) => {
+  const openEditDrawer = (customer: Customer) => {
     setFormData({
       customerCode: customer.customerCode,
       customerName: customer.customerName,
@@ -158,170 +158,332 @@ export default function CustomersManager() {
       status: customer.status || "Active",
     });
     setEditingId(customer.id);
-    setActiveTab("form");
+    setIsFormDrawerOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
+  const openViewDrawer = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setIsViewDrawerOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!formData.customerName.trim() || !formData.customerCode.trim()) {
+      notifyError("Customer name and customer code are required fields.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      if (editingId) {
+        await customersApi.update(editingId, formData);
+        notifySuccess(`Customer "${formData.customerName}" updated successfully.`);
+      } else {
+        await customersApi.create(formData);
+        notifySuccess(`Customer "${formData.customerName}" created successfully.`);
+      }
+      setIsFormDrawerOpen(false);
+      resetForm();
+      await fetchCustomers();
+      setError(null);
+    } catch (err: unknown) {
+      notifyError(getErrorMessage(err, "Failed to save customer"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string, name: string) => {
     const ok = await confirm({
-      title: "Delete customer",
-      message: "Permanently delete this customer? This action cannot be undone.",
-      confirmText: "Delete",
+      title: `Delete Customer "${name}"`,
+      message: "Are you sure you want to delete this customer record? Associated billing history may be impacted.",
+      confirmText: "Delete Record",
       variant: "danger",
     });
     if (!ok) return;
+
     try {
       await customersApi.delete(id);
+      notifySuccess("Customer record deleted.");
       await fetchCustomers();
-    } catch (err) {
-      setError(getErrorMessage(err, "Failed to delete customer"));
+    } catch (err: unknown) {
+      notifyError(getErrorMessage(err, "Failed to delete customer"));
     }
   };
 
   return (
     <StandardPageLayout
-      title="Customers"
-      subtitle="Maintain customer master data, billing readiness, and commercial terms from one sales master workspace."
-      eyebrow="Sales & CRM / Customers"
+      title="Customers Master"
+      subtitle="Manage corporate and retail customer directory, credit terms, billing addresses, and GST credentials."
+      eyebrow="Sales & CRM / Masters"
       icon="users"
       meta={
         <>
-          <CrudHeaderStats
-            items={[
-              { label: "Customers", value: customers.length, helper: "records" },
-              { label: "Active", value: activeCustomers, tone: "positive" },
-              { label: "Credit", value: formatCurrency(totalCreditLimit), tone: "info" },
-              { label: "Avg Terms", value: `${customers.length ? Math.round(customers.reduce((sum, customer) => sum + (customer.paymentTerms || 0), 0) / customers.length) : 0}d` },
-            ]}
-          />
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
+            {customers.length} Total Accounts
+          </span>
+          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+            {activeCount} Active Customers
+          </span>
         </>
       }
       actions={
-        <Button onClick={() => { setEditingId(null); resetForm(); setActiveTab("form"); }}>
-          Add Customer
+        <Button onClick={openCreateDrawer} className="gap-2">
+          <Plus className="h-4 w-4" /> Add Customer
         </Button>
       }
     >
       <div className="space-y-4">
         {confirmDialog}
-        {error && (
-          <div className="erp-alert-error">
-            <p className="font-medium">{error}</p>
+
+        <Card className="border border-slate-200/80 shadow-sm">
+          <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+            <div>
+              <CardTitle className="text-lg font-bold text-slate-900">Customer Accounts Directory</CardTitle>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Review legal identity, credit limits, contact emails, and city locations.
+              </p>
+            </div>
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search customer, GST, email, city..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="erp-input pl-9 text-xs"
+              />
+            </div>
+          </CardHeader>
+
+          <CardContent className="p-0">
+            {loading && customers.length === 0 ? (
+              <div className="p-12">
+                <GlobalLoading label="Loading customer accounts..." variant="inline" />
+              </div>
+            ) : filteredCustomers.length === 0 ? (
+              <div className="erp-empty py-12">
+                {searchTerm ? "No customer accounts match your search query." : "No customer accounts found. Click Add Customer to begin."}
+              </div>
+            ) : (
+              <div className="erp-table-wrap border-0 shadow-none">
+                <table className="erp-table">
+                  <thead className="erp-thead">
+                    <tr>
+                      <th className="erp-th">Code</th>
+                      <th className="erp-th">Customer Name</th>
+                      <th className="erp-th">Contact Info</th>
+                      <th className="erp-th">Location</th>
+                      <th className="erp-th">GST Number</th>
+                      <th className="erp-th">Credit Limit</th>
+                      <th className="erp-th">Status</th>
+                      <th className="erp-th text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredCustomers.map((customer) => (
+                      <tr key={customer.id} className="erp-tr hover:bg-slate-50/80 transition-colors">
+                        <td className="erp-td font-semibold text-slate-900">{customer.customerCode}</td>
+                        <td className="erp-td font-medium text-slate-900">{customer.customerName}</td>
+                        <td className="erp-td">
+                          <div className="text-xs space-y-0.5">
+                            <p className="text-slate-700">{customer.email || "-"}</p>
+                            <p className="text-slate-500 font-mono">{customer.phoneNumber}</p>
+                          </div>
+                        </td>
+                        <td className="erp-td text-slate-600">
+                          {customer.city ? `${customer.city}${customer.state ? `, ${customer.state}` : ""}` : "-"}
+                        </td>
+                        <td className="erp-td font-mono text-xs text-slate-600">{customer.gstNumber || "-"}</td>
+                        <td className="erp-td font-semibold text-slate-900">{formatCurrency(customer.creditLimit)}</td>
+                        <td className="erp-td">
+                          <Badge variant={customer.status === "Inactive" ? "outline" : "default"} className="text-xs">
+                            {customer.status || "Active"}
+                          </Badge>
+                        </td>
+                        <td className="erp-td text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-600 hover:text-slate-900" onClick={() => openViewDrawer(customer)} title="View Details">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-blue-600 hover:text-blue-800" onClick={() => openEditDrawer(customer)} title="Edit Account">
+                              <Edit3 className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-rose-600 hover:text-rose-800" onClick={() => void handleDelete(customer.id, customer.customerName)} title="Delete Account">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Slide-Over Drawer for Create / Edit Customer Form */}
+      <SideDrawer
+        open={isFormDrawerOpen}
+        onClose={() => setIsFormDrawerOpen(false)}
+        title={editingId ? `Edit Customer: ${formData.customerCode}` : "Create New Customer"}
+        subtitle="Capture billing details, GST credentials, credit terms, and contact information."
+        width="lg"
+        footer={
+          <div className="flex justify-end gap-2 w-full">
+            <Button variant="outline" onClick={() => setIsFormDrawerOpen(false)}>Cancel</Button>
+            <Button onClick={() => void handleSave()} disabled={loading}>
+              {editingId ? "Update Account" : "Save Account"}
+            </Button>
           </div>
-        )}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="erp-tabs-list">
-            <TabsTrigger value="list" className="erp-tab-trigger data-[state=active]:erp-tab-trigger-active">Customer List</TabsTrigger>
-            <TabsTrigger value="form" className="erp-tab-trigger data-[state=active]:erp-tab-trigger-active">{editingId ? "Edit Customer" : "New Customer"}</TabsTrigger>
-          </TabsList>
+        }
+      >
+        <div className="space-y-4 py-2">
+          <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="erp-label">Customer Code <span className="text-rose-500">*</span></label>
+                <input name="customerCode" value={formData.customerCode} onChange={handleChange} placeholder="e.g. CUST-204" className="erp-input" />
+              </div>
+              <div>
+                <label className="erp-label">Account Status</label>
+                <select name="status" value={formData.status} onChange={handleChange} className="erp-select">
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                  <option value="On Hold">On Hold</option>
+                </select>
+              </div>
+            </div>
 
-          <TabsContent value="list">
-            <CrudCard
-              title="Customer Directory"
-              description="Show legal identity, contact, location, tax, credit, and billing term information in one compact table."
-              actions={<Button onClick={() => { setEditingId(null); resetForm(); setActiveTab("form"); }}>Add Customer</Button>}
-            >
-                {loading ? (
-                  <div className="erp-loading">Loading customers...</div>
-                ) : customers.length === 0 ? (
-                  <div className="erp-empty">No customers found. Add the first customer master record to begin order and billing flows.</div>
-                ) : (
-                  <div className="erp-table-wrap border-0 bg-white/80 shadow-none">
-                    <table className="erp-table">
-                      <thead className="erp-thead">
-                        <tr>
-                          <th className="erp-th">Code</th>
-                          <th className="erp-th">Name</th>
-                          <th className="erp-th">Email</th>
-                          <th className="erp-th">Phone</th>
-                          <th className="erp-th">City</th>
-                          <th className="erp-th">Terms</th>
-                          <th className="erp-th">Credit Limit</th>
-                          <th className="erp-th">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {customers.map((customer) => (
-                          <tr key={customer.id} className="erp-tr">
-                            <td className="erp-td font-medium text-slate-900">{customer.customerCode}</td>
-                            <td className="erp-td">{customer.customerName}</td>
-                            <td className="erp-td text-slate-600">{customer.email || "-"}</td>
-                            <td className="erp-td text-slate-600">{customer.phoneNumber || "-"}</td>
-                            <td className="erp-td text-slate-600">{customer.city || "-"}</td>
-                            <td className="erp-td text-slate-600">{customer.paymentTerms || 0} days</td>
-                            <td className="erp-td font-medium text-slate-900">{formatCurrency(customer.creditLimit)}</td>
-                            <td className="erp-td">
-                              <div className="flex gap-2">
-                                <Button variant="outline" size="sm" onClick={() => handleEdit(customer)}>Edit</Button>
-                                <Button variant="destructive" size="sm" onClick={() => void handleDelete(customer.id)}>Delete</Button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-            </CrudCard>
-          </TabsContent>
+            <div>
+              <label className="erp-label">Customer Legal Name <span className="text-rose-500">*</span></label>
+              <input name="customerName" value={formData.customerName} onChange={handleChange} placeholder="Full corporate or billing name" className="erp-input" />
+            </div>
 
-          <TabsContent value="form">
-            <CrudCard
-              title={editingId ? "Edit Customer" : "Create Customer"}
-              description="Keep only customer master information here. Transaction history and collections activity should stay outside this setup form."
-            >
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="erp-label">Customer Code</label>
-                    <input name="customerCode" value={formData.customerCode} onChange={handleInputChange} placeholder="e.g. CUST-1024" className="erp-input" />
-                  </div>
-                  <div>
-                    <label className="erp-label">Customer Name</label>
-                    <input name="customerName" value={formData.customerName} onChange={handleInputChange} placeholder="Legal or trading name" className="erp-input" />
-                  </div>
-                  <div>
-                    <label className="erp-label">Email</label>
-                    <input name="email" type="email" value={formData.email} onChange={handleInputChange} placeholder="billing@company.com" className="erp-input" />
-                  </div>
-                  <div>
-                    <label className="erp-label">Phone</label>
-                    <input name="phoneNumber" value={formData.phoneNumber} onChange={handleInputChange} placeholder="Primary contact number" className="erp-input" />
-                  </div>
-                  <div>
-                    <label className="erp-label">City</label>
-                    <input name="city" value={formData.city} onChange={handleInputChange} placeholder="City" className="erp-input" />
-                  </div>
-                  <div>
-                    <label className="erp-label">State</label>
-                    <input name="state" value={formData.state} onChange={handleInputChange} placeholder="State" className="erp-input" />
-                  </div>
-                  <div>
-                    <label className="erp-label">Country</label>
-                    <input name="country" value={formData.country} onChange={handleInputChange} placeholder="Country" className="erp-input" />
-                  </div>
-                  <div>
-                    <label className="erp-label">GST Number</label>
-                    <input name="gstNumber" value={formData.gstNumber} onChange={handleInputChange} placeholder="Tax registration ID" className="erp-input" />
-                  </div>
-                  <div>
-                    <label className="erp-label">Credit Limit</label>
-                    <input name="creditLimit" type="number" value={formData.creditLimit} onChange={handleInputChange} placeholder="0" className="erp-input" />
-                  </div>
-                  <div>
-                    <label className="erp-label">Payment Terms</label>
-                    <input name="paymentTerms" type="number" value={formData.paymentTerms} onChange={handleInputChange} placeholder="30" className="erp-input" />
-                  </div>
-                </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="erp-label">Billing Email</label>
+                <input name="email" value={formData.email} onChange={handleChange} type="email" placeholder="billing@acme.com" className="erp-input" />
+              </div>
+              <div>
+                <label className="erp-label">Phone Number</label>
+                <input name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} placeholder="+91 98765 43210" className="erp-input" />
+              </div>
+            </div>
 
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setActiveTab("list")}>Cancel</Button>
-                  <Button onClick={() => void handleSave()} disabled={loading}>{editingId ? "Update Customer" : "Save Customer"}</Button>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="erp-label">City</label>
+                <input name="city" value={formData.city} onChange={handleChange} placeholder="Mumbai" className="erp-input" />
+              </div>
+              <div>
+                <label className="erp-label">State</label>
+                <input name="state" value={formData.state} onChange={handleChange} placeholder="Maharashtra" className="erp-input" />
+              </div>
+              <div>
+                <label className="erp-label">Country</label>
+                <input name="country" value={formData.country} onChange={handleChange} placeholder="India" className="erp-input" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="erp-label">GSTIN</label>
+                <input name="gstNumber" value={formData.gstNumber} onChange={handleChange} placeholder="27AAAAA0000A1Z5" className="erp-input uppercase font-mono text-xs" />
+              </div>
+              <div>
+                <label className="erp-label">Payment Terms</label>
+                <input name="paymentTerms" value={formData.paymentTerms} onChange={handleChange} type="number" min={0} placeholder="30" className="erp-input" />
+              </div>
+              <div>
+                <label className="erp-label">Credit Limit (₹)</label>
+                <input name="creditLimit" value={formData.creditLimit} onChange={handleChange} type="number" min={0} placeholder="0" className="erp-input" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </SideDrawer>
+
+      {/* Slide-Over Drawer for Quick View Details */}
+      <SideDrawer
+        open={isViewDrawerOpen}
+        onClose={() => setIsViewDrawerOpen(false)}
+        title={selectedCustomer ? selectedCustomer.customerName : "Customer Account Details"}
+        subtitle={selectedCustomer ? `Customer Code: ${selectedCustomer.customerCode}` : ""}
+        width="md"
+        footer={
+          <div className="flex justify-between w-full">
+            <Button variant="outline" onClick={() => setIsViewDrawerOpen(false)}>Close</Button>
+            {selectedCustomer && (
+              <Button onClick={() => { setIsViewDrawerOpen(false); openEditDrawer(selectedCustomer); }}>
+                Edit Customer Account
+              </Button>
+            )}
+          </div>
+        }
+      >
+        {selectedCustomer && (
+          <div className="space-y-5 py-2">
+            <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Account Overview</span>
+                <Badge variant={selectedCustomer.status === "Inactive" ? "outline" : "default"}>
+                  {selectedCustomer.status || "Active"}
+                </Badge>
+              </div>
+              <h3 className="text-lg font-bold text-slate-900">{selectedCustomer.customerName}</h3>
+              <p className="text-xs text-slate-500 font-mono">Code: {selectedCustomer.customerCode}</p>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 bg-white">
+                <Mail className="h-5 w-5 text-indigo-600 shrink-0" />
+                <div>
+                  <p className="text-xs text-slate-500">Billing Email</p>
+                  <p className="text-sm font-semibold text-slate-900">{selectedCustomer.email || "Not Provided"}</p>
                 </div>
               </div>
-            </CrudCard>
-          </TabsContent>
-        </Tabs>
-      </div>
+
+              <div className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 bg-white">
+                <Phone className="h-5 w-5 text-emerald-600 shrink-0" />
+                <div>
+                  <p className="text-xs text-slate-500">Contact Number</p>
+                  <p className="text-sm font-semibold text-slate-900 font-mono">{selectedCustomer.phoneNumber || "Not Provided"}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 bg-white">
+                <MapPin className="h-5 w-5 text-sky-600 shrink-0" />
+                <div>
+                  <p className="text-xs text-slate-500">Billing Location</p>
+                  <p className="text-sm font-semibold text-slate-900">
+                    {selectedCustomer.city ? `${selectedCustomer.city}, ${selectedCustomer.state || ""}, ${selectedCustomer.country || ""}` : "Not Specified"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 bg-white">
+                <Building2 className="h-5 w-5 text-amber-600 shrink-0" />
+                <div>
+                  <p className="text-xs text-slate-500">GST Registration Number</p>
+                  <p className="text-sm font-semibold text-slate-900 font-mono">{selectedCustomer.gstNumber || "Unregistered"}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 bg-white">
+                <CreditCard className="h-5 w-5 text-purple-600 shrink-0" />
+                <div>
+                  <p className="text-xs text-slate-500">Credit Limit & Terms</p>
+                  <p className="text-sm font-bold text-slate-900">
+                    {formatCurrency(selectedCustomer.creditLimit)} ({selectedCustomer.paymentTerms || 30} Days)
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </SideDrawer>
     </StandardPageLayout>
   );
 }

@@ -2,7 +2,7 @@
 
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { notifyError } from "@/lib/notifications";
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { hrApi } from "@/services/hrApi";
 import type { Module } from "@/types";
@@ -54,15 +54,29 @@ const EMPTY_DASHBOARD: DashboardSchemaDto = { schemaVersion: "fallback", section
 
 export const UiSchemaProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
+  const userId = user?.id || user?.userId;
   const cacheKey = useMemo(() => resolveUiSchemaCacheKey((user as UiSchemaCacheUser | null) ?? null), [user]);
-  const [navigation, setNavigation] = useState<NavigationSchemaDto>(EMPTY_NAV);
-  const [routeRules, setRouteRules] = useState<RouteRulesDto>(EMPTY_RULES);
-  const [dashboard, setDashboard] = useState<DashboardSchemaDto>(EMPTY_DASHBOARD);
-  const [enabledModules, setEnabledModules] = useState<Module[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  // Synchronously initialize state from localStorage cache for instant zero-latency page loads/refreshes
+  const initialCache = useMemo(() => {
+    if (typeof window === "undefined" || !user) return null;
+    try {
+      const raw = localStorage.getItem(cacheKey);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }, [cacheKey, user]);
+
+  const [navigation, setNavigation] = useState<NavigationSchemaDto>(initialCache?.navigation ?? EMPTY_NAV);
+  const [routeRules, setRouteRules] = useState<RouteRulesDto>(initialCache?.routeRules ?? EMPTY_RULES);
+  const [dashboard, setDashboard] = useState<DashboardSchemaDto>(initialCache?.dashboard ?? EMPTY_DASHBOARD);
+  const [enabledModules, setEnabledModules] = useState<Module[]>(initialCache?.enabledModules ?? []);
+  const [loading, setLoading] = useState(!initialCache && !!user);
   const [schemaError, setSchemaError] = useState<string | null>(null);
-  const [usingCache, setUsingCache] = useState(false);
-  const [lastSuccessfulAt, setLastSuccessfulAt] = useState<number | null>(null);
+  const [usingCache, setUsingCache] = useState(!!initialCache);
+  const [lastSuccessfulAt, setLastSuccessfulAt] = useState<number | null>(initialCache?.ts ?? null);
+  const isRefreshingRef = useRef(false);
 
   const refresh = useCallback(async () => {
     if (!user) {
@@ -75,10 +89,11 @@ export const UiSchemaProvider = ({ children }: { children: React.ReactNode }) =>
       return;
     }
 
+    if (isRefreshingRef.current) return;
+    isRefreshingRef.current = true;
+
     try {
-      setLoading(true);
       setSchemaError(null);
-      setUsingCache(false);
 
       const [modulesRes, navRes, rulesRes, dashboardRes] = await Promise.allSettled([
         hrApi.modules.getEnabled(),
@@ -103,12 +118,12 @@ export const UiSchemaProvider = ({ children }: { children: React.ReactNode }) =>
         ? parseDashboardSchema(dashboardRes.value.data)
         : EMPTY_DASHBOARD;
 
-      setEnabledModules(moduleValue);
-      setNavigation(navValue);
-      setRouteRules(rulesValue);
-      setDashboard(dashboardValue);
+      if (moduleValue.length > 0) setEnabledModules(moduleValue);
+      if (navValue.modules.length > 0) setNavigation(navValue);
+      if (rulesValue.rules.length > 0) setRouteRules(rulesValue);
+      if (dashboardValue.sections.length > 0) setDashboard(dashboardValue);
 
-      // persist successful result to localStorage for resilience
+      // Persist successful result to localStorage
       try {
         const cache = {
           ts: Date.now(),
@@ -121,70 +136,26 @@ export const UiSchemaProvider = ({ children }: { children: React.ReactNode }) =>
         setLastSuccessfulAt(cache.ts);
         setUsingCache(false);
       } catch {
-        // ignore localStorage failures
+        // ignore localStorage errors
       }
 
       const navigationFailed = navRes.status === "rejected";
       const routeRulesFailed = rulesRes.status === "rejected";
       if (navigationFailed || routeRulesFailed) {
-        // try to load cache
-        try {
-          const raw = localStorage.getItem(cacheKey);
-          if (raw) {
-            const cached = JSON.parse(raw);
-            setEnabledModules(cached.enabledModules ?? []);
-            setNavigation(cached.navigation ?? EMPTY_NAV);
-            setRouteRules(cached.routeRules ?? EMPTY_RULES);
-            setDashboard(cached.dashboard ?? EMPTY_DASHBOARD);
-            setUsingCache(true);
-            setLastSuccessfulAt(cached.ts ?? null);
-            setSchemaError("Backend navigation or route rules could not be loaded. Showing cached data.");
-          } else {
-            setSchemaError("Backend navigation or route rules could not be loaded.");
-          }
-        } catch {
-          setSchemaError("Backend navigation or route rules could not be loaded.");
-        }
+        setSchemaError("Backend navigation or route rules could not be loaded.");
       } else {
         setSchemaError(null);
       }
     } catch (error) {
       notifyError(getApiErrorMessage(error, "Failed to load backend workspace schema."), "UI Schema");
-      // attempt to use cache on unexpected error
-      try {
-        const raw = localStorage.getItem(cacheKey);
-        if (raw) {
-          const cached = JSON.parse(raw);
-          setEnabledModules(cached.enabledModules ?? []);
-          setNavigation(cached.navigation ?? EMPTY_NAV);
-          setRouteRules(cached.routeRules ?? EMPTY_RULES);
-          setDashboard(cached.dashboard ?? EMPTY_DASHBOARD);
-          setUsingCache(true);
-          setLastSuccessfulAt(cached.ts ?? null);
-          setSchemaError("Failed to load backend workspace schema. Showing cached data.");
-        } else {
-          setEnabledModules([]);
-          setNavigation(EMPTY_NAV);
-          setRouteRules(EMPTY_RULES);
-          setDashboard(EMPTY_DASHBOARD);
-          setSchemaError("Failed to load backend workspace schema.");
-        }
-      } catch {
-        setEnabledModules([]);
-        setNavigation(EMPTY_NAV);
-        setRouteRules(EMPTY_RULES);
-        setDashboard(EMPTY_DASHBOARD);
-        setSchemaError("Failed to load backend workspace schema.");
-      }
     } finally {
+      isRefreshingRef.current = false;
       setLoading(false);
     }
-  }, [cacheKey, user]);
+  }, [cacheKey, userId]);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
+    if (typeof window === "undefined") return;
     window.localStorage.removeItem(LEGACY_UI_SCHEMA_CACHE_KEY);
   }, []);
 

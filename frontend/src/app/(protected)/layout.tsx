@@ -17,6 +17,7 @@ import { getSchemaRouteRule } from "@/lib/erp/route-access";
 import { canonicalizeProtectedPath, OWNER_PATH_PREFIXES, matchesAnyPrefix } from "@/lib/erp/route-config";
 import { withPublicAudience } from "@/lib/public-audience";
 import { publicApi } from "@/services/modules";
+import { GlobalLoading } from "@/components/ui/GlobalLoading";
 
 const ACCESS_NOT_CONFIGURED_REASON = "access-not-configured";
 const ACCESS_DENIED_REASON = "access-denied";
@@ -161,12 +162,21 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
       return isSuperAdmin;
     }
 
+    // Platform routes for admins / managers
+    if (matchesAnyPrefix(pathname, OWNER_PATH_PREFIXES) && canManageWorkspaceSetup) {
+      return true;
+    }
+
     if (schemaConfigured) {
       if (matchedRouteRule && !enabledModuleKeys.has(matchedRouteRule.moduleKey.toLowerCase())) {
         return false;
       }
 
       if (matchedRouteRule) {
+        return true;
+      }
+
+      if (matchedWorkspaceModule && enabledModuleKeys.has(matchedWorkspaceModule.key.toLowerCase())) {
         return true;
       }
 
@@ -182,7 +192,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
     }
 
     return canManageWorkspaceSetup;
-  }, [canManageWorkspaceSetup, enabledModuleKeys, enabledModules.length, isSuperAdmin, isSuperAdminRoute, matchedRouteRule, moduleHomeAllowed, pathname, schemaConfigured, workspaceModules]);
+  }, [canManageWorkspaceSetup, enabledModuleKeys, enabledModules.length, isSuperAdmin, isSuperAdminRoute, matchedRouteRule, matchedWorkspaceModule, moduleHomeAllowed, pathname, schemaConfigured, workspaceModules]);
 
   useEffect(() => {
     if (loading || permissionsLoading || schemaLoading) return;
@@ -285,7 +295,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
   }
 
   if (schemaConfigured && !routeAllowed) {
-    return null;
+    return <ProtectedShellLoading />;
   }
 
   const _workspaceName =

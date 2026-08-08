@@ -170,4 +170,17 @@ export const platformApi = {
     unpublishPage: (pageType: string, tenantId?: string) =>
       apiClient.post(`/website/pages/${pageType}/unpublish${tenantId ? `?tenantId=${encodeURIComponent(tenantId)}` : ""}`, {}),
   },
+  superadmin: {
+    tenants: (page = 1, limit = 20, search?: string, status?: string) =>
+      apiClient.get(`/superadmin/tenants?page=${page}&limit=${limit}${search ? `&search=${encodeURIComponent(search)}` : ""}${status ? `&status=${status}` : ""}`),
+    createTenant: (data: ApiPayload) => apiClient.post("/superadmin/tenants", data),
+    updateStatus: (id: string, isActive: boolean, status?: string) =>
+      apiClient.patch(`/superadmin/tenants/${id}/status`, { isActive, status }),
+  },
+  adminSettings: {
+    get: () => apiClient.get("/admin/settings"),
+    update: (data: ApiPayload) => apiClient.put("/admin/settings", data),
+    inviteUser: (data: { email: string; fullName?: string; role?: string; department?: string }) =>
+      apiClient.post("/admin/users/invite", data),
+  },
 };

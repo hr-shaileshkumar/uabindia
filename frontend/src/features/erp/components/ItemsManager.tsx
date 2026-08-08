@@ -1,15 +1,16 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { notifyError, notifySuccess } from "@/lib/notifications";
+import { GlobalLoading } from "@/components/ui/GlobalLoading";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
+import { SideDrawer } from "@/components/ui/side-drawer";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
-import { ROUTES } from "@/constants/routes";
 import { hrApi } from "@/services/hrApi";
+import { Search, Plus, Eye, Edit3, Trash2, Package, Tag, DollarSign, Layers, ShieldAlert } from "lucide-react";
 
 type Item = {
   id: string;
@@ -53,15 +54,22 @@ const INITIAL_FORM: ItemForm = {
   reorderLevel: 0,
 };
 
-const formatCurrency = (value?: number) => `Rs ${(value || 0).toLocaleString("en-IN")}`;
+const formatCurrency = (value?: number) =>
+  value != null ? `₹${value.toLocaleString("en-IN")}` : "-";
 
 export default function ItemsManager() {
   const { confirm, confirmDialog } = useConfirmDialog();
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("list");
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Drawer state management
+  const [isFormDrawerOpen, setIsFormDrawerOpen] = useState(false);
+  const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+
   const [formData, setFormData] = useState<ItemForm>(INITIAL_FORM);
 
   const fetchItems = async () => {
@@ -71,7 +79,8 @@ export default function ItemsManager() {
       setItems(response.data?.data || []);
       setError(null);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to fetch items.");
+      const message = err instanceof Error ? err.message : "Failed to fetch items";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -81,49 +90,49 @@ export default function ItemsManager() {
     void fetchItems();
   }, []);
 
-  const handleChange = (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = event.target;
-    setFormData((current) => ({
-      ...current,
-      [name]: ["sellingPrice", "purchasePrice", "minStockLevel", "maxStockLevel", "reorderLevel"].includes(
-        name,
-      )
-        ? Number(value)
-        : value,
+  const filteredItems = useMemo(() => {
+    if (!searchTerm.trim()) return items;
+    const term = searchTerm.toLowerCase();
+    return items.filter(
+      (item) =>
+        item.itemName.toLowerCase().includes(term) ||
+        item.itemCode.toLowerCase().includes(term) ||
+        item.category.toLowerCase().includes(term) ||
+        (item.hsnCode && item.hsnCode.toLowerCase().includes(term))
+    );
+  }, [items, searchTerm]);
+
+  const categoryCount = useMemo(
+    () => new Set(items.map((i) => i.category)).size,
+    [items]
+  );
+
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]:
+        name === "sellingPrice" ||
+        name === "purchasePrice" ||
+        name === "minStockLevel" ||
+        name === "maxStockLevel" ||
+        name === "reorderLevel"
+          ? Number(value)
+          : value,
     }));
   };
 
   const resetForm = () => {
     setFormData(INITIAL_FORM);
+    setEditingId(null);
   };
 
-  const handleSave = async () => {
-    if (!formData.itemName.trim() || !formData.itemCode.trim()) {
-      setError("Item name and item code are required.");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      if (editingId) {
-        await itemsApi.update(editingId, formData);
-      } else {
-        await itemsApi.create(formData);
-      }
-
-      setActiveTab("list");
-      setEditingId(null);
-      resetForm();
-      await fetchItems();
-      setError(null);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to save item.");
-    } finally {
-      setLoading(false);
-    }
+  const openCreateDrawer = () => {
+    resetForm();
+    setIsFormDrawerOpen(true);
   };
 
-  const handleEdit = (item: Item) => {
+  const openEditDrawer = (item: Item) => {
     setFormData({
       itemCode: item.itemCode,
       itemName: item.itemName,
@@ -137,291 +146,308 @@ export default function ItemsManager() {
       reorderLevel: item.reorderLevel || 0,
     });
     setEditingId(item.id);
-    setActiveTab("form");
+    setIsFormDrawerOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    const ok = await confirm({
-      title: "Delete item",
-      message: "Permanently delete this item? This action cannot be undone.",
-      confirmText: "Delete",
-      variant: "danger",
-    });
-    if (!ok) {
+  const openViewDrawer = (item: Item) => {
+    setSelectedItem(item);
+    setIsViewDrawerOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!formData.itemName.trim() || !formData.itemCode.trim()) {
+      notifyError("Item name and item code are required fields.");
       return;
     }
 
     try {
-      await itemsApi.delete(id);
+      setLoading(true);
+      if (editingId) {
+        await itemsApi.update(editingId, formData);
+        notifySuccess(`Item "${formData.itemName}" updated successfully.`);
+      } else {
+        await itemsApi.create(formData);
+        notifySuccess(`Item "${formData.itemName}" created successfully.`);
+      }
+      setIsFormDrawerOpen(false);
+      resetForm();
       await fetchItems();
+      setError(null);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to delete item.");
+      const message = err instanceof Error ? err.message : "Failed to save item";
+      notifyError(message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const categories = new Set(items.map((item) => item.category).filter(Boolean)).size;
-  const stockReady = items.filter((item) => Number(item.minStockLevel || 0) > 0).length;
-  const taxTagged = items.filter((item) => Boolean(item.hsnCode)).length;
+  const handleDelete = async (id: string, name: string) => {
+    const ok = await confirm({
+      title: `Delete Item "${name}"`,
+      message: "Are you sure you want to delete this inventory item record? Linked stock movements may be affected.",
+      confirmText: "Delete Record",
+      variant: "danger",
+    });
+    if (!ok) return;
+
+    try {
+      await itemsApi.delete(id);
+      notifySuccess("Item record deleted.");
+      await fetchItems();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to delete item";
+      notifyError(message);
+    }
+  };
 
   return (
     <StandardPageLayout
-      title="Items"
-      subtitle="Maintain the item master used by procurement, sales, warehouse, and stock-control workflows."
-      eyebrow="Inventory / Catalog"
-      icon="box"
+      title="Items & Inventory Master"
+      subtitle="Manage product catalog, HSN codes, purchasing & selling prices, UOM, and reorder levels."
+      eyebrow="Inventory / Masters"
+      icon="package"
       meta={
-        <CrudHeaderStats
-          items={[
-            { label: "Items", value: items.length, helper: "catalog" },
-            { label: "Categories", value: categories, tone: "info" },
-            { label: "Stock Ready", value: stockReady, tone: "positive" },
-            { label: "HSN", value: taxTagged, tone: "warning" },
-          ]}
-        />
+        <>
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
+            {items.length} Catalog Items
+          </span>
+          <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700">
+            {categoryCount} Categories
+          </span>
+        </>
       }
       actions={
-        <div className="flex flex-wrap gap-2">
-          <Button
-            onClick={() => {
-              setEditingId(null);
-              resetForm();
-              setActiveTab("form");
-            }}
-          >
-            Add Item
-          </Button>
-          <Link href={ROUTES.INVENTORY_HOME} className="erp-action-btn erp-action-btn-secondary">
-            Back to inventory
-          </Link>
-        </div>
+        <Button onClick={openCreateDrawer} className="gap-2">
+          <Plus className="h-4 w-4" /> Add Item
+        </Button>
       }
     >
       <div className="space-y-4">
         {confirmDialog}
-        {error && <div className="erp-alert-error">{error}</div>}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="erp-tabs-list">
-            <TabsTrigger
-              value="list"
-              className="erp-tab-trigger data-[state=active]:erp-tab-trigger-active"
-            >
-              Item Register
-            </TabsTrigger>
-            <TabsTrigger
-              value="form"
-              className="erp-tab-trigger data-[state=active]:erp-tab-trigger-active"
-            >
-              {editingId ? "Edit Item" : "New Item"}
-            </TabsTrigger>
-          </TabsList>
 
-          <TabsContent value="list">
-            <CrudCard
-              title="Item Catalog"
-              description="Keep the item master dense. Show identity, pricing, tax tagging, and stock controls in one table."
-              actions={
-                <Button
-                  onClick={() => {
-                    setEditingId(null);
-                    resetForm();
-                    setActiveTab("form");
-                  }}
-                >
-                  Add Item
-                </Button>
-              }
-            >
-                {loading ? (
-                  <div className="erp-loading">Loading items...</div>
-                ) : items.length === 0 ? (
-                  <div className="erp-empty">No items found.</div>
-                ) : (
-                  <div className="erp-table-wrap border-0 shadow-none">
-                    <table className="erp-table">
-                      <thead className="erp-thead">
-                        <tr>
-                          <th className="erp-th">Code</th>
-                          <th className="erp-th">Item</th>
-                          <th className="erp-th">Category</th>
-                          <th className="erp-th">UOM</th>
-                          <th className="erp-th">Price</th>
-                          <th className="erp-th">Stock Rules</th>
-                          <th className="erp-th">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {items.map((item) => (
-                          <tr key={item.id} className="erp-tr">
-                            <td className="erp-td font-medium text-slate-900">{item.itemCode}</td>
-                            <td className="erp-td">
-                              <p className="font-semibold text-slate-900">{item.itemName}</p>
-                              <p className="text-xs text-slate-500">
-                                {item.hsnCode ? `HSN ${item.hsnCode}` : "No HSN mapping"}
-                              </p>
-                            </td>
-                            <td className="erp-td text-slate-600">{item.category}</td>
-                            <td className="erp-td text-slate-600">{item.unitOfMeasure}</td>
-                            <td className="erp-td">
-                              <p className="font-medium text-slate-900">
-                                {formatCurrency(item.sellingPrice)}
-                              </p>
-                              <p className="text-xs text-slate-500">
-                                Buy {formatCurrency(item.purchasePrice)}
-                              </p>
-                            </td>
-                            <td className="erp-td text-xs text-slate-600">
-                              Min {item.minStockLevel || 0} / Reorder {item.reorderLevel || 0}
-                            </td>
-                            <td className="erp-td">
-                              <div className="flex gap-2">
-                                <Button variant="outline" size="sm" onClick={() => handleEdit(item)}>
-                                  Edit
-                                </Button>
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={() => void handleDelete(item.id)}
-                                >
-                                  Delete
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-            </CrudCard>
-          </TabsContent>
+        <Card className="border border-slate-200/80 shadow-sm">
+          <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+            <div>
+              <CardTitle className="text-lg font-bold text-slate-900">Product & SKU Directory</CardTitle>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Review SKUs, HSN codes, UOM, unit prices, and reorder stock thresholds.
+              </p>
+            </div>
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search item code, name, category, HSN..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="erp-input pl-9 text-xs"
+              />
+            </div>
+          </CardHeader>
 
-          <TabsContent value="form">
-            <Card className="erp-panel">
-              <CardHeader className="border-b border-slate-100 bg-white/75">
-                <CardTitle>{editingId ? "Edit Item" : "Create Item"}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  <div>
-                    <label className="erp-label">Item Code</label>
-                    <input
-                      name="itemCode"
-                      value={formData.itemCode}
-                      onChange={handleChange}
-                      placeholder="ITEM-001"
-                      className="erp-input"
-                    />
-                  </div>
-                  <div>
-                    <label className="erp-label">Item Name</label>
-                    <input
-                      name="itemName"
-                      value={formData.itemName}
-                      onChange={handleChange}
-                      placeholder="Product or material name"
-                      className="erp-input"
-                    />
-                  </div>
-                  <div>
-                    <label className="erp-label">Category</label>
-                    <input
-                      name="category"
-                      value={formData.category}
-                      onChange={handleChange}
-                      placeholder="General"
-                      className="erp-input"
-                    />
-                  </div>
-                  <div>
-                    <label className="erp-label">Unit of Measure</label>
-                    <input
-                      name="unitOfMeasure"
-                      value={formData.unitOfMeasure}
-                      onChange={handleChange}
-                      placeholder="Nos"
-                      className="erp-input"
-                    />
-                  </div>
-                  <div>
-                    <label className="erp-label">Selling Price</label>
-                    <input
-                      name="sellingPrice"
-                      type="number"
-                      min={0}
-                      value={formData.sellingPrice}
-                      onChange={handleChange}
-                      className="erp-input"
-                    />
-                  </div>
-                  <div>
-                    <label className="erp-label">Purchase Price</label>
-                    <input
-                      name="purchasePrice"
-                      type="number"
-                      min={0}
-                      value={formData.purchasePrice}
-                      onChange={handleChange}
-                      className="erp-input"
-                    />
-                  </div>
-                  <div>
-                    <label className="erp-label">HSN Code</label>
-                    <input
-                      name="hsnCode"
-                      value={formData.hsnCode}
-                      onChange={handleChange}
-                      placeholder="Optional tax code"
-                      className="erp-input"
-                    />
-                  </div>
-                  <div>
-                    <label className="erp-label">Min Stock Level</label>
-                    <input
-                      name="minStockLevel"
-                      type="number"
-                      min={0}
-                      value={formData.minStockLevel}
-                      onChange={handleChange}
-                      className="erp-input"
-                    />
-                  </div>
-                  <div>
-                    <label className="erp-label">Reorder Level</label>
-                    <input
-                      name="reorderLevel"
-                      type="number"
-                      min={0}
-                      value={formData.reorderLevel}
-                      onChange={handleChange}
-                      className="erp-input"
-                    />
-                  </div>
-                  <div>
-                    <label className="erp-label">Max Stock Level</label>
-                    <input
-                      name="maxStockLevel"
-                      type="number"
-                      min={0}
-                      value={formData.maxStockLevel}
-                      onChange={handleChange}
-                      className="erp-input"
-                    />
-                  </div>
-                </div>
-
-                <div className="erp-form-actions">
-                  <Button variant="outline" onClick={() => setActiveTab("list")}>
-                    Cancel
-                  </Button>
-                  <Button onClick={() => void handleSave()} disabled={loading}>
-                    {editingId ? "Update Item" : "Save Item"}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+          <CardContent className="p-0">
+            {loading && items.length === 0 ? (
+              <div className="p-12">
+                <GlobalLoading label="Loading catalog items..." variant="inline" />
+              </div>
+            ) : filteredItems.length === 0 ? (
+              <div className="erp-empty py-12">
+                {searchTerm ? "No products match your search query." : "No catalog items found. Click Add Item to create the first record."}
+              </div>
+            ) : (
+              <div className="erp-table-wrap border-0 shadow-none">
+                <table className="erp-table">
+                  <thead className="erp-thead">
+                    <tr>
+                      <th className="erp-th">Code / SKU</th>
+                      <th className="erp-th">Item Name</th>
+                      <th className="erp-th">Category</th>
+                      <th className="erp-th">UOM</th>
+                      <th className="erp-th">HSN Code</th>
+                      <th className="erp-th">Purchase Price</th>
+                      <th className="erp-th">Selling Price</th>
+                      <th className="erp-th text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredItems.map((item) => (
+                      <tr key={item.id} className="erp-tr hover:bg-slate-50/80 transition-colors">
+                        <td className="erp-td font-semibold text-slate-900 font-mono text-xs">{item.itemCode}</td>
+                        <td className="erp-td font-medium text-slate-900">{item.itemName}</td>
+                        <td className="erp-td">
+                          <Badge variant="outline" className="text-xs font-normal">
+                            {item.category}
+                          </Badge>
+                        </td>
+                        <td className="erp-td text-slate-600">{item.unitOfMeasure}</td>
+                        <td className="erp-td font-mono text-xs text-slate-600">{item.hsnCode || "-"}</td>
+                        <td className="erp-td font-medium text-slate-700">{formatCurrency(item.purchasePrice)}</td>
+                        <td className="erp-td font-bold text-slate-900">{formatCurrency(item.sellingPrice)}</td>
+                        <td className="erp-td text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-600 hover:text-slate-900" onClick={() => openViewDrawer(item)} title="View Item Details">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-blue-600 hover:text-blue-800" onClick={() => openEditDrawer(item)} title="Edit Item">
+                              <Edit3 className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-rose-600 hover:text-rose-800" onClick={() => void handleDelete(item.id, item.itemName)} title="Delete Item">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Slide-Over Drawer for Create / Edit Item Form */}
+      <SideDrawer
+        open={isFormDrawerOpen}
+        onClose={() => setIsFormDrawerOpen(false)}
+        title={editingId ? `Edit SKU: ${formData.itemCode}` : "Create New Item"}
+        subtitle="Configure item master attributes, unit prices, HSN tax codes, and reorder levels."
+        width="lg"
+        footer={
+          <div className="flex justify-end gap-2 w-full">
+            <Button variant="outline" onClick={() => setIsFormDrawerOpen(false)}>Cancel</Button>
+            <Button onClick={() => void handleSave()} disabled={loading}>
+              {editingId ? "Update Item" : "Save Item"}
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4 py-2">
+          <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="erp-label">Item / SKU Code <span className="text-rose-500">*</span></label>
+                <input name="itemCode" value={formData.itemCode} onChange={handleChange} placeholder="e.g. ITM-5001" className="erp-input font-mono text-xs" />
+              </div>
+              <div>
+                <label className="erp-label">Category</label>
+                <input name="category" value={formData.category} onChange={handleChange} placeholder="e.g. Electronics, Raw Material" className="erp-input" />
+              </div>
+            </div>
+
+            <div>
+              <label className="erp-label">Item Description / Name <span className="text-rose-500">*</span></label>
+              <input name="itemName" value={formData.itemName} onChange={handleChange} placeholder="Full item catalog title" className="erp-input" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="erp-label">Unit of Measure (UOM)</label>
+                <select name="unitOfMeasure" value={formData.unitOfMeasure} onChange={handleChange} className="erp-select">
+                  <option value="Nos">Nos (Pieces)</option>
+                  <option value="Kg">Kg (Kilograms)</option>
+                  <option value="Mtr">Mtr (Meters)</option>
+                  <option value="Box">Box (Boxes)</option>
+                  <option value="Ltr">Ltr (Liters)</option>
+                  <option value="Set">Set</option>
+                </select>
+              </div>
+              <div>
+                <label className="erp-label">HSN / SAC Code</label>
+                <input name="hsnCode" value={formData.hsnCode} onChange={handleChange} placeholder="e.g. 84713010" className="erp-input font-mono text-xs" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="erp-label">Purchase Price (₹)</label>
+                <input name="purchasePrice" value={formData.purchasePrice} onChange={handleChange} type="number" min={0} placeholder="0" className="erp-input" />
+              </div>
+              <div>
+                <label className="erp-label">Selling Price (₹)</label>
+                <input name="sellingPrice" value={formData.sellingPrice} onChange={handleChange} type="number" min={0} placeholder="0" className="erp-input" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="erp-label">Min Stock</label>
+                <input name="minStockLevel" value={formData.minStockLevel} onChange={handleChange} type="number" min={0} placeholder="0" className="erp-input" />
+              </div>
+              <div>
+                <label className="erp-label">Reorder Level</label>
+                <input name="reorderLevel" value={formData.reorderLevel} onChange={handleChange} type="number" min={0} placeholder="0" className="erp-input" />
+              </div>
+              <div>
+                <label className="erp-label">Max Stock</label>
+                <input name="maxStockLevel" value={formData.maxStockLevel} onChange={handleChange} type="number" min={0} placeholder="0" className="erp-input" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </SideDrawer>
+
+      {/* Slide-Over Drawer for Quick View Item Details */}
+      <SideDrawer
+        open={isViewDrawerOpen}
+        onClose={() => setIsViewDrawerOpen(false)}
+        title={selectedItem ? selectedItem.itemName : "Item Details"}
+        subtitle={selectedItem ? `SKU: ${selectedItem.itemCode}` : ""}
+        width="md"
+        footer={
+          <div className="flex justify-between w-full">
+            <Button variant="outline" onClick={() => setIsViewDrawerOpen(false)}>Close</Button>
+            {selectedItem && (
+              <Button onClick={() => { setIsViewDrawerOpen(false); openEditDrawer(selectedItem); }}>
+                Edit Item Record
+              </Button>
+            )}
+          </div>
+        }
+      >
+        {selectedItem && (
+          <div className="space-y-5 py-2">
+            <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">SKU Catalog Profile</span>
+                <Badge variant="outline">{selectedItem.category}</Badge>
+              </div>
+              <h3 className="text-lg font-bold text-slate-900">{selectedItem.itemName}</h3>
+              <p className="text-xs text-slate-500 font-mono">Item Code: {selectedItem.itemCode}</p>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 bg-white">
+                <Tag className="h-5 w-5 text-indigo-600 shrink-0" />
+                <div>
+                  <p className="text-xs text-slate-500">Unit of Measure & HSN</p>
+                  <p className="text-sm font-semibold text-slate-900">{selectedItem.unitOfMeasure} (HSN: {selectedItem.hsnCode || "None"})</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 bg-white">
+                <DollarSign className="h-5 w-5 text-emerald-600 shrink-0" />
+                <div>
+                  <p className="text-xs text-slate-500">Pricing Breakdown</p>
+                  <p className="text-sm font-bold text-slate-900">
+                    Selling: {formatCurrency(selectedItem.sellingPrice)} | Purchase: {formatCurrency(selectedItem.purchasePrice)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 bg-white">
+                <Layers className="h-5 w-5 text-sky-600 shrink-0" />
+                <div>
+                  <p className="text-xs text-slate-500">Reorder Thresholds</p>
+                  <p className="text-sm font-semibold text-slate-900">
+                    Min: {selectedItem.minStockLevel || 0} | Reorder: {selectedItem.reorderLevel || 0} | Max: {selectedItem.maxStockLevel || 0}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </SideDrawer>
     </StandardPageLayout>
   );
 }

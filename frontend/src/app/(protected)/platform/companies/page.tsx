@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Building2, Plus, Eye, MapPin, Palette, ShieldCheck, DollarSign, Globe, Bell, FileText, Lock, Activity, Users, Layers, CheckCircle2 } from "lucide-react";
+import { Building2, Plus, Eye, MapPin, Palette, ShieldCheck, DollarSign, Globe, Bell, FileText, Lock, Activity, Users, Layers, CheckCircle2, Clock, Download, Copy, Archive, ArrowRight, Phone, Mail, FileSpreadsheet, Map, ShieldAlert, Cpu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -15,110 +15,146 @@ interface CompanyRow {
   companyCode: string;
   legalName: string;
   displayName: string;
-  cin?: string;
-  pan?: string;
-  gstin?: string;
+  cin: string;
+  pan: string;
+  gstin: string;
   baseCurrency: string;
-  status: "Active" | "Inactive";
+  employeeCount: number;
+  branchCount: number;
+  projectCount: number;
+  status: "Active" | "Inactive" | "Archived";
+  createdAt: string;
 }
 
 const SEED_COMPANIES: CompanyRow[] = [
-  { id: "comp_1", companyCode: "UAB-IND", legalName: "UAB India Technologies Private Limited", displayName: "UAB India Tech", cin: "U72900MH2024PTC392019", pan: "AABCU9603R", gstin: "27AABCU9603R1ZM", baseCurrency: "INR (₹)", status: "Active" },
-  { id: "comp_2", companyCode: "UAB-GLOBAL", legalName: "UAB Global SaaS Holdings LLC", displayName: "UAB Global SaaS", cin: "LLC-992019280", pan: "FBCU10294K", gstin: "99FBCU10294K1Z0", baseCurrency: "USD ($)", status: "Active" },
+  { id: "comp_1", companyCode: "UAB-IND", legalName: "UAB India Technologies Private Limited", displayName: "UAB India Tech", cin: "U72900MH2024PTC392019", pan: "AABCU9603R", gstin: "27AABCU9603R1ZM", baseCurrency: "INR (₹)", employeeCount: 1420, branchCount: 6, projectCount: 24, status: "Active", createdAt: "2024-01-15" },
+  { id: "comp_2", companyCode: "UAB-GLOBAL", legalName: "UAB Global SaaS Holdings LLC", displayName: "UAB Global SaaS", cin: "LLC-992019280", pan: "FBCU10294K", gstin: "99FBCU10294K1Z0", baseCurrency: "USD ($)", employeeCount: 380, branchCount: 2, projectCount: 8, status: "Active", createdAt: "2024-03-20" },
 ];
 
-export default function CompaniesMasterPage() {
+export default function CompaniesMasterEnginePage() {
   const [companies, setCompanies] = useState<CompanyRow[]>(SEED_COMPANIES);
   const [search, setSearch] = useState("");
 
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<CompanyRow | null>(SEED_COMPANIES[0]);
-  const [activeTab, setActiveTab] = useState("general");
+  const [activeTab, setActiveTab] = useState("overview");
 
-  // Form State
-  const [code, setCode] = useState("");
-  const [name, setName] = useState("");
-  const [currency, setCurrency] = useState("INR (₹)");
+  // 6-Step Wizard Modal State
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [wizardStep, setWizardStep] = useState(1);
+  const [wizName, setWizName] = useState("");
+  const [wizCode, setWizCode] = useState("");
+  const [wizLegalName, setWizLegalName] = useState("");
+  const [wizCin, setWizCin] = useState("");
+  const [wizGstin, setWizGstin] = useState("");
+  const [wizPhone, setWizPhone] = useState("+91 98200 99281");
+  const [wizCurrency, setWizCurrency] = useState("INR (₹)");
 
-  const handleCreateCompany = (e: React.FormEvent) => {
+  const handleNextStep = () => {
+    if (wizardStep < 6) setWizardStep((prev) => prev + 1);
+  };
+
+  const handleCreateCompanyFinal = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!wizName.trim()) return;
 
     const newComp: CompanyRow = {
       id: `comp_${Date.now()}`,
-      companyCode: code.trim().toUpperCase() || `COMP-0${companies.length + 1}`,
-      legalName: `${name.trim()} Private Limited`,
-      displayName: name.trim(),
-      cin: "U72900MH2026PTC000000",
+      companyCode: wizCode.trim().toUpperCase() || `COMP-0${companies.length + 1}`,
+      legalName: wizLegalName.trim() || `${wizName.trim()} Private Limited`,
+      displayName: wizName.trim(),
+      cin: wizCin.trim() || "U72900MH2026PTC000000",
       pan: "AABCU9603R",
-      gstin: "27AABCU9603R1ZM",
-      baseCurrency: currency,
+      gstin: wizGstin.trim() || "27AABCU9603R1ZM",
+      baseCurrency: wizCurrency,
+      employeeCount: 1,
+      branchCount: 1,
+      projectCount: 0,
       status: "Active",
+      createdAt: new Date().toISOString().split("T")[0],
     };
 
     setCompanies((prev) => [newComp, ...prev]);
-    setIsDrawerOpen(false);
-    setName("");
-    setCode("");
-    notifySuccess(`Company Master "${newComp.displayName}" created.`);
+    setSelectedCompany(newComp);
+    setIsWizardOpen(false);
+    setWizardStep(1);
+    setWizName("");
+    setWizCode("");
+    setWizLegalName("");
+    notifySuccess(`Company Legal Entity "${newComp.displayName}" created with full Master Architecture.`);
+  };
+
+  const handleCloneCompany = (comp: CompanyRow) => {
+    const cloned: CompanyRow = {
+      ...comp,
+      id: `comp_${Date.now()}`,
+      companyCode: `${comp.companyCode}-COPY`,
+      displayName: `${comp.displayName} (Copy)`,
+      legalName: `${comp.legalName} (Copy)`,
+    };
+    setCompanies((prev) => [cloned, ...prev]);
+    setSelectedCompany(cloned);
+    notifySuccess(`Company Master "${comp.displayName}" cloned successfully.`);
   };
 
   const filteredCompanies = companies.filter((c) => {
     const q = search.toLowerCase();
-    return !q || c.displayName.toLowerCase().includes(q) || c.companyCode.toLowerCase().includes(q) || (c.gstin && c.gstin.toLowerCase().includes(q));
+    return !q || c.displayName.toLowerCase().includes(q) || c.companyCode.toLowerCase().includes(q) || c.gstin.toLowerCase().includes(q);
   });
 
   const kpis: KpiMetricItem[] = [
-    { label: "Registered Companies", value: companies.length, tone: "info", icon: <Building2 className="h-3.5 w-3.5" />, subtext: "Legal Entities" },
-    { label: "Active Operations", value: companies.filter((c) => c.status === "Active").length, tone: "positive", icon: <CheckCircle2 className="h-3.5 w-3.5" />, subtext: "Multi-Company" },
-    { label: "Base Currencies", value: new Set(companies.map((c) => c.baseCurrency)).size, tone: "warning", icon: <DollarSign className="h-3.5 w-3.5" />, subtext: "Multi-Currency" },
-    { label: "GSTIN Tax Registration", value: "100%", tone: "positive", icon: <ShieldCheck className="h-3.5 w-3.5" />, subtext: "Verified" },
+    { label: "Total Companies", value: companies.length, tone: "info", icon: <Building2 className="h-3.5 w-3.5" />, subtext: "Legal Entities" },
+    { label: "Total Employees Mapped", value: companies.reduce((acc, c) => acc + c.employeeCount, 0), tone: "positive", icon: <Users className="h-3.5 w-3.5" />, subtext: "Staff Members" },
+    { label: "Active Branches", value: companies.reduce((acc, c) => acc + c.branchCount, 0), tone: "warning", icon: <MapPin className="h-3.5 w-3.5" />, subtext: "Office Locations" },
+    { label: "Statutory Compliance", value: "100%", tone: "positive", icon: <ShieldCheck className="h-3.5 w-3.5" />, subtext: "GSTIN/PAN/PF" },
   ];
 
   return (
     <PlatformGlobalPageShell
-      title="Company Master & Multi-Legal Entity Architecture"
-      subtitle="12-Tab Master Configuration Engine for corporate legal entities, GSTIN/PAN tax registrations, branding, HR policies, IT SSO, and localization."
-      categoryTag="Master Organization Engine"
+      title="Company Master Architecture & Legal Entity Engine"
+      subtitle="SAP, Oracle Fusion & Dynamics 365 level 17-Tab Company Master Engine for configuring corporate legal entities, GSTIN/PAN compliance, HR policies, IT SSO, and audit streams."
+      categoryTag="Master Organization Suite"
       kpiMetrics={kpis}
       searchPlaceholder="Filter company code, legal name, or GSTIN..."
       searchValue={search}
       onSearchChange={setSearch}
-      primaryActionLabel="New Legal Entity"
+      primaryActionLabel="Create Company (6-Step Wizard)"
       onPrimaryAction={() => {
-        setSelectedCompany(null);
-        setIsDrawerOpen(true);
+        setWizardStep(1);
+        setIsWizardOpen(true);
       }}
       primaryActionIcon={<Plus className="h-4 w-4 mr-1.5" />}
     >
-      <div className="p-6 grid gap-6 xl:grid-cols-[340px,minmax(0,1fr)]">
-        {/* Left: Company List Panel */}
-        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
-          <h3 className="font-bold text-xs text-slate-900 dark:text-slate-100 flex items-center justify-between">
-            <span>Corporate Legal Entities ({filteredCompanies.length})</span>
-          </h3>
+      <div className="p-6 grid gap-6 xl:grid-cols-[360px,minmax(0,1fr)]">
+        {/* Left: Company Directory Panel */}
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3 shadow-xs">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-xs text-slate-900 dark:text-slate-100">Company Directory ({filteredCompanies.length})</h3>
+            <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => notifySuccess("Exporting directory to Excel...")}>
+              <FileSpreadsheet className="h-3 w-3 mr-1" /> Export
+            </Button>
+          </div>
 
           <div className="space-y-2">
             {filteredCompanies.map((c) => (
               <div
                 key={c.id}
                 onClick={() => setSelectedCompany(c)}
-                className={`p-3 rounded-lg border text-xs cursor-pointer transition-all ${
+                className={`p-3.5 rounded-xl border text-xs cursor-pointer transition-all ${
                   selectedCompany?.id === c.id
-                    ? "border-indigo-500 bg-indigo-50/20 dark:bg-indigo-950/20 ring-1 ring-indigo-500"
+                    ? "border-indigo-500 bg-indigo-50/30 dark:bg-indigo-950/30 ring-1 ring-indigo-500 shadow-xs"
                     : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
                 }`}
               >
                 <div className="flex items-center justify-between font-bold text-slate-900 dark:text-slate-100">
-                  <span className="flex items-center gap-1.5">
-                    <Building2 className="h-4 w-4 text-indigo-500" />
+                  <span className="flex items-center gap-2 truncate">
+                    <Building2 className="h-4 w-4 text-indigo-500 shrink-0" />
                     {c.displayName}
                   </span>
-                  <Badge variant="outline" className="font-mono text-[10px]">{c.companyCode}</Badge>
+                  <Badge variant="outline" className="font-mono text-[10px] shrink-0">{c.companyCode}</Badge>
                 </div>
                 <p className="mt-1 text-[11px] text-slate-500 truncate">{c.legalName}</p>
-                <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px]">
-                  <span className="font-mono text-slate-500">GSTIN: {c.gstin || "-"}</span>
+                <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px]">
+                  <span className="font-mono text-slate-500">{c.employeeCount} Employees • {c.branchCount} Branches</span>
                   <span className="font-bold text-indigo-600 dark:text-indigo-400">{c.baseCurrency}</span>
                 </div>
               </div>
@@ -126,7 +162,7 @@ export default function CompaniesMasterPage() {
           </div>
         </div>
 
-        {/* Right: 12-Tab Master Profile Engine */}
+        {/* Right: 17-Tab Company Master Profile Engine */}
         {selectedCompany ? (
           <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 space-y-4 shadow-xs">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
@@ -137,41 +173,79 @@ export default function CompaniesMasterPage() {
                 </h2>
                 <p className="text-xs text-slate-500">{selectedCompany.legalName}</p>
               </div>
-              <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">{selectedCompany.status}</Badge>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => handleCloneCompany(selectedCompany)}>
+                  <Copy className="h-3.5 w-3.5 mr-1" /> Clone Company
+                </Button>
+                <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">{selectedCompany.status}</Badge>
+              </div>
             </div>
 
-            {/* 12 Master Profile Tabs */}
+            {/* 17 Master Profile Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
               <TabsList className="flex flex-wrap h-auto p-1 bg-slate-100 dark:bg-slate-800/80 rounded-lg text-xs gap-1">
-                <TabsTrigger value="general" className="text-xs py-1.5 px-3">General & Tax IDs</TabsTrigger>
-                <TabsTrigger value="contact" className="text-xs py-1.5 px-3">Addresses</TabsTrigger>
+                <TabsTrigger value="overview" className="text-xs py-1.5 px-3">Overview</TabsTrigger>
+                <TabsTrigger value="general" className="text-xs py-1.5 px-3">General</TabsTrigger>
+                <TabsTrigger value="contact" className="text-xs py-1.5 px-3">Contact</TabsTrigger>
+                <TabsTrigger value="addresses" className="text-xs py-1.5 px-3">Addresses</TabsTrigger>
                 <TabsTrigger value="branding" className="text-xs py-1.5 px-3">Branding</TabsTrigger>
-                <TabsTrigger value="hr" className="text-xs py-1.5 px-3">HR Policies</TabsTrigger>
-                <TabsTrigger value="payroll" className="text-xs py-1.5 px-3">Payroll & Tax</TabsTrigger>
-                <TabsTrigger value="compliance" className="text-xs py-1.5 px-3">Compliance</TabsTrigger>
-                <TabsTrigger value="financial" className="text-xs py-1.5 px-3">Financial Ledger</TabsTrigger>
-                <TabsTrigger value="it" className="text-xs py-1.5 px-3">IT & SSO</TabsTrigger>
-                <TabsTrigger value="localization" className="text-xs py-1.5 px-3">Localization</TabsTrigger>
-                <TabsTrigger value="notifications" className="text-xs py-1.5 px-3">Notifications</TabsTrigger>
-                <TabsTrigger value="documents" className="text-xs py-1.5 px-3">Documents</TabsTrigger>
-                <TabsTrigger value="security" className="text-xs py-1.5 px-3">Security & Audit</TabsTrigger>
+                <TabsTrigger value="hr" className="text-xs py-1.5 px-3">HR Config</TabsTrigger>
+                <TabsTrigger value="payroll" className="text-xs py-1.5 px-3">Payroll Config</TabsTrigger>
+                <TabsTrigger value="finance" className="text-xs py-1.5 px-3">Finance Config</TabsTrigger>
+                <TabsTrigger value="compliance" className="text-xs py-1.5 px-3">Legal & Compliance</TabsTrigger>
+                <TabsTrigger value="branches" className="text-xs py-1.5 px-3">Branches & Locations</TabsTrigger>
+                <TabsTrigger value="departments" className="text-xs py-1.5 px-3">Departments</TabsTrigger>
+                <TabsTrigger value="projects" className="text-xs py-1.5 px-3">Projects</TabsTrigger>
+                <TabsTrigger value="documents" className="text-xs py-1.5 px-3">Document Vault</TabsTrigger>
+                <TabsTrigger value="integrations" className="text-xs py-1.5 px-3">Integrations</TabsTrigger>
+                <TabsTrigger value="security" className="text-xs py-1.5 px-3">Security</TabsTrigger>
+                <TabsTrigger value="audit" className="text-xs py-1.5 px-3">Audit Logs</TabsTrigger>
+                <TabsTrigger value="timeline" className="text-xs py-1.5 px-3">Timeline</TabsTrigger>
               </TabsList>
 
-              {/* Tab 1: General & Tax IDs */}
-              <TabsContent value="general" className="space-y-3 text-xs">
-                <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border">
-                  <div><span className="text-slate-500">Corporate Name:</span> <p className="font-bold text-slate-900 dark:text-slate-100">{selectedCompany.legalName}</p></div>
-                  <div><span className="text-slate-500">CIN (Corporate Identification Number):</span> <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{selectedCompany.cin || "U72900MH2024PTC392019"}</p></div>
-                  <div><span className="text-slate-500">PAN Number:</span> <p className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{selectedCompany.pan || "AABCU9603R"}</p></div>
-                  <div><span className="text-slate-500">GSTIN Registration:</span> <p className="font-mono font-bold text-amber-600 dark:text-amber-400">{selectedCompany.gstin || "27AABCU9603R1ZM"}</p></div>
-                  <div><span className="text-slate-500">MSME Registration:</span> <p className="font-semibold text-slate-800 dark:text-slate-200">MSME-MH-01-009281</p></div>
-                  <div><span className="text-slate-500">Establishment Date:</span> <p className="font-mono text-slate-700 dark:text-slate-300">15 March 2024</p></div>
+              {/* Tab 1: Overview */}
+              <TabsContent value="overview" className="space-y-4 text-xs">
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border">
+                    <span className="text-slate-500 block mb-1">Mapped Workforce</span>
+                    <span className="text-lg font-bold text-slate-900 dark:text-slate-100">{selectedCompany.employeeCount} Staff</span>
+                  </div>
+                  <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border">
+                    <span className="text-slate-500 block mb-1">Active Branches</span>
+                    <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{selectedCompany.branchCount} Locations</span>
+                  </div>
+                  <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border">
+                    <span className="text-slate-500 block mb-1">Company Projects</span>
+                    <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{selectedCompany.projectCount} Projects</span>
+                  </div>
                 </div>
               </TabsContent>
 
-              {/* Tab 2: Addresses */}
+              {/* Tab 2: General */}
+              <TabsContent value="general" className="space-y-3 text-xs">
+                <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border">
+                  <div><span className="text-slate-500">Legal Corporate Name:</span> <p className="font-bold text-slate-900 dark:text-slate-100">{selectedCompany.legalName}</p></div>
+                  <div><span className="text-slate-500">CIN (Corporate ID Number):</span> <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{selectedCompany.cin}</p></div>
+                  <div><span className="text-slate-500">PAN Number:</span> <p className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{selectedCompany.pan}</p></div>
+                  <div><span className="text-slate-500">GSTIN Tax Registration:</span> <p className="font-mono font-bold text-amber-600 dark:text-amber-400">{selectedCompany.gstin}</p></div>
+                  <div><span className="text-slate-500">Incorporation Date:</span> <p className="font-mono text-slate-700 dark:text-slate-300">15 January 2024</p></div>
+                  <div><span className="text-slate-500">Status:</span> <Badge className="bg-emerald-500/10 text-emerald-600 ml-2">{selectedCompany.status}</Badge></div>
+                </div>
+              </TabsContent>
+
+              {/* Tab 3: Contact */}
               <TabsContent value="contact" className="space-y-3 text-xs">
-                <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border">
+                <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border">
+                  <div><span className="text-slate-500">Primary Official Email:</span> <p className="font-mono text-indigo-600 font-bold">contact@{selectedCompany.displayName.toLowerCase().replace(/\s+/g, "")}.com</p></div>
+                  <div><span className="text-slate-500">Contact Number:</span> <p className="font-mono text-slate-800 font-bold">+91 22 4920 0000</p></div>
+                  <div><span className="text-slate-500">Official Website:</span> <p className="font-mono text-indigo-600">https://www.{selectedCompany.displayName.toLowerCase().replace(/\s+/g, "")}.com</p></div>
+                  <div><span className="text-slate-500">Emergency Desk Phone:</span> <p className="font-mono text-rose-600 font-bold">+91 98200 99281</p></div>
+                </div>
+              </TabsContent>
+
+              {/* Tab 4: Addresses */}
+              <TabsContent value="addresses" className="space-y-3 text-xs">
+                <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border">
                   <div>
                     <span className="text-slate-500 font-bold block mb-1">Registered Office Address:</span>
                     <p className="text-slate-700 dark:text-slate-300 leading-relaxed">Unit 802, Supreme Business Park, Hiranandani Gardens, Powai, Mumbai - 400076, Maharashtra, India</p>
@@ -183,71 +257,126 @@ export default function CompaniesMasterPage() {
                 </div>
               </TabsContent>
 
-              {/* Tab 3: Branding */}
-              <TabsContent value="branding" className="space-y-3 text-xs">
-                <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border space-y-3">
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-lg bg-indigo-600 text-white font-bold flex items-center justify-center text-lg">
-                      UAB
-                    </div>
-                    <div>
-                      <p className="font-bold text-slate-900 dark:text-slate-100">Primary Brand Logo</p>
-                      <p className="text-slate-500">SVG / PNG transparent letterhead logo (400x120px)</p>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-
-              {/* Tab 4: HR Policies */}
-              <TabsContent value="hr" className="space-y-3 text-xs">
-                <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border">
-                  <div><span className="text-slate-500">Employee Code Format:</span> <p className="font-mono font-bold text-indigo-600">EMP-{selectedCompany.companyCode}-0000</p></div>
-                  <div><span className="text-slate-500">Standard Working Hours:</span> <p className="font-semibold text-slate-800">09:00 AM - 06:00 PM (9 Hours)</p></div>
-                  <div><span className="text-slate-500">Probation Duration:</span> <p className="font-semibold text-slate-800">6 Months</p></div>
-                  <div><span className="text-slate-500">Notice Period:</span> <p className="font-semibold text-slate-800">60 Days</p></div>
-                </div>
-              </TabsContent>
-
-              {/* Tab 5: Payroll & Statutory Setup */}
-              <TabsContent value="payroll" className="space-y-3 text-xs">
-                <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border">
-                  <div><span className="text-slate-500">EPF Code Number:</span> <p className="font-mono font-bold text-emerald-600">MH/BAN/0092810/000</p></div>
-                  <div><span className="text-slate-500">ESIC Registration Code:</span> <p className="font-mono font-bold text-indigo-600">31000928100001001</p></div>
-                  <div><span className="text-slate-500">Professional Tax (PT Rate):</span> <p className="font-semibold text-slate-800">MH State Slabs (Max ₹2,500/yr)</p></div>
-                  <div><span className="text-slate-500">TDS Circle (TAN):</span> <p className="font-mono font-bold text-amber-600">MUMU09281F</p></div>
-                </div>
-              </TabsContent>
-
               {/* Other Tabs */}
-              <TabsContent value="compliance" className="text-xs p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border">
-                Labour License Registration #LL-MH-2024-99201 • ISO 27001:2022 Certified.
+              <TabsContent value="branding" className="text-xs p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border">
+                Primary Brand Logo & Letterhead Header Watermark configured.
               </TabsContent>
-              <TabsContent value="financial" className="text-xs p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border">
-                Fiscal Year: 01 April - 31 March • Base Currency: {selectedCompany.baseCurrency}
+              <TabsContent value="hr" className="text-xs p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border">
+                Employee Code: EMP-{selectedCompany.companyCode}-0000 • Attendance: Biometric + Geofence GPS.
               </TabsContent>
-              <TabsContent value="it" className="text-xs p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border">
-                Azure AD SSO Enabled • Email Domain: @{selectedCompany.displayName.toLowerCase().replace(/\s+/g, "")}.com
+              <TabsContent value="payroll" className="text-xs p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border">
+                Monthly Pay Cycle (28th of month) • EPF, ESIC, PT, LWF, TDS setup active.
               </TabsContent>
-              <TabsContent value="localization" className="text-xs p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border">
-                Timezone: Asia/Kolkata (IST +05:30) • Date Format: DD/MM/YYYY
+              <TabsContent value="finance" className="text-xs p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border">
+                Fiscal Year: April - March • Cost & Profit Center General Ledger mappings active.
               </TabsContent>
-              <TabsContent value="notifications" className="text-xs p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border">
-                SMTP Active (smtp.sendgrid.net:587) • WhatsApp API Connected.
+              <TabsContent value="compliance" className="text-xs p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border">
+                CIN: {selectedCompany.cin} • GSTIN: {selectedCompany.gstin} • Labour License #LL-MH-2024-99201.
               </TabsContent>
-              <TabsContent value="documents" className="text-xs p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border">
-                Registration Certificates & Tax Return Archives uploaded to encrypted S3 Vault.
+              <TabsContent value="branches" className="text-xs p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border">
+                {selectedCompany.branchCount} Active Branches with GPS Geofencing radius (200 meters).
               </TabsContent>
-              <TabsContent value="security" className="text-xs p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border">
-                MFA Enforced for all Company Admins • Audit Trail: Immutable Log Stream.
+              <TabsContent value="departments" className="text-xs p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border">
+                Engineering, Finance, HR, Sales, Legal, Operations.
+              </TabsContent>
+              <TabsContent value="projects" className="text-xs p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border">
+                {selectedCompany.projectCount} Enterprise Projects with assigned Project Managers.
+              </TabsContent>
+              <TabsContent value="documents" className="text-xs p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border">
+                Encrypted S3 Vault for GST Returns, PAN, TAN, and Legal Incorporation Certificates.
+              </TabsContent>
+              <TabsContent value="integrations" className="text-xs p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border">
+                SMTP Active • WhatsApp API Connected • Microsoft 363 & Azure AD SSO Enabled.
+              </TabsContent>
+              <TabsContent value="security" className="text-xs p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border">
+                MFA Enforced • Session Timeout: 30 Mins • Allowed IP Whitelist active.
+              </TabsContent>
+              <TabsContent value="audit" className="text-xs p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border">
+                Immutable Audit Trail: Before/After value change tracking stream.
+              </TabsContent>
+              <TabsContent value="timeline" className="text-xs p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border">
+                Real-time Company Activity Event Timeline.
               </TabsContent>
             </Tabs>
           </div>
         ) : (
           <div className="py-12 text-center text-xs text-slate-500">
-            Select a legal entity to configure master company profile.
+            Select a legal entity to view 17-tab Master Engine.
           </div>
         )}
       </div>
+
+      {/* 6-Step Company Provisioning Wizard Modal */}
+      {isWizardOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-lg w-full p-6 space-y-4 shadow-xl">
+            <div className="flex items-center justify-between pb-3 border-b">
+              <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">
+                Create Company — Step {wizardStep} of 6
+              </h3>
+              <Badge variant="outline">Step {wizardStep}</Badge>
+            </div>
+
+            {wizardStep === 1 && (
+              <div className="space-y-3 text-xs">
+                <Label>Display Name</Label>
+                <Input placeholder="e.g. UAB Global Tech" value={wizName} onChange={(e) => setWizName(e.target.value)} />
+                <Label>Company Code</Label>
+                <Input placeholder="e.g. UAB-IND" value={wizCode} onChange={(e) => setWizCode(e.target.value)} />
+              </div>
+            )}
+
+            {wizardStep === 2 && (
+              <div className="space-y-3 text-xs">
+                <Label>Legal Registered Name</Label>
+                <Input placeholder="e.g. UAB India Tech Private Limited" value={wizLegalName} onChange={(e) => setWizLegalName(e.target.value)} />
+                <Label>CIN (Corporate ID Number)</Label>
+                <Input placeholder="U72900MH2026PTC392019" value={wizCin} onChange={(e) => setWizCin(e.target.value)} />
+              </div>
+            )}
+
+            {wizardStep === 3 && (
+              <div className="space-y-3 text-xs">
+                <Label>GSTIN Tax Number</Label>
+                <Input placeholder="27AABCU9603R1ZM" value={wizGstin} onChange={(e) => setWizGstin(e.target.value)} />
+              </div>
+            )}
+
+            {wizardStep === 4 && (
+              <div className="space-y-3 text-xs">
+                <Label>Base Currency</Label>
+                <Input value={wizCurrency} onChange={(e) => setWizCurrency(e.target.value)} />
+              </div>
+            )}
+
+            {wizardStep === 5 && (
+              <div className="space-y-3 text-xs">
+                <p className="text-slate-500">Default brand theme colors & letterhead watermarks applied.</p>
+              </div>
+            )}
+
+            {wizardStep === 6 && (
+              <div className="space-y-3 text-xs p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-200">
+                <p className="font-bold text-emerald-700 dark:text-emerald-400">Ready to create company master entity!</p>
+                <p className="text-slate-600 dark:text-slate-400">Name: {wizName} ({wizCode}) • Currency: {wizCurrency}</p>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pt-3 border-t">
+              <Button variant="ghost" size="sm" onClick={() => setIsWizardOpen(false)}>Cancel</Button>
+              {wizardStep < 6 ? (
+                <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={handleNextStep}>
+                  Next Step <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                </Button>
+              ) : (
+                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleCreateCompanyFinal}>
+                  Provision Legal Entity
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </PlatformGlobalPageShell>
   );
 }

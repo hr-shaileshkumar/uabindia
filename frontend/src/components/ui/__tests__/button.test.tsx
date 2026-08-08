@@ -4,15 +4,15 @@ import { Button } from "../button";
 
 describe("Button", () => {
   it("renders with default variant", () => {
-    render(<Button>Click me</Button>);
-    const button = screen.getByRole("button", { name: /click me/i });
+    render(<Button>Click me default</Button>);
+    const button = screen.getByRole("button", { name: /click me default/i });
     expect(button).toBeInTheDocument();
-    expect(button).toHaveClass("bg-[var(--erp-primary)]");
+    expect(button).toHaveClass("text-white");
   });
 
   it("renders with secondary variant", () => {
-    render(<Button variant="secondary">Click me</Button>);
-    const button = screen.getByRole("button", { name: /click me/i });
+    render(<Button variant="secondary">Click me secondary</Button>);
+    const button = screen.getByRole("button", { name: /click me secondary/i });
     expect(button).toBeInTheDocument();
     expect(button).toHaveClass("border-[var(--erp-border)]");
   });

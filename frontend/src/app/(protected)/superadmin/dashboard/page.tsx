@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 
-import { SuperAdminDashboard } from "@/features/dashboard/components/SuperAdminDashboard";
+import { SuperadminTenantsManager } from "@/features/platform/components/SuperadminTenantsManager";
 
 export default function SuperAdminDashboardRoute() {
-  return <SuperAdminDashboard />;
+  return <SuperadminTenantsManager />;
 }
