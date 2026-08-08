@@ -402,6 +402,7 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<User>().HasQueryFilter(e => (_tenantAccessor.IncludeDeleted() || !e.IsDeleted) && (_tenantAccessor.IncludeAllTenants() || e.TenantId == _tenantAccessor.GetTenantId()));
             modelBuilder.Entity<Role>().HasQueryFilter(e => (_tenantAccessor.IncludeDeleted() || !e.IsDeleted) && (_tenantAccessor.IncludeAllTenants() || e.TenantId == _tenantAccessor.GetTenantId()));
             modelBuilder.Entity<UserRole>().HasQueryFilter(e => (_tenantAccessor.IncludeDeleted() || !e.IsDeleted) && (_tenantAccessor.IncludeAllTenants() || e.TenantId == _tenantAccessor.GetTenantId()));
+            modelBuilder.Entity<ContactSubmission>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<EntityFieldDefinition>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<EntityFieldValue>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<DocumentRecord>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
