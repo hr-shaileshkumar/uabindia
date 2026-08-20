@@ -17,8 +17,6 @@ artifacts/
 .githooks/
 docker-compose.yml
 docker-compose.loadbalancer.yml
-deploy.sh
-deploy.bat
 build.sh
 nginx.conf
 *.md

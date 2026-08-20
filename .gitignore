@@ -135,6 +135,8 @@ tmp/
 scratch/
 backup/
 archive/
+!Backend/migrations_scripts/archive/
+!Backend/migrations_scripts/archive/**
 artifacts/
 screenshots/
 recordings/
