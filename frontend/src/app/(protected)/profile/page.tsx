@@ -1,6 +1,5 @@
-import { redirect } from "next/navigation";
-import { ROUTES } from "@/constants/routes";
+import { AdministrationProfilePage } from "@/components/erp/administration/profile-page";
 
-export default function LegacyProfilePage() {
-  redirect(ROUTES.ADMINISTRATION_PROFILE);
+export default function ProfilePage() {
+  return <AdministrationProfilePage />;
 }

@@ -23,7 +23,7 @@ const resolveSafeNextPath = (value: string | null): string | null => {
 const ADMINISTRATION_REDIRECTS: [string, string][] = [
   ["/administration/approvals", "/platform/permissions"],
   ["/administration/notifications", "/platform/notification-templates"],
-  ["/administration/documents", "/platform/backup"],
+  ["/administration/documents", "/documents"],
   ["/administration/profile", "/profile"],
   ["/administration", "/platform/settings"],
 ];
@@ -40,7 +40,7 @@ export async function middleware(request: NextRequest) {
   // ── Administration → Platform redirects (longest prefix first) ───────
   for (const [from, to] of ADMINISTRATION_REDIRECTS) {
     if (pathname === from || pathname.startsWith(from + "/")) {
-      return NextResponse.redirect(new URL(to, request.url));
+      return NextResponse.redirect(new URL(`${to}${request.nextUrl.search}`, request.url));
     }
   }
 

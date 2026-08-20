@@ -25,18 +25,18 @@ if (-not (Test-Path $PublishDir)) {
     exit 3
 }
 
-Write-Host "Deploying $PublishDir to $VpsUser@$VpsHost:$VpsPath (staging)"
+Write-Host "Deploying $PublishDir to ${VpsUser}@${VpsHost}:${VpsPath} (staging)"
 
-& rsync -avz --delete "$PublishDir/" "$VpsUser@$VpsHost:$VpsPath/"
+& rsync -avz --delete "$PublishDir/" "${VpsUser}@${VpsHost}:${VpsPath}/"
 
 Write-Host "Copying staging env file (if present) and restarting systemd service..."
 if (Test-Path "$PSScriptRoot\..\Backend\deploy\uabindia_api.env.staging") {
-    scp "$PSScriptRoot\..\Backend\deploy\uabindia_api.env.staging" "$VpsUser@$VpsHost:/tmp/uabindia_api.env"
-    ssh "$VpsUser@$VpsHost" "sudo mv /tmp/uabindia_api.env /etc/uabindia_api.env && sudo chown root:root /etc/uabindia_api.env && sudo chmod 600 /etc/uabindia_api.env"
+    scp "$PSScriptRoot\..\Backend\deploy\uabindia_api.env.staging" "${VpsUser}@${VpsHost}:/tmp/uabindia_api.env"
+    ssh "${VpsUser}@${VpsHost}" "sudo mv /tmp/uabindia_api.env /etc/uabindia_api.env && sudo chown root:root /etc/uabindia_api.env && sudo chmod 600 /etc/uabindia_api.env"
 }
 
-ssh "$VpsUser@$VpsHost" "sudo systemctl daemon-reload; sudo systemctl restart uabindia-api; sudo systemctl enable uabindia-api"
+ssh "${VpsUser}@${VpsHost}" "sudo systemctl daemon-reload; sudo systemctl restart uabindia-api; sudo systemctl enable uabindia-api"
 
-Write-Host "Staging deploy finished. Follow logs with: ssh $VpsUser@$VpsHost 'sudo journalctl -u uabindia-api -f'"
+Write-Host "Staging deploy finished. Follow logs with: ssh ${VpsUser}@${VpsHost} 'sudo journalctl -u uabindia-api -f'"
 
 # EOF
