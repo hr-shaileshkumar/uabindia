@@ -1,12 +1,9 @@
 {
   "private": true,
-  "dependencies": {
-    "next": "16.1.6",
-    "react": "19.2.3",
-    "react-dom": "19.2.3"
-  },
   "scripts": {
     "dev": "npm --prefix frontend run dev",
+    "dev:clean": "npm --prefix frontend run dev:clean",
+    "api": "dotnet run --project Backend/src/UabIndia.Api/UabIndia.Api.csproj --urls http://127.0.0.1:5000",
     "build": "npm --prefix frontend run build",
     "start": "npm --prefix frontend run start",
     "lint": "npm --prefix frontend run lint"

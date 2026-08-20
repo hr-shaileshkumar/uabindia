@@ -7,6 +7,6 @@ describe('Input', () => {
     render(<Input placeholder='Enter text' />);
     const input = screen.getByPlaceholderText(/enter text/i);
     expect(input).toBeInTheDocument();
-    expect(input).toHaveClass('border-[var(--erp-border)]');
+    expect(input).toHaveClass('border-slate-200');
   });
 });

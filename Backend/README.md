@@ -8,7 +8,8 @@ Structure:
 - src/UabIndia.Application: Application interfaces
 - src/UabIndia.Infrastructure: EF Core DbContext and infrastructure services
 - src/UabIndia.Identity: JWT & Refresh token services
-- db/schema.sql: SQL Server DDL for HRMS-first, ERP-ready schema
+- src/UabIndia.Infrastructure/Data/Migrations: canonical EF Core schema (applied on API startup)
+- migrations_scripts/master_setup.sql: optional manual SQL provisioning
 
 Key capabilities:
 - Multi-tenant isolation with tenant-scoped queries
@@ -18,19 +19,13 @@ Key capabilities:
 
 How to run locally
 
-- Start the API (from repo root you can run the helper project):
-
-```powershell
-dotnet run
-```
-
-This helper launches the API project at `src/UabIndia.Api` and binds it to `http://0.0.0.0:5000` so Android emulators can reach it via `http://10.0.2.2:5000`.
-
-You can also run the API directly:
+- Start the API from the repository root:
 
 ```powershell
 dotnet run --project "Backend/src/UabIndia.Api/UabIndia.Api.csproj" --urls "http://0.0.0.0:5000"
 ```
+
+The API binds to `http://0.0.0.0:5000` so Android emulators can reach it via `http://10.0.2.2:5000`.
 
 Environment variables (important):
 

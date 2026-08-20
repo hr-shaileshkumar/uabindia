@@ -2,45 +2,27 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"label": "frontend-typecheck",
-			"type": "shell",
-			"command": "npm",
-			"args": [
-				"run",
-				"typecheck"
-			],
-			"isBackground": false,
-			"problemMatcher": [
-				"$tsc"
-			],
-			"group": "build"
-		},
-		{
 			"label": "typecheck",
 			"type": "shell",
 			"command": "npm",
-			"args": [
-				"run",
-				"typecheck"
-			],
-			"isBackground": false,
-			"problemMatcher": [
-				"$tsc"
-			],
+			"args": ["run", "typecheck"],
+			"problemMatcher": ["$tsc"],
 			"group": "build"
 		},
 		{
-			"label": "typecheck",
+			"label": "lint",
 			"type": "shell",
 			"command": "npm",
-			"args": [
-				"run",
-				"typecheck"
-			],
-			"isBackground": false,
-			"problemMatcher": [
-				"$tsc"
-			],
+			"args": ["run", "lint"],
+			"problemMatcher": ["$eslint-stylish"],
+			"group": "build"
+		},
+		{
+			"label": "build",
+			"type": "shell",
+			"command": "npm",
+			"args": ["run", "build"],
+			"problemMatcher": ["$tsc"],
 			"group": "build"
 		}
 	]

@@ -4,7 +4,7 @@ Purpose: Create a GitHub `production` environment for this repository and upload
 
 Usage (Windows PowerShell):
   1. Install and authenticate the GitHub CLI: `gh auth login`
-  2. From the repository root run: `.ackend\scripts\configure_github_production_env.ps1`
+  2. From the repository root run: `.\Backend\scripts\configure_github_production_env.ps1`
 
 This script only creates the environment and sets secrets. Protecting the environment (required reviewers, wait timers)
 is usually done via the GitHub UI under Settings → Environments → production (instructions printed at the end).

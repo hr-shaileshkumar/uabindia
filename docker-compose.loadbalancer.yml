@@ -1,7 +1,35 @@
 version: '3.8'
 
+x-backend: &backend
+  build:
+    context: ./Backend
+    dockerfile: Dockerfile
+  environment:
+    ASPNETCORE_ENVIRONMENT: Production
+    ASPNETCORE_URLS: http://+:5000
+    ConnectionStrings__DefaultConnection: "Server=sqlserver;Database=UabIndia_HRMS;User Id=sa;Password=YourSecurePassword123!;TrustServerCertificate=True;Encrypt=True;MultipleActiveResultSets=true"
+    Jwt__Key: "your-secure-jwt-key-minimum-64-characters-long-here"
+    Jwt__Issuer: "https://api.uabindia.in"
+    Jwt__Audience: "uabindia_clients"
+  depends_on:
+    sqlserver:
+      condition: service_healthy
+  networks:
+    - erp_cluster_network
+  restart: always
+
+x-frontend: &frontend
+  build:
+    context: ./frontend
+    dockerfile: Dockerfile
+  environment:
+    NODE_ENV: production
+    NEXT_PUBLIC_API_URL: http://loadbalancer/api/v1
+  networks:
+    - erp_cluster_network
+  restart: always
+
 services:
-  # ⚖️ Nginx High-Concurrency Load Balancer
   loadbalancer:
     image: nginx:1.25-alpine
     container_name: erp_loadbalancer
@@ -21,85 +49,30 @@ services:
       - erp_cluster_network
     restart: always
 
-  # 🚀 Backend API Replicas (4x Horizontal Scaling)
   backend1:
-    build:
-      context: ./Backend
-      dockerfile: Dockerfile
+    <<: *backend
     container_name: erp_backend_1
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Server=postgres_db;Database=UabIndia_ERP;User Id=postgres;Password=EnterprisePassword2026!;
-      - ConnectionStrings__Redis=redis_cache:6379,password=RedisClusterPass2026!
-    networks:
-      - erp_cluster_network
-    restart: always
 
   backend2:
-    build:
-      context: ./Backend
-      dockerfile: Dockerfile
+    <<: *backend
     container_name: erp_backend_2
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Server=postgres_db;Database=UabIndia_ERP;User Id=postgres;Password=EnterprisePassword2026!;
-      - ConnectionStrings__Redis=redis_cache:6379,password=RedisClusterPass2026!
-    networks:
-      - erp_cluster_network
-    restart: always
 
   backend3:
-    build:
-      context: ./Backend
-      dockerfile: Dockerfile
+    <<: *backend
     container_name: erp_backend_3
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Server=postgres_db;Database=UabIndia_ERP;User Id=postgres;Password=EnterprisePassword2026!;
-      - ConnectionStrings__Redis=redis_cache:6379,password=RedisClusterPass2026!
-    networks:
-      - erp_cluster_network
-    restart: always
 
   backend4:
-    build:
-      context: ./Backend
-      dockerfile: Dockerfile
+    <<: *backend
     container_name: erp_backend_4
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Server=postgres_db;Database=UabIndia_ERP;User Id=postgres;Password=EnterprisePassword2026!;
-      - ConnectionStrings__Redis=redis_cache:6379,password=RedisClusterPass2026!
-    networks:
-      - erp_cluster_network
-    restart: always
 
-  # 🎨 Frontend Next.js Replicas (2x Horizontal Scaling)
   frontend1:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    <<: *frontend
     container_name: erp_frontend_1
-    environment:
-      - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=http://loadbalancer/api/v1
-    networks:
-      - erp_cluster_network
-    restart: always
 
   frontend2:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    <<: *frontend
     container_name: erp_frontend_2
-    environment:
-      - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=http://loadbalancer/api/v1
-    networks:
-      - erp_cluster_network
-    restart: always
 
-  # ⚡ Redis Cluster (Distributed Caching & Session Storage)
   redis_cache:
     image: redis:7-alpine
     container_name: erp_redis_cache
@@ -110,23 +83,20 @@ services:
       - erp_cluster_network
     restart: always
 
-  # 🐘 High-Performance PostgreSQL Database
-  postgres_db:
-    image: postgres:16-alpine
-    container_name: erp_postgres_db
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: erp_sqlserver
     environment:
-      - POSTGRES_DB=UabIndia_ERP
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=EnterprisePassword2026!
-    command: >
-      postgres
-      -c max_connections=2000
-      -c shared_buffers=4GB
-      -c effective_cache_size=12GB
-      -c work_mem=64MB
-      -c maintenance_work_mem=1GB
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "YourSecurePassword123!"
+      MSSQL_PID: "Developer"
     ports:
-      - "5432:5432"
+      - "1433:1433"
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "YourSecurePassword123!" -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - erp_cluster_network
     restart: always

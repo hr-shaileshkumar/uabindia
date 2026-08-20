@@ -14,14 +14,14 @@ describe("Button", () => {
     render(<Button variant="secondary">Click me secondary</Button>);
     const button = screen.getByRole("button", { name: /click me secondary/i });
     expect(button).toBeInTheDocument();
-    expect(button).toHaveClass("border-[var(--erp-border)]");
+    expect(button).toHaveClass("border-slate-200");
   });
 
   it("renders with destructive variant", () => {
     render(<Button variant="destructive">Delete</Button>);
     const button = screen.getByRole("button", { name: /delete/i });
     expect(button).toBeInTheDocument();
-    expect(button).toHaveClass("bg-red-600");
+    expect(button).toHaveClass("bg-rose-600");
   });
 
   it("renders with custom className", () => {

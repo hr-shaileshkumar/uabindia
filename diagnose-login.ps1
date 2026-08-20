@@ -18,12 +18,12 @@ if ($backendProcess) {
 # Check if frontend is running
 Write-Host ""
 Write-Host "[2] Checking Frontend Status..." -ForegroundColor Yellow
-$frontendProcess = Get-Process -Name "dotnet" -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "*frontend*" -or $_.CommandLine -like "*next dev*" }
+$frontendProcess = Get-Process -Name "node" -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "*frontend*" -or $_.ProcessName -eq "node" }
 if ($frontendProcess) {
     Write-Host "  ✓ Frontend is running (PID: $($frontendProcess.Id))" -ForegroundColor Green
 } else {
     Write-Host "  ✗ Frontend is NOT running" -ForegroundColor Red
-    Write-Host "  Start with: cd Frontend; npm run dev" -ForegroundColor Yellow
+    Write-Host "  Start with: cd frontend; npm run dev" -ForegroundColor Yellow
 }
 
 # Check port 5000 (backend)

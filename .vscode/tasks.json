@@ -2,17 +2,6 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"label": "move-legacy-module-controllers",
-			"type": "shell",
-			"command": "python",
-			"args": [
-				"tmp/move_legacy_module_controllers.py"
-			],
-			"isBackground": false,
-			"problemMatcher": [],
-			"group": "build"
-		},
-		{
 			"label": "build-backend-api",
 			"type": "shell",
 			"command": "dotnet",
@@ -22,350 +11,32 @@
 				"-c",
 				"Release"
 			],
-			"isBackground": false,
-			"problemMatcher": [
-				"$msCompile"
-			],
+			"problemMatcher": ["$msCompile"],
 			"group": "build"
 		},
 		{
 			"label": "frontend-typecheck",
 			"type": "shell",
 			"command": "npm",
-			"args": [
-				"--prefix",
-				"frontend",
-				"run",
-				"typecheck"
-			],
-			"isBackground": false,
-			"problemMatcher": [
-				"$tsc"
-			],
-			"group": "build"
-		},
-		{
-			"label": "frontend-typecheck-2",
-			"type": "shell",
-			"command": "npm",
-			"args": [
-				"--prefix",
-				"frontend",
-				"run",
-				"typecheck"
-			],
-			"isBackground": false,
-			"problemMatcher": [
-				"$tsc"
-			],
-			"group": "build"
-		},
-		{
-			"label": "frontend-build",
-			"type": "shell",
-			"command": "npm",
-			"args": [
-				"--prefix",
-				"frontend",
-				"run",
-				"build"
-			],
-			"isBackground": false,
-			"problemMatcher": [
-				"$tsc"
-			],
+			"args": ["--prefix", "frontend", "run", "typecheck"],
+			"problemMatcher": ["$tsc"],
 			"group": "build"
 		},
 		{
 			"label": "frontend-lint",
 			"type": "shell",
 			"command": "npm",
-			"args": [
-				"--prefix",
-				"frontend",
-				"run",
-				"lint"
-			],
-			"isBackground": false,
-			"problemMatcher": [
-				"$eslint-stylish"
-			],
+			"args": ["--prefix", "frontend", "run", "lint"],
+			"problemMatcher": ["$eslint-stylish"],
 			"group": "build"
 		},
 		{
-			"label": "frontend-lint-2",
+			"label": "frontend-build",
 			"type": "shell",
 			"command": "npm",
-			"args": [
-				"--prefix",
-				"frontend",
-				"run",
-				"lint"
-			],
-			"isBackground": false,
-			"problemMatcher": [
-				"$eslint-stylish"
-			],
+			"args": ["--prefix", "frontend", "run", "build"],
+			"problemMatcher": ["$tsc"],
 			"group": "build"
-		},
-		{
-			"label": "frontend-typecheck-final",
-			"type": "shell",
-			"command": "npm",
-			"args": [
-				"--prefix",
-				"frontend",
-				"run",
-				"typecheck"
-			],
-			"isBackground": false,
-			"problemMatcher": [
-				"$tsc"
-			],
-			"group": "build"
-		},
-		{
-			"label": "frontend-lint-final",
-			"type": "shell",
-			"command": "npm",
-			"args": [
-				"--prefix",
-				"frontend",
-				"run",
-				"lint"
-			],
-			"isBackground": false,
-			"problemMatcher": [
-				"$eslint-stylish"
-			],
-			"group": "build"
-		},
-		{
-			"label": "frontend-build-final",
-			"type": "shell",
-			"command": "npm",
-			"args": [
-				"--prefix",
-				"frontend",
-				"run",
-				"build"
-			],
-			"isBackground": false,
-			"problemMatcher": [
-				"$tsc"
-			],
-			"group": "build"
-		},
-		{
-			"label": "frontend-build-verify",
-			"type": "shell",
-			"command": "npm",
-			"args": [
-				"--prefix",
-				"frontend",
-				"run",
-				"build"
-			],
-			"isBackground": false
-		},
-		{
-			"label": "frontend-build-verify-2",
-			"type": "shell",
-			"command": "npm",
-			"args": [
-				"--prefix",
-				"frontend",
-				"run",
-				"build"
-			],
-			"isBackground": false
-		},
-		{
-			"label": "frontend-build-verify-3",
-			"type": "shell",
-			"command": "npm",
-			"args": [
-				"--prefix",
-				"frontend",
-				"run",
-				"build"
-			],
-			"isBackground": false
-		},
-		{
-			"label": "frontend-build-verify-4",
-			"type": "shell",
-			"command": "npm",
-			"args": [
-				"--prefix",
-				"frontend",
-				"run",
-				"build"
-			],
-			"isBackground": false
-		},
-		{
-			"label": "frontend-build-verify-shell-responsive",
-			"type": "shell",
-			"command": "npm",
-			"args": [
-				"--prefix",
-				"frontend",
-				"run",
-				"build"
-			],
-			"isBackground": false
-		},
-		{
-			"label": "frontend-build-verify-superadmin-bypass",
-			"type": "shell",
-			"command": "npm",
-			"args": [
-				"--prefix",
-				"frontend",
-				"run",
-				"build"
-			],
-			"isBackground": false
-		},
-		{
-			"label": "frontend-build-verify-all-required",
-			"type": "shell",
-			"command": "npm",
-			"args": [
-				"--prefix",
-				"frontend",
-				"run",
-				"build"
-			],
-			"isBackground": false
-		},
-		{
-			"label": "frontend-build-verify-final-all",
-			"type": "shell",
-			"command": "npm",
-			"args": [
-				"--prefix",
-				"frontend",
-				"run",
-				"build"
-			],
-			"isBackground": false
-		},
-		{
-			"label": "frontend-typecheck-final-all",
-			"type": "shell",
-			"command": "npm",
-			"args": [
-				"--prefix",
-				"frontend",
-				"run",
-				"typecheck"
-			],
-			"isBackground": false
-		},
-		{
-			"label": "frontend-install-test-deps",
-			"type": "shell",
-			"command": "npm",
-			"args": [
-				"--prefix",
-				"frontend",
-				"install"
-			],
-			"isBackground": false
-		},
-		{
-			"label": "frontend-install-test-deps-noaudit",
-			"type": "shell",
-			"command": "npm",
-			"args": [
-				"--prefix",
-				"frontend",
-				"install",
-				"--no-audit",
-				"--no-fund"
-			],
-			"isBackground": false
-		},
-		{
-			"label": "frontend-clean-reinstall",
-			"type": "shell",
-			"command": "powershell",
-			"args": [
-				"-NoProfile",
-				"-ExecutionPolicy",
-				"Bypass",
-				"-Command",
-				"Remove-Item -Recurse -Force frontend/node_modules; Remove-Item -Force frontend/package-lock.json; npm --prefix frontend install --no-audit --no-fund"
-			],
-			"isBackground": false
-		},
-		{
-			"label": "inspect-node-process-locks",
-			"type": "shell",
-			"command": "powershell",
-			"args": [
-				"-NoProfile",
-				"-ExecutionPolicy",
-				"Bypass",
-				"-Command",
-				"Get-CimInstance Win32_Process -Filter \"Name = 'node.exe'\" | Select-Object ProcessId, CommandLine | Format-List"
-			],
-			"isBackground": false
-		},
-		{
-			"label": "inspect-node-process-locks-wmic",
-			"type": "shell",
-			"command": "wmic",
-			"args": [
-				"process",
-				"where",
-				"name='node.exe'",
-				"get",
-				"ProcessId,CommandLine",
-				"/format:list"
-			],
-			"isBackground": false
-		},
-		{
-			"label": "stop-node-processes",
-			"type": "shell",
-			"command": "powershell",
-			"args": [
-				"-NoProfile",
-				"-ExecutionPolicy",
-				"Bypass",
-				"-Command",
-				"Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force"
-			],
-			"isBackground": false
-		},
-		{
-			"label": "frontend-clean-reinstall-2",
-			"type": "shell",
-			"command": "powershell",
-			"args": [
-				"-NoProfile",
-				"-ExecutionPolicy",
-				"Bypass",
-				"-Command",
-				"if (Test-Path frontend/node_modules) { Remove-Item -Recurse -Force frontend/node_modules }; if (Test-Path frontend/package-lock.json) { Remove-Item -Force frontend/package-lock.json }; npm --prefix frontend install --no-audit --no-fund"
-			],
-			"isBackground": false
-		},
-		{
-			"label": "frontend-install-after-clean",
-			"type": "shell",
-			"command": "npm",
-			"args": [
-				"--prefix",
-				"frontend",
-				"install",
-				"--no-audit",
-				"--no-fund"
-			],
-			"isBackground": false
 		}
 	]
 }

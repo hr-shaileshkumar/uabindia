@@ -1,41 +1,22 @@
 #!/bin/bash
 
-# Vercel Build Script for ERP Frontend + Backend
-# This script ensures dependencies are installed and builds are correct
-
+# Vercel / CI build for the Next.js frontend
 set -e
 
-echo "🚀 Starting Vercel Build Process..."
-echo "📁 Current directory: $(pwd)"
-echo "📂 Directory contents:"
-ls -la
+echo "Starting frontend build..."
+echo "Current directory: $(pwd)"
 
-# Ensure we're in the correct directory
-if [ ! -f "package.json" ]; then
-  echo "❌ Error: package.json not found in current directory"
-  echo "📍 Available directories:"
-  ls -la /
+if [ -d "frontend" ] && [ -f "frontend/package.json" ]; then
+  echo "Building from frontend/"
+  npm --prefix frontend ci --legacy-peer-deps
+  npm --prefix frontend run build
+elif [ -f "package.json" ]; then
+  echo "Building from current directory"
+  npm ci --legacy-peer-deps
+  npm run build
+else
+  echo "Error: frontend/package.json not found"
   exit 1
 fi
 
-echo "✅ Found package.json"
-
-# Install dependencies
-echo "📦 Installing dependencies..."
-npm ci --legacy-peer-deps 2>&1 | tee npm-install.log
-
-# Check if Next.js is installed
-if npm list next > /dev/null 2>&1; then
-  echo "✅ Next.js is installed"
-  npm list next
-else
-  echo "❌ Error: Next.js is not installed"
-  echo "Installing Next.js..."
-  npm install next@16.1.6 --save
-fi
-
-# Build the frontend
-echo "🔨 Building Next.js application..."
-npm run build
-
-echo "✅ Build completed successfully!"
+echo "Build completed successfully!"

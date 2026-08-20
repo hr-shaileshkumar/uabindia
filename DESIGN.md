@@ -52,26 +52,27 @@ Enterprise data-dense layouts require consistent radii, spacing, and elevation.
 
 ## 3. UI Primitive Component Standards
 
-All ERP views must consume components from `@/components/ui/`:
+Authenticated pages use these current primitives:
 
-1. **`DataTable`** (`@/components/ui/data-table.tsx`): Sticky header, zebra striping option, pagination controls, search bar, column sorting, status filters, and skeleton loaders.
-2. **`KPICard`** (`@/components/ui/kpi-card.tsx`): Metric cards featuring numerical value, title, icon container, percentage change pill (+/- indicator), and subtext.
-3. **`StatusBadge`** (`@/components/ui/status-badge.tsx`): Standardized status indicator for `Active`, `Pending`, `Failed`, `Draft`, `Completed`, `Cancelled`, and `In Progress`.
-4. **`ERPFormGrid`** (`@/components/ui/erp-form-grid.tsx`): Responsive 2-column or 3-column container for consistent ERP form controls, section titles, and error states.
+1. **`DataTable`** (`@/components/ui/data-table.tsx`): Sticky header, pagination, search, column sorting, and skeleton loaders.
+2. **KPI chips** (`erpStatCardClassName` in `@/components/erp/erpStyles.ts`): Metric cards for hub pages — title, value, and helper text.
+3. **`StatusBadge`** (`@/components/erp/status-badge.tsx` or `@/components/ui/status-badge.tsx`): Status pills for Active, Pending, Failed, Draft, Completed, and similar states.
+4. **`ERPFormGrid`** (`@/components/ui/erp-form-grid.tsx`): Responsive 2-column or 3-column form layout.
 
 ---
 
 ## 4. App Shell & Page Structure
 
-All authenticated views wrap inside `@/components/layout/AppShell`:
+The authenticated chrome lives in `frontend/src/app/(protected)/layout.tsx`: sidebar (`Sidebar`) + topbar (`Header`) + Ctrl+K search (`GlobalSearchCommand`).
+
+Page content uses `StandardPageLayout`:
 
 ```tsx
-<AppShell
+<StandardPageLayout
   title="Vendor Management"
-  description="Manage suppliers, contracts, and payment terms"
-  breadcrumbs={[{ label: "ERP", href: "/dashboard" }, { label: "Vendors" }]}
-  actions={<Button>+ Add Vendor</Button>}
+  icon="building"
+  actions={<ErpCreateButton label="New" onClick={openCreate} />}
 >
-  {/* Page Content */}
-</AppShell>
+  {/* Table or hub content */}
+</StandardPageLayout>
 ```

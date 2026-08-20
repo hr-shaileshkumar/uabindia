@@ -93,10 +93,16 @@ secrets.*
 /.secret
 appsettings.Development.local.json
 appsettings.*.local.json
+**/appsettings.Development.json
 
 # Keep example env and dev template (no real credentials)
 !/.env.example
 !**/appsettings.Development.json.example
+!Backend/deploy/*.example
+
+# Real VPS env files copied from the examples above
+Backend/deploy/uabindia_api.env
+Backend/deploy/uabindia_api.env.staging
 
 ########################################################
 # OS artifacts
@@ -177,6 +183,9 @@ actions-runner/
 .claude/
 .ai/
 .codex/
+.antigravity/
+.continue/
+.kiro/
 
 # Local utility binaries / local packaging artifacts
 ngrok.exe
@@ -186,13 +195,13 @@ backend_deployment.zip
 # Publish output: build artifacts, and it also carried a committed copy of
 # appsettings.Development.json with real credentials.
 Backend/publish/
+Backend/_build_*/
+Backend/artifacts-startup-check/
+_testbuild/
+_testbuild2/
 
 ########################################################
 # Keep migration SQL artifacts tracked
 ########################################################
 # Backend/migrations_scripts/* should be committed
-cleanup-backup-*/
-node_modules/
-**/node_modules/
-
 cleanup-backup-*/

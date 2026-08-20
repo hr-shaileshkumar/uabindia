@@ -35,4 +35,4 @@ jobs:
             exit 1
           fi
           echo "Running migration script against $DB_SERVER"
-          docker run --rm -v "${{ github.workspace }}:/workspace" mcr.microsoft.com/mssql-tools bash -c "/opt/mssql-tools/bin/sqlcmd -S \"$DB_SERVER\" -U \"$DB_USER\" -P \"$DB_PASSWORD\" -i /workspace/Backend/migrations_scripts/migrate-20260201.sql"
+          docker run --rm -v "${{ github.workspace }}:/workspace" mcr.microsoft.com/mssql-tools bash -c "/opt/mssql-tools/bin/sqlcmd -S \"$DB_SERVER\" -U \"$DB_USER\" -P \"$DB_PASSWORD\" -i /workspace/Backend/migrations_scripts/archive/migrate-20260201.sql"

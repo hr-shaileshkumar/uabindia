@@ -68,8 +68,12 @@ namespace UabIndia.Tests
             var middleware = new TenantResolverMiddleware(_ => Task.CompletedTask);
             var tenantResolutionService = new TenantResolutionService(_context, _cache);
             var context = new DefaultHttpContext();
-            context.Request.Path = "/api/v1/auth/me";
+            context.Request.Path = "/api/v1/employees";
             context.Request.Host = new HostString("localhost");
+            context.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    new[] { new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()) },
+                    "TestAuth"));
 
             await middleware.Invoke(context, tenantAccessor, tenantResolutionService);
 

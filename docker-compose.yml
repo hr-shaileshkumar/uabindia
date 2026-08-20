@@ -24,8 +24,8 @@ services:
   # HRMS API
   api:
     build:
-      context: ./Backend/src/UabIndia.Api
-      dockerfile: Dockerfile.prod
+      context: ./Backend
+      dockerfile: Dockerfile
     container_name: hrms-api
     environment:
       ConnectionStrings__DefaultConnection: "Server=sqlserver;Database=UabIndia_HRMS;User Id=sa;Password=YourSecurePassword123!;TrustServerCertificate=True;Encrypt=True;MultipleActiveResultSets=true"
