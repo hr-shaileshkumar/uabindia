@@ -4,7 +4,7 @@ services:
   # SQL Server Database
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: hrms-sqlserver
+    container_name: uabindia-sqlserver
     environment:
       ACCEPT_EULA: "Y"
       SA_PASSWORD: "YourSecurePassword123!"
@@ -19,20 +19,20 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - hrms-network
+      - uabindia-network
 
-  # HRMS API
+  # ERP API
   api:
     build:
       context: ./Backend
       dockerfile: Dockerfile
-    container_name: hrms-api
+    container_name: uabindia-api
     environment:
       ConnectionStrings__DefaultConnection: "Server=sqlserver;Database=UabIndia_HRMS;User Id=sa;Password=YourSecurePassword123!;TrustServerCertificate=True;Encrypt=True;MultipleActiveResultSets=true"
       Jwt__Key: "your-secure-jwt-key-minimum-64-characters-long-here"
-      Jwt__Issuer: "https://api.hrms.local"
-      Jwt__Audience: "hrms_clients"
-      Cors__AllowedOrigins: "http://localhost:3000,http://localhost:5173,https://hrms.local"
+      Jwt__Issuer: "https://api.uabindia.local"
+      Jwt__Audience: "uabindia_clients"
+      Cors__AllowedOrigins: "http://localhost:3000,http://localhost:5173"
       ASPNETCORE_ENVIRONMENT: "Production"
       ASPNETCORE_URLS: "http://+:5000"
     ports:
@@ -43,7 +43,7 @@ services:
     volumes:
       - ./logs:/app/logs
     networks:
-      - hrms-network
+      - uabindia-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health/ready"]
       interval: 30s
@@ -54,7 +54,7 @@ services:
   # Frontend (Optional - for local development)
   frontend:
     image: node:20-alpine
-    container_name: hrms-frontend
+    container_name: uabindia-frontend
     working_dir: /app
     volumes:
       - ./frontend:/app
@@ -65,11 +65,11 @@ services:
       NODE_ENV: "development"
     command: sh -c "npm install --legacy-peer-deps && npm run dev -- --hostname 0.0.0.0"
     networks:
-      - hrms-network
+      - uabindia-network
 
 volumes:
   sqlserver_data:
 
 networks:
-  hrms-network:
+  uabindia-network:
     driver: bridge
