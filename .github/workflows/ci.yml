@@ -5,12 +5,10 @@ on:
     branches:
       - main
       - master
-      - project-complete-audit-fix
   pull_request:
     branches:
       - main
       - master
-      - project-complete-audit-fix
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}

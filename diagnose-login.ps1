@@ -52,11 +52,11 @@ if ($frontendPort) {
 Write-Host ""
 Write-Host "[5] Checking Database Connection..." -ForegroundColor Yellow
 try {
-    $connectionString = "Server=.;Database=UabIndia_HRMS;Trusted_Connection=True;TrustServerCertificate=True;"
+    $connectionString = "Server=.;Database=UabIndia_HRMS_Dev;Trusted_Connection=True;TrustServerCertificate=True;"
     $connection = New-Object System.Data.SqlClient.SqlConnection($connectionString)
     $connection.Open()
     Write-Host "  ✓ Database connection successful" -ForegroundColor Green
-    Write-Host "  Database: UabIndia_HRMS" -ForegroundColor Gray
+    Write-Host "  Database: UabIndia_HRMS_Dev" -ForegroundColor Gray
     
     # Check if admin user exists
     $command = $connection.CreateCommand()

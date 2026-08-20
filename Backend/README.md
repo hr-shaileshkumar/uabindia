@@ -1,6 +1,6 @@
-UabIndia HRMS — Backend
+UabIndia ERP — Backend
 
-This folder contains the .NET 8 Clean Architecture backend for the UabIndia HRMS/ERP platform.
+This folder contains the .NET 8 Clean Architecture backend for the UabIndia ERP platform.
 
 Structure:
 - src/UabIndia.Api: API project (controllers, middleware)
@@ -25,7 +25,7 @@ How to run locally
 dotnet run --project "Backend/src/UabIndia.Api/UabIndia.Api.csproj" --urls "http://0.0.0.0:5000"
 ```
 
-The API binds to `http://0.0.0.0:5000` so Android emulators can reach it via `http://10.0.2.2:5000`.
+The API binds to `http://0.0.0.0:5000` so other machines on the local network can reach it.
 
 Environment variables (important):
 
