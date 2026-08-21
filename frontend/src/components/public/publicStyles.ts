@@ -1,43 +1,60 @@
-/* ─── Public Site: Sapphire Blue + Teal Theme ────────────────────────────
-   Buttons — using CSS variable tokens via Tailwind arbitrary value syntax */
+/* Enterprise SaaS public design tokens — clean, restrained, production */
 
 export const publicButtonClassName = {
   primary:
-    "inline-flex min-h-[3.5rem] items-center justify-center gap-2 rounded-2xl px-8 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 active:translate-y-0 bg-gradient-to-r from-blue-600 to-blue-700 shadow-[0_4px_14px_rgba(37,99,235,0.30)] hover:from-blue-700 hover:to-blue-800 hover:shadow-[0_6px_20px_rgba(37,99,235,0.45)] focus-visible:ring-blue-600",
+    "inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-slate-900 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
   secondary:
-    "inline-flex min-h-[3.5rem] items-center justify-center gap-2 rounded-2xl px-8 py-2.5 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 border border-gray-200 bg-white text-gray-600 shadow-sm hover:border-blue-200 hover:bg-blue-50/60 hover:text-blue-700 focus-visible:ring-blue-600",
+    "inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2",
   ghost:
-    "inline-flex min-h-[3.5rem] items-center justify-center gap-2 rounded-2xl px-6 py-2.5 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 text-gray-600 bg-transparent hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-blue-600",
+    "inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400",
   outline:
-    "inline-flex min-h-[3.5rem] items-center justify-center gap-2 rounded-2xl bg-transparent px-8 py-2.5 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white focus-visible:ring-blue-600",
+    "inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-900 bg-transparent px-5 text-sm font-medium text-slate-900 transition hover:bg-slate-900 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2",
 };
 
-/* Cards / panels */
 export const publicPanelClassName =
-  "rounded-[24px] p-8 transition-premium border border-gray-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05),0_4px_12px_rgba(0,0,0,0.03)]";
+  "rounded-xl border border-slate-200 bg-white p-6 shadow-sm";
 
 export const publicPanelHoverClassName =
-  "rounded-[24px] p-8 transition-premium hover:scale-[1.02] hover:-translate-y-[2px] border border-gray-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05),0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_36px_rgba(37,99,235,0.12),0_2px_6px_rgba(0,0,0,0.04)]";
+  "rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-slate-300 hover:shadow-md";
 
 export const publicMutedPanelClassName =
-  "rounded-[24px] p-8 border border-gray-200/80 bg-gray-50 shadow-sm";
+  "rounded-xl border border-slate-200 bg-slate-50 p-6";
 
-/* Layout */
+export const publicGlassPanelClassName = publicMutedPanelClassName;
+
 export const publicSectionClassName =
-  "mx-auto w-full max-w-[1440px] px-5 md:px-10 lg:px-16";
+  "relative mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8";
 
-export const publicPageSectionClassName = "py-[96px]";
-export const publicSectionSpacingClassName = "py-[96px]";
-export const publicSectionContentGapClassName = "mt-8 lg:mt-12";
+export const publicPageSectionClassName = "relative py-8 md:py-12";
+export const publicSectionSpacingClassName = "relative py-8 md:py-12";
+export const publicSectionContentGapClassName = "mt-6";
 
-/* Eyebrow pill */
 export const publicEyebrowClassName =
-  "inline-flex self-start w-fit items-center gap-2 rounded-full px-3.5 py-1.5 text-[0.7rem] font-bold uppercase tracking-[0.18em] border border-blue-100 bg-blue-50 text-blue-700";
+  "text-xs font-semibold uppercase tracking-[0.14em] text-slate-500";
 
-/* Section title */
 export const publicTitleClassName =
-  "text-balance text-[clamp(1.9rem,3.8vw,3.2rem)] font-bold leading-[1.1] tracking-tight text-gray-900";
+  "text-balance text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl";
 
-/* Sub-title / lead */
 export const publicSubtitleClassName =
-  "text-pretty text-[1.125rem] leading-[1.7] max-w-[clamp(560px,60ch,680px)] text-gray-500";
+  "text-pretty max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg";
+
+export const publicGradientTextClassName = "text-slate-900";
+
+export const publicFormLabelClassName = "block text-sm font-medium text-slate-700";
+
+export const publicFormInputClassName =
+  "h-11 w-full rounded-lg border border-slate-200 bg-white text-sm transition placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10";
+
+export const publicFormTextareaClassName =
+  "min-h-[96px] w-full rounded-lg border border-slate-200 bg-white p-3 text-sm transition placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 resize-none";
+
+export const publicAuthLinkClassName =
+  "font-medium text-slate-900 underline-offset-4 transition hover:underline";
+
+export const publicAuthCardClassName = "w-full";
+
+export const publicAuthInputIconClassName =
+  "pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400";
+
+export const publicAuthInputWithIconClassName =
+  "h-11 w-full rounded-lg border border-slate-200 bg-white !pl-10 text-sm shadow-none transition placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus-visible:ring-slate-900/10";

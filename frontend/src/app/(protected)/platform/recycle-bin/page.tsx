@@ -1,91 +1,62 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { HardDrive, RotateCcw, Trash2, ShieldAlert, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PlatformGlobalPageShell, KpiMetricItem } from "@/components/platform/PlatformGlobalPageShell";
-import { hrApi } from "@/services/hrApi";
 import { notifySuccess, notifyError } from "@/lib/notifications";
+import { getApiErrorMessage } from "@/lib/api-errors";
+import { mapRecycleBinLog, useRecycleBin, useRecycleBinMutations } from "@/features/platform/hooks/useRecycleBin";
 
-interface RecycleRow {
-  id: string;
-  entityType: string;
-  entityId: string;
-  displayName: string;
-  deletedBy?: string;
-  deletedAt: string;
-  retentionDaysLeft: number;
-}
-
-const SEED_RECYCLE_ITEMS: RecycleRow[] = [
-  { id: "del_1", entityType: "User", entityId: "usr_9901", displayName: "alex.smith@acme.com", deletedBy: "admin@uabindia.in", deletedAt: "2026-07-25", retentionDaysLeft: 26 },
-  { id: "del_2", entityType: "Tenant", entityId: "tnt_4401", displayName: "Demo Trial Workspace", deletedBy: "superadmin@uabindia.in", deletedAt: "2026-07-20", retentionDaysLeft: 21 },
-  { id: "del_3", entityType: "Company", entityId: "cmp_8801", displayName: "Old Holding Corp", deletedBy: "superadmin@uabindia.in", deletedAt: "2026-07-15", retentionDaysLeft: 16 },
-  { id: "del_4", entityType: "SalesOrder", entityId: "so_1102", displayName: "SO-2026-0044", deletedBy: "sales.mgr@acme.com", deletedAt: "2026-07-28", retentionDaysLeft: 29 },
-];
+type RecycleRow = ReturnType<typeof mapRecycleBinLog>;
 
 export default function RecycleBinPage() {
-  const [items, setItems] = useState<RecycleRow[]>(SEED_RECYCLE_ITEMS);
-  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [entityFilter, setEntityFilter] = useState("all");
+  const { data, isLoading, isError, error, refetch } = useRecycleBin(1, 50, entityFilter !== "all" ? entityFilter : undefined);
+  const { restore, hardDelete } = useRecycleBinMutations();
 
-  const loadRecycleBin = async () => {
-    setLoading(true);
-    try {
-      const res = await hrApi.platform.recycleBin.listDeleted();
-      const list = (res.data as unknown as { items?: RecycleRow[] })?.items || (Array.isArray(res.data) ? (res.data as RecycleRow[]) : []);
-      if (list.length > 0) {
-        setItems(list);
-      }
-    } catch {
-      // Retain SEED_RECYCLE_ITEMS
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void loadRecycleBin();
-  }, []);
+  const items = useMemo(() => (data?.logs ?? []).map(mapRecycleBinLog), [data?.logs]);
 
   const handleRestore = async (row: RecycleRow) => {
+    if (!row.entityId) {
+      notifyError("Cannot restore: missing entity identifier.");
+      return;
+    }
     try {
-      await hrApi.platform.recycleBin.restore(row.entityType, row.entityId);
-      setItems((prev) => prev.filter((i) => i.id !== row.id));
-      notifySuccess(`Restored "${row.displayName}" (${row.entityType}) successfully.`);
-    } catch {
-      setItems((prev) => prev.filter((i) => i.id !== row.id));
-      notifySuccess(`Restored "${row.displayName}" (${row.entityType}) successfully.`);
+      await restore.mutateAsync({ entityName: row.entityType, entityId: row.entityId });
+      notifySuccess(`Restored "${row.displayName}" successfully.`);
+    } catch (err) {
+      notifyError(getApiErrorMessage(err, "Failed to restore record."));
     }
   };
 
   const handleHardDelete = async (row: RecycleRow) => {
+    if (!row.entityId) {
+      notifyError("Cannot purge: missing entity identifier.");
+      return;
+    }
     try {
-      await hrApi.platform.recycleBin.hardDelete(row.entityType, row.entityId);
-      setItems((prev) => prev.filter((i) => i.id !== row.id));
-      notifySuccess(`Permanently deleted "${row.displayName}" from database.`);
-    } catch {
-      setItems((prev) => prev.filter((i) => i.id !== row.id));
-      notifySuccess(`Permanently deleted "${row.displayName}" from database.`);
+      await hardDelete.mutateAsync({ entityName: row.entityType, entityId: row.entityId });
+      notifySuccess(`Permanently deleted "${row.displayName}".`);
+    } catch (err) {
+      notifyError(getApiErrorMessage(err, "Failed to permanently delete record."));
     }
   };
 
   const filteredItems = useMemo(() => {
     return items.filter((i) => {
       const q = search.toLowerCase();
-      const matchesSearch = !q || i.displayName.toLowerCase().includes(q) || i.entityType.toLowerCase().includes(q);
-      const matchesEntity = entityFilter === "all" || i.entityType.toLowerCase() === entityFilter.toLowerCase();
-      return matchesSearch && matchesEntity;
+      return !q || i.displayName.toLowerCase().includes(q) || i.entityType.toLowerCase().includes(q);
     });
-  }, [items, search, entityFilter]);
+  }, [items, search]);
 
   const kpis: KpiMetricItem[] = [
-    { label: "Soft-Deleted Items", value: items.length, tone: "warning", icon: <HardDrive className="h-3.5 w-3.5" />, subtext: "Recycle Bin" },
+    { label: "Soft-Deleted Items", value: data?.total ?? items.length, tone: "warning", icon: <HardDrive className="h-3.5 w-3.5" />, subtext: "Live API" },
     { label: "Entity Types", value: new Set(items.map((i) => i.entityType)).size, tone: "info", icon: <Layers className="h-3.5 w-3.5" />, subtext: "Entities" },
     { label: "Purge Window", value: "30 Days", tone: "positive", icon: <ShieldAlert className="h-3.5 w-3.5" />, subtext: "Retention" },
-    { label: "Restorable Status", value: "100%", tone: "positive", icon: <RotateCcw className="h-3.5 w-3.5" />, subtext: "Restorable" },
+    { label: "SuperAdmin Only", value: "Required", tone: "warning", icon: <RotateCcw className="h-3.5 w-3.5" />, subtext: "Access" },
   ];
 
   return (
@@ -94,7 +65,7 @@ export default function RecycleBinPage() {
       subtitle="Unified soft-deleted record directory. Restore misplaced records or execute permanent database purges."
       categoryTag="Data Protection & Purge Policy"
       kpiMetrics={kpis}
-      searchPlaceholder="Filter record name, entity type, or deleted by..."
+      searchPlaceholder="Filter record name or entity type..."
       searchValue={search}
       onSearchChange={setSearch}
       filterOptions={[
@@ -105,10 +76,9 @@ export default function RecycleBinPage() {
           onChange: setEntityFilter,
           options: [
             { label: "All Entity Types", value: "all" },
-            { label: "User", value: "user" },
-            { label: "Tenant", value: "tenant" },
-            { label: "Company", value: "company" },
-            { label: "SalesOrder", value: "salesorder" },
+            { label: "User", value: "User" },
+            { label: "Tenant", value: "Tenant" },
+            { label: "Company", value: "Company" },
           ],
         },
       ]}
@@ -116,9 +86,14 @@ export default function RecycleBinPage() {
         setSearch("");
         setEntityFilter("all");
       }}
-      onRefresh={loadRecycleBin}
-      isLoading={loading}
+      onRefresh={() => void refetch()}
+      isLoading={isLoading}
     >
+      {isError && (
+        <p className="px-4 py-3 text-xs text-rose-600 border-b border-[var(--border-subtle)]">
+          {getApiErrorMessage(error, "Failed to load recycle bin. SuperAdmin access is required.")}
+        </p>
+      )}
       <div className="erp-table-wrap rounded-none border-0 shadow-none">
         <table className="erp-table">
           <thead className="erp-thead">
@@ -132,39 +107,57 @@ export default function RecycleBinPage() {
             </tr>
           </thead>
           <tbody>
-            {filteredItems.map((row) => (
-              <tr key={row.id} className="erp-tr hover:bg-slate-50/80 dark:hover:bg-slate-900/50 transition-colors">
-                <td className="erp-td">
-                  <Badge variant="outline" className="text-xs font-normal">
-                    {row.entityType}
-                  </Badge>
-                </td>
-                <td className="erp-td font-semibold text-xs text-slate-900 dark:text-slate-100">{row.displayName}</td>
-                <td className="erp-td font-mono text-xs text-slate-500">{row.deletedBy || "System"}</td>
-                <td className="erp-td text-xs text-slate-500">{row.deletedAt}</td>
-                <td className="erp-td">
-                  <span className="erp-chip erp-chip-warning font-mono">{row.retentionDaysLeft} Days</span>
-                </td>
-                <td className="erp-td text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <Button variant="outline" size="sm" className="h-8 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" onClick={() => void handleRestore(row)}>
-                      <RotateCcw className="h-3.5 w-3.5 mr-1" />
-                      Restore
-                    </Button>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-rose-600 hover:text-rose-700 hover:bg-rose-50" onClick={() => void handleHardDelete(row)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+            {isLoading ? (
+              <tr>
+                <td colSpan={6} className="erp-td text-center text-xs text-muted-foreground py-8">
+                  Loading recycle bin…
                 </td>
               </tr>
-            ))}
-
-            {!loading && filteredItems.length === 0 && (
+            ) : filteredItems.length === 0 ? (
               <tr>
-                <td colSpan={6} className="erp-td py-12 text-center text-xs text-slate-500">
+                <td colSpan={6} className="erp-td py-12 text-center text-xs text-muted-foreground">
                   Recycle bin is clear. No soft-deleted records.
                 </td>
               </tr>
+            ) : (
+              filteredItems.map((row) => (
+                <tr key={row.id} className="erp-tr hover:bg-[var(--bg-muted)]/60 transition-colors">
+                  <td className="erp-td">
+                    <Badge variant="outline" className="text-xs font-normal">
+                      {row.entityType}
+                    </Badge>
+                  </td>
+                  <td className="erp-td font-semibold text-xs">{row.displayName}</td>
+                  <td className="erp-td font-mono text-xs text-muted-foreground">{row.deletedBy || "System"}</td>
+                  <td className="erp-td text-xs text-muted-foreground">{row.deletedAt}</td>
+                  <td className="erp-td">
+                    <span className="erp-chip erp-chip-warning font-mono">{row.retentionDaysLeft} Days</span>
+                  </td>
+                  <td className="erp-td text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs text-emerald-600"
+                        disabled={restore.isPending || !row.entityId}
+                        onClick={() => void handleRestore(row)}
+                      >
+                        <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                        Restore
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-rose-600"
+                        disabled={hardDelete.isPending || !row.entityId}
+                        onClick={() => void handleHardDelete(row)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>

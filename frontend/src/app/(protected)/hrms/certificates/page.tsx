@@ -1,9 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import ErpHeaderSummary from "@/components/layout/ErpHeaderSummary";
+import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
+import {
+  ErpEmptyState,
+  ErpRefreshButton,
+  ErpRowActions,
+  ErpSearchFilter,
+} from "@/components/erp/erp-page-kit";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { hrApi } from "@/services/hrApi";
+import { SideDrawer } from "@/components/ui/side-drawer";
+import { getApiErrorMessage } from "@/lib/api-errors";
+import { hrmsApi } from "@/services/modules";
 
 type CertificateRow = {
   id: string;
@@ -26,9 +34,9 @@ export default function CertificatesPage() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   const [search, setSearch] = useState("");
   const [expired, setExpired] = useState("all");
+  const [viewRow, setViewRow] = useState<CertificateRow | null>(null);
 
   const LIMIT = 20;
 
@@ -36,7 +44,7 @@ export default function CertificatesPage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await hrApi.training.getCertificates({
+      const res = await hrmsApi.training.getCertificates({
         search: search || undefined,
         expired: expired === "all" ? undefined : expired === "expired",
         page,
@@ -44,127 +52,224 @@ export default function CertificatesPage() {
       });
       setRows(res.data?.certificates ?? []);
       setTotal(res.data?.total ?? 0);
-    } catch {
-      setError("Failed to load certificates.");
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Failed to load certificates."));
     } finally {
       setLoading(false);
     }
   }, [search, expired, page]);
 
-  useEffect(() => { void fetchData(); }, [fetchData]);
+  useEffect(() => {
+    void fetchData();
+  }, [fetchData]);
 
-  const totalPages = Math.ceil(total / LIMIT);
+  const totalPages = Math.ceil(total / LIMIT) || 1;
 
   return (
     <StandardPageLayout
       title="Training Certificates"
-      subtitle="Certificates issued to employees upon course completion."
+      icon="award"
       meta={
-        <ErpHeaderSummary
+        <CrudHeaderStats
           items={[
-            { label: "Certificates", value: rows.length },
-            { label: "Active", value: rows.filter((row) => !row.isExpired).length, tone: "success" },
+            { label: "Certificates", value: total || rows.length },
+            { label: "Active", value: rows.filter((row) => !row.isExpired).length, tone: "positive" },
             { label: "Expired", value: rows.filter((row) => row.isExpired).length, tone: "danger" },
-            { label: "Courses", value: new Set(rows.map((row) => row.courseTitle).filter(Boolean)).size, tone: "info" },
+            {
+              label: "Courses",
+              value: new Set(rows.map((row) => row.courseTitle).filter(Boolean)).size,
+              tone: "info",
+            },
           ]}
         />
       }
+      actions={<ErpRefreshButton onClick={() => void fetchData()} loading={loading} />}
       filters={
         <div className="flex flex-wrap items-end gap-3">
-          <input
-            type="text"
-            placeholder="Search certificate #, title, course…"
+          <ErpSearchFilter
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400 w-64"
+            onChange={(v) => {
+              setSearch(v);
+              setPage(1);
+            }}
+            placeholder="Search certificate #, title, course…"
           />
-          <select
-            value={expired}
-            onChange={(e) => { setExpired(e.target.value); setPage(1); }}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400"
-          >
-            <option value="all">All</option>
-            <option value="active">Active</option>
-            <option value="expired">Expired</option>
-          </select>
-          {(search || expired !== "all") && (
-            <button type="button" onClick={() => { setSearch(""); setExpired("all"); setPage(1); }}
-              className="text-xs text-slate-500 hover:text-slate-800 underline">Clear filters</button>
-          )}
+          <div>
+            <label className="erp-label">Status</label>
+            <select
+              className="erp-select w-36"
+              value={expired}
+              onChange={(e) => {
+                setExpired(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="expired">Expired</option>
+            </select>
+          </div>
         </div>
       }
     >
-      {error && <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">{error}</div>}
+      {error ? <div className="erp-alert-error">{error}</div> : null}
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <table className="w-full text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50">
-            <tr>
-              {["Certificate #", "Title", "Course", "Issued", "Expires", "Score", "Status", "Download"].map((h) => (
-                <th key={h} className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {loading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <tr key={i}><td colSpan={8} className="px-5 py-3">
-                  <div className="h-4 w-full animate-pulse rounded bg-slate-100" />
-                </td></tr>
-              ))
-            ) : rows.length === 0 ? (
-              <tr><td colSpan={8} className="px-5 py-12 text-center text-slate-400">No certificates found.</td></tr>
-            ) : rows.map((r) => (
-              <tr key={r.id} className="hover:bg-slate-50">
-                <td className="px-5 py-3 font-mono text-xs font-semibold text-slate-700">{r.certificateNumber}</td>
-                <td className="px-5 py-3 font-medium text-slate-800">{r.title}</td>
-                <td className="px-5 py-3">
-                  <span className="text-slate-700">{r.courseTitle}</span>
-                  <p className="text-xs text-slate-400">{r.courseCategory}</p>
-                </td>
-                <td className="px-5 py-3 text-slate-500 text-xs">
-                  {new Date(r.issuedDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
-                </td>
-                <td className="px-5 py-3 text-slate-500 text-xs">
-                  {r.expiryDate
-                    ? new Date(r.expiryDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
-                    : <span className="text-slate-300">—</span>}
-                </td>
-                <td className="px-5 py-3 text-center font-semibold text-slate-700">
-                  {r.finalScore > 0 ? `${r.finalScore}%` : "—"}
-                </td>
-                <td className="px-5 py-3">
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${ r.isExpired ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}` }>
-                    {r.isExpired ? "Expired" : "Active"}
-                  </span>
-                </td>
-                <td className="px-5 py-3">
-                  {r.digitalCertificateUrl ? (
-                    <a href={r.digitalCertificateUrl} target="_blank" rel="noreferrer"
-                      className="text-blue-600 hover:underline text-xs">↓ View</a>
-                  ) : (
-                    <span className="text-slate-300">—</span>
-                  )}
-                </td>
+      <CrudCard>
+        <div className="erp-table-wrap">
+          <table className="erp-table table-auto">
+            <thead className="erp-thead">
+              <tr>
+                <th className="erp-th">Certificate #</th>
+                <th className="erp-th">Title</th>
+                <th className="erp-th">Course</th>
+                <th className="erp-th">Issued</th>
+                <th className="erp-th">Expires</th>
+                <th className="erp-th">Score</th>
+                <th className="erp-th">Status</th>
+                <th className="erp-th text-right">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-between text-sm text-slate-600">
-          <span>{total} total</span>
-          <div className="flex gap-2">
-            <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)}
-              className="rounded border border-slate-200 px-3 py-1 hover:bg-slate-50 disabled:opacity-40">← Prev</button>
-            <span className="px-3 py-1">{page} / {totalPages}</span>
-            <button disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}
-              className="rounded border border-slate-200 px-3 py-1 hover:bg-slate-50 disabled:opacity-40">Next →</button>
-          </div>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={8} className="erp-td py-8 text-center text-xs text-slate-500">
+                    Loading…
+                  </td>
+                </tr>
+              ) : rows.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="erp-td">
+                    <ErpEmptyState message="No certificates found." />
+                  </td>
+                </tr>
+              ) : (
+                rows.map((r) => (
+                  <tr key={r.id} className="erp-tr">
+                    <td className="erp-td font-mono text-xs font-semibold text-slate-700">{r.certificateNumber}</td>
+                    <td className="erp-td font-medium text-slate-800">{r.title}</td>
+                    <td className="erp-td">
+                      <span className="text-slate-700">{r.courseTitle}</span>
+                      <p className="text-xs text-slate-400">{r.courseCategory}</p>
+                    </td>
+                    <td className="erp-td text-xs text-slate-500">
+                      {new Date(r.issuedDate).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </td>
+                    <td className="erp-td text-xs text-slate-500">
+                      {r.expiryDate
+                        ? new Date(r.expiryDate).toLocaleDateString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })
+                        : "—"}
+                    </td>
+                    <td className="erp-td font-semibold text-slate-700">
+                      {r.finalScore > 0 ? `${r.finalScore}%` : "—"}
+                    </td>
+                    <td className="erp-td">
+                      <span className={r.isExpired ? "erp-chip erp-chip-danger" : "erp-chip erp-chip-success"}>
+                        {r.isExpired ? "Expired" : "Active"}
+                      </span>
+                    </td>
+                    <td className="erp-td text-right">
+                      <ErpRowActions onView={{ label: "View", onClick: () => setViewRow(r) }} />
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
+        {totalPages > 1 ? (
+          <div className="mt-3 flex items-center justify-between px-1 text-sm text-slate-600">
+            <span>{total} total</span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => p - 1)}
+                className="erp-action-btn erp-action-btn-secondary text-xs disabled:opacity-40"
+              >
+                Prev
+              </button>
+              <span className="px-2 py-1 text-xs">
+                {page} / {totalPages}
+              </span>
+              <button
+                type="button"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => p + 1)}
+                className="erp-action-btn erp-action-btn-secondary text-xs disabled:opacity-40"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </CrudCard>
+
+      <SideDrawer open={Boolean(viewRow)} onClose={() => setViewRow(null)} title="Certificate details">
+        {viewRow ? (
+          <div className="erp-form-grid">
+            <div className="erp-field">
+              <label className="erp-label">Certificate #</label>
+              <p className="font-mono text-sm text-slate-800">{viewRow.certificateNumber}</p>
+            </div>
+            <div className="erp-field">
+              <label className="erp-label">Status</label>
+              <p className="text-sm text-slate-800">{viewRow.isExpired ? "Expired" : "Active"}</p>
+            </div>
+            <div className="erp-field md:col-span-2">
+              <label className="erp-label">Title</label>
+              <p className="text-sm text-slate-800">{viewRow.title}</p>
+            </div>
+            <div className="erp-field md:col-span-2">
+              <label className="erp-label">Course</label>
+              <p className="text-sm text-slate-800">
+                {viewRow.courseTitle}
+                {viewRow.courseCategory ? ` · ${viewRow.courseCategory}` : ""}
+              </p>
+            </div>
+            <div className="erp-field">
+              <label className="erp-label">Issued</label>
+              <p className="text-sm text-slate-800">{new Date(viewRow.issuedDate).toLocaleDateString("en-IN")}</p>
+            </div>
+            <div className="erp-field">
+              <label className="erp-label">Expires</label>
+              <p className="text-sm text-slate-800">
+                {viewRow.expiryDate ? new Date(viewRow.expiryDate).toLocaleDateString("en-IN") : "—"}
+              </p>
+            </div>
+            <div className="erp-field">
+              <label className="erp-label">Score</label>
+              <p className="text-sm text-slate-800">{viewRow.finalScore > 0 ? `${viewRow.finalScore}%` : "—"}</p>
+            </div>
+            <div className="erp-field">
+              <label className="erp-label">Download</label>
+              {viewRow.digitalCertificateUrl ? (
+                <a
+                  href={viewRow.digitalCertificateUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-sm text-blue-600 hover:underline"
+                >
+                  Open certificate
+                </a>
+              ) : (
+                <p className="text-sm text-slate-500">—</p>
+              )}
+            </div>
+            <div className="erp-field md:col-span-2">
+              <label className="erp-label">Notes</label>
+              <p className="text-sm text-slate-800">{viewRow.notes ?? "—"}</p>
+            </div>
+          </div>
+        ) : null}
+      </SideDrawer>
     </StandardPageLayout>
   );
 }
-

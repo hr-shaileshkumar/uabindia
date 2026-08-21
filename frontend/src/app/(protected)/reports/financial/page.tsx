@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import ErpHeaderSummary from "@/components/layout/ErpHeaderSummary";
-import { hrApi } from "@/services/hrApi";
-
+import { financeApi, reportsApi } from "@/services/modules";
 const formatCurrency = (v?: number) => (v != null ? `Rs${v.toLocaleString("en-IN")}` : "-");
 
 export default function FinancialReportsPage() {
@@ -12,19 +11,33 @@ export default function FinancialReportsPage() {
   const [journalEntries, setJournalEntries] = useState<{ id: string; description?: string; totalDebit?: number; totalCredit?: number; status?: string; entryDate?: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"balances" | "journals">("balances");
+  const [activeTab, setActiveTab] = useState<"balances" | "journals" | "statements">("balances");
+  const [trial, setTrial] = useState<{ totalDebit?: number; totalCredit?: number; rows?: { accountName?: string; accountType?: string; debit?: number; credit?: number }[] }>({});
+  const [pnl, setPnl] = useState<{ revenue?: number; expense?: number; netProfit?: number }>({});
+  const [bs, setBs] = useState<{ assets?: number; liabilities?: number; equity?: number; balanced?: boolean }>({});
+  const [ageing, setAgeing] = useState<{ receivables?: { current?: number; days31to60?: number; days61to90?: number; over90?: number; total?: number }; payables?: { current?: number; days31to60?: number; days61to90?: number; over90?: number; total?: number } }>({});
+  const [periodYear, setPeriodYear] = useState(new Date().getFullYear());
+  const [periodMonth, setPeriodMonth] = useState(new Date().getMonth() + 1);
 
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
-        const [acctRes, journalRes] = await Promise.all([
-          hrApi.erp.chartOfAccounts.getBalances(),
-          hrApi.erp.journalEntries.list(1, 20, "Posted"),
+        const [acctRes, journalRes, tb, pl, sheet, age] = await Promise.all([
+          financeApi.chartOfAccounts.getBalances(),
+          financeApi.journalEntries.list(1, 20, "Posted"),
+          reportsApi.finance.trialBalance(),
+          reportsApi.finance.profitAndLoss(),
+          reportsApi.finance.balanceSheet(),
+          reportsApi.finance.ageing(),
         ]);
         setAccounts(Array.isArray(acctRes.data) ? acctRes.data : []);
         const journalRaw = journalRes.data;
         setJournalEntries(Array.isArray(journalRaw) ? journalRaw : Array.isArray(journalRaw?.data) ? journalRaw.data : []);
+        setTrial((tb.data ?? {}) as typeof trial);
+        setPnl((pl.data ?? {}) as typeof pnl);
+        setBs((sheet.data ?? {}) as typeof bs);
+        setAgeing((age.data ?? {}) as typeof ageing);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Failed to load financial reports");
       } finally {
@@ -62,6 +75,7 @@ export default function FinancialReportsPage() {
           <div className="erp-tabs-list">
             <button type="button" onClick={() => setActiveTab("balances")} className={activeTab === "balances" ? "erp-tab-trigger erp-tab-trigger-active" : "erp-tab-trigger"}>Account Balances</button>
             <button type="button" onClick={() => setActiveTab("journals")} className={activeTab === "journals" ? "erp-tab-trigger erp-tab-trigger-active" : "erp-tab-trigger"}>Journal Entries</button>
+            <button type="button" onClick={() => setActiveTab("statements")} className={activeTab === "statements" ? "erp-tab-trigger erp-tab-trigger-active" : "erp-tab-trigger"}>TB / P&L / BS</button>
           </div>
         </div>
         <div className="erp-panel-body">
@@ -93,6 +107,82 @@ export default function FinancialReportsPage() {
                       )}
                     </tbody>
                   </table>
+                </div>
+              )}
+              {activeTab === "statements" && (
+                <div className="grid gap-4 md:grid-cols-3 text-sm">
+                  <div className="rounded-lg border p-4">
+                    <h3 className="font-semibold">Trial balance</h3>
+                    <p>Debit {formatCurrency(trial.totalDebit)}</p>
+                    <p>Credit {formatCurrency(trial.totalCredit)}</p>
+                  </div>
+                  <div className="rounded-lg border p-4">
+                    <h3 className="font-semibold">Profit &amp; loss</h3>
+                    <p>Revenue {formatCurrency(pnl.revenue)}</p>
+                    <p>Expense {formatCurrency(pnl.expense)}</p>
+                    <p>Net {formatCurrency(pnl.netProfit)}</p>
+                  </div>
+                  <div className="rounded-lg border p-4">
+                    <h3 className="font-semibold">Balance sheet</h3>
+                    <p>Assets {formatCurrency(bs.assets)}</p>
+                    <p>Liabilities {formatCurrency(bs.liabilities)}</p>
+                    <p>Equity {formatCurrency(bs.equity)}</p>
+                    <p>{bs.balanced ? "In balance" : "Out of balance"}</p>
+                  </div>
+                  <div className="rounded-lg border p-4 md:col-span-3 grid gap-3 md:grid-cols-2">
+                    <div>
+                      <h3 className="font-semibold">Receivables ageing</h3>
+                      <p>0-30 {formatCurrency(ageing.receivables?.current)}</p>
+                      <p>31-60 {formatCurrency(ageing.receivables?.days31to60)}</p>
+                      <p>61-90 {formatCurrency(ageing.receivables?.days61to90)}</p>
+                      <p>90+ {formatCurrency(ageing.receivables?.over90)}</p>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Payables ageing</h3>
+                      <p>0-30 {formatCurrency(ageing.payables?.current)}</p>
+                      <p>31-60 {formatCurrency(ageing.payables?.days31to60)}</p>
+                      <p>61-90 {formatCurrency(ageing.payables?.days61to90)}</p>
+                      <p>90+ {formatCurrency(ageing.payables?.over90)}</p>
+                    </div>
+                  </div>
+                  <div className="rounded-lg border p-4 md:col-span-3 flex flex-wrap items-end gap-3">
+                    <div>
+                      <label className="erp-label">Period year</label>
+                      <input className="erp-input w-28" type="number" value={periodYear} onChange={(e) => setPeriodYear(Number(e.target.value))} />
+                    </div>
+                    <div>
+                      <label className="erp-label">Month</label>
+                      <input className="erp-input w-20" type="number" min={1} max={12} value={periodMonth} onChange={(e) => setPeriodMonth(Number(e.target.value))} />
+                    </div>
+                    <button
+                      type="button"
+                      className="erp-action-btn erp-action-btn-primary"
+                      onClick={async () => {
+                        try {
+                          await financeApi.periods.close({ year: periodYear, month: periodMonth });
+                          setError(null);
+                        } catch (err: unknown) {
+                          setError(err instanceof Error ? err.message : "Could not close period");
+                        }
+                      }}
+                    >
+                      Close period
+                    </button>
+                    <button
+                      type="button"
+                      className="erp-action-btn erp-action-btn-secondary"
+                      onClick={async () => {
+                        try {
+                          await financeApi.periods.reopen({ year: periodYear, month: periodMonth });
+                          setError(null);
+                        } catch (err: unknown) {
+                          setError(err instanceof Error ? err.message : "Could not reopen period");
+                        }
+                      }}
+                    >
+                      Reopen period
+                    </button>
+                  </div>
                 </div>
               )}
               {activeTab === "journals" && (

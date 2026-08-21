@@ -3,6 +3,8 @@ import { AxiosError } from "axios";
 export type ApiErrorPayload = {
   code?: string;
   message?: string;
+  title?: string;
+  detail?: string;
   errors?: Record<string, string[]>;
 };
 
@@ -29,12 +31,23 @@ export const getApiErrorMessage = (error: unknown, fallback = "Something went wr
     return validationMessages.join(" ");
   }
 
-  if (payload?.message) {
+  if (payload?.message && payload.message !== "An unhandled server error occurred.") {
     return payload.message;
+  }
+
+  if (payload?.detail) {
+    return payload.detail;
+  }
+
+  if (payload?.title && payload.title !== "An unhandled server error occurred.") {
+    return payload.title;
   }
 
   if (error instanceof AxiosError) {
     const status = error.response?.status;
+    if (status === 401 || status === 403) {
+      return fallback;
+    }
     if (status === 500) {
       return "Server error (500). The backend service encountered an internal issue. Please try again shortly.";
     }

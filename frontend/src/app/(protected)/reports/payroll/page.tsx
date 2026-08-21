@@ -3,10 +3,26 @@
 import { useEffect, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import ErpHeaderSummary from "@/components/layout/ErpHeaderSummary";
-import { hrApi } from "@/services/hrApi";
-
-type PayrollOverview = { totalRuns?: number; totalDisbursed?: number; avgNetSalary?: number; processedCount?: number };
-type MonthlyRow = { month?: string; totalGross?: number; totalNet?: number; totalDeductions?: number; employeeCount?: number };
+import { reportsApi } from "@/services/modules";
+type PayrollOverview = {
+  totalRuns?: number;
+  completedRuns?: number;
+  draftRuns?: number;
+  totalPayslips?: number;
+  totalPayout?: number;
+  totalDisbursed?: number;
+  avgNetSalary?: number;
+  processedCount?: number;
+};
+type MonthlyRow = {
+  month?: number | string;
+  runsCount?: number;
+  payslipsCount?: number;
+  totalGross?: number;
+  totalNet?: number;
+  totalDeductions?: number;
+  employeeCount?: number;
+};
 
 const formatCurrency = (v?: number) => (v != null ? `Rs${v.toLocaleString("en-IN")}` : "-");
 
@@ -22,11 +38,12 @@ export default function PayrollReportsPage() {
       try {
         setLoading(true);
         const [overviewRes, monthlyRes] = await Promise.all([
-          hrApi.reports.payroll.overview(),
-          hrApi.reports.payroll.monthly(year),
+          reportsApi.payroll.overview(),
+          reportsApi.payroll.monthly(year),
         ]);
         setOverview(overviewRes.data ?? null);
-        setMonthly(Array.isArray(monthlyRes.data) ? monthlyRes.data : []);
+        const monthlyPayload = monthlyRes.data as { monthly?: MonthlyRow[] } | MonthlyRow[] | undefined;
+        setMonthly(Array.isArray(monthlyPayload) ? monthlyPayload : monthlyPayload?.monthly ?? []);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Failed to load payroll reports");
       } finally {
@@ -48,9 +65,9 @@ export default function PayrollReportsPage() {
         <ErpHeaderSummary
           items={[
             { label: "Runs", value: overview?.totalRuns ?? "-", tone: "info" },
-            { label: "Disbursed", value: formatCurrency(overview?.totalDisbursed), tone: "success" },
-            { label: "Avg Net", value: formatCurrency(overview?.avgNetSalary) },
-            { label: "Year Net", value: formatCurrency(totalNet), tone: "info" },
+            { label: "Completed", value: overview?.completedRuns ?? "-", tone: "success" },
+            { label: "Payslips", value: overview?.totalPayslips ?? "-", tone: "info" },
+            { label: "Total Payout", value: formatCurrency(overview?.totalPayout ?? overview?.totalDisbursed), tone: "warning" },
           ]}
         />
       }
@@ -98,9 +115,13 @@ export default function PayrollReportsPage() {
                 monthly.map((row, index) => (
                   <tr key={index} className="erp-tr">
                     <td className="erp-td font-medium text-slate-900">
-                      {row.month ? new Date(`${row.month}-01`).toLocaleDateString("en-IN", { month: "long", year: "numeric" }) : "-"}
+                      {row.month != null
+                        ? typeof row.month === "number"
+                          ? new Date(year, row.month - 1, 1).toLocaleDateString("en-IN", { month: "long", year: "numeric" })
+                          : new Date(`${row.month}-01`).toLocaleDateString("en-IN", { month: "long", year: "numeric" })
+                        : "-"}
                     </td>
-                    <td className="erp-td text-slate-600">{row.employeeCount ?? "-"}</td>
+                    <td className="erp-td text-slate-600">{row.employeeCount ?? row.payslipsCount ?? "-"}</td>
                     <td className="erp-td text-slate-700">{formatCurrency(row.totalGross)}</td>
                     <td className="erp-td text-red-600">{formatCurrency(row.totalDeductions)}</td>
                     <td className="erp-td font-semibold text-slate-900">{formatCurrency(row.totalNet)}</td>

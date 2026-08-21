@@ -1,12 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { AlertCircle, CheckCircle, Plus, Truck, XCircle } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { AlertCircle, CheckCircle, XCircle } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudHeaderStats } from "@/components/erp/crud-workspace";
-import { hrApi } from "@/services/hrApi";
-import { notifyError } from "@/lib/notifications";
+import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
+import { SideDrawer } from "@/components/ui/side-drawer";
+import { ErpCreateButton, ErpDrawerFooter, ErpRefreshButton } from "@/components/erp/erp-page-kit";
+import { useErpListView } from "@/components/erp/erp-list-view";
+import { procurementApi } from "@/services/modules";
+import { notifyError, notifySuccess } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
+import { ErpMasterSelect, asRows, formatInr, useDocumentMasters } from "@/components/erp/erp-document-kit";
 
 type GrnRow = {
   id: string;
@@ -26,9 +30,8 @@ type GrnRow = {
 
 type GrnForm = {
   vendorId: string;
-  poReference: string;
+  purchaseOrderId: string;
   receivedDate: string;
-  totalItems: number;
   remarks: string;
 };
 
@@ -56,18 +59,20 @@ const STATUS_CONFIG: Record<string, { chip: string; label: string; icon: ReactNo
 };
 
 export default function GoodsReceiptPage() {
+  const { vendors } = useDocumentMasters();
   const [records, setRecords] = useState<GrnRow[]>([]);
+  const [purchaseOrders, setPurchaseOrders] = useState<Array<{ id: string; poNumber: string; vendorId: string; totalAmount: number; items?: unknown[] }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const [form, setForm] = useState<GrnForm>({
     vendorId: "",
-    poReference: "",
+    purchaseOrderId: "",
     receivedDate: new Date().toISOString().split("T")[0],
-    totalItems: 1,
     remarks: "",
   });
 
@@ -76,25 +81,27 @@ export default function GoodsReceiptPage() {
       setLoading(true);
       setError(null);
 
-      const response = await hrApi.erp.purchaseOrders.getAll(1, 50);
+      const response = await procurementApi.grn.getAll(1, 50);
       const raw = response.data;
       const list = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
 
-      const mapped: GrnRow[] = list
-        .filter((purchaseOrder: GrnRow) =>
-          ["Received", "Partial", "Approved"].includes(purchaseOrder.status || ""),
-        )
-        .map((purchaseOrder: GrnRow, index: number) => ({
-          id: purchaseOrder.id || String(index),
-          grnNumber: `GRN-${(purchaseOrder.poNumber || purchaseOrder.id?.slice(0, 8) || "").replace("PO-", "")}`,
-          vendorId: purchaseOrder.vendorId,
-          vendorName: purchaseOrder.vendorName || purchaseOrder.vendorId,
-          poReference: purchaseOrder.poNumber,
-          receivedDate: purchaseOrder.expectedDeliveryDate || purchaseOrder.poDate,
-          totalItems: Math.max(1, Math.floor((purchaseOrder.totalAmount || 0) / 5000)),
-          totalAmount: purchaseOrder.totalAmount,
-          status: purchaseOrder.status === "Received" ? "Accepted" : "PendingQC",
-        }));
+      const poRes = await procurementApi.purchaseOrders.getAll(1, 100).catch(() => ({ data: { data: [] } }));
+      setPurchaseOrders(
+        asRows<{ id: string; poNumber: string; vendorId: string; totalAmount: number; items?: unknown[] }>(poRes.data),
+      );
+
+      const mapped: GrnRow[] = list.map((row: Record<string, unknown>) => ({
+        id: String(row.id),
+        grnNumber: String(row.grnNumber ?? ""),
+        vendorId: row.vendorId ? String(row.vendorId) : undefined,
+        vendorName: String(row.vendorName ?? row.vendorId ?? ""),
+        poReference: String(row.poReference ?? row.poNumber ?? ""),
+        receivedDate: row.receivedDate ? String(row.receivedDate) : undefined,
+        totalItems: Number(row.totalItems ?? 0),
+        totalAmount: Number(row.totalAmount ?? 0),
+        status: String(row.status ?? "PendingQC"),
+        remarks: row.remarks ? String(row.remarks) : undefined,
+      }));
 
       setRecords(mapped);
     } catch (err) {
@@ -110,28 +117,34 @@ export default function GoodsReceiptPage() {
     void load();
   }, [load]);
 
-  const handleSave = async (event: React.FormEvent) => {
-    event.preventDefault();
+  const vendorPos = useMemo(
+    () => purchaseOrders.filter((order) => !form.vendorId || order.vendorId === form.vendorId),
+    [purchaseOrders, form.vendorId],
+  );
+  const selectedPo = purchaseOrders.find((order) => order.id === form.purchaseOrderId);
+
+  const handleSave = async () => {
     if (!form.vendorId) {
       return;
     }
 
     try {
       setSaving(true);
-      await hrApi.erp.stockMovements.create({
-        movementType: "GRN",
-        referenceNumber: form.poReference,
+      await procurementApi.grn.create({
         vendorId: form.vendorId,
-        movementDate: form.receivedDate,
+        purchaseOrderId: form.purchaseOrderId || undefined,
+        poReference: selectedPo?.poNumber,
+        receivedDate: form.receivedDate,
+        totalItems: Array.isArray(selectedPo?.items) ? selectedPo.items.length : 1,
+        totalAmount: selectedPo?.totalAmount ?? 0,
         remarks: form.remarks,
-        quantity: form.totalItems,
+        status: "PendingQC",
       });
       setShowForm(false);
       setForm({
         vendorId: "",
-        poReference: "",
+        purchaseOrderId: "",
         receivedDate: new Date().toISOString().split("T")[0],
-        totalItems: 1,
         remarks: "",
       });
       void load();
@@ -139,6 +152,23 @@ export default function GoodsReceiptPage() {
       notifyError(getApiErrorMessage(err, "Failed to create GRN."), "GRN");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const acceptGrn = async (id: string) => {
+    try {
+      setAcceptingId(id);
+      const res = await procurementApi.grn.accept(id);
+      const count = Array.isArray(res.data?.movements) ? res.data.movements.length : 0;
+      notifySuccess(
+        count > 0 ? `GRN accepted; ${count} stock movement(s) posted.` : "GRN accepted.",
+        "GRN",
+      );
+      void load();
+    } catch (err) {
+      notifyError(getApiErrorMessage(err, "Failed to accept GRN."), "GRN");
+    } finally {
+      setAcceptingId(null);
     }
   };
 
@@ -157,6 +187,78 @@ export default function GoodsReceiptPage() {
   const pendingQcCount = filtered.filter((record) => record.status === "PendingQC").length;
   const totalItems = filtered.reduce((sum, record) => sum + (record.totalItems || 0), 0);
 
+  const list = useErpListView({
+    listKey: "goods-receipts",
+    rows: filtered,
+    columns: [
+      { key: "grnNumber", label: "GRN" },
+      { key: "vendorName", label: "Vendor" },
+      { key: "poReference", label: "PO Reference" },
+      { key: "receivedDate", label: "Received Date", dataType: "date" },
+      { key: "totalItems", label: "Items", dataType: "number" },
+      { key: "status", label: "Status" },
+      { key: "actions", label: "Actions", locked: true },
+    ],
+    getRowId: (record) => record.id,
+    loading,
+    emptyMessage: "No GRN records found. Use New GRN in the header to record one.",
+    onCreate: () => setShowForm(true),
+    createLabel: "New GRN",
+    onRefresh: () => void load(),
+    extraFilters: (
+      <>
+        <input
+          className="erp-input max-w-xs"
+          placeholder="GRN number, vendor, or PO..."
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+        <select className="erp-select w-40" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+          <option value="">All Status</option>
+          <option value="PendingQC">Pending QC</option>
+          <option value="Accepted">Accepted</option>
+          <option value="PartialAccepted">Partial</option>
+          <option value="Rejected">Rejected</option>
+        </select>
+      </>
+    ),
+    renderRow: (record) => {
+      const status = STATUS_CONFIG[record.status || "PendingQC"] || STATUS_CONFIG.PendingQC;
+      const canAccept = !["Accepted", "Rejected"].includes(record.status || "");
+      return (
+        <tr key={record.id} className="erp-tr">
+          <td className="erp-td font-mono text-sm font-semibold text-slate-900">{record.grnNumber || "-"}</td>
+          <td className="erp-td text-slate-700">{record.vendorName || record.vendorId || "-"}</td>
+          <td className="erp-td font-mono text-xs text-slate-600">{record.poReference || "-"}</td>
+          <td className="erp-td text-slate-600">
+            {record.receivedDate ? new Date(record.receivedDate).toLocaleDateString("en-IN") : "-"}
+          </td>
+          <td className="erp-td font-semibold text-slate-700">{record.totalItems || "-"}</td>
+          <td className="erp-td">
+            <span className={`${status.chip} flex w-fit items-center gap-1`}>
+              {status.icon}
+              {status.label}
+            </span>
+          </td>
+          <td className="erp-td">
+            {canAccept ? (
+              <button
+                type="button"
+                className="erp-action-btn erp-action-btn-primary text-xs"
+                disabled={acceptingId === record.id}
+                onClick={() => void acceptGrn(record.id)}
+              >
+                {acceptingId === record.id ? "Accepting…" : "Accept & stock"}
+              </button>
+            ) : (
+              <span className="text-xs text-slate-400">—</span>
+            )}
+          </td>
+        </tr>
+      );
+    },
+  });
+
   return (
     <StandardPageLayout
       title="Goods Receipt"
@@ -174,219 +276,81 @@ export default function GoodsReceiptPage() {
         />
       }
       actions={
-        <button
-          type="button"
-          onClick={() => setShowForm((current) => !current)}
-          className="erp-action-btn erp-action-btn-primary"
-        >
-          <Plus className="h-4 w-4" />
-          Record GRN
-        </button>
+        <>
+          <ErpRefreshButton onClick={() => void load()} loading={loading} />
+          {list.headerTools}
+          <ErpCreateButton label="New GRN" onClick={() => setShowForm(true)} />
+        </>
       }
-      filters={
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="min-w-48 flex-1">
-            <label className="erp-label">Search</label>
-            <input
-              className="erp-input"
-              placeholder="GRN number, vendor, or PO..."
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-          </div>
-          <div>
-            <label className="erp-label">Status</label>
-            <select
-              className="erp-select w-40"
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
-            >
-              <option value="">All Status</option>
-              <option value="PendingQC">Pending QC</option>
-              <option value="Accepted">Accepted</option>
-              <option value="PartialAccepted">Partial</option>
-              <option value="Rejected">Rejected</option>
-            </select>
-          </div>
-          {(search || statusFilter) && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearch("");
-                setStatusFilter("");
-              }}
-              className="erp-action-btn erp-action-btn-secondary"
-            >
-              Clear
-            </button>
-          )}
-        </div>
-      }
+      filters={list.filterBar}
     >
       {error && <div className="erp-alert-error">{error}</div>}
 
-      {showForm && (
-        <div className="erp-panel">
-          <div className="erp-panel-header">
-            <div>
-              <h2 className="erp-panel-title">Record Goods Receipt</h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Capture the vendor, PO reference, receipt date, and received quantity.
-              </p>
-            </div>
-          </div>
-          <div className="erp-panel-body">
-            <form onSubmit={handleSave} className="space-y-4">
-              <div className="erp-form-grid erp-form-grid-2">
-                <div>
-                  <label className="erp-label">Vendor ID</label>
-                  <input
-                    className="erp-input"
-                    placeholder="Enter vendor ID"
-                    value={form.vendorId}
-                    onChange={(event) => setForm({ ...form, vendorId: event.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="erp-label">PO Reference</label>
-                  <input
-                    className="erp-input"
-                    placeholder="PO-2024-0001"
-                    value={form.poReference}
-                    onChange={(event) => setForm({ ...form, poReference: event.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="erp-label">Received Date</label>
-                  <input
-                    className="erp-input"
-                    type="date"
-                    value={form.receivedDate}
-                    onChange={(event) => setForm({ ...form, receivedDate: event.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="erp-label">Items Received</label>
-                  <input
-                    className="erp-input"
-                    type="number"
-                    min={1}
-                    value={form.totalItems}
-                    onChange={(event) => setForm({ ...form, totalItems: Number(event.target.value) })}
-                    required
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="erp-label">Remarks</label>
-                  <textarea
-                    className="erp-input"
-                    rows={3}
-                    value={form.remarks}
-                    onChange={(event) => setForm({ ...form, remarks: event.target.value })}
-                    placeholder="Quality remarks, shortages, mismatch notes..."
-                  />
-                </div>
-              </div>
-              <div className="erp-form-actions">
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="erp-action-btn erp-action-btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button type="submit" disabled={saving} className="erp-action-btn erp-action-btn-primary">
-                  {saving ? "Saving..." : "Record GRN"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <CrudCard>{list.table}</CrudCard>
 
-      <div className="erp-panel">
-        <div className="erp-panel-header">
-          <div>
-            <h2 className="erp-panel-title">GRN Register</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Monitor receipts by vendor, reference, quantity, and receiving status.
+      <SideDrawer
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        title="New GRN"
+        subtitle="Link the vendor and purchase order. Accept later to post stock from PO lines."
+        width="md"
+        footer={
+          <ErpDrawerFooter
+            onCancel={() => setShowForm(false)}
+            onSave={() => void handleSave()}
+            saving={saving}
+            disabled={!form.vendorId}
+            saveLabel="Record GRN"
+          />
+        }
+      >
+        <div className="grid grid-cols-1 gap-4">
+          <ErpMasterSelect
+            label="Vendor"
+            value={form.vendorId}
+            options={vendors}
+            placeholder="Select vendor"
+            onChange={(id) => setForm({ ...form, vendorId: id, purchaseOrderId: "" })}
+          />
+          <ErpMasterSelect
+            label="Purchase order"
+            value={form.purchaseOrderId}
+            options={vendorPos.map((order) => ({
+              id: order.id,
+              label: order.poNumber,
+              meta: formatInr(order.totalAmount),
+            }))}
+            placeholder="Select PO"
+            onChange={(id) => setForm({ ...form, purchaseOrderId: id })}
+          />
+          {selectedPo ? (
+            <p className="text-sm text-slate-500">
+              Receipt will stock the lines on {selectedPo.poNumber} ({formatInr(selectedPo.totalAmount)}).
             </p>
+          ) : (
+            <p className="text-sm text-slate-500">A PO is required before Accept can post stock.</p>
+          )}
+          <div>
+            <label className="erp-label">Received Date</label>
+            <input
+              className="erp-input mt-1"
+              type="date"
+              value={form.receivedDate}
+              onChange={(event) => setForm({ ...form, receivedDate: event.target.value })}
+            />
+          </div>
+          <div>
+            <label className="erp-label">Remarks</label>
+            <textarea
+              className="erp-input mt-1"
+              rows={3}
+              value={form.remarks}
+              onChange={(event) => setForm({ ...form, remarks: event.target.value })}
+              placeholder="Quality remarks, shortages, mismatch notes..."
+            />
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="erp-table">
-            <thead className="erp-thead">
-              <tr>
-                <th className="erp-th">GRN</th>
-                <th className="erp-th">Vendor</th>
-                <th className="erp-th">PO Reference</th>
-                <th className="erp-th">Received Date</th>
-                <th className="erp-th">Items</th>
-                <th className="erp-th">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                Array.from({ length: 5 }).map((_, index) => (
-                  <tr key={index}>
-                    <td colSpan={6} className="erp-td">
-                      <div className="h-4 animate-pulse rounded bg-slate-100" />
-                    </td>
-                  </tr>
-                ))
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="erp-td py-16 text-center">
-                    <div className="flex flex-col items-center gap-3">
-                      <Truck className="h-10 w-10 text-slate-300" />
-                      <p className="text-sm text-slate-400">No GRN records found.</p>
-                      <button
-                        type="button"
-                        onClick={() => setShowForm(true)}
-                        className="erp-action-btn erp-action-btn-secondary text-xs"
-                      >
-                        Record GRN
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((record) => {
-                  const status = STATUS_CONFIG[record.status || "PendingQC"] || STATUS_CONFIG.PendingQC;
-                  return (
-                    <tr key={record.id} className="erp-tr">
-                      <td className="erp-td font-mono text-sm font-semibold text-slate-900">
-                        {record.grnNumber || "-"}
-                      </td>
-                      <td className="erp-td text-slate-700">
-                        {record.vendorName || record.vendorId || "-"}
-                      </td>
-                      <td className="erp-td font-mono text-xs text-slate-600">
-                        {record.poReference || "-"}
-                      </td>
-                      <td className="erp-td text-slate-600">
-                        {record.receivedDate
-                          ? new Date(record.receivedDate).toLocaleDateString("en-IN")
-                          : "-"}
-                      </td>
-                      <td className="erp-td font-semibold text-slate-700">{record.totalItems || "-"}</td>
-                      <td className="erp-td">
-                        <span className={`${status.chip} flex w-fit items-center gap-1`}>
-                          {status.icon}
-                          {status.label}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      </SideDrawer>
     </StandardPageLayout>
   );
 }

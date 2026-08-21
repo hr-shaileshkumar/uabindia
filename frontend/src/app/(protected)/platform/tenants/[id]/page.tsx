@@ -14,6 +14,7 @@ import { TenantActivity } from "@/features/tenants/components/feed/TenantActivit
 import { TenantEditDrawer } from "@/features/tenants/components/dialogs/TenantEditDrawer";
 import { Users, Building2, Package, Activity, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { erpButtonClassName } from "@/components/erp/erpStyles";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function TenantProfilePage({ params }: { params: Promise<{ id: string }> }) {
@@ -63,11 +64,11 @@ export default function TenantProfilePage({ params }: { params: Promise<{ id: st
         actions={
           <>
             <Button variant="outline" onClick={() => setEditDrawerOpen(true)} className="gap-1.5">
-              <Edit2 className="h-4 w-4 text-indigo-500" />
+              <Edit2 className="h-4 w-4 text-slate-600" />
               Edit Tenant Properties
             </Button>
             <Button variant="outline">Suspend Account</Button>
-            <Button className="bg-indigo-600 hover:bg-indigo-700 text-white">Login as Tenant</Button>
+            <button type="button" className={erpButtonClassName.primary}>Login as Tenant</button>
           </>
         }
       />

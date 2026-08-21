@@ -1,12 +1,34 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Plus, FileText } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Sparkles, SlidersHorizontal } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudHeaderStats } from "@/components/erp/crud-workspace";
-import { hrApi } from "@/services/hrApi";
+import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
+import { RecordAiDrawer } from "@/components/ai/RecordAiDrawer";
+import { SideDrawer } from "@/components/ui/side-drawer";
+import { ErpCreateButton, ErpDrawerFooter, ErpRefreshButton, ErpRowActions } from "@/components/erp/erp-page-kit";
+import { useErpListView } from "@/components/erp/erp-list-view";
+import DynamicFieldsSection from "@/components/DynamicFieldsSection";
+import { salesApi } from "@/services/modules";
 import { notifyError } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
+import { erpButtonClassName } from "@/components/erp/erpStyles";
+import {
+  DocLine,
+  ErpLineGrid,
+  ErpMasterSelect,
+  ErpTotalsStrip,
+  INDIA_STATE_CODES,
+  documentTotals,
+  emptyBillDiscount,
+  emptyDocLine,
+  formatInr,
+  gstSplit,
+  payloadLines,
+  printCommercialDocument,
+  useDocumentMasters,
+  withBillDiscount,
+} from "@/components/erp/erp-document-kit";
 
 type InvoiceRow = {
   id: string;
@@ -18,47 +40,39 @@ type InvoiceRow = {
   totalAmount?: number;
   dueDate?: string;
   issueDate?: string;
-  soDate?: string;
-  expectedDeliveryDate?: string;
   status?: string;
-  soNumber?: string;
+  placeOfSupply?: string;
+  cgstAmount?: number;
+  sgstAmount?: number;
+  igstAmount?: number;
 };
 
 type InvoiceForm = {
   customerId: string;
-  soNumber: string;
-  amount: number;
-  taxAmount: number;
+  placeOfSupply: string;
   dueDate: string;
   notes: string;
 };
 
 const STATUS_CONFIG: Record<string, { chip: string; label: string }> = {
   Paid: { chip: "erp-chip erp-chip-success", label: "Paid" },
+  Unpaid: { chip: "erp-chip erp-chip-info", label: "Unpaid" },
   Outstanding: { chip: "erp-chip erp-chip-info", label: "Outstanding" },
+  Partial: { chip: "erp-chip erp-chip-warning", label: "Partial" },
   Overdue: { chip: "erp-chip erp-chip-danger", label: "Overdue" },
   Draft: { chip: "erp-chip erp-chip-neutral", label: "Draft" },
   Cancelled: { chip: "erp-chip erp-chip-danger", label: "Cancelled" },
 };
 
-const formatCurrency = (v?: number) => v != null ? `Rs ${v.toLocaleString("en-IN")}` : "-";
-
-function mapSoStatusToInvoiceStatus(soStatus?: string): string {
-  switch (soStatus) {
-    case "Completed":
-      return "Paid";
-    case "Confirmed":
-      return "Outstanding";
-    case "Cancelled":
-      return "Cancelled";
-    case "Draft":
-      return "Draft";
-    default:
-      return "Outstanding";
-  }
-}
+const emptyForm = (): InvoiceForm => ({
+  customerId: "",
+  placeOfSupply: "",
+  dueDate: "",
+  notes: "",
+});
 
 export default function InvoicesPage() {
+  const { customers, items, schemes } = useDocumentMasters();
   const [records, setRecords] = useState<InvoiceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,33 +80,38 @@ export default function InvoicesPage() {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [form, setForm] = useState<InvoiceForm>({
-    customerId: "",
-    soNumber: "",
-    amount: 0,
-    taxAmount: 0,
-    dueDate: "",
-    notes: "",
-  });
+  const [aiInvoiceId, setAiInvoiceId] = useState<string | null>(null);
+  const [fieldsInvoice, setFieldsInvoice] = useState<InvoiceRow | null>(null);
+  const [form, setForm] = useState<InvoiceForm>(emptyForm);
+  const [lines, setLines] = useState<DocLine[]>([emptyDocLine()]);
+  const [discount, setDiscount] = useState(emptyBillDiscount);
+
+  const totals = useMemo(() => documentTotals(lines), [lines]);
+  const billed = useMemo(() => withBillDiscount(totals, discount), [totals, discount]);
+  const gst = gstSplit(totals.taxAmount, form.placeOfSupply);
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await hrApi.erp.salesOrders.getAll(1, 50);
+      const res = await salesApi.invoices.getAll(1, 50);
       const raw = res.data;
       const list = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
-      const mapped: InvoiceRow[] = list.map((so: InvoiceRow) => ({
-        id: so.id,
-        invoiceNumber: `INV-${(so.soNumber || so.id?.slice(0, 8) || "").replace("SO-", "")}`,
-        customerId: so.customerId,
-        customerName: so.customerName || so.customerId,
-        amount: so.totalAmount,
-        totalAmount: so.totalAmount,
-        issueDate: so.soDate,
-        dueDate: so.expectedDeliveryDate || so.dueDate,
-        status: mapSoStatusToInvoiceStatus(so.status),
-        soNumber: so.soNumber,
+      const mapped: InvoiceRow[] = list.map((inv: Record<string, unknown>) => ({
+        id: String(inv.id),
+        invoiceNumber: String(inv.invoiceNumber ?? ""),
+        customerId: inv.customerId ? String(inv.customerId) : undefined,
+        customerName: String(inv.customerName ?? inv.customerId ?? ""),
+        amount: Number(inv.subTotal ?? inv.totalAmount ?? 0),
+        taxAmount: Number(inv.taxAmount ?? 0),
+        totalAmount: Number(inv.totalAmount ?? 0),
+        issueDate: inv.invoiceDate ? String(inv.invoiceDate) : undefined,
+        dueDate: inv.dueDate ? String(inv.dueDate) : undefined,
+        status: String(inv.status ?? inv.paymentStatus ?? "Unpaid"),
+        placeOfSupply: inv.placeOfSupply ? String(inv.placeOfSupply) : undefined,
+        cgstAmount: Number(inv.cgstAmount ?? 0),
+        sgstAmount: Number(inv.sgstAmount ?? 0),
+        igstAmount: Number(inv.igstAmount ?? 0),
       }));
       setRecords(mapped);
     } catch (err) {
@@ -108,27 +127,69 @@ export default function InvoicesPage() {
     void load();
   }, [load]);
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.customerId || form.amount <= 0) return;
+  const openCreate = () => {
+    setForm(emptyForm());
+    setLines([emptyDocLine()]);
+    setDiscount(emptyBillDiscount());
+    setShowForm(true);
+  };
+
+  const handleSave = async () => {
+    const itemsPayload = payloadLines(lines);
+    if (!form.customerId || itemsPayload.length === 0) return;
     try {
       setSaving(true);
-      await hrApi.erp.salesOrders.create({
-        soNumber: `SO-${Date.now()}`,
+      await salesApi.invoices.create({
         customerId: form.customerId,
-        soDate: new Date().toISOString(),
-        expectedDeliveryDate: form.dueDate,
-        totalAmount: form.amount + form.taxAmount,
-        status: "Draft",
+        invoiceDate: new Date().toISOString(),
+        dueDate: form.dueDate || undefined,
+        placeOfSupply: form.placeOfSupply || undefined,
+        items: itemsPayload,
         notes: form.notes,
+        discountAmount: billed.discountAmount,
+        totalAmount: billed.netTotal,
+        status: "Unpaid",
+        paymentStatus: "Pending",
       });
       setShowForm(false);
-      setForm({ customerId: "", soNumber: "", amount: 0, taxAmount: 0, dueDate: "", notes: "" });
+      setForm(emptyForm());
+      setLines([emptyDocLine()]);
+      setDiscount(emptyBillDiscount());
       void load();
     } catch (err) {
       notifyError(getApiErrorMessage(err, "Failed to create invoice."), "Invoice");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const printInvoice = async (row: InvoiceRow) => {
+    try {
+      const res = await salesApi.invoices.getById(row.id);
+      const inv = (res.data?.data ?? res.data) as Record<string, unknown>;
+      const apiLines = Array.isArray(inv.items) ? (inv.items as Record<string, unknown>[]) : [];
+      printCommercialDocument({
+        title: "Tax Invoice",
+        number: String(inv.invoiceNumber ?? row.invoiceNumber ?? ""),
+        date: String(inv.invoiceDate ?? row.issueDate ?? "").slice(0, 10),
+        party: String(inv.customerName ?? row.customerName ?? ""),
+        placeOfSupply: String(inv.placeOfSupply ?? row.placeOfSupply ?? ""),
+        lines: apiLines.map((line) => ({
+          description: String(line.description ?? ""),
+          quantity: Number(line.quantity ?? 0),
+          unitPrice: Number(line.unitPrice ?? 0),
+          taxRate: Number(line.taxRate ?? 18),
+        })),
+        subTotal: Number(inv.subTotal ?? row.amount ?? 0),
+        taxAmount: Number(inv.taxAmount ?? row.taxAmount ?? 0),
+        total: Number(inv.totalAmount ?? row.totalAmount ?? 0),
+        discountAmount: Number(inv.discountAmount ?? 0),
+        cgst: Number(inv.cgstAmount ?? row.cgstAmount ?? 0),
+        sgst: Number(inv.sgstAmount ?? row.sgstAmount ?? 0),
+        igst: Number(inv.igstAmount ?? row.igstAmount ?? 0),
+      });
+    } catch (err) {
+      notifyError(getApiErrorMessage(err, "Could not print invoice."), "Invoice");
     }
   };
 
@@ -144,19 +205,109 @@ export default function InvoicesPage() {
 
   const now = new Date();
   const paid = filtered.filter((r) => r.status === "Paid").length;
-  const outstanding = filtered.filter((r) => r.status === "Outstanding").length;
+  const outstanding = filtered.filter((r) => ["Unpaid", "Outstanding", "Partial"].includes(r.status || "")).length;
   const overdue = filtered.filter((r) => {
-    if (r.status !== "Outstanding") return false;
+    if (r.status === "Paid") return false;
     return r.dueDate ? new Date(r.dueDate) < now : false;
   }).length;
   const totalOutstanding = filtered
-    .filter((r) => r.status === "Outstanding")
+    .filter((r) => r.status !== "Paid")
     .reduce((sum, r) => sum + (r.totalAmount || 0), 0);
+
+  const list = useErpListView({
+    listKey: "sales-invoices",
+    rows: filtered,
+    columns: [
+      { key: "invoiceNumber", label: "Invoice #" },
+      { key: "customerName", label: "Customer" },
+      { key: "placeOfSupply", label: "POS" },
+      { key: "dueDate", label: "Due Date", dataType: "date" },
+      { key: "taxAmount", label: "GST", dataType: "currency" },
+      { key: "totalAmount", label: "Amount", dataType: "currency" },
+      { key: "status", label: "Status" },
+      { key: "actions", label: "Actions", className: "text-right", locked: true },
+    ],
+    getRowId: (row) => row.id,
+    loading,
+    emptyMessage: "No invoices found. Use New invoice in the header to create one.",
+    onCreate: openCreate,
+    createLabel: "New invoice",
+    onRefresh: () => void load(),
+    extraFilters: (
+      <>
+        <input
+          className="erp-input max-w-xs"
+          placeholder="Invoice # or customer..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <select className="erp-select w-36" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <option value="">All Status</option>
+          <option value="Unpaid">Unpaid</option>
+          <option value="Partial">Partial</option>
+          <option value="Paid">Paid</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+      </>
+    ),
+    renderRow: (r) => {
+      const cfg = STATUS_CONFIG[r.status || "Unpaid"] || STATUS_CONFIG.Unpaid;
+      const isOverdue = r.status !== "Paid" && r.dueDate && new Date(r.dueDate) < now;
+      const gstLabel = r.igstAmount
+        ? `IGST ${formatInr(r.igstAmount)}`
+        : `CGST ${formatInr(r.cgstAmount)} + SGST ${formatInr(r.sgstAmount)}`;
+      return (
+        <tr key={r.id} className="erp-tr">
+          <td className="erp-td font-mono text-sm font-semibold text-slate-900">{r.invoiceNumber || "-"}</td>
+          <td className="erp-td text-slate-700">{r.customerName || r.customerId || "-"}</td>
+          <td className="erp-td text-slate-600">{r.placeOfSupply || "-"}</td>
+          <td className="erp-td">
+            <span className={isOverdue ? "font-semibold text-red-600" : "text-slate-600"}>
+              {r.dueDate ? new Date(r.dueDate).toLocaleDateString("en-IN") : "-"}
+              {isOverdue ? <span className="ml-1 text-xs">!</span> : null}
+            </span>
+          </td>
+          <td className="erp-td text-xs text-slate-600">{gstLabel}</td>
+          <td className="erp-td font-semibold text-slate-900">{formatInr(r.totalAmount)}</td>
+          <td className="erp-td">
+            <span className={cfg.chip}>{cfg.label}</span>
+          </td>
+          <td className="erp-td">
+            <ErpRowActions
+              onView={{ label: "Print", onClick: () => void printInvoice(r) }}
+              extra={
+                <>
+                  <button
+                    type="button"
+                    title="Fields"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                    onClick={() => setFieldsInvoice(r)}
+                  >
+                    <SlidersHorizontal className="h-4 w-4" />
+                    <span className="sr-only">Fields</span>
+                  </button>
+                  <button
+                    type="button"
+                    title="Ask AI"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                    onClick={() => setAiInvoiceId(r.id)}
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    <span className="sr-only">Ask AI</span>
+                  </button>
+                </>
+              }
+            />
+          </td>
+        </tr>
+      );
+    },
+  });
 
   return (
     <StandardPageLayout
       title="Invoices"
-      subtitle="Manage customer invoices, track payment status, and monitor outstanding receivables across all billing entities."
+      subtitle="Raise GST invoices with item lines, place of supply, and print from the register."
       eyebrow="Finance / Transactions"
       icon="file"
       meta={
@@ -164,148 +315,118 @@ export default function InvoicesPage() {
           items={[
             { label: "Invoices", value: filtered.length, helper: "visible" },
             { label: "Paid", value: paid, tone: "positive" },
-            { label: "Outstanding", value: outstanding, helper: formatCurrency(totalOutstanding), tone: "warning" },
+            { label: "Open", value: outstanding, helper: formatInr(totalOutstanding), tone: "warning" },
             { label: "Overdue", value: overdue, tone: "danger" },
           ]}
         />
       }
       actions={
-        <button type="button" onClick={() => setShowForm((p) => !p)} className="erp-action-btn erp-action-btn-primary">
-          <Plus className="h-4 w-4" />
-          Create Invoice
-        </button>
+        <>
+          <ErpRefreshButton onClick={() => void load()} loading={loading} />
+          {list.headerTools}
+          <ErpCreateButton label="New invoice" onClick={openCreate} />
+        </>
       }
-      filters={
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="min-w-48 flex-1">
-            <label className="erp-label">Search</label>
-            <input className="erp-input" placeholder="Invoice # or customer..." value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
-          <div>
-            <label className="erp-label">Status</label>
-            <select className="erp-select w-36" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              <option value="">All Status</option>
-              <option value="Draft">Draft</option>
-              <option value="Outstanding">Outstanding</option>
-              <option value="Paid">Paid</option>
-              <option value="Overdue">Overdue</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
-          </div>
-          {(search || statusFilter) && (
-            <button type="button" onClick={() => { setSearch(""); setStatusFilter(""); }} className="erp-action-btn erp-action-btn-secondary">Clear</button>
-          )}
-        </div>
-      }
+      filters={list.filterBar}
     >
       {error && <div className="erp-alert-error">{error}</div>}
 
-      {showForm && (
-        <div className="erp-panel">
-          <div className="erp-panel-header">
+      <CrudCard>{list.table}</CrudCard>
+
+      <SideDrawer
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        title="New invoice"
+        subtitle="Select the customer, place of supply, and taxable lines. GST is calculated on save."
+        width="full"
+        footer={
+          <ErpDrawerFooter
+            onCancel={() => setShowForm(false)}
+            onSave={() => void handleSave()}
+            saving={saving}
+            disabled={!form.customerId || payloadLines(lines).length === 0}
+            saveLabel="Create invoice"
+          />
+        }
+      >
+        <div className="grid grid-cols-1 gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <ErpMasterSelect
+              label="Customer"
+              value={form.customerId}
+              options={customers}
+              placeholder="Select customer"
+              onChange={(id, option) =>
+                setForm((current) => ({
+                  ...current,
+                  customerId: id,
+                  placeOfSupply: option?.state || current.placeOfSupply,
+                }))
+              }
+            />
             <div>
-              <h2 className="erp-panel-title">Create Invoice</h2>
-              <p className="mt-1 text-sm text-slate-500">Raise a new customer invoice against a sales order or standalone transaction.</p>
+              <label className="erp-label">Place of supply</label>
+              <select
+                className="erp-select mt-1"
+                value={form.placeOfSupply}
+                onChange={(e) => setForm((current) => ({ ...current, placeOfSupply: e.target.value }))}
+              >
+                <option value="">Select state</option>
+                {INDIA_STATE_CODES.map((code) => (
+                  <option key={code} value={code}>{code}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="erp-label">Due Date</label>
+              <input className="erp-input mt-1" type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} />
+            </div>
+            <div>
+              <label className="erp-label">Notes</label>
+              <input className="erp-input mt-1" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
             </div>
           </div>
-          <div className="erp-panel-body">
-            <form onSubmit={handleSave} className="space-y-4">
-              <div className="erp-form-grid erp-form-grid-2">
-                <div>
-                  <label className="erp-label">Customer ID</label>
-                  <input className="erp-input" placeholder="Enter customer ID" value={form.customerId} onChange={(e) => setForm({ ...form, customerId: e.target.value })} required />
-                </div>
-                <div>
-                  <label className="erp-label">SO Reference (optional)</label>
-                  <input className="erp-input" placeholder="e.g. SO-2024-0001" value={form.soNumber} onChange={(e) => setForm({ ...form, soNumber: e.target.value })} />
-                </div>
-                <div>
-                  <label className="erp-label">Amount (Rs)</label>
-                  <input className="erp-input" type="number" min={0} step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })} required />
-                </div>
-                <div>
-                  <label className="erp-label">Tax Amount (Rs)</label>
-                  <input className="erp-input" type="number" min={0} step="0.01" value={form.taxAmount} onChange={(e) => setForm({ ...form, taxAmount: Number(e.target.value) })} />
-                </div>
-                <div>
-                  <label className="erp-label">Due Date</label>
-                  <input className="erp-input" type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} required />
-                </div>
-                <div>
-                  <label className="erp-label">Total</label>
-                  <div className="erp-input bg-slate-50 font-semibold text-slate-900">{formatCurrency(form.amount + form.taxAmount)}</div>
-                </div>
-                <div className="md:col-span-2">
-                  <label className="erp-label">Notes</label>
-                  <textarea className="erp-input" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-                </div>
-              </div>
-              <div className="erp-form-actions">
-                <button type="button" onClick={() => setShowForm(false)} className="erp-action-btn erp-action-btn-secondary">Cancel</button>
-                <button type="submit" disabled={saving} className="erp-action-btn erp-action-btn-primary">{saving ? "Creating..." : "Create Invoice"}</button>
-              </div>
-            </form>
-          </div>
+          <ErpLineGrid lines={lines} onChange={setLines} items={items} priceField="sellingPrice" schemes={schemes} />
+          <ErpTotalsStrip
+            subTotal={totals.subTotal}
+            taxAmount={totals.taxAmount}
+            total={totals.total}
+            cgst={gst.cgst}
+            sgst={gst.sgst}
+            igst={gst.igst}
+            discount={discount}
+            onDiscountChange={setDiscount}
+          />
         </div>
-      )}
+      </SideDrawer>
 
-      <div className="erp-panel">
-        <div className="erp-panel-header">
-          <div>
-            <h2 className="erp-panel-title">Invoice Register</h2>
-            <p className="mt-1 text-sm text-slate-500">{filtered.length} invoices</p>
+      <SideDrawer
+        open={Boolean(fieldsInvoice)}
+        onClose={() => setFieldsInvoice(null)}
+        title={fieldsInvoice ? `Custom fields · ${fieldsInvoice.invoiceNumber || "Invoice"}` : "Custom fields"}
+        subtitle="SalesInvoice entity fields for this tenant"
+        width="md"
+        footer={
+          <div className="flex justify-end">
+            <button type="button" className={erpButtonClassName.secondary} onClick={() => setFieldsInvoice(null)}>
+              Close
+            </button>
           </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="erp-table">
-            <thead className="erp-thead">
-              <tr>
-                <th className="erp-th">Invoice #</th>
-                <th className="erp-th">Customer</th>
-                <th className="erp-th">Issue Date</th>
-                <th className="erp-th">Due Date</th>
-                <th className="erp-th">Amount</th>
-                <th className="erp-th">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}><td colSpan={6} className="erp-td"><div className="h-4 animate-pulse rounded bg-slate-100" /></td></tr>
-                ))
-              ) : filtered.length === 0 ? (
-                <tr><td colSpan={6} className="erp-td py-16 text-center">
-                  <div className="flex flex-col items-center gap-3">
-                    <FileText className="h-10 w-10 text-slate-300" />
-                    <p className="text-sm text-slate-400">No invoices found. Create one to get started.</p>
-                    <button type="button" onClick={() => setShowForm(true)} className="erp-action-btn erp-action-btn-secondary text-xs">Create Invoice</button>
-                  </div>
-                </td></tr>
-              ) : (
-                filtered.map((r) => {
-                  const cfg = STATUS_CONFIG[r.status || "Draft"] || STATUS_CONFIG.Draft;
-                  const isOverdue = r.status === "Outstanding" && r.dueDate && new Date(r.dueDate) < now;
-                  return (
-                    <tr key={r.id} className="erp-tr">
-                      <td className="erp-td font-mono text-sm font-semibold text-slate-900">{r.invoiceNumber || "-"}</td>
-                      <td className="erp-td text-slate-700">{r.customerName || r.customerId || "-"}</td>
-                      <td className="erp-td text-slate-600">{r.issueDate ? new Date(r.issueDate).toLocaleDateString("en-IN") : "-"}</td>
-                      <td className="erp-td">
-                        <span className={isOverdue ? "font-semibold text-red-600" : "text-slate-600"}>
-                          {r.dueDate ? new Date(r.dueDate).toLocaleDateString("en-IN") : "-"}
-                          {isOverdue && <span className="ml-1 text-xs">!</span>}
-                        </span>
-                      </td>
-                      <td className="erp-td font-semibold text-slate-900">{formatCurrency(r.totalAmount)}</td>
-                      <td className="erp-td"><span className={cfg.chip}>{cfg.label}</span></td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+        }
+      >
+        {fieldsInvoice ? (
+          <DynamicFieldsSection entityName="SalesInvoice" recordId={fieldsInvoice.id} editable compact />
+        ) : null}
+      </SideDrawer>
+
+      <RecordAiDrawer
+        open={Boolean(aiInvoiceId)}
+        onClose={() => setAiInvoiceId(null)}
+        recordType="invoice"
+        recordId={aiInvoiceId ?? ""}
+        title="Ask AI · Invoice"
+        suggestedPrompt="Summarize balance and collection risk for this invoice."
+      />
     </StandardPageLayout>
   );
 }

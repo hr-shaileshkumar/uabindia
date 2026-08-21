@@ -77,4 +77,51 @@ export const orgApi = {
     }) => apiClient.put(`/projects/${id}`, data),
     delete: (id: string) => apiClient.delete(`/projects/${id}`),
   },
+  contextEvents: {
+    log: (data: {
+      previousCompanyId?: string | null;
+      previousProjectId?: string | null;
+      companyId?: string | null;
+      projectId?: string | null;
+      companyName?: string | null;
+      projectName?: string | null;
+    }) => apiClient.post("/org-context/events", data),
+  },
+  orgStructure: {
+    departments: {
+      list: (companyId?: string) =>
+        apiClient.get(`/org/departments${companyId ? `?companyId=${companyId}` : ""}`),
+      create: (data: ApiPayload) => apiClient.post("/org/departments", data),
+      update: (id: string, data: ApiPayload) => apiClient.put(`/org/departments/${id}`, data),
+      delete: (id: string) => apiClient.delete(`/org/departments/${id}`),
+    },
+    designations: {
+      list: (companyId?: string) =>
+        apiClient.get(`/org/designations${companyId ? `?companyId=${companyId}` : ""}`),
+      create: (data: ApiPayload) => apiClient.post("/org/designations", data),
+      update: (id: string, data: ApiPayload) => apiClient.put(`/org/designations/${id}`, data),
+      delete: (id: string) => apiClient.delete(`/org/designations/${id}`),
+    },
+    branches: {
+      list: (companyId?: string) =>
+        apiClient.get(`/org/branches${companyId ? `?companyId=${companyId}` : ""}`),
+      create: (data: ApiPayload) => apiClient.post("/org/branches", data),
+      update: (id: string, data: ApiPayload) => apiClient.put(`/org/branches/${id}`, data),
+      delete: (id: string) => apiClient.delete(`/org/branches/${id}`),
+    },
+    costCenters: {
+      list: (companyId?: string) =>
+        apiClient.get(`/org/cost-centers${companyId ? `?companyId=${companyId}` : ""}`),
+      create: (data: ApiPayload) => apiClient.post("/org/cost-centers", data),
+      update: (id: string, data: ApiPayload) => apiClient.put(`/org/cost-centers/${id}`, data),
+      delete: (id: string) => apiClient.delete(`/org/cost-centers/${id}`),
+    },
+    businessUnits: {
+      list: (companyId?: string) =>
+        apiClient.get(`/org/business-units${companyId ? `?companyId=${companyId}` : ""}`),
+      create: (data: ApiPayload) => apiClient.post("/org/business-units", data),
+      update: (id: string, data: ApiPayload) => apiClient.put(`/org/business-units/${id}`, data),
+      delete: (id: string) => apiClient.delete(`/org/business-units/${id}`),
+    },
+  },
 };

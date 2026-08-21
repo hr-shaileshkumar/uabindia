@@ -1,15 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { notifyError, notifySuccess } from "@/lib/notifications";
-import { GlobalLoading } from "@/components/ui/GlobalLoading";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { SideDrawer } from "@/components/ui/side-drawer";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { hrApi } from "@/services/hrApi";
-import { Search, Plus, Eye, Edit3, Trash2, ShieldCheck, Building2, CreditCard } from "lucide-react";
+import { CrudCard } from "@/components/erp/crud-workspace";
+import { ErpCreateButton, ErpRefreshButton, ErpRowActions } from "@/components/erp/erp-page-kit";
+import { useErpListView } from "@/components/erp/erp-list-view";
+import { procurementApi } from "@/services/modules";
+import { ShieldCheck, Building2, CreditCard } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 type Vendor = {
@@ -31,7 +32,7 @@ type VendorForm = {
   creditLimit: number;
 };
 
-const vendorsApi = hrApi.erp.vendors;
+const vendorsApi = procurementApi.vendors;
 
 const formatCurrency = (value?: number) =>
   value != null ? `₹${value.toLocaleString("en-IN")}` : "-";
@@ -185,6 +186,63 @@ export default function VendorsManager() {
     }
   };
 
+  const list = useErpListView({
+    listKey: "vendors",
+    rows: filteredVendors,
+    columns: [
+      { key: "vendorCode", label: "Code" },
+      { key: "vendorName", label: "Vendor Name" },
+      { key: "vendorType", label: "Type" },
+      { key: "gstNumber", label: "GST Number" },
+      { key: "paymentTerms", label: "Payment Terms", dataType: "number" },
+      { key: "creditLimit", label: "Credit Limit", dataType: "currency" },
+      { key: "actions", label: "Actions", className: "text-right", locked: true },
+    ],
+    getRowId: (row) => row.id,
+    loading,
+    emptyMessage: searchTerm ? "No vendors match your search criteria." : "No vendors found. Click New vendor to create the first record.",
+    onCreate: openCreateDrawer,
+    createLabel: "New vendor",
+    onRefresh: () => void fetchVendors(),
+    extraFilters: (
+      <input
+        type="search"
+        placeholder="Search vendor name, GST, code..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="erp-input max-w-xs"
+      />
+    ),
+    onBulkDelete: async (rows) => {
+      for (const row of rows) {
+        await vendorsApi.delete(row.id);
+      }
+      notifySuccess(`${rows.length} vendor record(s) deleted.`);
+      await fetchVendors();
+    },
+    renderRow: (vendor) => (
+      <tr key={vendor.id} className="erp-tr">
+        <td className="erp-td font-semibold text-slate-900">{vendor.vendorCode}</td>
+        <td className="erp-td font-medium text-slate-800">{vendor.vendorName}</td>
+        <td className="erp-td">
+          <Badge variant="outline" className="text-xs font-normal">
+            {vendor.vendorType}
+          </Badge>
+        </td>
+        <td className="erp-td font-mono text-xs text-slate-600">{vendor.gstNumber || "-"}</td>
+        <td className="erp-td text-slate-600">{vendor.paymentTerms || 30} days</td>
+        <td className="erp-td font-semibold text-slate-900">{formatCurrency(vendor.creditLimit)}</td>
+        <td className="erp-td text-right">
+          <ErpRowActions
+            onView={{ label: "View", onClick: () => openViewDrawer(vendor) }}
+            onEdit={{ label: "Edit", onClick: () => openEditDrawer(vendor) }}
+            onDelete={{ label: "Delete", onClick: () => void handleDelete(vendor.id, vendor.vendorName) }}
+          />
+        </td>
+      </tr>
+    ),
+  });
+
   return (
     <StandardPageLayout
       title="Vendors Master"
@@ -205,92 +263,17 @@ export default function VendorsManager() {
         </>
       }
       actions={
-        <Button onClick={openCreateDrawer} className="gap-2">
-          <Plus className="h-4 w-4" /> Add Vendor
-        </Button>
+        <>
+          <ErpRefreshButton onClick={() => void fetchVendors()} loading={loading} />
+          {list.headerTools}
+          <ErpCreateButton label="New vendor" onClick={openCreateDrawer} />
+        </>
       }
+      filters={list.filterBar}
     >
-      <div className="space-y-4">
-        {confirmDialog}
-
-        <Card className="border border-slate-200/80 shadow-sm">
-          <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-            <div>
-              <CardTitle className="text-lg font-bold text-slate-900">Vendor Directory</CardTitle>
-              <p className="mt-0.5 text-xs text-slate-500">
-                Search and review legal identity, tax credentials, payment terms, and approved credit limits.
-              </p>
-            </div>
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search vendor name, GST, code..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="erp-input pl-9 text-xs"
-              />
-            </div>
-          </CardHeader>
-
-          <CardContent className="p-0">
-            {loading && vendors.length === 0 ? (
-              <div className="p-12">
-                <GlobalLoading label="Loading vendors directory..." variant="inline" />
-              </div>
-            ) : filteredVendors.length === 0 ? (
-              <div className="erp-empty py-12">
-                {searchTerm ? "No vendors match your search criteria." : "No vendors found. Click Add Vendor to create the first record."}
-              </div>
-            ) : (
-              <div className="erp-table-wrap border-0 shadow-none">
-                <table className="erp-table">
-                  <thead className="erp-thead">
-                    <tr>
-                      <th className="erp-th">Code</th>
-                      <th className="erp-th">Vendor Name</th>
-                      <th className="erp-th">Type</th>
-                      <th className="erp-th">GST Number</th>
-                      <th className="erp-th">Payment Terms</th>
-                      <th className="erp-th">Credit Limit</th>
-                      <th className="erp-th text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredVendors.map((vendor) => (
-                      <tr key={vendor.id} className="erp-tr hover:bg-slate-50/80 transition-colors">
-                        <td className="erp-td font-semibold text-slate-900">{vendor.vendorCode}</td>
-                        <td className="erp-td font-medium text-slate-800">{vendor.vendorName}</td>
-                        <td className="erp-td">
-                          <Badge variant="outline" className="text-xs font-normal">
-                            {vendor.vendorType}
-                          </Badge>
-                        </td>
-                        <td className="erp-td text-slate-600 font-mono text-xs">{vendor.gstNumber || "-"}</td>
-                        <td className="erp-td text-slate-600">{vendor.paymentTerms || 30} days</td>
-                        <td className="erp-td font-semibold text-slate-900">{formatCurrency(vendor.creditLimit)}</td>
-                        <td className="erp-td text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-600 hover:text-slate-900" onClick={() => openViewDrawer(vendor)} title="View Details">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-blue-600 hover:text-blue-800" onClick={() => openEditDrawer(vendor)} title="Edit Record">
-                              <Edit3 className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-rose-600 hover:text-rose-800" onClick={() => void handleDelete(vendor.id, vendor.vendorName)} title="Delete Record">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      {confirmDialog}
+      {error ? <div className="erp-alert-error text-sm">{error}</div> : null}
+      <CrudCard>{list.table}</CrudCard>
 
       {/* Slide-Over Drawer for Create / Edit Form */}
       <SideDrawer
@@ -377,7 +360,7 @@ export default function VendorsManager() {
 
             <div className="space-y-3">
               <div className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 bg-white">
-                <Building2 className="h-5 w-5 text-indigo-600 shrink-0" />
+                <Building2 className="h-5 w-5 text-slate-600 shrink-0" />
                 <div>
                   <p className="text-xs text-slate-500">GST Registration Number</p>
                   <p className="text-sm font-semibold text-slate-900 font-mono">{selectedVendor.gstNumber || "Not Registered"}</p>

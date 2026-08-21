@@ -1,5 +1,5 @@
-﻿"use client";
-import { DesignationList } from "@/features/hrms/components/DesignationList";
-export default function DesignationsRoute() {
-  return <DesignationList />;
+﻿import { redirect } from "next/navigation";
+
+export default function LegacyDesignationsRedirect() {
+  redirect("/platform/designations");
 }

@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { PageHeader } from "@/design-system";
-import { hrApi } from "@/services/hrApi";
+import { orgApi, platformApi } from "@/services/modules";
 import { useOrgContext } from "@/context/OrgContext";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { notifyError, notifySuccess } from "@/lib/notifications";
@@ -12,14 +10,10 @@ import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { useTableSelection } from "@/hooks/useTableSelection";
 import { BulkActionBar } from "@/components/table/BulkActionBar";
 import { BulkEditDialog } from "@/components/table/BulkEditDialog";
-import { SelectionCheckbox } from "@/components/table/SelectionCheckbox";
-import { SelectAllCheckbox } from "@/components/table/SelectAllCheckbox";
-import { TableActionMenu } from "@/components/table/TableActionMenu";
 import QuickEditDrawer from "@/components/ui/QuickEditDrawer";
 import EntityProfileCard from "@/components/ui/EntityProfileCard";
 import type { BulkActionFieldConfig } from "@/features/shared/types/bulkActions";
 import { CrudCard } from "@/components/erp/crud-workspace";
-import ErpHeaderSummary from "@/components/layout/ErpHeaderSummary";
 import { UserTable } from "@/features/platform/components/UserTable";
 import { PlatformGlobalPageShell, KpiMetricItem } from "@/components/platform/PlatformGlobalPageShell";
 
@@ -103,10 +97,10 @@ export default function UsersPage() {
     try {
       if (isSuperAdmin) {
         const [usersRes, rolesRes, companiesRes, tenantsRes] = await Promise.all([
-          hrApi.platform.users(includeDeletedFlag ?? showDeleted),
-          hrApi.platform.roles(),
-          hrApi.company.getAllForSuperAdmin(),
-          hrApi.platform.tenants(),
+          platformApi.admin.users(includeDeletedFlag ?? showDeleted),
+          platformApi.admin.roles(),
+          orgApi.company.getAllForSuperAdmin(),
+          platformApi.admin.tenants(),
         ]);
 
         const companies = Array.isArray((companiesRes.data as { companies?: Array<{ id: string; tenantId: string }> }).companies)
@@ -129,8 +123,8 @@ export default function UsersPage() {
         setTenants(tenantsData);
       } else {
         const [usersRes, rolesRes] = await Promise.all([
-          hrApi.platform.users(includeDeletedFlag ?? showDeleted),
-          hrApi.platform.roles(),
+          platformApi.admin.users(includeDeletedFlag ?? showDeleted),
+          platformApi.admin.roles(),
         ]);
 
         setUsers(usersRes.data || []);
@@ -278,7 +272,7 @@ export default function UsersPage() {
 
     try {
       if (editingUserId) {
-        await hrApi.platform.updateUser(editingUserId, {
+        await platformApi.admin.updateUser(editingUserId, {
           fullName: form.fullName.trim() || undefined,
           password: form.password.trim() || undefined,
           isActive: form.isActive,
@@ -286,7 +280,7 @@ export default function UsersPage() {
         });
         notifySuccess("User updated successfully.");
       } else {
-        await hrApi.platform.createUser({
+        await platformApi.admin.createUser({
           email: form.email.trim(),
           password: form.password,
           fullName: form.fullName.trim() || undefined,
@@ -320,7 +314,7 @@ export default function UsersPage() {
 
     setQuickEditSaving(true);
     try {
-      await hrApi.platform.updateUser(quickEditUser.id, {
+      await platformApi.admin.updateUser(quickEditUser.id, {
         fullName: quickEditForm.fullName.trim() || undefined,
         isActive: quickEditForm.isActive,
         roles: quickEditForm.roles,
@@ -347,7 +341,7 @@ export default function UsersPage() {
     if (!ok) return;
 
     try {
-      await hrApi.platform.deleteUser(user.id);
+      await platformApi.admin.deleteUser(user.id);
       notifySuccess("User deleted successfully.");
       await load();
     } catch (err) {
@@ -359,7 +353,7 @@ export default function UsersPage() {
 
   const handleRestore = async (user: UserRow) => {
     try {
-      await hrApi.platform.recycleBin.restore("Users", user.id);
+      await platformApi.admin.recycleBin.restore("Users", user.id);
       notifySuccess("User restored successfully.");
       await load();
     } catch (err) {
@@ -379,7 +373,7 @@ export default function UsersPage() {
     if (!ok) return;
 
     try {
-      await hrApi.platform.recycleBin.hardDelete("Users", user.id);
+      await platformApi.admin.recycleBin.hardDelete("Users", user.id);
       notifySuccess("User permanently deleted.");
       await load();
     } catch (err) {
@@ -402,7 +396,7 @@ export default function UsersPage() {
     let successCount = 0;
     for (const user of selection.selectedItems) {
       try {
-        await hrApi.platform.deleteUser(user.id);
+        await platformApi.admin.deleteUser(user.id);
         successCount += 1;
       } catch {
         // Continue processing remaining rows.
@@ -420,7 +414,7 @@ export default function UsersPage() {
     const count = selection.selectionCount;
     for (const user of selection.selectedItems) {
       try {
-        await hrApi.platform.updateUser(user.id, updates as { isActive?: boolean; roles?: string[]; fullName?: string; password?: string });
+        await platformApi.admin.updateUser(user.id, updates as { isActive?: boolean; roles?: string[]; fullName?: string; password?: string });
         successCount += 1;
       } catch {
         // Continue processing remaining rows.
@@ -578,7 +572,7 @@ export default function UsersPage() {
                     onClick={() => toggleRole(role.name)}
                     className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                       selected
-                        ? "border-blue-300 bg-blue-50 text-blue-700"
+                        ? "border-slate-400 bg-slate-100 text-slate-800"
                         : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
                     }`}
                   >
@@ -703,7 +697,7 @@ export default function UsersPage() {
                   onClick={() => toggleQuickRole(role.name)}
                   className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                     selected
-                      ? "border-blue-300 bg-blue-50 text-blue-700"
+                      ? "border-slate-400 bg-slate-100 text-slate-800"
                       : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
                   }`}
                 >

@@ -1,5 +1,6 @@
-import CustomersManager from "@/features/erp/components/CustomersManager";
+import { redirect } from "next/navigation";
+import { ROUTES } from "@/constants/routes";
 
-export default function CustomersPage() {
-  return <CustomersManager />;
+export default function LegacyCustomersRedirect() {
+  redirect(ROUTES.CUSTOMERS);
 }

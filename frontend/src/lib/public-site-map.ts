@@ -128,6 +128,27 @@ const PUBLIC_ROUTE_DEFINITIONS: PublicRouteDefinition[] = [
     audiences: ["tenant"],
     placements: ["footer"],
   },
+  {
+    key: "forgot-password",
+    label: "Forgot Password",
+    href: "/forgot-password",
+    audiences: ["platform", "tenant"],
+    placements: ["footer"],
+  },
+  {
+    key: "reset-password",
+    label: "Reset Password",
+    href: "/reset-password",
+    audiences: ["platform", "tenant"],
+    placements: ["footer"],
+  },
+  {
+    key: "register",
+    label: "Request Access",
+    href: "/register",
+    audiences: ["platform", "tenant"],
+    placements: ["footer"],
+  },
 ];
 
 const normalizeInternalHref = (href: string) => {

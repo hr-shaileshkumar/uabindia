@@ -1,5 +1,4 @@
-export const publicSiteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") || "https://www.uabindia.com";
+export { publicSiteUrl } from "./public-site-url";
 
 export type MarketingNavGroup = {
   label: string;
@@ -177,28 +176,8 @@ export const publicFooterGroups = [
 
 export const trustedOrganizations: TrustedOrganization[] = [];
 
-export const heroMetrics: MarketingMetric[] = [
-  {
-    label: "Active Webhook Listeners",
-    value: "Fully Compliant",
-    helper: "Secure corporate enquiry flows and automatic state updates resolve through live-monitored integrations.",
-  },
-  {
-    label: "Real-time API Integrations",
-    value: "Active Synced",
-    helper: "Platform instances and tenant databases resolve structural ledgers and employee records from the backend.",
-  },
-  {
-    label: "Access Control Security",
-    value: "Role-Based MFA",
-    helper: "The entire ecosystem is governed by auditable access models, granular permissions, and approval protocols.",
-  },
-  {
-    label: "Deployment Strategy",
-    value: "Phased Rollout",
-    helper: "Begin deployment with core functions and expand modules incrementally without breaking layout states.",
-  },
-];
+/** Populated from the public site API when available; no static fallback metrics. */
+export const heroMetrics: MarketingMetric[] = [];
 
 export const businessProblems: MarketingProblem[] = [
   {
@@ -985,10 +964,27 @@ export const demoAgenda = [
 ];
 
 export const supportLanes = [
-  "Sales and solution consulting for product fit and rollout planning",
-  "Implementation guidance for phase-wise deployment and migration readiness",
-  "Post-go-live support for usage, issue resolution, and workflow optimization",
-];
+  {
+    title: "Sales & solution consulting",
+    detail: "Discuss product fit, module priorities, and a realistic rollout sequence for your business.",
+    channel: "Pre-sales",
+  },
+  {
+    title: "Implementation & onboarding",
+    detail: "Phase-wise deployment, data migration planning, and go-live readiness support.",
+    channel: "Rollout",
+  },
+  {
+    title: "Customer success",
+    detail: "Post-go-live help with workflows, user adoption, and operational best practices.",
+    channel: "Live ops",
+  },
+  {
+    title: "Technical support",
+    detail: "Issue resolution, access problems, and platform configuration assistance.",
+    channel: "Support",
+  },
+] as const;
 
 export function getMarketingModule(slug: string) {
   return marketingModules.find((module) => module.slug === slug);

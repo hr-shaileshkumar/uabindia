@@ -537,6 +537,14 @@ export default function ModuleIcon({ name, className }: { name?: string | null; 
           <line x1="3" y1="10" x2="21" y2="10" {...p} />
         </svg>
       );
+    case "percent":
+      return (
+        <svg className={sz} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <line x1="19" y1="5" x2="5" y2="19" {...p} />
+          <circle cx="6.5" cy="6.5" r="2.5" {...p} />
+          <circle cx="17.5" cy="17.5" r="2.5" {...p} />
+        </svg>
+      );
     default: {
       return (
         <svg className={sz} viewBox="0 0 24 24" fill="none" stroke="currentColor">

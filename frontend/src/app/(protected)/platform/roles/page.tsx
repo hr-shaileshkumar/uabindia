@@ -4,9 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowRight, CheckCircle2, Copy, Layers3, Search } from "lucide-react";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { PageHeader } from "@/design-system";
-import { CrudHeaderStats } from "@/components/erp/crud-workspace";
+import { erpButtonClassName } from "@/components/erp/erpStyles";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PERMISSIONS } from "@/constants/permissions";
 import { ROUTES } from "@/constants/routes";
@@ -14,8 +12,9 @@ import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { useUiSchema } from "@/context/UiSchemaContext";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { notifyError, notifySuccess } from "@/lib/notifications";
-import { hrApi } from "@/services/hrApi";
+import { platformApi } from "@/services/modules";
 import { PlatformGlobalPageShell, KpiMetricItem } from "@/components/platform/PlatformGlobalPageShell";
+import { PermissionMatrix, collectColumnPermissionIds } from "@/components/platform/PermissionMatrix";
 
 interface Role {
   id: string;
@@ -184,7 +183,7 @@ export default function RolesPage() {
     setSaveMsg("");
 
     try {
-      const response = await hrApi.platform.rolePermissions(roleId);
+      const response = await platformApi.admin.rolePermissions(roleId);
       const permissions = (response.data.permissions as RolePerm[]) || [];
       const nextAssigned = new Set(permissions.map((permission) => permission.permissionId));
 
@@ -206,10 +205,10 @@ export default function RolesPage() {
       setLoading(true);
       try {
         const [rolesRes, permsRes, usersRes, auditRes] = await Promise.all([
-          hrApi.platform.roles(),
-          hrApi.platform.permissions(),
-          hrApi.platform.users(),
-          hrApi.platform.auditLogs({ page: 1, limit: 100 }),
+          platformApi.admin.roles(),
+          platformApi.admin.permissions(),
+          platformApi.admin.users(),
+          platformApi.admin.auditLogs({ page: 1, limit: 100 }),
         ]);
 
         const nextRoles = ((rolesRes.data.roles as Role[]) || []).slice().sort((left, right) => left.name.localeCompare(right.name));
@@ -221,7 +220,7 @@ export default function RolesPage() {
         const counts = await Promise.all(
           nextRoles.map(async (role) => {
             try {
-              const response = await hrApi.platform.rolePermissions(role.id);
+              const response = await platformApi.admin.rolePermissions(role.id);
               return [role.id, (response.data.permissions as RolePerm[] | undefined)?.length ?? 0] as const;
             } catch {
               return [role.id, 0] as const;
@@ -389,6 +388,21 @@ export default function RolesPage() {
     setSaveMsg("");
   };
 
+  const toggleColumn = (moduleKey: string, column: string) => {
+    const ids = collectColumnPermissionIds(filteredPermissions, moduleKey, column);
+    if (ids.length === 0) return;
+    const allAssigned = ids.every((id) => assigned.has(id));
+    setAssigned((previous) => {
+      const next = new Set(previous);
+      ids.forEach((id) => {
+        if (allAssigned) next.delete(id);
+        else next.add(id);
+      });
+      return next;
+    });
+    setSaveMsg("");
+  };
+
   const toggleModuleView = (moduleKey: string) => {
     setExpandedModuleKeys((previous) => {
       const next = new Set(previous);
@@ -403,7 +417,7 @@ export default function RolesPage() {
 
     setSaving(true);
     try {
-      await hrApi.platform.updateRolePermissions(selectedRole.id, Array.from(assigned));
+      await platformApi.admin.updateRolePermissions(selectedRole.id, Array.from(assigned));
       notifySuccess("Role permissions updated successfully.");
       setOriginalAssigned(new Set(assigned));
       await loadRolePermissions(selectedRole.id);
@@ -419,13 +433,6 @@ export default function RolesPage() {
   const _actionMenuItems = [
     { label: "Open permissions catalog", onClick: () => window.location.assign(ROUTES.PLATFORM_PERMISSIONS) },
     { label: "Open module mapping", onClick: () => window.location.assign(ROUTES.PLATFORM_MODULE_MAPPING) },
-  ];
-
-  const headerStats = [
-    { label: "Roles", value: roles.length, helper: "total" },
-    { label: "Permissions", value: allPerms.length, tone: "info" as const },
-    { label: "Modules", value: navigation.modules.length, tone: "warning" as const },
-    { label: "Routes", value: routeRules.rules.length, tone: "positive" as const },
   ];
 
   const kpis: KpiMetricItem[] = [
@@ -445,10 +452,10 @@ export default function RolesPage() {
       >
         <div className="p-4 space-y-5">
           <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => void savePermissions()} disabled={!hasUnsavedChanges || saving || permLoading || !selectedRole} className="erp-action-btn erp-action-btn-primary inline-flex items-center gap-2">
+            <button type="button" onClick={() => void savePermissions()} disabled={!hasUnsavedChanges || saving || permLoading || !selectedRole} className={`${erpButtonClassName.primary} inline-flex items-center gap-2`}>
               <Copy className="h-4 w-4" />{saving ? "Saving..." : "Save changes"}
             </button>
-            <button type="button" className="erp-action-btn erp-action-btn-secondary inline-flex items-center gap-2" onClick={() => setActiveTab("overview")}>
+            <button type="button" className={`${erpButtonClassName.secondary} inline-flex items-center gap-2`} onClick={() => setActiveTab("overview")}>
               <ArrowRight className="h-4 w-4" />Overview
             </button>
           </div>
@@ -485,13 +492,13 @@ export default function RolesPage() {
                         key={role.id}
                         type="button"
                         onClick={() => setSelectedRoleId(role.id)}
-                        className={`w-full rounded-2xl border px-4 py-3 text-left transition ${isSelected ? "border-sky-200 bg-sky-50" : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"}`}
+                        className={`w-full rounded-2xl border px-4 py-3 text-left transition ${isSelected ? "border-slate-400 bg-slate-50 ring-1 ring-slate-200" : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"}`}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
                               <div className="text-sm font-semibold text-slate-950">{role.name}</div>
-                              {isSelected ? <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-700">Active</span> : null}
+                              {isSelected ? <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-700">Active</span> : null}
                             </div>
                             <p className="mt-1 line-clamp-2 text-xs text-slate-500">{role.description || "Role access profile"}</p>
                           </div>
@@ -547,7 +554,7 @@ export default function RolesPage() {
 
                     <div className="flex w-full flex-col gap-2 xl:w-auto xl:flex-row xl:items-center">
                       {saveMsg ? <span className={`text-sm ${saveMsg.startsWith("Failed") ? "text-red-500" : "text-green-600"}`}>{saveMsg}</span> : null}
-                      <button type="button" onClick={() => void savePermissions()} disabled={saving || permLoading || !hasUnsavedChanges} className="erp-action-btn erp-action-btn-primary">
+                      <button type="button" onClick={() => void savePermissions()} disabled={saving || permLoading || !hasUnsavedChanges} className={erpButtonClassName.primary}>
                         {saving ? "Saving..." : "Save changes"}
                       </button>
                     </div>
@@ -672,79 +679,21 @@ export default function RolesPage() {
                         </select>
                       </div>
 
+                      <p className="mt-3 text-xs text-slate-500">
+                        Matrix columns: View · Create · Edit · Delete · Approve · Export · Access. Click a column header to bulk-toggle that action within a module.
+                      </p>
+
                       {permLoading ? (
                         <div className="erp-loading mt-5 min-h-[18rem]">Loading permissions...</div>
-                      ) : groupedPermissions.size === 0 ? (
-                        <div className="erp-empty mt-5 min-h-[18rem]">No permissions match the current filters.</div>
                       ) : (
-                        <div className="mt-5 max-h-[68vh] space-y-4 overflow-y-auto pr-1">
-                          {Array.from(groupedPermissions.entries()).map(([moduleKey, modulePermissions]) => {
-                            const assignedCount = modulePermissions.filter((permission) => assigned.has(permission.id)).length;
-                            const partiallyAssigned = assignedCount > 0 && assignedCount < modulePermissions.length;
-                            const expanded = permissionSearch.trim().length > 0 || assignedCount > 0;
-
-                            return (
-                              <div key={moduleKey} className="overflow-hidden rounded-3xl border border-slate-200 bg-white">
-                                <div className="flex flex-col gap-4 px-4 py-4 xl:flex-row xl:items-center xl:justify-between">
-                                  <button type="button" onClick={() => toggleEntireModule(moduleKey)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-                                    <span className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl ${expanded ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600"}`}>
-                                      {expanded ? <Layers3 className="h-4 w-4" /> : "+"}
-                                    </span>
-                                    <div className="min-w-0 flex-1">
-                                      <div className="flex flex-wrap items-center gap-2">
-                                        <span className="text-sm font-semibold text-slate-900">{moduleLabel(moduleKey)}</span>
-                                        {partiallyAssigned ? <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-700">Partial</span> : null}
-                                      </div>
-                                      <div className="mt-1 text-sm text-slate-500">{assignedCount} of {modulePermissions.length} permissions assigned</div>
-                                    </div>
-                                  </button>
-
-                                  <button
-                                    type="button"
-                                    role="switch"
-                                    aria-checked={assignedCount > 0}
-                                    onClick={() => toggleEntireModule(moduleKey)}
-                                    className={`inline-flex min-h-11 items-center gap-3 rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                                      assignedCount > 0 ? "border-sky-200 bg-sky-50 text-sky-800" : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50"
-                                    }`}
-                                  >
-                                    <span>{assignedCount > 0 ? "Module access on" : "Module access off"}</span>
-                                    <span className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${assignedCount > 0 ? "bg-sky-600" : "bg-slate-300"}`}>
-                                      <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${assignedCount > 0 ? "translate-x-5" : "translate-x-1"}`} />
-                                    </span>
-                                  </button>
-                                </div>
-
-                                {expanded ? (
-                                  <div className="border-t border-slate-100 bg-slate-50/50 px-4 py-4">
-                                    <div className="space-y-3">
-                                      {modulePermissions.map((permission) => {
-                                        const enabled = assigned.has(permission.id);
-                                        return (
-                                          <button
-                                            key={permission.id}
-                                            type="button"
-                                            onClick={() => togglePerm(permission.id)}
-                                            className={`flex w-full items-center justify-between gap-4 rounded-2xl border px-4 py-3 text-left transition ${
-                                              enabled ? "border-sky-200 bg-white shadow-sm" : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
-                                            }`}
-                                          >
-                                            <div className="min-w-0 flex-1">
-                                              <div className="text-sm font-semibold text-slate-900">{permission.name}</div>
-                                              <div className="mt-1 text-xs text-slate-500">{permission.description || `${moduleLabel(permission.module)} / ${permission.action}`}</div>
-                                            </div>
-                                            <span className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition ${enabled ? "bg-sky-600" : "bg-slate-300"}`}>
-                                              <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${enabled ? "translate-x-5" : "translate-x-1"}`} />
-                                            </span>
-                                          </button>
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
-                                ) : null}
-                              </div>
-                            );
-                          })}
+                        <div className="mt-5">
+                          <PermissionMatrix
+                            permissions={filteredPermissions}
+                            assigned={assigned}
+                            onToggle={togglePerm}
+                            onToggleModule={toggleEntireModule}
+                            onToggleColumn={toggleColumn}
+                          />
                         </div>
                       )}
                       </TabsContent>

@@ -70,6 +70,20 @@ export const FRONTEND_MODULE_MAP: FrontendModuleDefinition[] = [
         ],
       },
       {
+        key: "org-structure",
+        label: "Organization Structure",
+        purpose: "Company org masters consumed by HRMS and other business modules.",
+        pages: [
+          { label: "Departments", route: ROUTES.PLATFORM_DEPARTMENTS, purpose: "Department hierarchy.", display: "directory", status: "implemented" },
+          { label: "Designations", route: ROUTES.PLATFORM_DESIGNATIONS, purpose: "Job designations.", display: "directory", status: "implemented" },
+          { label: "Branches", route: ROUTES.PLATFORM_BRANCHES, purpose: "Branch / location masters.", display: "directory", status: "implemented" },
+          { label: "Cost Centers", route: ROUTES.PLATFORM_COST_CENTERS, purpose: "Cost center masters.", display: "directory", status: "implemented" },
+          { label: "Business Units", route: ROUTES.PLATFORM_BUSINESS_UNITS, purpose: "Business unit masters.", display: "directory", status: "implemented" },
+          { label: "Org Chart", route: ROUTES.PLATFORM_ORG_CHART, purpose: "Visual organization chart.", display: "analytics", status: "implemented" },
+          { label: "Holiday Calendar", route: ROUTES.PLATFORM_HOLIDAY_CALENDAR, purpose: "Company holiday calendar.", display: "settings", status: "implemented" },
+        ],
+      },
+      {
         key: "access-control",
         label: "Access Control",
         purpose: "Manage users, roles, permissions, and navigation mapping.",
@@ -213,9 +227,10 @@ export const FRONTEND_MODULE_MAP: FrontendModuleDefinition[] = [
       {
         key: "hr-operations",
         label: "HR Operations",
-        purpose: "HR-linked payroll actions.",
+        purpose: "Travel and payroll entry points for HR.",
         pages: [
-          { label: "HR Payroll", route: ROUTES.HR_PAYROLL, purpose: "HR-side payroll workspace.", display: "workflow", status: "implemented" },
+          { label: "Travel", route: ROUTES.TRAVEL, purpose: "Employee travel requests.", display: "workflow", status: "implemented" },
+          { label: "HR Payroll", route: ROUTES.HR_PAYROLL, purpose: "Redirect into payroll runs.", display: "workflow", status: "implemented" },
         ],
       },
     ],
@@ -232,6 +247,7 @@ export const FRONTEND_MODULE_MAP: FrontendModuleDefinition[] = [
         label: "Processing",
         purpose: "Core payroll execution flow.",
         pages: [
+          { label: "Payroll Dashboard", route: ROUTES.PAYROLL_HOME, purpose: "Payroll workspace landing.", display: "dashboard", status: "implemented" },
           { label: "Payroll Run", route: ROUTES.PAYROLL_RUNS, purpose: "Run monthly payroll.", display: "workflow", status: "implemented" },
           { label: "Payslips", route: ROUTES.PAYROLL_PAYSLIPS, purpose: "Generate and review payslips.", display: "directory", status: "implemented" },
           { label: "Bonus", route: ROUTES.PAYROLL_BONUS, purpose: "Manage bonus payments.", display: "workflow", status: "implemented" },
@@ -273,6 +289,7 @@ export const FRONTEND_MODULE_MAP: FrontendModuleDefinition[] = [
         label: "Ledger Setup",
         purpose: "Core accounting structure and journal control.",
         pages: [
+          { label: "Finance Dashboard", route: ROUTES.FINANCE_HOME, purpose: "Finance workspace landing and operational shortcuts.", display: "dashboard", status: "implemented" },
           { label: "Chart of Accounts", route: ROUTES.CHART_OF_ACCOUNTS, purpose: "Maintain account master.", display: "settings", status: "implemented" },
           { label: "Journal Entries", route: ROUTES.JOURNAL_ENTRIES, purpose: "Create and manage journals.", display: "directory", status: "implemented" },
         ],
@@ -317,6 +334,7 @@ export const FRONTEND_MODULE_MAP: FrontendModuleDefinition[] = [
         label: "Catalog",
         purpose: "Item master and inventory setup.",
         pages: [
+          { label: "Inventory Dashboard", route: ROUTES.INVENTORY_HOME, purpose: "Inventory workspace landing and stock visibility.", display: "dashboard", status: "implemented" },
           { label: "Items", route: ROUTES.ITEMS, purpose: "Manage item catalog.", display: "directory", status: "implemented" },
         ],
       },
@@ -352,6 +370,7 @@ export const FRONTEND_MODULE_MAP: FrontendModuleDefinition[] = [
         label: "Vendor Management",
         purpose: "Supplier master and vendor directory.",
         pages: [
+          { label: "Procurement Dashboard", route: ROUTES.PROCUREMENT_HOME, purpose: "Procurement workspace landing and purchasing summary.", display: "dashboard", status: "implemented" },
           { label: "Vendors", route: ROUTES.VENDORS, purpose: "Manage supplier records.", display: "directory", status: "implemented" },
         ],
       },
@@ -386,6 +405,7 @@ export const FRONTEND_MODULE_MAP: FrontendModuleDefinition[] = [
         label: "Customer Management",
         purpose: "Customer records and account master.",
         pages: [
+          { label: "Sales Dashboard", route: ROUTES.SALES_HOME, purpose: "Sales workspace landing and commercial summary.", display: "dashboard", status: "implemented" },
           { label: "Customers", route: ROUTES.CUSTOMERS, purpose: "Manage customer master.", display: "directory", status: "implemented" },
         ],
       },
@@ -395,6 +415,7 @@ export const FRONTEND_MODULE_MAP: FrontendModuleDefinition[] = [
         purpose: "Quotations, orders, and return processing.",
         pages: [
           { label: "Quotations", route: ROUTES.QUOTATIONS, purpose: "Manage quotes and proposals.", display: "workflow", status: "implemented" },
+          { label: "Discounts", route: ROUTES.DISCOUNTS, purpose: "Product, category, and bill discount schemes.", display: "directory", status: "implemented" },
           { label: "Sales Orders", route: ROUTES.SALES_ORDERS, purpose: "Manage customer sales orders.", display: "workflow", status: "implemented" },
           { label: "Returns", route: ROUTES.RETURNS, purpose: "Process returns and reversals.", display: "workflow", status: "implemented" },
         ],
@@ -406,19 +427,18 @@ export const FRONTEND_MODULE_MAP: FrontendModuleDefinition[] = [
     label: "CRM",
     homeRoute: ROUTES.CRM_HOME,
     purpose: "Customer relationship and funnel management.",
-    moduleView: "Module hub exists, but child page implementation is still incomplete in src/app.",
+    moduleView: "Module hub with leads pipeline and customer master.",
     submodules: [
       {
         key: "relationship-management",
         label: "Relationship Management",
         purpose: "Lead, contact, and interaction tracking.",
         pages: [
-          { label: "CRM Home", route: ROUTES.CRM_HOME, purpose: "CRM landing page.", display: "dashboard", status: "partial" },
+          { label: "CRM Home", route: ROUTES.CRM_HOME, purpose: "CRM landing page.", display: "dashboard", status: "implemented" },
+          { label: "Leads", route: ROUTES.LEADS, purpose: "Lead pipeline board and register.", display: "workflow", status: "implemented" },
+          { label: "Customers", route: ROUTES.CUSTOMERS, purpose: "Customer master.", display: "directory", status: "implemented" },
         ],
       },
-    ],
-    gaps: [
-      "CRM has a module home route but no dedicated CRM child pages in frontend/src/app.",
     ],
   },
   {
@@ -433,12 +453,13 @@ export const FRONTEND_MODULE_MAP: FrontendModuleDefinition[] = [
         label: "Report Categories",
         purpose: "Functional reporting areas.",
         pages: [
+          { label: "Reports Home", route: ROUTES.REPORTS_HOME, purpose: "Reports workspace landing.", display: "dashboard", status: "implemented" },
           { label: "HR Reports", route: ROUTES.REPORTS_HR, purpose: "Employee and HR reporting.", display: "analytics", status: "implemented" },
           { label: "Payroll Reports", route: ROUTES.REPORTS_PAYROLL, purpose: "Payroll and payout reporting.", display: "analytics", status: "implemented" },
           { label: "Compliance Reports", route: ROUTES.REPORTS_COMPLIANCE, purpose: "Compliance reporting.", display: "analytics", status: "implemented" },
           { label: "ERP Reports", route: ROUTES.REPORTS_ERP, purpose: "ERP operational reporting.", display: "analytics", status: "implemented" },
           { label: "Financial Reports", route: ROUTES.REPORTS_FINANCIAL, purpose: "Finance reporting and summaries.", display: "analytics", status: "implemented" },
-          { label: "Custom Reports", route: ROUTES.REPORTS_CUSTOM, purpose: "Custom report builder and saved reports.", display: "analytics", status: "partial" },
+          { label: "Custom Reports", route: ROUTES.REPORTS_CUSTOM, purpose: "Custom report builder and saved reports.", display: "analytics", status: "implemented" },
         ],
       },
     ],
@@ -455,6 +476,7 @@ export const FRONTEND_MODULE_MAP: FrontendModuleDefinition[] = [
         label: "Support Operations",
         purpose: "Ticket and escalation management.",
         pages: [
+          { label: "Helpdesk Overview", route: ROUTES.HELPDESK_HOME, purpose: "Helpdesk workspace landing.", display: "dashboard", status: "implemented" },
           { label: "Tickets", route: ROUTES.HELPDESK_TICKETS, purpose: "Manage helpdesk tickets.", display: "directory", status: "implemented" },
           { label: "Escalations", route: ROUTES.HELPDESK_ESCALATIONS, purpose: "Track escalated issues.", display: "workflow", status: "implemented" },
         ],
@@ -481,6 +503,7 @@ export const FRONTEND_MODULE_MAP: FrontendModuleDefinition[] = [
         label: "Internal Communication",
         purpose: "Employee communication and notice workflows.",
         pages: [
+          { label: "Communication Overview", route: ROUTES.COMMUNICATION_HOME, purpose: "Communication workspace landing.", display: "dashboard", status: "implemented" },
           { label: "Announcements", route: ROUTES.COMMUNICATION_ANNOUNCEMENTS, purpose: "Manage announcements.", display: "directory", status: "implemented" },
         ],
       },
@@ -507,6 +530,7 @@ export const FRONTEND_MODULE_MAP: FrontendModuleDefinition[] = [
         label: "Connection Management",
         purpose: "Manage connectivity and integration credentials.",
         pages: [
+          { label: "Integrations Overview", route: ROUTES.INTEGRATIONS_HOME, purpose: "Integrations workspace landing.", display: "dashboard", status: "implemented" },
           { label: "API Keys", route: ROUTES.INTEGRATIONS_API_KEYS, purpose: "Manage API credentials.", display: "settings", status: "implemented" },
           { label: "Webhooks", route: ROUTES.INTEGRATIONS_WEBHOOKS, purpose: "Manage webhook events.", display: "settings", status: "implemented" },
           { label: "Apps", route: ROUTES.INTEGRATIONS_APPS, purpose: "Manage integrated apps.", display: "directory", status: "implemented" },

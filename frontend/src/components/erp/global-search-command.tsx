@@ -11,6 +11,8 @@ import {
   flattenWorkspacePages,
   type WorkspaceModule,
 } from "@/lib/erp/navigation";
+import { appApi } from "@/services/modules";
+import type { SearchResult } from "@/types";
 
 type GlobalSearchCommandProps = {
   open: boolean;
@@ -36,6 +38,8 @@ export function GlobalSearchCommand({
   const { navigation, enabledModules } = useUiSchema();
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
+  const [recordHits, setRecordHits] = useState<SearchResult[]>([]);
+  const [recordsLoading, setRecordsLoading] = useState(false);
 
   const modules = useMemo(
     () => buildWorkspaceModules(navigation.modules, enabledModules),
@@ -126,11 +130,12 @@ export function GlobalSearchCommand({
       .slice(0, 8);
   }, [deferredQuery, modules]);
 
-  const totalResults = results.reduce((count, result) => count + result.pages.length, 0);
+  const totalNavResults = results.reduce((count, result) => count + result.pages.length, 0);
 
   useEffect(() => {
     if (!open) {
       setQuery("");
+      setRecordHits([]);
       return;
     }
 
@@ -143,6 +148,51 @@ export function GlobalSearchCommand({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onOpenChange, open]);
+
+  useEffect(() => {
+    const q = deferredQuery.trim();
+    if (!open || q.length < 2) {
+      setRecordHits([]);
+      setRecordsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      setRecordsLoading(true);
+      void appApi.search
+        .query(q)
+        .then((res) => {
+          if (cancelled) return;
+          const raw = res.data;
+          const list = Array.isArray(raw?.results) ? raw.results : Array.isArray(raw) ? raw : [];
+          setRecordHits(
+            list.map((item: SearchResult) => ({
+              title: item.title,
+              subtitle: item.subtitle,
+              path: item.path,
+              module: item.module,
+              category: item.category ?? "module",
+              icon: item.icon,
+            })),
+          );
+        })
+        .catch(() => {
+          if (!cancelled) setRecordHits([]);
+        })
+        .finally(() => {
+          if (!cancelled) setRecordsLoading(false);
+        });
+    }, 220);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [deferredQuery, open]);
+
+  const recordOnlyHits = recordHits.filter((hit) => hit.category !== "page");
+  const hasAnyResults = totalNavResults > 0 || recordOnlyHits.length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -159,7 +209,7 @@ export function GlobalSearchCommand({
                 autoFocus
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search modules, pages, records, and workspace destinations"
+                placeholder="Search modules, pages, employees, invoices, leads…"
                 className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 pr-20 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:bg-white focus:ring-4 focus:ring-sky-100"
               />
               <span className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400 sm:inline-flex">
@@ -178,83 +228,140 @@ export function GlobalSearchCommand({
           </div>
 
           <div className="mt-3 flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-            <span>{query.trim() ? `${totalResults} matches` : "Suggested destinations"}</span>
+            <span>
+              {query.trim()
+                ? `${totalNavResults + recordOnlyHits.length} matches`
+                : "Suggested destinations"}
+            </span>
             <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-600">
-              Backend-driven navigation
+              {recordsLoading ? "Searching records…" : "Nav + live records"}
             </span>
           </div>
         </div>
 
         <div className="max-h-[70vh] overflow-y-auto px-5 py-5 sm:px-6">
-          {results.length === 0 ? (
+          {!hasAnyResults && query.trim().length >= 2 && !recordsLoading ? (
             <div className="flex min-h-56 flex-col items-center justify-center rounded-[1.75rem] border border-dashed border-slate-300 bg-slate-50/70 px-6 text-center">
-              <p className="text-sm font-semibold text-slate-900">No navigation items match this search.</p>
+              <p className="text-sm font-semibold text-slate-900">No matches for this search.</p>
               <p className="mt-2 max-w-md text-sm leading-7 text-slate-500">
-                Try a module name, child page, or route keyword returned by the backend UI schema.
+                Try an employee code, invoice number, lead name, project task, or module keyword.
               </p>
             </div>
-          ) : (
-            <div className="space-y-5">
-              {results.map((result) => (
-                <section
-                  key={result.module.key}
-                  className="rounded-[1.75rem] border border-slate-200 bg-slate-50/70 p-4"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-sky-700 shadow-sm">
-                        <ModuleIcon name={result.module.icon} className="h-5 w-5" />
-                      </span>
-                      <div>
-                        <p className="text-sm font-semibold text-slate-950">{result.module.label}</p>
-                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                          {result.module.pageCount} pages
-                        </p>
-                      </div>
-                    </div>
+          ) : null}
 
-                    {result.module.homeHref ? (
-                      <Link
-                        href={result.module.homeHref}
-                        onClick={() => onOpenChange(false)}
-                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-600 transition hover:border-slate-300 hover:text-slate-950"
-                      >
-                        Open module
-                        <ArrowRight className="h-3.5 w-3.5" />
-                      </Link>
-                    ) : null}
-                  </div>
-
-                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    {result.pages.map((page) => (
-                      <Link
-                        key={page.path}
-                        href={page.path}
-                        onClick={() => onOpenChange(false)}
-                        className="group rounded-2xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm"
-                      >
-                        <div className="flex items-start gap-3">
-                          <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-50 text-slate-700 transition group-hover:bg-sky-50 group-hover:text-sky-700">
-                            <ModuleIcon name={page.icon} className="h-4 w-4" />
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-start justify-between gap-3">
-                              <p className="truncate text-sm font-semibold text-slate-950">{page.name}</p>
-                              <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-slate-300 transition group-hover:text-sky-700" />
-                            </div>
-                            <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                              {page.groupLabel}
-                            </p>
-                            <p className="mt-3 truncate text-sm text-slate-600">{page.path}</p>
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </section>
-              ))}
+          {!hasAnyResults && query.trim().length < 2 ? (
+            <div className="flex min-h-56 flex-col items-center justify-center rounded-[1.75rem] border border-dashed border-slate-300 bg-slate-50/70 px-6 text-center">
+              <p className="text-sm font-semibold text-slate-900">Start typing to search.</p>
+              <p className="mt-2 max-w-md text-sm leading-7 text-slate-500">
+                Navigation suggestions appear as you type. Record search needs at least 2 characters.
+              </p>
             </div>
-          )}
+          ) : null}
+
+          <div className="space-y-5">
+            {recordOnlyHits.length > 0 ? (
+              <section className="rounded-[1.75rem] border border-slate-200 bg-slate-50/70 p-4">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-950">Records</p>
+                    <p className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                      Live tenant search
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    {recordOnlyHits.length}
+                  </span>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {recordOnlyHits.map((hit) => (
+                    <Link
+                      key={`${hit.module}-${hit.path}-${hit.title}`}
+                      href={hit.path}
+                      onClick={() => onOpenChange(false)}
+                      className="group rounded-2xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm"
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-50 text-slate-700 transition group-hover:bg-sky-50 group-hover:text-sky-700">
+                          <ModuleIcon name={hit.icon} className="h-4 w-4" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-3">
+                            <p className="truncate text-sm font-semibold text-slate-950">{hit.title}</p>
+                            <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-slate-300 transition group-hover:text-sky-700" />
+                          </div>
+                          {hit.subtitle ? (
+                            <p className="mt-1 truncate text-xs text-slate-500">{hit.subtitle}</p>
+                          ) : null}
+                          <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                            {hit.module}
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {results.map((result) => (
+              <section
+                key={result.module.key}
+                className="rounded-[1.75rem] border border-slate-200 bg-slate-50/70 p-4"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-sky-700 shadow-sm">
+                      <ModuleIcon name={result.module.icon} className="h-5 w-5" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-950">{result.module.label}</p>
+                      <p className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                        {result.module.pageCount} pages
+                      </p>
+                    </div>
+                  </div>
+
+                  {result.module.homeHref ? (
+                    <Link
+                      href={result.module.homeHref}
+                      onClick={() => onOpenChange(false)}
+                      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-600 transition hover:border-slate-300 hover:text-slate-950"
+                    >
+                      Open module
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  ) : null}
+                </div>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {result.pages.map((page) => (
+                    <Link
+                      key={page.path}
+                      href={page.path}
+                      onClick={() => onOpenChange(false)}
+                      className="group rounded-2xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm"
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-50 text-slate-700 transition group-hover:bg-sky-50 group-hover:text-sky-700">
+                          <ModuleIcon name={page.icon} className="h-4 w-4" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-3">
+                            <p className="truncate text-sm font-semibold text-slate-950">{page.name}</p>
+                            <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-slate-300 transition group-hover:text-sky-700" />
+                          </div>
+                          <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                            {page.groupLabel}
+                          </p>
+                          <p className="mt-3 truncate text-sm text-slate-600">{page.path}</p>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

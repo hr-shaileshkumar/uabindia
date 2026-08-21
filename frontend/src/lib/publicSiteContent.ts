@@ -64,13 +64,10 @@ export const getDefaultHeaderContent = (
   audience: PublicAudience = "tenant"
 ): PublicHeaderContent => ({
   badge: audience === "platform" ? "Cloud ERP platform" : "Company workspace",
-  announcement:
-    audience === "platform"
-      ? `${profile.brandName} brings HR, payroll, finance, procurement, inventory, CRM, projects, and support into one secure platform.`
-      : `${profile.companyName} employee access, support, and company information`,
+  announcement: "",
   homeHref: getDefaultPublicHomeHref(audience),
   navLinks: getPublicNavLinks(audience, "primary"),
-  primaryCtaLabel: audience === "platform" ? "Request Demo" : "Login",
+  primaryCtaLabel: audience === "platform" ? "Book demo" : "Login",
   primaryCtaHref: audience === "platform" ? "/book-demo" : "/login",
 });
 

@@ -187,6 +187,17 @@ export const usePublicPageData = (
 
     const normalizePath = (value: string) => value.split("?")[0].split("#")[0].replace(/\/+$/, "") || "/";
     const currentPath = normalizePath(pathname);
+    const alwaysVisibleAuthPaths = new Set([
+      "/login",
+      "/forgot-password",
+      "/reset-password",
+      "/register",
+    ]);
+
+    if (alwaysVisibleAuthPaths.has(currentPath)) {
+      return true;
+    }
+
     const manifestPages = manifest.pages || [];
 
     if (manifestPages.length === 0) {

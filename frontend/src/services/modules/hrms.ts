@@ -1,18 +1,20 @@
 import apiClient from "@/services/apiClient";
+import type { DashboardStats, LeaveRequestsResponse } from "@/types";
 import type { ApiPayload } from "./shared";
 
 export const hrmsApi = {
   dashboard: {
-    getStats: () => apiClient.get("/hr/dashboard"),
+    getStats: () => apiClient.get<DashboardStats>("/hr/dashboard"),
   },
   hrms: {
     employees: {
-      list: (page = 1, limit = 10, params?: { companyId?: string; projectId?: string; search?: string; status?: string }) => {
+      list: (page = 1, limit = 10, params?: { companyId?: string; projectId?: string; search?: string; status?: string; probation?: boolean }) => {
         const query = new URLSearchParams({ page: String(page), limit: String(limit) });
         if (params?.companyId) query.append("companyId", params.companyId);
         if (params?.projectId) query.append("projectId", params.projectId);
         if (params?.search) query.append("search", params.search);
         if (params?.status) query.append("status", params.status);
+        if (params?.probation) query.append("probation", "true");
         return apiClient.get(`/employees?${query}`);
       },
       getById: (id: string) => apiClient.get(`/employees/${id}`),
@@ -28,6 +30,7 @@ export const hrmsApi = {
       },
       getById: (id: string) => apiClient.get(`/attendance/${id}`),
       markAttendance: (data: ApiPayload) => apiClient.post("/attendance/punch", data),
+      punchMe: (data?: ApiPayload) => apiClient.post("/attendance/punch/me", data ?? {}),
     },
     leave: {
       types: {
@@ -42,7 +45,8 @@ export const hrmsApi = {
           create: (policyId: string, data: ApiPayload) => apiClient.post(`/leave/policies/${policyId}/rules`, data),
         },
       },
-      list: (page = 1, limit = 10) => apiClient.get(`/leave/requests?page=${page}&limit=${limit}`),
+      list: (page = 1, limit = 10) =>
+        apiClient.get<LeaveRequestsResponse>(`/leave/requests?page=${page}&limit=${limit}`),
       getById: (id: string) => apiClient.get(`/leave/requests/${id}`),
       requestLeave: (data: ApiPayload) => apiClient.post("/leave/requests", data),
       approveLeave: (id: string) => apiClient.post(`/leave/requests/${id}/approve`, {}),
@@ -52,6 +56,7 @@ export const hrmsApi = {
       },
       balances: {
         list: (employeeId?: string) => apiClient.get(`/leave/balances${employeeId ? `?employeeId=${employeeId}` : ""}`),
+        mine: () => apiClient.get("/leave/balances/me"),
       },
       holidays: {
         list: (year?: number) => apiClient.get(`/leave/holidays${year ? `?year=${year}` : ""}`),
@@ -130,6 +135,7 @@ export const hrmsApi = {
   },
   training: {
     getCourses: (skip = 0, take = 50) => apiClient.get(`/training/courses?skip=${skip}&take=${take}`),
+    createCourse: (data: ApiPayload) => apiClient.post("/training/courses", data),
     getAssessments: (params?: { result?: string; assessmentType?: string; search?: string; page?: number; limit?: number }) => {
       const q = new URLSearchParams();
       if (params?.result) q.set("result", params.result);
@@ -148,4 +154,39 @@ export const hrmsApi = {
       return apiClient.get(`/training/certificates?${q}`);
     },
   },
+  recruitment: {
+    jobPostings: (page = 1, limit = 20) =>
+      apiClient.get(`/recruitment/job-postings?page=${page}&limit=${limit}`),
+    createJobPosting: (data: ApiPayload) => apiClient.post("/recruitment/job-postings", data),
+  },
+  appraisals: {
+    cycles: {
+      list: (page = 1, limit = 10) => apiClient.get(`/appraisals/cycles?page=${page}&limit=${limit}`),
+      getById: (id: string) => apiClient.get(`/appraisals/cycles/${id}`),
+      create: (data: ApiPayload) => apiClient.post("/appraisals/cycles", data),
+      update: (id: string, data: ApiPayload) => apiClient.put(`/appraisals/cycles/${id}`, data),
+      delete: (id: string) => apiClient.delete(`/appraisals/cycles/${id}`),
+      activate: (id: string) => apiClient.post(`/appraisals/cycles/${id}/activate`, {}),
+      appraisals: (cycleId: string) => apiClient.get(`/appraisals/cycles/${cycleId}/appraisals`),
+    },
+    list: (page = 1, limit = 10) => apiClient.get(`/appraisals?page=${page}&limit=${limit}`),
+    listMine: (page = 1, limit = 10) => apiClient.get(`/appraisals?page=${page}&limit=${limit}`),
+    getById: (id: string) => apiClient.get(`/appraisals/${id}`),
+    create: (data: ApiPayload) => apiClient.post("/appraisals", data),
+    update: (id: string, data: ApiPayload) => apiClient.put(`/appraisals/${id}`, data),
+    selfAssess: (id: string, data: ApiPayload) => apiClient.post(`/appraisals/${id}/self-assess`, data),
+    assess: (id: string, data: ApiPayload) => apiClient.post(`/appraisals/${id}/assess`, data),
+    approve: (id: string, data?: ApiPayload) => apiClient.post(`/appraisals/${id}/approve`, data || {}),
+    reject: (id: string, data?: ApiPayload) => apiClient.post(`/appraisals/${id}/reject`, data || {}),
+  },
+  lifecycle: {
+    tasks: (kind = "Onboarding", employeeId?: string) => {
+      const q = new URLSearchParams({ kind });
+      if (employeeId) q.append("employeeId", employeeId);
+      return apiClient.get(`/hrms/lifecycle/tasks?${q}`);
+    },
+    completeTask: (id: string) => apiClient.post(`/hrms/lifecycle/tasks/${id}/complete`, {}),
+    createTask: (data: ApiPayload) => apiClient.post("/hrms/lifecycle/tasks", data),
+  },
+  me: () => apiClient.get("/employees/me"),
 };

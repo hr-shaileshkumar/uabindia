@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import EmployeeForm, { type EmployeeFormValues } from "@/features/hrms/components/EmployeeForm";
 import DynamicFieldsSection from "@/components/DynamicFieldsSection";
-import { hrApi } from "@/services/hrApi";
+import { hrmsApi } from "@/services/modules";
 import { PERMISSIONS } from "@/constants/permissions";
 
 export default function EmployeeDetailPage() {
@@ -20,7 +20,7 @@ export default function EmployeeDetailPage() {
     const load = async () => {
       try {
         setLoading(true);
-        const res = await hrApi.hrms.employees.getById(id);
+        const res = await hrmsApi.hrms.employees.getById(id);
         const emp = res.data;
         setInitial({
           fullName: emp.fullName ?? "",
@@ -41,14 +41,14 @@ export default function EmployeeDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-16">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-slate-900" />
       </div>
     );
   }
 
   if (error || !initial) {
     return (
-      <div className="m-6 rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
+      <div className="m-6 rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700">
         {error ?? "Employee not found"}
       </div>
     );

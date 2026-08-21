@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowRight, Check } from "lucide-react";
 import {
   CtaPanel,
   IndustryGrid,
@@ -9,30 +10,27 @@ import {
   ResourceGrid,
   TrustRibbon,
 } from "@/components/public/PublicMarketingBlocks";
-import { MotionReveal } from "@/components/public/PublicMotion";
 import PublicStructuredData from "@/components/public/PublicStructuredData";
+import { MotionReveal } from "@/components/public/PublicMotion";
 import { PlatformPublicPageShell, usePlatformPublicPage } from "@/components/public/pages/PlatformPublicPageShell";
 import {
   publicButtonClassName,
-  publicEyebrowClassName,
   publicPanelClassName,
-  publicPanelHoverClassName,
   publicSectionClassName,
+  publicSectionSpacingClassName,
 } from "@/components/public/publicStyles";
 import {
-  heroMetrics,
   marketingIndustries,
   marketingModules,
   publicSiteUrl,
   resources,
-  trustedOrganizations,
 } from "@/lib/public-marketing";
 import { withPublicAudience } from "@/lib/public-audience";
-import { Check, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type HomePageContent = {
   eyebrow: string;
+  title: string;
   subtitle: string;
   primaryCtaLabel: string;
   secondaryCtaLabel: string;
@@ -52,13 +50,22 @@ export default function PlatformHomePage() {
   } = usePlatformPublicPage("platform-home");
 
   const content = parseContent<HomePageContent>({
-    eyebrow: "Enterprise ERP for growing operations",
+    eyebrow: "Cloud ERP platform",
+    title: "Run HR, payroll, finance, and operations in one system",
     subtitle:
-      "UabIndia ERP brings HR, payroll, finance, procurement, inventory, service, and reporting into one disciplined operating system.",
-    primaryCtaLabel: "Book a Demo",
-    secondaryCtaLabel: "Explore Modules",
+      "A secure enterprise platform for Indian organizations — phased module rollout, role-based access, and audit-ready workflows.",
+    primaryCtaLabel: "Book a demo",
+    secondaryCtaLabel: "Explore products",
     badges: ["HRMS", "Payroll", "Finance", "Inventory", "Procurement", "CRM"],
   });
+
+  const trustMarks = (siteData?.industryCoverage ?? []).map((item) => ({
+    name: item.name,
+    sector: item.sector,
+    mark: item.mark,
+  }));
+
+  const liveStats = (siteData?.summaryStats ?? []).slice(0, 4);
 
   const structuredData = [
     {
@@ -68,7 +75,6 @@ export default function PlatformHomePage() {
       url: publicSiteUrl,
       email: profile.supportEmail,
       telephone: profile.supportPhone,
-      description: "UabIndia ERP is a cloud ERP platform for HR, payroll, attendance, finance, procurement, inventory, CRM, projects, assets, compliance, and operations.",
     },
     {
       "@context": "https://schema.org",
@@ -77,35 +83,6 @@ export default function PlatformHomePage() {
       applicationCategory: "BusinessApplication",
       operatingSystem: "Web",
       url: publicSiteUrl,
-      description: "One cloud ERP platform for HRMS, payroll, finance, procurement, inventory, CRM, projects, help desk, and reporting.",
-    },
-  ];
-
-  const liveHeroMetrics = siteData?.heroMetrics?.length ? siteData.heroMetrics : heroMetrics;
-  const trustMarks =
-    trustedOrganizations.length > 0
-      ? trustedOrganizations
-      : [
-          { name: "Healthcare Ops", sector: "Shift-heavy teams", mark: "HC" },
-          { name: "Manufacturing", sector: "Plant control", mark: "MF" },
-          { name: "Retail Groups", sector: "Multi-branch ops", mark: "RT" },
-          { name: "Logistics", sector: "Field movement", mark: "LG" },
-          { name: "Services", sector: "Delivery teams", mark: "SV" },
-          { name: "Public Programs", sector: "Governance-led", mark: "PG" },
-        ];
-
-  const whyPoints = [
-    {
-      title: "Operational control",
-      body: "Connect approvals, records, and reporting across HR, payroll, procurement, finance, inventory, and support.",
-    },
-    {
-      title: "Implementation clarity",
-      body: "Roll out by module or business unit with a cleaner product language, clearer ownership, and less training overhead.",
-    },
-    {
-      title: "Governed scale",
-      body: "Support multi-branch and multi-entity growth without rebuilding the shell, navigation, or approval model every time.",
     },
   ];
 
@@ -120,19 +97,12 @@ export default function PlatformHomePage() {
     >
       <PublicStructuredData data={structuredData} />
 
-      {/* ── Hero ──────────────────────────────────────────────────── */}
       <MarketingHero
         eyebrow={content.eyebrow}
-        title={
-          <>
-            One Platform.{" "}
-            <span className="pub-gradient-text">All Your Business.</span>
-          </>
-        }
+        title={content.title}
         subtitle={content.subtitle}
         badges={content.badges}
-        metrics={liveHeroMetrics}
-        trustSignals={["Role-based access", "Approval workflows", "Cross-module reporting"]}
+        trustSignals={["Role-based access", "Audit-ready workflows", "Secure cloud"]}
         actions={
           <>
             <Link href={withPublicAudience("/book-demo", "platform")} className={publicButtonClassName.primary}>
@@ -146,109 +116,111 @@ export default function PlatformHomePage() {
         }
       />
 
-      {/* ── Trust ribbon ──────────────────────────────────────────── */}
-      <TrustRibbon items={trustMarks} />
+      {trustMarks.length > 0 ? <TrustRibbon items={trustMarks} /> : null}
 
-      {/* ── Why it matters ────────────────────────────────────────── */}
-      <section className="py-14 lg:py-20">
-        <div className={cn(publicSectionClassName, "grid gap-5 xl:grid-cols-3")}>
-          {whyPoints.map((item, index) => (
-            <MotionReveal key={item.title} delay={index * 0.07}>
-              <article className={cn(publicPanelHoverClassName, "h-full p-7")}>
-                <div className={publicEyebrowClassName}>
-                  <span className="h-1.5 w-1.5 rounded-full bg-indigo-600" />
-                  Why it matters
-                </div>
-                <h2 className="mt-4 text-xl font-bold tracking-tight text-slate-900">{item.title}</h2>
-                <p className="mt-2.5 text-sm leading-7 text-slate-500">{item.body}</p>
+      {liveStats.length > 0 ? (
+        <section className="border-b border-slate-200 bg-white py-8">
+          <div className={cn(publicSectionClassName, "grid gap-4 sm:grid-cols-2 lg:grid-cols-4")}>
+            {liveStats.map((stat) => (
+              <div key={stat.label} className={publicPanelClassName}>
+                <p className="text-2xl font-semibold text-slate-900">
+                  {stat.value.toLocaleString("en-IN")}
+                  {stat.suffix}
+                </p>
+                <p className="mt-1 text-sm text-slate-600">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <section className={publicSectionSpacingClassName}>
+        <div className={cn(publicSectionClassName, "grid gap-4 md:grid-cols-3")}>
+          {[
+            {
+              title: "One operating system",
+              body: "Connect HR, payroll, procurement, finance, and support without tool sprawl.",
+            },
+            {
+              title: "Phased implementation",
+              body: "Start with the modules you need. Expand without redesigning the workspace.",
+            },
+            {
+              title: "Governed scale",
+              body: "Multi-branch and multi-entity ready with consistent approvals and access control.",
+            },
+          ].map((item, index) => (
+            <MotionReveal key={item.title} delay={index * 0.04}>
+              <article className={cn(publicPanelClassName, "h-full")}>
+                <h2 className="text-base font-semibold text-slate-900">{item.title}</h2>
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">{item.body}</p>
               </article>
             </MotionReveal>
           ))}
         </div>
       </section>
 
-      {/* ── Platform Capabilities section ──────────────────────────── */}
-      <section className="bg-slate-50 py-14 lg:py-20">
-        <div className={cn(publicSectionClassName, "grid gap-6 xl:grid-cols-[1.1fr_0.9fr]")}>
-          <MotionReveal>
-            <article className={cn(publicPanelClassName, "p-7 sm:p-9")}>
-              <div className={publicEyebrowClassName}>
-                <span className="h-1.5 w-1.5 rounded-full bg-indigo-600" />
-                Platform capabilities
-              </div>
-              <h2 className="mt-4 text-[clamp(1.5rem,2.4vw,2.1rem)] font-bold tracking-tight text-slate-900">
-                One connected system for every business function.
-              </h2>
-              <p className="mt-3 text-sm leading-7 text-slate-500">
-                UabIndia ERP unifies HR, payroll, procurement, finance, and compliance into a single operating model — removing the cost and risk of disconnected point solutions.
-              </p>
-              <div className="mt-5 grid gap-2.5 sm:grid-cols-2">
-                {[
-                  "Role-aware navigation and approval flows",
-                  "Module-by-module rollout with no rework",
-                  "People, finance, and operations on one data core",
-                  "Shared reporting across all business functions",
-                ].map((item) => (
-                  <div key={item} className="flex items-start gap-2.5 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-                    {item}
-                  </div>
-                ))}
-              </div>
-            </article>
-          </MotionReveal>
-
-          <MotionReveal delay={0.07}>
-            <article className={cn(publicPanelClassName, "h-full p-7 sm:p-9")}>
-              <div className={publicEyebrowClassName}>
-                <span className="h-1.5 w-1.5 rounded-full bg-cyan-600" />
-                At a glance
-              </div>
-              <div className="mt-5 space-y-3">
-                {[
-                  "Multi-role support with a single, consistent workspace experience.",
-                  "Payroll, finance, procurement, and approvals sharing the same data core.",
-                  "Start with one module — expand to full ERP without redesigning anything.",
-                  "Leadership dashboards aggregating operational, financial, and people signals.",
-                ].map((item) => (
-                  <div key={item} className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3.5 text-sm leading-6 text-slate-600">
-                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-indigo-400" />
-                    {item}
-                  </div>
-                ))}
-              </div>
-            </article>
-          </MotionReveal>
+      <section className={cn(publicSectionSpacingClassName, "bg-slate-50")}>
+        <div className={cn(publicSectionClassName, "grid gap-6 lg:grid-cols-2")}>
+          <article className={publicPanelClassName}>
+            <h2 className="text-xl font-semibold text-slate-900">Built for connected operations</h2>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              UabIndia ERP keeps people, money, and inventory on one data core — with shared approvals and reporting.
+            </p>
+            <ul className="mt-5 space-y-2">
+              {[
+                "Role-aware navigation and approvals",
+                "Module-by-module rollout",
+                "Shared reporting across functions",
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2 text-sm text-slate-700">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </article>
+          <article className={publicPanelClassName}>
+            <h2 className="text-xl font-semibold text-slate-900">Ready when you are</h2>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              Evaluate with a focused demo, then roll out with clear ownership and training that matches your team size.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link href={withPublicAudience("/book-demo", "platform")} className={publicButtonClassName.primary}>
+                Book a demo
+              </Link>
+              <Link href={withPublicAudience("/pricing", "platform")} className={publicButtonClassName.secondary}>
+                View pricing
+              </Link>
+            </div>
+          </article>
         </div>
       </section>
 
-      {/* ── Module grid ───────────────────────────────────────────── */}
       <ModuleGrid
         modules={marketingModules.slice(0, 8)}
-        eyebrow="Our products"
-        title="Powerful modules built to streamline every aspect of your business."
-        subtitle="Choose the modules that fit your rollout today, then expand into a wider connected ERP stack as operations mature."
+        title="Modules that work alone — and better together"
+        subtitle="Launch with the functions you need today. Add more when your team is ready."
       />
 
-      {/* ── Industry grid ─────────────────────────────────────────── */}
       <IndustryGrid
         industries={marketingIndustries.slice(0, 6)}
-        eyebrow="Industries we serve"
-        title="Tailored ERP solutions for every industry."
-        subtitle="The same product language can be configured for healthcare, manufacturing, education, logistics, retail, and project-led teams."
+        title="Built for how your sector operates"
+        subtitle="Healthcare, manufacturing, retail, logistics, education, and project-led teams."
       />
 
-      {/* ── Resources ─────────────────────────────────────────────── */}
-      <ResourceGrid resources={resources.slice(0, 3)} />
+      <ResourceGrid
+        resources={resources.slice(0, 3)}
+        title="Practical evaluation resources"
+        subtitle="Checklists and guides to move your ERP decision forward."
+      />
 
-      {/* ── CTA ───────────────────────────────────────────────────── */}
       <CtaPanel
-        eyebrow="Next step"
-        title="Review the right product mix before your rollout grows more complex."
-        body="Book a focused walkthrough and we will map the modules, workflows, and business priorities that matter first."
-        primaryLabel="Book a Demo"
+        title="See the platform with your workflows in mind"
+        description="Book a demo tailored to your modules, team size, and rollout goals."
+        primaryLabel="Book a demo"
         primaryHref={withPublicAudience("/book-demo", "platform")}
-        secondaryLabel="Contact Sales"
+        secondaryLabel="Contact sales"
         secondaryHref={withPublicAudience("/contact", "platform")}
       />
     </PlatformPublicPageShell>

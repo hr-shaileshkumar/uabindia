@@ -1,17 +1,28 @@
 "use client";
 
-import { useEffect, useState, type ChangeEvent } from "react";
-import { hrApi } from "@/services/hrApi";
+import { useEffect, useMemo, useState } from "react";
+import { salesApi } from "@/services/modules";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
-import ModuleIcon from "@/components/ModuleIcon";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SideDrawer } from "@/components/ui/side-drawer";
+import { ErpCreateButton, ErpDrawerFooter, ErpRefreshButton, ErpRowActions } from "@/components/erp/erp-page-kit";
+import { useErpListView } from "@/components/erp/erp-list-view";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
-import { TableActionMenu } from "@/components/table/TableActionMenu";
 import { usePermissions } from "@/context/PermissionContext";
 import { PERMISSIONS } from "@/constants/permissions";
+import {
+  DocLine,
+  ErpLineGrid,
+  ErpMasterSelect,
+  ErpTotalsStrip,
+  documentTotals,
+  emptyBillDiscount,
+  emptyDocLine,
+  formatInr,
+  payloadLines,
+  useDocumentMasters,
+  withBillDiscount,
+} from "@/components/erp/erp-document-kit";
 
 type SalesOrder = {
   id: string;
@@ -29,7 +40,6 @@ type SalesOrderForm = {
   customerId: string;
   soDate: string;
   expectedDeliveryDate: string;
-  totalAmount: number;
   status: string;
   notes: string;
 };
@@ -44,21 +54,14 @@ const createDefaultFormData = (): SalesOrderForm => ({
   customerId: "",
   soDate: new Date().toISOString().split("T")[0],
   expectedDeliveryDate: "",
-  totalAmount: 0,
   status: "Draft",
   notes: "",
 });
 
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(value || 0);
-
 const getStatusChipClass = (status: string) => {
   switch (status) {
     case "Completed":
+    case "Invoiced":
       return "erp-chip erp-chip-success";
     case "Confirmed":
       return "erp-chip erp-chip-info";
@@ -74,6 +77,7 @@ const getStatusChipClass = (status: string) => {
 export default function SalesOrdersPage() {
   const { confirm, confirmDialog } = useConfirmDialog();
   const { hasPermission } = usePermissions();
+  const { customers, items, schemes } = useDocumentMasters();
   const canCreateSalesOrder = hasPermission([PERMISSIONS.SALES_ORDERS_CREATE]);
   const canEditSalesOrder = hasPermission([PERMISSIONS.SALES_ORDERS_EDIT]);
   const canDeleteSalesOrder = hasPermission([PERMISSIONS.SALES_ORDERS_DELETE]);
@@ -81,14 +85,20 @@ export default function SalesOrdersPage() {
   const [orders, setOrders] = useState<SalesOrder[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("list");
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<SalesOrderForm>(createDefaultFormData);
+  const [lines, setLines] = useState<DocLine[]>([emptyDocLine()]);
+  const [discount, setDiscount] = useState(emptyBillDiscount);
+
+  const totals = useMemo(() => documentTotals(lines), [lines]);
+  const billed = useMemo(() => withBillDiscount(totals, discount), [totals, discount]);
+  const customerName = (id: string) => customers.find((row) => row.id === id)?.label || id;
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const response = await hrApi.erp.salesOrders.getAll();
+      const response = await salesApi.salesOrders.getAll(1, 50);
       setOrders(response.data?.data || []);
       setError(null);
     } catch (err) {
@@ -102,22 +112,17 @@ export default function SalesOrdersPage() {
     void fetchOrders();
   }, []);
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === "totalAmount" ? Number(value) : value,
-    }));
-  };
-
   const canSaveSalesOrder = editingId ? canEditSalesOrder : canCreateSalesOrder;
 
   const handleSave = async () => {
-    if (!formData.soNumber.trim() || !formData.customerId.trim()) {
-      setError("Order number and customer are required");
+    if (!formData.customerId.trim()) {
+      setError("Customer is required");
       return;
     }
-
+    if (!editingId && payloadLines(lines).length === 0) {
+      setError("Add at least one item line.");
+      return;
+    }
     if (!canSaveSalesOrder) {
       setError("You do not have permission to save this sales order.");
       return;
@@ -126,13 +131,30 @@ export default function SalesOrdersPage() {
     try {
       setLoading(true);
       if (editingId) {
-        await hrApi.erp.salesOrders.update(editingId, formData);
+        await salesApi.salesOrders.update(editingId, {
+          soDate: formData.soDate,
+          expectedDeliveryDate: formData.expectedDeliveryDate || undefined,
+          status: formData.status,
+          notes: formData.notes,
+        });
       } else {
-        await hrApi.erp.salesOrders.create(formData);
+        await salesApi.salesOrders.create({
+          soNumber: formData.soNumber || undefined,
+          customerId: formData.customerId,
+          soDate: formData.soDate,
+          expectedDeliveryDate: formData.expectedDeliveryDate || undefined,
+          status: formData.status,
+          notes: formData.notes,
+          items: payloadLines(lines),
+          discountAmount: billed.discountAmount,
+          totalAmount: billed.netTotal,
+        });
       }
-      setActiveTab("list");
+      setDrawerOpen(false);
       setEditingId(null);
       setFormData(createDefaultFormData());
+      setLines([emptyDocLine()]);
+      setDiscount(emptyBillDiscount());
       await fetchOrders();
       setError(null);
     } catch (err) {
@@ -148,12 +170,12 @@ export default function SalesOrdersPage() {
       customerId: order.customerId,
       soDate: order.soDate.split("T")[0],
       expectedDeliveryDate: order.expectedDeliveryDate?.split("T")[0] || "",
-      totalAmount: order.totalAmount,
       status: order.status,
       notes: order.notes || "",
     });
     setEditingId(order.id);
-    setActiveTab("form");
+    setDiscount(emptyBillDiscount());
+    setDrawerOpen(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -165,28 +187,113 @@ export default function SalesOrdersPage() {
     });
     if (!ok) return;
     try {
-      await hrApi.erp.salesOrders.delete(id);
+      await salesApi.salesOrders.delete(id);
       await fetchOrders();
     } catch (err) {
       setError(getErrorMessage(err, "Failed to delete sales order"));
     }
   };
 
+  const handleConvertToInvoice = async (id: string) => {
+    try {
+      setLoading(true);
+      await salesApi.salesOrders.convertToInvoice(id);
+      await fetchOrders();
+    } catch (err) {
+      setError(getErrorMessage(err, "Failed to convert sales order to invoice"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCreateNew = () => {
     setEditingId(null);
     setFormData(createDefaultFormData());
-    setActiveTab("form");
+    setLines([emptyDocLine()]);
+    setDiscount(emptyBillDiscount());
+    setDrawerOpen(true);
   };
 
   const totalValue = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
   const confirmedCount = orders.filter((order) => ["Confirmed", "Partial"].includes(order.status)).length;
-  const completedCount = orders.filter((order) => order.status === "Completed").length;
+  const completedCount = orders.filter((order) => ["Completed", "Invoiced"].includes(order.status)).length;
   const averageValue = orders.length ? Math.round(totalValue / orders.length) : 0;
+
+  const listRows = useMemo(
+    () => orders.map((order) => ({ ...order, customerName: customerName(order.customerId) })),
+    [orders, customers],
+  );
+
+  const list = useErpListView({
+    listKey: "sales-orders",
+    rows: listRows,
+    columns: [
+      { key: "soNumber", label: "Order #" },
+      { key: "customerName", label: "Customer" },
+      { key: "soDate", label: "Order Date", dataType: "date" },
+      { key: "expectedDeliveryDate", label: "Expected Delivery", dataType: "date" },
+      { key: "status", label: "Status" },
+      { key: "totalAmount", label: "Amount", dataType: "currency" },
+      { key: "actions", label: "Actions", className: "text-right", locked: true },
+    ],
+    getRowId: (order) => order.id,
+    loading,
+    emptyMessage: "No sales orders found. Use New sales order to create the first record.",
+    onCreate: canCreateSalesOrder ? handleCreateNew : undefined,
+    createLabel: "New sales order",
+    onRefresh: () => void fetchOrders(),
+    onBulkDelete: canDeleteSalesOrder
+      ? async (selectedOrders) => {
+          const ok = await confirm({
+            title: `Delete ${selectedOrders.length} sales orders`,
+            message: "Permanently delete the selected sales orders? This cannot be undone.",
+            confirmText: "Delete",
+            variant: "danger",
+          });
+          if (!ok) return;
+          for (const order of selectedOrders) {
+            await salesApi.salesOrders.delete(order.id);
+          }
+          await fetchOrders();
+        }
+      : undefined,
+    renderRow: (order) => (
+      <tr key={order.id} className="erp-tr">
+        <td className="erp-td font-semibold text-slate-900">{order.soNumber}</td>
+        <td className="erp-td">{order.customerName}</td>
+        <td className="erp-td">{new Date(order.soDate).toLocaleDateString()}</td>
+        <td className="erp-td">
+          {order.expectedDeliveryDate ? new Date(order.expectedDeliveryDate).toLocaleDateString() : "-"}
+        </td>
+        <td className="erp-td">
+          <span className={getStatusChipClass(order.status)}>{order.status}</span>
+        </td>
+        <td className="erp-td font-semibold text-slate-900">{formatInr(order.totalAmount)}</td>
+        <td className="erp-td">
+          <ErpRowActions
+            onEdit={canEditSalesOrder ? { label: "Edit", onClick: () => handleEdit(order) } : undefined}
+            onDelete={canDeleteSalesOrder ? { label: "Delete", onClick: () => void handleDelete(order.id) } : undefined}
+            extra={
+              canEditSalesOrder && order.status !== "Invoiced" ? (
+                <button
+                  type="button"
+                  className="rounded-md px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100"
+                  onClick={() => void handleConvertToInvoice(order.id)}
+                >
+                  Invoice
+                </button>
+              ) : null
+            }
+          />
+        </td>
+      </tr>
+    ),
+  });
 
   return (
     <StandardPageLayout
       title="Sales Orders"
-      subtitle="Manage customer commitments, fulfillment readiness, and commercial order value with one standardized transaction workspace."
+      subtitle="Confirm customer lines and GST, then convert the order to a tax invoice."
       eyebrow="Sales & CRM / Sales Orders"
       icon="briefcase"
       meta={
@@ -195,145 +302,121 @@ export default function SalesOrdersPage() {
             { label: "Orders", value: orders.length, helper: "sales" },
             { label: "In Progress", value: confirmedCount, tone: "info" },
             { label: "Completed", value: completedCount, tone: "positive" },
-            { label: "Avg Value", value: formatCurrency(averageValue), tone: "warning" },
+            { label: "Avg Value", value: formatInr(averageValue), tone: "warning" },
           ]}
         />
       }
       actions={
-        canCreateSalesOrder ? (
-          <button type="button" onClick={handleCreateNew} className="erp-action-btn erp-action-btn-primary">
-            Create Sales Order
-          </button>
-        ) : null
+        <>
+          <ErpRefreshButton onClick={() => void fetchOrders()} loading={loading} />
+          {list.headerTools}
+          {canCreateSalesOrder ? <ErpCreateButton label="New sales order" onClick={handleCreateNew} /> : null}
+        </>
       }
+      filters={list.filterBar}
     >
       {confirmDialog}
       {error ? <div className="erp-alert-error">{error}</div> : null}
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="erp-tabs-list">
-          <TabsTrigger value="list" className="erp-tab-trigger data-[state=active]:erp-tab-trigger-active">Sales Order List</TabsTrigger>
-          <TabsTrigger value="form" className="erp-tab-trigger data-[state=active]:erp-tab-trigger-active">{editingId ? "Edit Order" : "New Order"}</TabsTrigger>
-        </TabsList>
+      <CrudCard>{list.table}</CrudCard>
 
-        <TabsContent value="list">
-          <CrudCard
-            title="Commercial Order Desk"
-            description="Track customer order numbers, delivery expectations, and revenue status in a structured grid."
-            actions={<Button onClick={handleCreateNew}>Add Order</Button>}
-          >
-              {loading ? (
-                <div className="erp-loading">Loading orders...</div>
-              ) : orders.length === 0 ? (
-                <div className="erp-empty">No sales orders found.</div>
-              ) : (
-                <div className="erp-table-wrap border-0 bg-white/80 shadow-none">
-                  <table className="erp-table">
-                    <thead className="erp-thead">
-                      <tr>
-                        <th className="erp-th">Order #</th>
-                        <th className="erp-th">Customer</th>
-                        <th className="erp-th">Order Date</th>
-                        <th className="erp-th">Expected Delivery</th>
-                        <th className="erp-th">Status</th>
-                        <th className="erp-th">Amount</th>
-                        <th className="erp-th">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {orders.map((order) => (
-                        <tr key={order.id} className="erp-tr">
-                          <td className="erp-td font-semibold text-slate-900">{order.soNumber}</td>
-                          <td className="erp-td">{order.customerId}</td>
-                          <td className="erp-td">{new Date(order.soDate).toLocaleDateString()}</td>
-                          <td className="erp-td">{order.expectedDeliveryDate ? new Date(order.expectedDeliveryDate).toLocaleDateString() : "-"}</td>
-                          <td className="erp-td">
-                            <span className={getStatusChipClass(order.status)}>{order.status}</span>
-                          </td>
-                          <td className="erp-td font-semibold text-slate-900">{formatCurrency(order.totalAmount)}</td>
-                          <td className="erp-td">
-                            {(() => {
-                              const actionItems = [
-                                ...(canEditSalesOrder ? [{ label: "Edit", onClick: () => handleEdit(order) }] : []),
-                                ...(canDeleteSalesOrder ? [{ label: "Delete", onClick: () => handleDelete(order.id), danger: true }] : []),
-                              ];
-                              return actionItems.length > 0 ? (
-                                <TableActionMenu items={actionItems} />
-                              ) : (
-                                <span className="text-xs text-slate-500">No actions available</span>
-                              );
-                            })()}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                )}
-          </CrudCard>
-        </TabsContent>
-
-        <TabsContent value="form">
-          <Card className="erp-panel">
-            <CardHeader className="border-b border-slate-100 bg-white/75">
-              <CardTitle className="flex items-center gap-2">
-                <span className="erp-inline-icon" aria-hidden>
-                  <ModuleIcon name="file" className="h-4 w-4" />
-                </span>
-                {editingId ? "Edit Sales Order" : "Create Sales Order"}
-              </CardTitle>
-              <p className="text-sm text-slate-500">
-                Maintain commercial order details, delivery dates, and customer context in a consistent ERP form layout.
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="erp-form-grid erp-form-grid-2">
-                <div>
-                  <label className="erp-label">Order Number</label>
-                  <input name="soNumber" value={formData.soNumber} onChange={handleChange} className="erp-input" />
-                </div>
-                <div>
-                  <label className="erp-label">Customer ID</label>
-                  <input name="customerId" value={formData.customerId} onChange={handleChange} className="erp-input" />
-                </div>
-                <div>
-                  <label className="erp-label">Order Date</label>
-                  <input name="soDate" type="date" value={formData.soDate} onChange={handleChange} className="erp-input" />
-                </div>
-                <div>
-                  <label className="erp-label">Expected Delivery</label>
-                  <input name="expectedDeliveryDate" type="date" value={formData.expectedDeliveryDate} onChange={handleChange} className="erp-input" />
-                </div>
-                <div>
-                  <label className="erp-label">Total Amount</label>
-                  <input name="totalAmount" type="number" value={formData.totalAmount} onChange={handleChange} className="erp-input" />
-                </div>
-                <div>
-                  <label className="erp-label">Status</label>
-                  <select name="status" value={formData.status} onChange={handleChange} className="erp-select">
-                    <option value="Draft">Draft</option>
-                    <option value="Confirmed">Confirmed</option>
-                    <option value="Partial">Partial</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Cancelled">Cancelled</option>
-                  </select>
-                </div>
-                <div className="md:col-span-2">
-                  <label className="erp-label">Notes</label>
-                  <textarea name="notes" value={formData.notes} onChange={handleChange} rows={4} className="erp-input" />
-                </div>
+      <SideDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        title={editingId ? "Edit sales order" : "New sales order"}
+        subtitle="Pick the customer and item lines. Totals follow quantity, rate, and GST."
+        width="full"
+        footer={
+          <ErpDrawerFooter
+            onCancel={() => setDrawerOpen(false)}
+            onSave={() => void handleSave()}
+            saving={loading}
+            isEdit={Boolean(editingId)}
+            disabled={!formData.customerId || (!editingId && payloadLines(lines).length === 0)}
+            saveLabel={editingId ? "Update order" : "Save order"}
+          />
+        }
+      >
+        <div className="grid grid-cols-1 gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <ErpMasterSelect
+              label="Customer"
+              value={formData.customerId}
+              options={customers}
+              placeholder="Select customer"
+              disabled={Boolean(editingId)}
+              onChange={(id) => setFormData((current) => ({ ...current, customerId: id }))}
+            />
+            <div>
+              <label className="erp-label">Order Number (optional)</label>
+              <input
+                value={formData.soNumber}
+                disabled={Boolean(editingId)}
+                onChange={(e) => setFormData((current) => ({ ...current, soNumber: e.target.value }))}
+                className="erp-input mt-1"
+                placeholder="Auto-generated if blank"
+              />
+            </div>
+            <div>
+              <label className="erp-label">Order Date</label>
+              <input
+                type="date"
+                value={formData.soDate}
+                onChange={(e) => setFormData((current) => ({ ...current, soDate: e.target.value }))}
+                className="erp-input mt-1"
+              />
+            </div>
+            <div>
+              <label className="erp-label">Expected Delivery</label>
+              <input
+                type="date"
+                value={formData.expectedDeliveryDate}
+                onChange={(e) => setFormData((current) => ({ ...current, expectedDeliveryDate: e.target.value }))}
+                className="erp-input mt-1"
+              />
+            </div>
+            {editingId ? (
+              <div>
+                <label className="erp-label">Status</label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData((current) => ({ ...current, status: e.target.value }))}
+                  className="erp-select mt-1"
+                >
+                  <option value="Draft">Draft</option>
+                  <option value="Confirmed">Confirmed</option>
+                  <option value="Partial">Partial</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Cancelled">Cancelled</option>
+                </select>
               </div>
-
-              <div className="erp-form-actions">
-                <Button variant="outline" onClick={() => setActiveTab("list")}>Cancel</Button>
-                <Button onClick={handleSave} disabled={loading}>
-                  {editingId ? "Update Order" : "Save Order"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            ) : null}
+            <div className="sm:col-span-2">
+              <label className="erp-label">Notes</label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => setFormData((current) => ({ ...current, notes: e.target.value }))}
+                rows={2}
+                className="erp-input mt-1"
+              />
+            </div>
+          </div>
+          {!editingId ? (
+            <>
+              <ErpLineGrid lines={lines} onChange={setLines} items={items} priceField="sellingPrice" schemes={schemes} />
+              <ErpTotalsStrip
+                subTotal={totals.subTotal}
+                taxAmount={totals.taxAmount}
+                total={totals.total}
+                discount={discount}
+                onDiscountChange={setDiscount}
+              />
+            </>
+          ) : (
+            <p className="text-sm text-slate-500">Line items are locked after create. Convert to invoice from the register.</p>
+          )}
+        </div>
+      </SideDrawer>
     </StandardPageLayout>
   );
 }

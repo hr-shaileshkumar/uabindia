@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { hrApi } from "@/services/hrApi";
+import { platformApi } from "@/services/modules";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { PlatformGlobalPageShell, KpiMetricItem } from "@/components/platform/PlatformGlobalPageShell";
+import { erpButtonClassName } from "@/components/erp/erpStyles";
 
 interface FlagRow {
   id: string;
@@ -21,16 +22,6 @@ interface FlagRow {
   isEnabled: boolean;
   updatedAt?: string;
 }
-
-const DEFAULT_FLAGS: FlagRow[] = [
-  { id: "1", featureKey: "ENABLE_MULTI_CURRENCY", description: "Allow transactions in non-base currencies with automatic ledger conversion", environment: "Production", category: "Finance", isEnabled: true, updatedAt: "2026-07-20" },
-  { id: "2", featureKey: "ENABLE_AI_RECRUITMENT_PARSER", description: "Parse resumes automatically with AI parsing pipeline", environment: "Staging", category: "HRMS", isEnabled: true, updatedAt: "2026-07-22" },
-  { id: "3", featureKey: "ENABLE_ADVANCED_WAREHOUSE_RACKING", description: "Multi-bin location mapping and tracking", environment: "Production", category: "Inventory", isEnabled: false, updatedAt: "2026-07-15" },
-  { id: "4", featureKey: "ENABLE_WHATSAPP_NOTIFICATIONS", description: "Send order status alerts via WhatsApp Gateway", environment: "Development", category: "Communication", isEnabled: true, updatedAt: "2026-07-23" },
-  { id: "5", featureKey: "ENABLE_BIOMETRIC_ATTENDANCE_SYNC", description: "Real-time sync with hardware attendance terminals", environment: "Production", category: "HRMS", isEnabled: true, updatedAt: "2026-07-18" },
-  { id: "6", featureKey: "ENABLE_STRIPE_SUBSCRIPTION_AUTO_RENEWAL", description: "Automated recurring card charging via Stripe Billing", environment: "Production", category: "Platform", isEnabled: true, updatedAt: "2026-07-10" },
-  { id: "7", featureKey: "ENABLE_CUSTOM_REPORT_BUILDER_V2", description: "Drag-and-drop analytics dashboard query generator", environment: "Staging", category: "Reports", isEnabled: false, updatedAt: "2026-07-19" },
-];
 
 export default function FeatureFlagsPage() {
   const [flags, setFlags] = useState<FlagRow[]>([]);
@@ -50,25 +41,21 @@ export default function FeatureFlagsPage() {
   const loadFlags = async () => {
     setLoading(true);
     try {
-      const res = await hrApi.platform.featureFlags();
-      const apiFlags = res.data || [];
-      if (apiFlags.length > 0) {
-        setFlags(
-          apiFlags.map((f: { id?: string; featureKey: string; isEnabled: boolean }) => ({
-            id: f.id || f.featureKey,
-            featureKey: f.featureKey,
-            description: "System capability toggle flag",
-            environment: "Production",
-            category: "Platform",
-            isEnabled: f.isEnabled,
-            updatedAt: new Date().toISOString().split("T")[0],
-          }))
-        );
-      } else {
-        setFlags(DEFAULT_FLAGS);
-      }
+      const res = await platformApi.admin.featureFlags();
+      const apiFlags = Array.isArray(res.data) ? res.data : [];
+      setFlags(
+        apiFlags.map((f: { id?: string; featureKey: string; isEnabled: boolean; description?: string }) => ({
+          id: f.id || f.featureKey,
+          featureKey: f.featureKey,
+          description: f.description || "System capability toggle flag",
+          environment: "Production" as const,
+          category: "Platform",
+          isEnabled: f.isEnabled,
+          updatedAt: new Date().toISOString().split("T")[0],
+        }))
+      );
     } catch {
-      setFlags(DEFAULT_FLAGS);
+      setFlags([]);
     } finally {
       setLoading(false);
     }
@@ -255,9 +242,9 @@ export default function FeatureFlagsPage() {
             <Button type="button" variant="outline" size="sm" onClick={() => setIsDrawerOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white">
+            <button type="submit" className={erpButtonClassName.primary}>
               Create Flag
-            </Button>
+            </button>
           </div>
         </form>
       }
@@ -279,7 +266,7 @@ export default function FeatureFlagsPage() {
               <tr key={flag.id} className="erp-tr hover:bg-slate-50/80 dark:hover:bg-slate-900/50 transition-colors">
                 <td className="erp-td">
                   <div className="flex items-center gap-2.5">
-                    <Shield className="h-4 w-4 text-indigo-500 shrink-0" />
+                    <Shield className="h-4 w-4 text-slate-600 shrink-0" />
                     <div>
                       <span className="font-mono font-bold text-xs text-slate-900 dark:text-slate-100">
                         {flag.featureKey}

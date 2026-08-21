@@ -188,4 +188,7 @@ export const platformApi = {
     inviteUser: (data: { email: string; fullName?: string; role?: string; department?: string }) =>
       apiClient.post("/admin/users/invite", data),
   },
+  privacy: {
+    exportMe: () => apiClient.post("/privacy/export-me", {}),
+  },
 };

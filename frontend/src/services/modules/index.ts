@@ -1,5 +1,7 @@
+export { aiApi } from "./ai";
 export { appApi } from "./app";
 export { authApi } from "./auth";
+export { crmApi } from "./crm";
 export { complianceApi, financeApi } from "./finance";
 export { hrmsApi } from "./hrms";
 export { inventoryApi } from "./inventory";
@@ -7,7 +9,9 @@ export { orgApi } from "./org";
 export { payrollApi } from "./payroll";
 export { platformApi } from "./platform";
 export { procurementApi } from "./procurement";
+export { projectsApi } from "./projects";
 export { publicApi } from "./public";
 export { reportsApi } from "./reports";
 export { salesApi } from "./sales";
+export { travelApi } from "./travel";
 export type * from "./public";

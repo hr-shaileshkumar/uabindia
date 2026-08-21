@@ -12,6 +12,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { Upload, AlertCircle, CheckCircle } from "lucide-react";
+import { erpButtonClassName } from "@/components/erp/erpStyles";
 
 interface BulkCompanyImportDialogProps {
   open: boolean;
@@ -251,7 +252,7 @@ export function BulkCompanyImportDialog({
               </div>
               <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-indigo-600 transition-all duration-300"
+                  className="h-full bg-slate-900 transition-all duration-300"
                   style={{ width: `${importProgress}%` }}
                 />
               </div>
@@ -266,7 +267,7 @@ export function BulkCompanyImportDialog({
           <Button
             onClick={handleImport}
             disabled={isImporting || !selectedTenantId || parsedRows.filter((r) => r.errors.length === 0).length === 0}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            className={erpButtonClassName.primary}
           >
             Import Companies
           </Button>

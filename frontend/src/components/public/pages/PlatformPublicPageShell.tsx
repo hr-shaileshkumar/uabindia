@@ -68,7 +68,7 @@ export function PlatformPublicPageShell({
   children,
 }: PlatformPublicPageShellProps) {
   if (loading) {
-    return <PublicPageLoading label="Loading public website content..." />;
+    return <PublicPageLoading label="Loading..." sublabel="Preparing the website" />;
   }
 
   return (

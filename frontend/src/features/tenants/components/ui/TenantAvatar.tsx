@@ -27,7 +27,7 @@ export function TenantAvatar({ name, imageUrl, className, size = "md" }: TenantA
   return (
     <div
       className={cn(
-        "relative flex shrink-0 overflow-hidden rounded-md bg-indigo-100 text-indigo-700 font-semibold items-center justify-center shadow-sm border border-indigo-200",
+        "relative flex shrink-0 overflow-hidden rounded-md bg-slate-100 text-slate-800 font-semibold items-center justify-center shadow-sm border border-slate-200",
         sizeClasses[size],
         className
       )}

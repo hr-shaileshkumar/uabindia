@@ -1,9 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
 import { CrudHeaderStats } from "@/components/erp/crud-workspace";
-import { hrApi } from "@/services/hrApi";
+import { ListSearchInput } from "@/components/erp/list-toolbar";
+import { erpButtonClassName } from "@/components/erp/erpStyles";
+import { appApi } from "@/services/modules";
+import { notifyError, notifySuccess } from "@/lib/notifications";
+import { getApiErrorMessage } from "@/lib/api-errors";
+import { useUiSchema } from "@/context/UiSchemaContext";
 
 type ModuleRow = {
   key: string;
@@ -13,21 +18,48 @@ type ModuleRow = {
 };
 
 export default function ModuleCatalogPage() {
+  const { refresh: refreshUiSchema } = useUiSchema();
   const [modules, setModules] = useState<ModuleRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [toggling, setToggling] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await appApi.modules.catalog();
+      setModules(res.data.modules || []);
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Failed to load catalog"));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await hrApi.modules.catalog();
-        setModules(res.data.modules || []);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     void load();
-  }, []);
+  }, [load]);
+
+  const toggle = async (row: ModuleRow) => {
+    try {
+      setToggling(row.key);
+      await appApi.modules.updateSubscriptions({
+        subscriptions: [{ moduleKey: row.key, isEnabled: !row.isEnabled }],
+      });
+      notifySuccess(row.isEnabled ? `${row.name} disabled` : `${row.name} enabled`);
+      await Promise.all([load(), refreshUiSchema()]);
+    } catch (err) {
+      notifyError(getApiErrorMessage(err, "Failed to update module entitlement."));
+    } finally {
+      setToggling(null);
+    }
+  };
+
+  const filtered = search.trim()
+    ? modules.filter((m) => [m.key, m.name].some((v) => v.toLowerCase().includes(search.trim().toLowerCase())))
+    : modules;
 
   return (
     <ModuleTablePage
@@ -36,11 +68,14 @@ export default function ModuleCatalogPage() {
       eyebrow="Licensing / Product Catalog"
       icon="settings"
       toolbarTitle="Module inventory"
-      toolbarSubtitle="Browse product modules, current versioning, and release availability from a single catalog grid."
+      toolbarSubtitle="Browse product modules and toggle tenant entitlements from the catalog grid."
       loading={loading}
-      rows={modules}
+      error={error}
+      onRetry={load}
+      rows={filtered}
       countLabel={(count) => `${count} modules`}
       emptyMessage="No modules found."
+      filters={<ListSearchInput value={search} onChange={setSearch} placeholder="Filter module…" />}
       headerStats={
         <CrudHeaderStats
           items={[
@@ -68,6 +103,7 @@ export default function ModuleCatalogPage() {
         { label: "Name" },
         { label: "Version" },
         { label: "Status" },
+        { label: "Actions", className: "text-right" },
       ]}
       renderRow={(module) => (
         <tr key={module.key} className="erp-tr">
@@ -81,6 +117,16 @@ export default function ModuleCatalogPage() {
             <span className={module.isEnabled ? "erp-chip erp-chip-success" : "erp-chip erp-chip-neutral"}>
               {module.isEnabled ? "Enabled" : "Disabled"}
             </span>
+          </td>
+          <td className="erp-td text-right">
+            <button
+              type="button"
+              className={module.isEnabled ? erpButtonClassName.secondary : erpButtonClassName.primary}
+              disabled={toggling === module.key}
+              onClick={() => void toggle(module)}
+            >
+              {toggling === module.key ? "Saving…" : module.isEnabled ? "Disable" : "Enable"}
+            </button>
           </td>
         </tr>
       )}

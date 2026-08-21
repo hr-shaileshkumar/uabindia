@@ -4,6 +4,7 @@ import { TableActionMenu } from "@/components/table/TableActionMenu";
 import { SelectionCheckbox } from "@/components/table/SelectionCheckbox";
 import { SelectAllCheckbox } from "@/components/table/SelectAllCheckbox";
 import { EntityAvatar } from "@/components/erp/crud-workspace";
+import { erpStatusBadgeTone } from "@/components/erp/erpStyles";
 import type { TableSelectionState } from "@/hooks/useTableSelection";
 
 export interface UserRow {
@@ -84,10 +85,7 @@ export function UserTable({
                 <div className="flex flex-wrap gap-1">
                   {user.roles && user.roles.length > 0 ? (
                     user.roles.map((role) => (
-                      <span
-                        key={role}
-                        className="inline-flex items-center rounded-md bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 text-[11px] font-semibold text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-900/50"
-                      >
+                      <span key={role} className={erpStatusBadgeTone.accent}>
                         {role}
                       </span>
                     ))

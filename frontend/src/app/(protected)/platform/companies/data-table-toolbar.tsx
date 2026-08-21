@@ -6,6 +6,7 @@ import { Search, Plus, Trash2, Download, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { erpButtonClassName } from "@/components/erp/erpStyles"
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>
@@ -86,7 +87,7 @@ export function DataTableToolbar<TData>({
           </Button>
         )}
         {onCreate && (
-          <Button onClick={onCreate} size="sm" className="h-9 bg-indigo-600 hover:bg-indigo-700 text-white">
+          <Button onClick={onCreate} size="sm" className={`${erpButtonClassName.primary} h-9`}>
             <Plus className="mr-2 h-4 w-4" />
             New Company
           </Button>

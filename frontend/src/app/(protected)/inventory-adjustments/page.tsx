@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Settings } from "lucide-react";
+import { Settings } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { CrudHeaderStats } from "@/components/erp/crud-workspace";
-import { hrApi } from "@/services/hrApi";
+import { SideDrawer } from "@/components/ui/side-drawer";
+import { ErpCreateButton, ErpDrawerFooter } from "@/components/erp/erp-page-kit";
+import { inventoryApi } from "@/services/modules";
 import { notifyError } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
 
@@ -88,9 +90,9 @@ export default function InventoryAdjustmentsPage() {
       setError(null);
 
       const [movementResponse, itemsResponse, warehousesResponse] = await Promise.all([
-        hrApi.erp.stockMovements.list(1, 50),
-        hrApi.erp.items.getAll(1, 100),
-        hrApi.erp.warehouses.list(1, 50),
+        inventoryApi.stockMovements.list(1, 50),
+        inventoryApi.items.getAll(1, 100),
+        inventoryApi.warehouses.list(1, 50),
       ]);
 
       const movementList = Array.isArray(movementResponse.data)
@@ -151,15 +153,14 @@ export default function InventoryAdjustmentsPage() {
     void load();
   }, [load]);
 
-  const handleSave = async (event: React.FormEvent) => {
-    event.preventDefault();
+  const handleSave = async () => {
     if (!form.itemId || !form.warehouseId || form.quantity <= 0) {
       return;
     }
 
     try {
       setSaving(true);
-      await hrApi.erp.stockMovements.create({
+      await inventoryApi.stockMovements.create({
         movementType: "Adjustment",
         itemId: form.itemId,
         warehouseId: form.warehouseId,
@@ -215,16 +216,7 @@ export default function InventoryAdjustmentsPage() {
           ]}
         />
       }
-      actions={
-        <button
-          type="button"
-          onClick={() => setShowForm((current) => !current)}
-          className="erp-action-btn erp-action-btn-primary"
-        >
-          <Plus className="h-4 w-4" />
-          New Adjustment
-        </button>
-      }
+      actions={<ErpCreateButton label="New adjustment" onClick={() => setShowForm(true)} />}
       filters={
         <div className="grid gap-3 sm:grid-cols-[minmax(0,16rem)_auto] sm:items-end">
           <div>
@@ -255,116 +247,6 @@ export default function InventoryAdjustmentsPage() {
       }
     >
       {error && <div className="erp-alert-error">{error}</div>}
-
-      {showForm && (
-        <div className="erp-panel">
-          <div className="erp-panel-header">
-            <div>
-              <h2 className="erp-panel-title">Create Stock Adjustment</h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Record the warehouse, item, adjustment type, quantity, and reason for audit.
-              </p>
-            </div>
-          </div>
-          <div className="erp-panel-body">
-            <form onSubmit={handleSave} className="space-y-4">
-              <div className="erp-form-grid erp-form-grid-2">
-                <div>
-                  <label className="erp-label">Item</label>
-                  <select
-                    className="erp-select"
-                    value={form.itemId}
-                    onChange={(event) => setForm({ ...form, itemId: event.target.value })}
-                    required
-                  >
-                    <option value="">Select item...</option>
-                    {items.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.itemCode} - {item.itemName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="erp-label">Warehouse</label>
-                  <select
-                    className="erp-select"
-                    value={form.warehouseId}
-                    onChange={(event) => setForm({ ...form, warehouseId: event.target.value })}
-                    required
-                  >
-                    <option value="">Select warehouse...</option>
-                    {warehouses.map((warehouse) => (
-                      <option key={warehouse.id} value={warehouse.id}>
-                        {warehouse.warehouseName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="erp-label">Adjustment Type</label>
-                  <select
-                    className="erp-select"
-                    value={form.adjustmentType}
-                    onChange={(event) => setForm({ ...form, adjustmentType: event.target.value })}
-                  >
-                    {ADJUSTMENT_TYPES.map((type) => (
-                      <option key={type.value} value={type.value}>
-                        {type.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="erp-label">Quantity</label>
-                  <input
-                    className="erp-input"
-                    type="number"
-                    min={1}
-                    value={form.quantity}
-                    onChange={(event) => setForm({ ...form, quantity: Number(event.target.value) })}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="erp-label">Adjustment Date</label>
-                  <input
-                    className="erp-input"
-                    type="date"
-                    value={form.adjustmentDate}
-                    onChange={(event) => setForm({ ...form, adjustmentDate: event.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="erp-label">Reason</label>
-                  <select
-                    className="erp-select"
-                    value={form.reason}
-                    onChange={(event) => setForm({ ...form, reason: event.target.value })}
-                  >
-                    {ADJUSTMENT_REASONS.map((reason) => (
-                      <option key={reason}>{reason}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div className="erp-form-actions">
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="erp-action-btn erp-action-btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button type="submit" disabled={saving} className="erp-action-btn erp-action-btn-primary">
-                  {saving ? "Saving..." : "Create Adjustment"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       <div className="erp-panel">
         <div className="erp-panel-header">
@@ -405,15 +287,8 @@ export default function InventoryAdjustmentsPage() {
                       <Settings className="h-9 w-9 text-slate-300" />
                       <p className="text-sm font-semibold text-slate-900">No inventory adjustments found.</p>
                       <p className="text-sm leading-6 text-slate-500">
-                        Create a stock adjustment or broaden the filter to review historical entries.
+                        Use New adjustment in the header or broaden the filter to review historical entries.
                       </p>
-                      <button
-                        type="button"
-                        onClick={() => setShowForm(true)}
-                        className="erp-action-btn erp-action-btn-secondary text-xs"
-                      >
-                        Create Adjustment
-                      </button>
                     </div>
                   </td>
                 </tr>
@@ -465,6 +340,100 @@ export default function InventoryAdjustmentsPage() {
           </table>
         </div>
       </div>
+
+      <SideDrawer
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        title="New adjustment"
+        subtitle="Record the warehouse, item, adjustment type, quantity, and reason."
+        width="md"
+        footer={
+          <ErpDrawerFooter
+            onCancel={() => setShowForm(false)}
+            onSave={() => void handleSave()}
+            saving={saving}
+            saveLabel="Create adjustment"
+          />
+        }
+      >
+        <div className="grid grid-cols-1 gap-4">
+          <div>
+            <label className="erp-label">Item</label>
+            <select
+              className="erp-select mt-1"
+              value={form.itemId}
+              onChange={(event) => setForm({ ...form, itemId: event.target.value })}
+            >
+              <option value="">Select item...</option>
+              {items.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.itemCode} - {item.itemName}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="erp-label">Warehouse</label>
+            <select
+              className="erp-select mt-1"
+              value={form.warehouseId}
+              onChange={(event) => setForm({ ...form, warehouseId: event.target.value })}
+            >
+              <option value="">Select warehouse...</option>
+              {warehouses.map((warehouse) => (
+                <option key={warehouse.id} value={warehouse.id}>
+                  {warehouse.warehouseName}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="erp-label">Adjustment Type</label>
+            <select
+              className="erp-select mt-1"
+              value={form.adjustmentType}
+              onChange={(event) => setForm({ ...form, adjustmentType: event.target.value })}
+            >
+              {ADJUSTMENT_TYPES.map((type) => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="erp-label">Quantity</label>
+            <input
+              className="erp-input mt-1"
+              type="number"
+              min={1}
+              value={form.quantity}
+              onChange={(event) => setForm({ ...form, quantity: Number(event.target.value) })}
+            />
+          </div>
+          <div>
+            <label className="erp-label">Adjustment Date</label>
+            <input
+              className="erp-input mt-1"
+              type="date"
+              value={form.adjustmentDate}
+              onChange={(event) => setForm({ ...form, adjustmentDate: event.target.value })}
+            />
+          </div>
+          <div>
+            <label className="erp-label">Reason</label>
+            <select
+              className="erp-select mt-1"
+              value={form.reason}
+              onChange={(event) => setForm({ ...form, reason: event.target.value })}
+            >
+              {ADJUSTMENT_REASONS.map((reason) => (
+                <option key={reason}>{reason}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </SideDrawer>
     </StandardPageLayout>
   );
 }

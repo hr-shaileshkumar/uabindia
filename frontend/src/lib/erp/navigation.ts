@@ -64,6 +64,57 @@ const SIDEBAR_HIDDEN_MODULE_KEYS = new Set(
     .map((d) => d.key)
 );
 
+/** Dead or duplicate chrome — routes may still exist, but they do not belong in the shell. */
+const SIDEBAR_CHROME_EXCLUDED_KEYS = new Set([
+  "healthcare",
+  "fleet",
+  "tours",
+  "licensing",
+  "operations",
+]);
+
+export type SidebarNavSection = {
+  id: string;
+  label: string;
+  modules: WorkspaceModule[];
+};
+
+const SIDEBAR_SECTION_DEFS: Array<{ id: string; label: string; keys: readonly string[] }> = [
+  { id: "work", label: "My work", keys: ["ess", "mss", "notifications", "workflow"] },
+  { id: "people", label: "People", keys: ["hrms", "payroll"] },
+  { id: "finance", label: "Finance", keys: ["finance", "reports"] },
+  { id: "commerce", label: "Buy & sell", keys: ["procurement", "inventory", "crm", "sales"] },
+  { id: "ops", label: "Operations", keys: ["projects", "assets", "helpdesk", "documents", "communication", "ai"] },
+  { id: "platform", label: "Platform", keys: ["platform", "company", "superadmin", "security", "settings", "integrations"] },
+];
+
+export function groupWorkspaceModulesForSidebar(modules: WorkspaceModule[]): SidebarNavSection[] {
+  const remaining = modules.filter((module) => !SIDEBAR_CHROME_EXCLUDED_KEYS.has(module.key));
+  const used = new Set<string>();
+  const sections: SidebarNavSection[] = [];
+
+  for (const def of SIDEBAR_SECTION_DEFS) {
+    const sectionModules = def.keys
+      .map((key) => remaining.find((module) => module.key === key))
+      .filter((module): module is WorkspaceModule => Boolean(module));
+
+    for (const module of sectionModules) {
+      used.add(module.key);
+    }
+
+    if (sectionModules.length > 0) {
+      sections.push({ id: def.id, label: def.label, modules: sectionModules });
+    }
+  }
+
+  const overflow = remaining.filter((module) => !used.has(module.key));
+  if (overflow.length > 0) {
+    sections.push({ id: "more", label: "More", modules: overflow });
+  }
+
+  return sections;
+}
+
 
 const sortItems = (items: NavItemDto[]) =>
   items
@@ -100,6 +151,8 @@ const FALLBACK_HOME_BY_MODULE: Record<string, string> = {
   superadmin: ROUTES.SUPERADMIN_DASHBOARD,
   company: ROUTES.PLATFORM_COMPANIES,
   administration: ROUTES.ADMINISTRATION_HOME,
+  ess: ROUTES.ESS_HOME,
+  mss: ROUTES.MSS_HOME,
   hrms: ROUTES.HRMS_HOME,
   payroll: ROUTES.PAYROLL_HOME,
   finance: ROUTES.FINANCE_HOME,
@@ -107,14 +160,18 @@ const FALLBACK_HOME_BY_MODULE: Record<string, string> = {
   procurement: ROUTES.PROCUREMENT_HOME,
   crm: ROUTES.CRM_HOME,
   sales: ROUTES.SALES_HOME,
-  projects: ROUTES.PLATFORM_PROJECTS,
+  projects: "/projects",
   assets: ROUTES.HR_ASSETS,
   reports: ROUTES.REPORTS_HOME,
-  notifications: ROUTES.ADMINISTRATION_NOTIFICATIONS,
-  workflow: ROUTES.PLATFORM_WORKFLOW_CONFIG,
+  notifications: ROUTES.NOTIFICATIONS,
+  workflow: ROUTES.APPROVALS,
   licensing: ROUTES.LICENSING_HOME,
   security: ROUTES.SECURITY_HOME,
   settings: ROUTES.PLATFORM_SETTINGS,
+  helpdesk: ROUTES.HELPDESK_HOME,
+  integrations: ROUTES.INTEGRATIONS_HOME,
+  communication: ROUTES.COMMUNICATION_HOME,
+  documents: ROUTES.DOCUMENTS,
 };
 
 function getFallbackHomeHref(moduleKey: string) {
@@ -196,6 +253,11 @@ const pickPreferredRoot = (values: Array<string | null>) => {
 };
 
 export function resolveWorkspaceModuleHomeHref(module: NavModuleDto, moduleMeta?: Module) {
+  const knownHome = FALLBACK_HOME_BY_MODULE[module.key];
+  if (knownHome) {
+    return knownHome;
+  }
+
   const preferredRoot = pickPreferredRoot([
     deriveRootPath(moduleMeta?.basePath),
     ...module.groups.flatMap((group) => group.items.map((item) => deriveRootPath(item.path))),
@@ -225,7 +287,9 @@ function materializeWorkspaceModule(
   }
 
   const explicitFallbackHomeHref = normalizePath(fallbackHomeHref);
+  const knownHome = normalizePath(FALLBACK_HOME_BY_MODULE[moduleKey]);
   const homeHref =
+    knownHome ??
     explicitFallbackHomeHref ??
     pickPreferredRoot([
       deriveRootPath(moduleMeta?.basePath),

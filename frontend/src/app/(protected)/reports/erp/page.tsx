@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import ErpHeaderSummary from "@/components/layout/ErpHeaderSummary";
-import { hrApi } from "@/services/hrApi";
+import { crmApi, inventoryApi, procurementApi, salesApi } from "@/services/modules";
 import { ROUTES } from "@/constants/routes";
 
 const formatCurrency = (v?: number) => (v != null ? `Rs${v.toLocaleString("en-IN")}` : "-");
@@ -23,11 +23,11 @@ export default function ErpReportsPage() {
       try {
         setLoading(true);
         const [custRes, vendRes, itemRes, soRes, poRes] = await Promise.all([
-          hrApi.erp.customers.getAll(1, 1),
-          hrApi.erp.vendors.getAll(1, 1),
-          hrApi.erp.items.getAll(1, 1),
-          hrApi.erp.salesOrders.getAll(1, 10),
-          hrApi.erp.purchaseOrders.getAll(1, 10),
+          crmApi.customers.getAll(1, 1),
+          procurementApi.vendors.getAll(1, 1),
+          inventoryApi.items.getAll(1, 1),
+          salesApi.salesOrders.getAll(1, 10),
+          procurementApi.purchaseOrders.getAll(1, 10),
         ]);
         setCustomers(custRes.data?.total ?? 0);
         setVendors(vendRes.data?.total ?? 0);
@@ -66,7 +66,7 @@ export default function ErpReportsPage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="erp-panel">
-          <div className="erp-panel-header">
+          <div className="erp-panel-header erp-keep">
             <div>
               <h2 className="erp-panel-title">Recent Sales Orders</h2>
               <p className="mt-1 text-sm text-slate-500">Latest 10 sales orders</p>
@@ -104,7 +104,7 @@ export default function ErpReportsPage() {
         </div>
 
         <div className="erp-panel">
-          <div className="erp-panel-header">
+          <div className="erp-panel-header erp-keep">
             <div>
               <h2 className="erp-panel-title">Recent Purchase Orders</h2>
               <p className="mt-1 text-sm text-slate-500">Latest 10 purchase orders</p>
@@ -143,7 +143,7 @@ export default function ErpReportsPage() {
       </div>
 
       <div className="erp-panel">
-        <div className="erp-panel-header">
+        <div className="erp-panel-header erp-keep">
           <h2 className="erp-panel-title">Quick Access</h2>
         </div>
         <div className="erp-panel-body">

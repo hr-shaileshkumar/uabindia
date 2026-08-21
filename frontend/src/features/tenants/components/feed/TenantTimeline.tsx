@@ -20,7 +20,7 @@ export function TenantTimeline({ events }: TenantTimelineProps) {
   const getIcon = (status: TimelineEvent["status"]) => {
     switch (status) {
       case "completed": return <CheckCircle2 className="h-5 w-5 text-emerald-500 bg-background" />;
-      case "in_progress": return <Clock className="h-5 w-5 text-indigo-500 bg-background" />;
+      case "in_progress": return <Clock className="h-5 w-5 text-slate-500 bg-background" />;
       case "failed": return <XCircle className="h-5 w-5 text-red-500 bg-background" />;
       case "pending": return <AlertCircle className="h-5 w-5 text-slate-400 bg-background" />;
     }

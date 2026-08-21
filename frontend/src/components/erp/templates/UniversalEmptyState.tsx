@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { FolderOpen } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { erpButtonClassName } from "@/components/erp/erpStyles";
 
 export interface UniversalEmptyStateProps {
   title?: string;
@@ -17,30 +17,30 @@ export interface UniversalEmptyStateProps {
 export function UniversalEmptyState({
   title = "No Records Found",
   description = "Get started by adding your first record or importing existing master data.",
-  icon = <FolderOpen className="h-10 w-10 text-indigo-500/80" />,
+  icon = <FolderOpen className="h-10 w-10 text-slate-500" />,
   primaryActionLabel,
   onPrimaryAction,
   secondaryActionLabel,
   onSecondaryAction,
 }: UniversalEmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center p-12 text-center bg-white dark:bg-slate-900 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-2xs my-4">
-      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 mb-4">
+    <div className="my-4 flex flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-12 text-center shadow-sm">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50">
         {icon}
       </div>
-      <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-1">{title}</h3>
-      <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mb-6">{description}</p>
-      
+      <h3 className="mb-1 text-lg font-bold text-slate-900">{title}</h3>
+      <p className="mb-6 max-w-md text-sm text-slate-500">{description}</p>
+
       <div className="flex flex-wrap items-center gap-3">
         {primaryActionLabel && onPrimaryAction ? (
-          <Button onClick={onPrimaryAction} className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5">
+          <button type="button" onClick={onPrimaryAction} className={erpButtonClassName.primary}>
             {primaryActionLabel}
-          </Button>
+          </button>
         ) : null}
         {secondaryActionLabel && onSecondaryAction ? (
-          <Button variant="outline" onClick={onSecondaryAction}>
+          <button type="button" onClick={onSecondaryAction} className={erpButtonClassName.secondary}>
             {secondaryActionLabel}
-          </Button>
+          </button>
         ) : null}
       </div>
     </div>

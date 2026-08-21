@@ -38,7 +38,7 @@ export function TenantModuleCard({ modules }: TenantModuleCardProps) {
                 </div>
                 <Badge 
                   variant={mod.status === "enabled" ? "default" : mod.status === "disabled" ? "secondary" : "outline"}
-                  className={mod.status === "enabled" ? "bg-indigo-100 text-indigo-800 hover:bg-indigo-100/80 shadow-none border-transparent" : ""}
+                  className={mod.status === "enabled" ? "bg-slate-100 text-slate-800 hover:bg-slate-100/80 shadow-none border border-slate-200" : ""}
                 >
                   {mod.status}
                 </Badge>

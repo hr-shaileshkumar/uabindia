@@ -4,6 +4,7 @@ import { tenantSchema, TenantFormValues } from "../../validations/tenant.schema"
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { erpButtonClassName } from "@/components/erp/erpStyles";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCreateTenant } from "../../hooks/useTenants";
 import { useToast } from "@/hooks/use-toast";
@@ -118,7 +119,7 @@ export function TenantCreateForm() {
       </div>
 
       <div className="flex justify-end gap-3 pt-6 border-t border-slate-200 dark:border-slate-800 pb-10">
-        <Button type="submit" disabled={isLoading} className="h-10 px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-sm">
+        <Button type="submit" disabled={isLoading} className={erpButtonClassName.primary}>
           {isLoading ? "Provisioning Tenant…" : "Create Tenant"}
         </Button>
       </div>

@@ -1,12 +1,21 @@
+"use client";
+
 import type { ReactNode } from "react";
-import { Inbox } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { StatusBadge } from "@/components/erp/status-badge";
 import { CrudCard } from "@/components/erp/crud-workspace";
+import { ListSearchInput } from "@/components/erp/list-toolbar";
+import { ErpCreateButton, ErpRefreshButton } from "@/components/erp/erp-page-kit";
+import { useErpListView } from "@/components/erp/erp-list-view";
+import type { ErpListBulkAction, ErpListColumn } from "@/lib/erp/list-view";
 
 export type ModuleTableColumn = {
   label: string;
   className?: string;
+  key?: string;
+  defaultVisible?: boolean;
+  filterable?: boolean;
+  locked?: boolean;
+  dataType?: ErpListColumn["dataType"];
 };
 
 type ModuleTablePageProps<T> = {
@@ -18,14 +27,14 @@ type ModuleTablePageProps<T> = {
   toolbarSubtitle: string;
   loading: boolean;
   error?: string | null;
-  /** Alias for error — used when wiring live API data */
   loadError?: string | null;
-  /** Retry callback shown next to loadError message */
   onRetry?: () => void;
   rows: T[];
   columns: ModuleTableColumn[];
   renderRow: (row: T) => ReactNode;
+  renderActions?: (row: T) => ReactNode;
   emptyMessage: string;
+  emptyAction?: ReactNode;
   countLabel?: (count: number) => string;
   actions?: ReactNode;
   filters?: ReactNode;
@@ -35,6 +44,16 @@ type ModuleTablePageProps<T> = {
   kpiCards?: ReactNode;
   detailCard?: ReactNode;
   quickEditDrawer?: ReactNode;
+  onCreate?: () => void;
+  createLabel?: string;
+  onRefresh?: () => void;
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
+  searchPlaceholder?: string;
+  listKey?: string;
+  getRowId?: (row: T) => string;
+  onBulkDelete?: (rows: T[]) => void;
+  bulkActions?: ErpListBulkAction[];
 };
 
 export default function ModuleTablePage<T>({
@@ -42,8 +61,8 @@ export default function ModuleTablePage<T>({
   subtitle,
   eyebrow,
   icon,
-  toolbarTitle,
-  toolbarSubtitle,
+  toolbarTitle: _toolbarTitle,
+  toolbarSubtitle: _toolbarSubtitle,
   loading,
   error,
   loadError,
@@ -52,6 +71,7 @@ export default function ModuleTablePage<T>({
   columns,
   renderRow,
   emptyMessage,
+  emptyAction,
   countLabel,
   actions,
   filters,
@@ -61,11 +81,47 @@ export default function ModuleTablePage<T>({
   kpiCards,
   detailCard,
   quickEditDrawer,
+  onCreate,
+  createLabel = "New",
+  onRefresh,
+  searchValue,
+  onSearchChange,
+  searchPlaceholder = "Search records…",
+  listKey,
+  getRowId,
+  onBulkDelete,
+  bulkActions,
 }: ModuleTablePageProps<T>) {
   const displayError = loadError ?? error;
-  const recordCount = rows.length;
-  const recordCountText = loading ? "Loading..." : countLabel ? countLabel(recordCount) : `${recordCount} records`;
-  const shellTone = displayError ? "critical" : loading ? "warning" : recordCount > 0 ? "positive" : "info";
+  const list = useErpListView({
+    listKey: listKey || title,
+    rows,
+    columns,
+    renderRow,
+    loading,
+    emptyMessage,
+    emptyAction,
+    getRowId,
+    extraFilters: (
+      <>
+        {onSearchChange ? (
+          <ListSearchInput value={searchValue ?? ""} onChange={onSearchChange} placeholder={searchPlaceholder} />
+        ) : null}
+        {filters}
+      </>
+    ),
+    onCreate,
+    createLabel,
+    onRefresh,
+    onBulkDelete,
+    bulkActions,
+  });
+
+  const recordCountText = loading
+    ? "Loading..."
+    : countLabel
+      ? countLabel(list.filteredCount)
+      : `${list.filteredCount} records`;
 
   return (
     <StandardPageLayout
@@ -74,25 +130,27 @@ export default function ModuleTablePage<T>({
       eyebrow={eyebrow}
       icon={icon}
       meta={
+        headerStats ?? (
+          <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-600">
+            {recordCountText}
+          </span>
+        )
+      }
+      actions={
         <>
-          <StatusBadge tone={shellTone}>
-            {displayError ? "Needs attention" : loading ? "Refreshing" : recordCount > 0 ? "Operational" : "No records"}
-          </StatusBadge>
-          {headerStats ?? (
-            <span className="rounded-full border border-[#d9e6ff] bg-[#eef4ff] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#2152d8]">
-              {recordCountText}
-            </span>
-          )}
+          {onRefresh ? <ErpRefreshButton onClick={onRefresh} loading={loading} /> : null}
+          {list.headerTools}
+          {actions}
+          {onCreate ? <ErpCreateButton label={createLabel} onClick={onCreate} /> : null}
         </>
       }
-      actions={actions}
-      filters={filters}
+      filters={list.filterBar}
       pagination={pagination}
     >
       {displayError ? (
         <div className="erp-alert-error flex items-center justify-between gap-4">
           <span>{displayError}</span>
-          {onRetry && (
+          {onRetry ? (
             <button
               type="button"
               onClick={onRetry}
@@ -100,64 +158,13 @@ export default function ModuleTablePage<T>({
             >
               Retry
             </button>
-          )}
+          ) : null}
         </div>
       ) : null}
       {intro ? <div className="mb-4">{intro}</div> : null}
       {kpiCards && !headerStats ? <div className="mb-4">{kpiCards}</div> : null}
 
-      <CrudCard
-        title={toolbarTitle}
-        description={toolbarSubtitle}
-        badge={<span className="erp-toolbar-badge">{recordCountText}</span>}
-      >
-        <div className="erp-table-wrap rounded-none border-0 shadow-none">
-          {loading && rows.length === 0 ? (
-            <div className="space-y-2 p-3" role="status" aria-live="polite">
-              <span className="sr-only">Loading the latest records</span>
-              {Array.from({ length: 5 }, (_, index) => (
-                <div key={index} className="grid animate-pulse grid-cols-[minmax(8rem,1.5fr)_repeat(3,minmax(6rem,1fr))] gap-3 border-b border-slate-100 py-2.5" aria-hidden="true">
-                  <span className="h-3 rounded bg-slate-200" />
-                  <span className="h-3 rounded bg-slate-100" />
-                  <span className="h-3 rounded bg-slate-100" />
-                  <span className="h-3 rounded bg-slate-100" />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <table className="erp-table">
-              <thead className="erp-thead">
-                <tr>
-                  {columns.map((column) => (
-                    <th key={column.label} className={`erp-th ${column.className ?? ""}`.trim()}>
-                      {column.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => renderRow(row))}
-                {!loading && rows.length === 0 ? (
-                  <tr>
-                    <td colSpan={columns.length} className="erp-td py-10 text-center">
-                      <div className="mx-auto flex max-w-xl flex-col items-center gap-2 text-center" role="status">
-                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500" aria-hidden="true">
-                          <Inbox className="h-4 w-4" />
-                        </span>
-                        <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                          Empty view
-                        </span>
-                        <p className="text-sm font-semibold text-slate-900">No records in the current view</p>
-                        <p className="text-sm leading-6 text-slate-500">{emptyMessage}</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </CrudCard>
+      <CrudCard>{list.table}</CrudCard>
 
       {detailCard ? <div className="mt-4">{detailCard}</div> : null}
       {quickEditDrawer ?? null}

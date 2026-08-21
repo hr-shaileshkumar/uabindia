@@ -12,13 +12,51 @@ export const appApi = {
   },
   licensing: {
     apiKeys: () => apiClient.get("/integrations/api-keys"),
+    createApiKey: (data: { name: string; scope?: string }) => apiClient.post("/integrations/api-keys", data),
+    revokeApiKey: (id: string) => apiClient.post(`/integrations/api-keys/${id}/revoke`),
+    integrations: () => apiClient.get("/integrations"),
+    getIntegration: (id: string) => apiClient.get(`/integrations/${id}`),
+    upsertIntegrationConfig: (id: string, config: Record<string, string | null | undefined>) =>
+      apiClient.put(`/integrations/${id}`, { config }),
+    testIntegration: (id: string) => apiClient.post(`/integrations/${id}/test`),
+    syncIntegration: (id: string) => apiClient.post(`/integrations/${id}/sync`),
+    integrationLogs: (id: string, limit = 25) =>
+      apiClient.get(`/integrations/${id}/logs?limit=${limit}`),
+    allIntegrationLogs: (limit = 50) =>
+      apiClient.get(`/integrations/logs?limit=${limit}`),
+    usage: (period?: string) =>
+      apiClient.get(`/licensing/usage${period ? `?period=${encodeURIComponent(period)}` : ""}`),
+    invoices: (status?: string) =>
+      apiClient.get(`/licensing/invoices${status ? `?status=${encodeURIComponent(status)}` : ""}`),
+    createInvoice: (data: ApiPayload) => apiClient.post("/licensing/invoices", data),
+    payInvoice: (id: string) => apiClient.post(`/licensing/invoices/${id}/pay`, {}),
+    deleteInvoice: (id: string) => apiClient.delete(`/licensing/invoices/${id}`),
   },
   security: {
     deviceSessions: () => apiClient.get("/security/device-sessions"),
     passwordPolicy: () => apiClient.get("/security/password-policy"),
+    updatePasswordPolicy: (data: ApiPayload) => apiClient.put("/security/password-policy", data),
+    mfaPolicy: () => apiClient.get("/security/mfa-policy"),
+    updateMfaPolicy: (data: ApiPayload) => apiClient.put("/security/mfa-policy", data),
+    mfaEnrollments: () => apiClient.get("/security/mfa-enrollments"),
+    directoryUsers: () => apiClient.get("/security/directory-users"),
+    createMfaEnrollment: (data: ApiPayload) => apiClient.post("/security/mfa-enrollments", data),
+    enrollMfa: (id: string) => apiClient.post(`/security/mfa-enrollments/${id}/enroll`, {}),
+    disableMfa: (id: string) => apiClient.post(`/security/mfa-enrollments/${id}/disable`, {}),
+    ssoProviders: () => apiClient.get("/security/sso-providers"),
+    createSsoProvider: (data: ApiPayload) => apiClient.post("/security/sso-providers", data),
+    updateSsoProvider: (id: string, data: ApiPayload) => apiClient.put(`/security/sso-providers/${id}`, data),
+    testSsoProvider: (id: string) => apiClient.post(`/security/sso-providers/${id}/test`, {}),
+    enableSsoProvider: (id: string) => apiClient.post(`/security/sso-providers/${id}/enable`, {}),
+    disableSsoProvider: (id: string) => apiClient.post(`/security/sso-providers/${id}/disable`, {}),
+    deleteSsoProvider: (id: string) => apiClient.delete(`/security/sso-providers/${id}`),
+    ipRules: () => apiClient.get("/security/ip-rules"),
+    createIpRule: (data: ApiPayload) => apiClient.post("/security/ip-rules", data),
+    deleteIpRule: (id: string) => apiClient.delete(`/security/ip-rules/${id}`),
     refreshTokens: () => apiClient.get("/security/device-sessions"),
   },
   workflows: {
+    listDefinitions: () => apiClient.get("/workflows/definitions"),
     getByModule: (moduleKey: string) => apiClient.get(`/workflows/definitions/${encodeURIComponent(moduleKey)}`),
     upsert: (data: ApiPayload) => apiClient.post("/workflows/definitions", data),
   },
@@ -75,6 +113,12 @@ export const appApi = {
         {},
         options?.suppressGlobalError ? { headers: { "X-Silent-Error": "1" } } : undefined
       ),
+    markAllRead: (options?: { suppressGlobalError?: boolean }) =>
+      apiClient.post(
+        "/notifications/me/read-all",
+        {},
+        options?.suppressGlobalError ? { headers: { "X-Silent-Error": "1" } } : undefined
+      ),
   },
   documents: {
     list: (params?: { companyId?: string; projectId?: string; employeeId?: string; module?: string; category?: string }) => {
@@ -95,7 +139,8 @@ export const appApi = {
     delete: (id: string) => apiClient.delete(`/documents/${id}`),
   },
   search: {
-    query: (q: string) => apiClient.get<{ results: SearchResult[] }>(`/search?q=${q}`),
+    query: (q: string, take = 20) =>
+      apiClient.get<{ results: SearchResult[] }>(`/search?q=${encodeURIComponent(q)}&take=${take}`),
   },
   dashboard: {
     getStats: () => apiClient.get<DashboardStats>("/hr/dashboard"),

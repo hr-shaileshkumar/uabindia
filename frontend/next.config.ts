@@ -1,31 +1,47 @@
 import type { NextConfig } from "next";
-import { getServerApiOrigin } from "./src/lib/server-api-base-url";
 import path from "path";
 
-const normalizedApiBase = getServerApiOrigin();
-const rootDir = process.env.VERCEL ? undefined : path.resolve(__dirname);
+const isProd = process.env.NODE_ENV === "production";
+const isVercel = Boolean(process.env.VERCEL);
+
+const apiOrigin = (
+  process.env.API_BASE_URL ||
+  process.env.BACKEND_INTERNAL_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://127.0.0.1:5000"
+)
+  .trim()
+  .replace(/\/+$/, "")
+  .replace(/\/api\/v1$/i, "");
+
+const frontendRoot = path.resolve(__dirname);
 
 const nextConfig: NextConfig = {
-  ...(rootDir
-    ? {
-        turbopack: {
-          root: rootDir,
-        },
-        outputFileTracingRoot: rootDir,
-      }
-    : {}),
-  generateBuildId: async () =>
-    process.env.NEXT_BUILD_ID || `local-${Date.now().toString(36)}`,
+  outputFileTracingRoot: frontendRoot,
+  turbopack: {
+    root: frontendRoot,
+  },
+  allowedDevOrigins: ["127.0.0.1", "localhost"],
+  generateBuildId: () => process.env.NEXT_BUILD_ID || "dev",
   typescript: {
     ignoreBuildErrors: false,
   },
-  compress: true,
-  output: process.env.VERCEL ? undefined : "standalone",
+  ...(isProd && !isVercel
+    ? {
+        output: "standalone" as const,
+        compress: true,
+      }
+    : {}),
   experimental: {
     optimizePackageImports: ["lucide-react", "recharts", "framer-motion"],
+    turbopackFileSystemCacheForDev: false,
   },
   images: {
     unoptimized: true,
+  },
+  onDemandEntries: {
+    maxInactiveAge: 15 * 60 * 1000,
+    pagesBufferLength: 8,
   },
   async rewrites() {
     return [
@@ -39,19 +55,19 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/health",
-        destination: normalizedApiBase ? `${normalizedApiBase}/health` : "http://127.0.0.1:5000/health",
+        destination: `${apiOrigin}/health`,
       },
       {
         source: "/health/:path*",
-        destination: normalizedApiBase ? `${normalizedApiBase}/health/:path*` : "http://127.0.0.1:5000/health/:path*",
+        destination: `${apiOrigin}/health/:path*`,
       },
       {
         source: "/api/v1/:path*",
-        destination: normalizedApiBase ? `${normalizedApiBase}/api/v1/:path*` : "http://127.0.0.1:5000/api/v1/:path*",
+        destination: `${apiOrigin}/api/v1/:path*`,
       },
       {
         source: "/api/:path*",
-        destination: normalizedApiBase ? `${normalizedApiBase}/api/:path*` : "http://127.0.0.1:5000/api/:path*",
+        destination: `${apiOrigin}/api/:path*`,
       },
     ];
   },
@@ -62,6 +78,19 @@ const nextConfig: NextConfig = {
       { source: "/erp/:path*", destination: "/:path*", permanent: false },
       { source: "/superadmin", destination: "/superadmin/dashboard", permanent: false },
       { source: "/app/:path*", destination: "/:path*", permanent: false },
+      { source: "/hrms/departments", destination: "/platform/departments", permanent: false },
+      { source: "/hrms/designations", destination: "/platform/designations", permanent: false },
+      { source: "/recruitment", destination: "/hrms/recruitment", permanent: false },
+      { source: "/performance", destination: "/hrms/performance", permanent: false },
+      { source: "/travel", destination: "/hrms/travel", permanent: false },
+      { source: "/tours", destination: "/hrms/travel", permanent: false },
+      { source: "/fleet", destination: "/dashboard", permanent: false },
+      { source: "/healthcare", destination: "/dashboard", permanent: false },
+      { source: "/projects", destination: "/platform/projects", permanent: false },
+      { source: "/security/sessions", destination: "/platform/security/sessions", permanent: false },
+      { source: "/security/devices", destination: "/platform/security/sessions", permanent: false },
+      { source: "/customers", destination: "/crm/customers", permanent: false },
+      { source: "/customers/:path*", destination: "/crm/customers/:path*", permanent: false },
     ];
   },
 };

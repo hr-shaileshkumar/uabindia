@@ -1,11 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { CheckCircle, Clock, Plus, RotateCcw, XCircle } from "lucide-react";
+import { CheckCircle, Clock, XCircle } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudHeaderStats } from "@/components/erp/crud-workspace";
-import { hrApi } from "@/services/hrApi";
-import { notifyError } from "@/lib/notifications";
+import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
+import { SideDrawer } from "@/components/ui/side-drawer";
+import { ErpCreateButton, ErpDrawerFooter, ErpRefreshButton, ErpRowActions } from "@/components/erp/erp-page-kit";
+import { useErpListView } from "@/components/erp/erp-list-view";
+import { ErpDocumentStatusActions } from "@/components/erp/erp-document-kit";
+import { salesApi } from "@/services/modules";
+import { notifyError, notifySuccess } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
 
 type ReturnRow = {
@@ -89,23 +93,21 @@ export default function ReturnsPage() {
       setLoading(true);
       setError(null);
 
-      const response = await hrApi.erp.salesOrders.getAll(1, 50);
+      const response = await salesApi.returns.getAll(1, 50);
       const raw = response.data;
       const list = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
 
-      const mapped: ReturnRow[] = list
-        .filter((salesOrder: ReturnRow) => salesOrder.status === "Cancelled")
-        .map((salesOrder: ReturnRow, index: number) => ({
-          id: salesOrder.id || String(index),
-          returnNumber: `RTN-${(salesOrder.soNumber || salesOrder.id?.slice(0, 8) || "").replace("SO-", "")}`,
-          customerId: salesOrder.customerId,
-          customerName: salesOrder.customerName || salesOrder.customerId,
-          originalOrderRef: salesOrder.soNumber,
-          amount: salesOrder.totalAmount,
-          reason: "Customer Changed Mind",
-          returnDate: salesOrder.soDate,
-          status: "Pending",
-        }));
+      const mapped: ReturnRow[] = list.map((row: ReturnRow, index: number) => ({
+        id: row.id || String(index),
+        returnNumber: row.returnNumber,
+        customerId: row.customerId,
+        originalOrderRef: row.originalOrderRef,
+        amount: row.amount,
+        reason: row.reason,
+        returnDate: row.returnDate,
+        status: row.status,
+        creditNoteNumber: row.creditNoteNumber,
+      }));
 
       setRecords(mapped);
     } catch (err) {
@@ -121,22 +123,19 @@ export default function ReturnsPage() {
     void load();
   }, [load]);
 
-  const handleSave = async (event: React.FormEvent) => {
-    event.preventDefault();
+  const handleSave = async () => {
     if (!form.customerId) {
       return;
     }
 
     try {
       setSaving(true);
-      await hrApi.erp.payments.create({
-        paymentType: "CreditNote",
+      await salesApi.returns.create({
         customerId: form.customerId,
-        amount: -Math.abs(form.amount),
-        paymentDate: form.returnDate,
-        referenceNumber: form.originalOrderRef,
-        notes: form.reason,
-        status: "Pending",
+        originalOrderRef: form.originalOrderRef,
+        amount: form.amount,
+        reason: form.reason,
+        returnDate: form.returnDate,
       });
       setShowForm(false);
       setForm({
@@ -154,6 +153,16 @@ export default function ReturnsPage() {
     }
   };
 
+  const handleProcess = async (id: string) => {
+    try {
+      await salesApi.returns.process(id);
+      notifySuccess("Return processed.");
+      await load();
+    } catch (err) {
+      notifyError(getApiErrorMessage(err, "Failed to process return."), "Return");
+    }
+  };
+
   const filtered = records.filter((record) => {
     const query = search.toLowerCase();
     const matchSearch =
@@ -167,6 +176,79 @@ export default function ReturnsPage() {
   const processedCount = filtered.filter((record) => record.status === "Processed").length;
   const pendingCount = filtered.filter((record) => record.status === "Pending").length;
   const totalReturnValue = filtered.reduce((sum, record) => sum + (record.amount || 0), 0);
+
+  const list = useErpListView({
+    listKey: "sales-returns",
+    rows: filtered,
+    columns: [
+      { key: "returnNumber", label: "Return" },
+      { key: "customerName", label: "Customer" },
+      { key: "originalOrderRef", label: "Order Ref" },
+      { key: "amount", label: "Amount", dataType: "currency" },
+      { key: "reason", label: "Reason" },
+      { key: "returnDate", label: "Date", dataType: "date" },
+      { key: "status", label: "Status" },
+      { key: "actions", label: "Actions", locked: true },
+    ],
+    getRowId: (record) => record.id,
+    loading,
+    emptyMessage: "No return records found. Use New return in the header to create one.",
+    onCreate: () => setShowForm(true),
+    createLabel: "New return",
+    onRefresh: () => void load(),
+    extraFilters: (
+      <>
+        <input
+          className="erp-input max-w-xs"
+          placeholder="Return number or customer..."
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+        <select className="erp-select w-36" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+          <option value="">All Status</option>
+          <option value="Pending">Pending</option>
+          <option value="Approved">Approved</option>
+          <option value="Processed">Processed</option>
+          <option value="Rejected">Rejected</option>
+        </select>
+      </>
+    ),
+    renderRow: (record) => {
+      const status = STATUS_CONFIG[record.status || "Pending"] || STATUS_CONFIG.Pending;
+      return (
+        <tr key={record.id} className="erp-tr">
+          <td className="erp-td font-mono text-sm font-semibold text-slate-900">{record.returnNumber || "-"}</td>
+          <td className="erp-td text-slate-700">{record.customerName || record.customerId || "-"}</td>
+          <td className="erp-td font-mono text-xs text-slate-600">{record.originalOrderRef || "-"}</td>
+          <td className="erp-td font-semibold text-slate-900">{formatCurrency(record.amount)}</td>
+          <td className="erp-td">
+            <span className="erp-chip erp-chip-neutral text-xs">{record.reason || "-"}</span>
+          </td>
+          <td className="erp-td text-slate-600">
+            {record.returnDate ? new Date(record.returnDate).toLocaleDateString("en-IN") : "-"}
+          </td>
+          <td className="erp-td">
+            <span className={`${status.chip} flex w-fit items-center gap-1`}>
+              {status.icon}
+              {status.label}
+            </span>
+          </td>
+          <td className="erp-td">
+            <div className="flex justify-end">
+              <ErpRowActions
+                extra={
+                  <ErpDocumentStatusActions
+                    canPost={record.status === "Pending" || record.status === "Approved"}
+                    onPost={() => void handleProcess(record.id)}
+                  />
+                }
+              />
+            </div>
+          </td>
+        </tr>
+      );
+    },
+  });
 
   return (
     <StandardPageLayout
@@ -185,228 +267,86 @@ export default function ReturnsPage() {
         />
       }
       actions={
-        <button
-          type="button"
-          onClick={() => setShowForm((current) => !current)}
-          className="erp-action-btn erp-action-btn-primary"
-        >
-          <Plus className="h-4 w-4" />
-          New Return
-        </button>
+        <>
+          <ErpRefreshButton onClick={() => void load()} loading={loading} />
+          {list.headerTools}
+          <ErpCreateButton label="New return" onClick={() => setShowForm(true)} />
+        </>
       }
-      filters={
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="min-w-48 flex-1">
-            <label className="erp-label">Search</label>
-            <input
-              className="erp-input"
-              placeholder="Return number or customer..."
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-          </div>
-          <div>
-            <label className="erp-label">Status</label>
-            <select
-              className="erp-select w-36"
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
-            >
-              <option value="">All Status</option>
-              <option value="Pending">Pending</option>
-              <option value="Approved">Approved</option>
-              <option value="Processed">Processed</option>
-              <option value="Rejected">Rejected</option>
-            </select>
-          </div>
-          {(search || statusFilter) && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearch("");
-                setStatusFilter("");
-              }}
-              className="erp-action-btn erp-action-btn-secondary"
-            >
-              Clear
-            </button>
-          )}
-        </div>
-      }
+      filters={list.filterBar}
     >
       {error && <div className="erp-alert-error">{error}</div>}
 
-      {showForm && (
-        <div className="erp-panel">
-          <div className="erp-panel-header">
-            <div>
-              <h2 className="erp-panel-title">Initiate Return</h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Link the return to the original order, amount, reason, and customer reference.
-              </p>
-            </div>
-          </div>
-          <div className="erp-panel-body">
-            <form onSubmit={handleSave} className="space-y-4">
-              <div className="erp-form-grid erp-form-grid-2">
-                <div>
-                  <label className="erp-label">Customer ID</label>
-                  <input
-                    className="erp-input"
-                    placeholder="Enter customer ID"
-                    value={form.customerId}
-                    onChange={(event) => setForm({ ...form, customerId: event.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="erp-label">Original Order Reference</label>
-                  <input
-                    className="erp-input"
-                    placeholder="SO-2024-0001"
-                    value={form.originalOrderRef}
-                    onChange={(event) => setForm({ ...form, originalOrderRef: event.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="erp-label">Return Amount (Rs)</label>
-                  <input
-                    className="erp-input"
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={form.amount}
-                    onChange={(event) => setForm({ ...form, amount: Number(event.target.value) })}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="erp-label">Return Date</label>
-                  <input
-                    className="erp-input"
-                    type="date"
-                    value={form.returnDate}
-                    onChange={(event) => setForm({ ...form, returnDate: event.target.value })}
-                    required
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="erp-label">Reason</label>
-                  <select
-                    className="erp-select"
-                    value={form.reason}
-                    onChange={(event) => setForm({ ...form, reason: event.target.value })}
-                  >
-                    {RETURN_REASONS.map((reason) => (
-                      <option key={reason}>{reason}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div className="erp-form-actions">
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="erp-action-btn erp-action-btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button type="submit" disabled={saving} className="erp-action-btn erp-action-btn-primary">
-                  {saving ? "Saving..." : "Initiate Return"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <CrudCard>{list.table}</CrudCard>
 
-      <div className="erp-panel">
-        <div className="erp-panel-header">
+      <SideDrawer
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        title="New return"
+        subtitle="Link the return to the original order, amount, reason, and customer."
+        width="md"
+        footer={
+          <ErpDrawerFooter
+            onCancel={() => setShowForm(false)}
+            onSave={() => void handleSave()}
+            saving={saving}
+            saveLabel="Create return"
+          />
+        }
+      >
+        <div className="grid grid-cols-1 gap-4">
           <div>
-            <h2 className="erp-panel-title">Returns Register</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Review return references, customer impact, reason codes, and processing state.
-            </p>
+            <label className="erp-label">Customer ID</label>
+            <input
+              className="erp-input mt-1"
+              placeholder="Enter customer ID"
+              value={form.customerId}
+              onChange={(event) => setForm({ ...form, customerId: event.target.value })}
+            />
+          </div>
+          <div>
+            <label className="erp-label">Original Order Reference</label>
+            <input
+              className="erp-input mt-1"
+              placeholder="SO-2024-0001"
+              value={form.originalOrderRef}
+              onChange={(event) => setForm({ ...form, originalOrderRef: event.target.value })}
+            />
+          </div>
+          <div>
+            <label className="erp-label">Return Amount (Rs)</label>
+            <input
+              className="erp-input mt-1"
+              type="number"
+              min={0}
+              step="0.01"
+              value={form.amount}
+              onChange={(event) => setForm({ ...form, amount: Number(event.target.value) })}
+            />
+          </div>
+          <div>
+            <label className="erp-label">Return Date</label>
+            <input
+              className="erp-input mt-1"
+              type="date"
+              value={form.returnDate}
+              onChange={(event) => setForm({ ...form, returnDate: event.target.value })}
+            />
+          </div>
+          <div>
+            <label className="erp-label">Reason</label>
+            <select
+              className="erp-select mt-1"
+              value={form.reason}
+              onChange={(event) => setForm({ ...form, reason: event.target.value })}
+            >
+              {RETURN_REASONS.map((reason) => (
+                <option key={reason}>{reason}</option>
+              ))}
+            </select>
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="erp-table">
-            <thead className="erp-thead">
-              <tr>
-                <th className="erp-th">Return</th>
-                <th className="erp-th">Customer</th>
-                <th className="erp-th">Order Ref</th>
-                <th className="erp-th">Amount</th>
-                <th className="erp-th">Reason</th>
-                <th className="erp-th">Date</th>
-                <th className="erp-th">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                Array.from({ length: 5 }).map((_, index) => (
-                  <tr key={index}>
-                    <td colSpan={7} className="erp-td">
-                      <div className="h-4 animate-pulse rounded bg-slate-100" />
-                    </td>
-                  </tr>
-                ))
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="erp-td py-16 text-center">
-                    <div className="flex flex-col items-center gap-3">
-                      <RotateCcw className="h-10 w-10 text-slate-300" />
-                      <p className="text-sm text-slate-400">No return records found.</p>
-                      <button
-                        type="button"
-                        onClick={() => setShowForm(true)}
-                        className="erp-action-btn erp-action-btn-secondary text-xs"
-                      >
-                        New Return
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((record) => {
-                  const status = STATUS_CONFIG[record.status || "Pending"] || STATUS_CONFIG.Pending;
-                  return (
-                    <tr key={record.id} className="erp-tr">
-                      <td className="erp-td font-mono text-sm font-semibold text-slate-900">
-                        {record.returnNumber || "-"}
-                      </td>
-                      <td className="erp-td text-slate-700">
-                        {record.customerName || record.customerId || "-"}
-                      </td>
-                      <td className="erp-td font-mono text-xs text-slate-600">
-                        {record.originalOrderRef || "-"}
-                      </td>
-                      <td className="erp-td font-semibold text-slate-900">
-                        {formatCurrency(record.amount)}
-                      </td>
-                      <td className="erp-td">
-                        <span className="erp-chip erp-chip-neutral text-xs">{record.reason || "-"}</span>
-                      </td>
-                      <td className="erp-td text-slate-600">
-                        {record.returnDate
-                          ? new Date(record.returnDate).toLocaleDateString("en-IN")
-                          : "-"}
-                      </td>
-                      <td className="erp-td">
-                        <span className={`${status.chip} flex w-fit items-center gap-1`}>
-                          {status.icon}
-                          {status.label}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      </SideDrawer>
     </StandardPageLayout>
   );
 }

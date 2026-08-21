@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { CrudHeaderStats } from "@/components/erp/crud-workspace";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { hrApi } from "@/services/hrApi";
-
+import { hrmsApi } from "@/services/modules";
 type ResultRow = {
   screeningId: string;
   candidateName: string;
@@ -40,7 +39,7 @@ export default function ScreeningResultsPage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await hrApi.screenings.getResults({
+      const res = await hrmsApi.screenings.getResults({
         search: search || undefined,
         result: result || undefined,
         fromDate: fromDate || undefined,

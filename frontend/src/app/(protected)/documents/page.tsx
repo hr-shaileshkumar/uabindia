@@ -1,98 +1,228 @@
 "use client";
 
-import React, { useState } from "react";
-import { FileText, Plus, Download, ShieldCheck, CheckCircle2, Lock } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { PlatformGlobalPageShell, KpiMetricItem } from "@/components/platform/PlatformGlobalPageShell";
-import { notifySuccess } from "@/lib/notifications";
-
-interface DocTemplateRow {
-  id: string;
-  title: string;
-  category: "Letter Template" | "Policy Document" | "Certificate" | "ID Card";
-  digitalSignatureRequired: boolean;
-  version: string;
-  updatedAt: string;
-}
-
-const SEED_DOC_TEMPLATES: DocTemplateRow[] = [
-  { id: "doc_1", title: "Standard Employment Offer Letter", category: "Letter Template", digitalSignatureRequired: true, version: "v2.4", updatedAt: "2026-07-28" },
-  { id: "doc_2", title: "Corporate Code of Conduct Policy 2026", category: "Policy Document", digitalSignatureRequired: false, version: "v1.0", updatedAt: "2026-07-01" },
-  { id: "doc_3", title: "Employee Experience & Relieving Certificate", category: "Certificate", digitalSignatureRequired: true, version: "v3.1", updatedAt: "2026-07-20" },
-  { id: "doc_4", title: "Enterprise Smart Employee ID Card Template", category: "ID Card", digitalSignatureRequired: false, version: "v1.2", updatedAt: "2026-07-15" },
-];
+import { useCallback, useMemo, useRef, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Download, Upload } from "lucide-react";
+import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
+import {
+  ErpCreateButton,
+  ErpDrawerFooter,
+  ErpRefreshButton,
+  ErpRowActions,
+  ErpSearchFilter,
+} from "@/components/erp/erp-page-kit";
+import { SideDrawer } from "@/components/ui/side-drawer";
+import { UniversalDeleteDialog } from "@/components/erp/templates/UniversalDeleteDialog";
+import { useErpListView } from "@/components/erp/erp-list-view";
+import { appApi } from "@/services/modules";
+import { getApiErrorMessage } from "@/lib/api-errors";
+import { notifyError, notifySuccess } from "@/lib/notifications";
+import { mapDocumentRecord, useDocuments, documentsQueryKey } from "@/features/platform/hooks/useDocuments";
 
 export default function DocumentVaultPage() {
-  const [docs] = useState<DocTemplateRow[]>(SEED_DOC_TEMPLATES);
+  const queryClient = useQueryClient();
+  const { data = [], isLoading, isError, error, refetch } = useDocuments();
   const [search, setSearch] = useState("");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [module, setModule] = useState("general");
+  const [category, setCategory] = useState("general");
+  const [description, setDescription] = useState("");
+  const [tags, setTags] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  const filteredDocs = docs.filter((d) => {
+  const docs = useMemo(() => data.map(mapDocumentRecord), [data]);
+  const filteredDocs = useMemo(() => {
     const q = search.toLowerCase();
-    return !q || d.title.toLowerCase().includes(q) || d.category.toLowerCase().includes(q);
+    return docs.filter(
+      (d) => !q || d.title.toLowerCase().includes(q) || d.category.toLowerCase().includes(q) || d.module.toLowerCase().includes(q)
+    );
+  }, [docs, search]);
+
+  const upload = useMutation({
+    mutationFn: async (file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("module", module || "general");
+      form.append("category", category || "general");
+      if (description) form.append("description", description);
+      if (tags) form.append("tags", tags);
+      await appApi.documents.upload(form);
+    },
+    onSuccess: async () => {
+      notifySuccess("Document uploaded.");
+      setDrawerOpen(false);
+      setDescription("");
+      setTags("");
+      if (fileRef.current) fileRef.current.value = "";
+      await queryClient.invalidateQueries({ queryKey: documentsQueryKey() });
+    },
+    onError: (err) => notifyError(getApiErrorMessage(err, "Upload failed.")),
   });
 
-  const kpis: KpiMetricItem[] = [
-    { label: "Document Templates", value: docs.length, tone: "info", icon: <FileText className="h-3.5 w-3.5" />, subtext: "Vault" },
-    { label: "Digital Signatures", value: "eSign PKI", tone: "positive", icon: <ShieldCheck className="h-3.5 w-3.5" />, subtext: "Cryptographic" },
-    { label: "Encrypted Storage", value: "AES-256", tone: "positive", icon: <Lock className="h-3.5 w-3.5" />, subtext: "S3 Vault" },
-    { label: "ID Card Generator", value: "Ready", tone: "warning", icon: <CheckCircle2 className="h-3.5 w-3.5" />, subtext: "QR Code" },
+  const remove = useMutation({
+    mutationFn: async (id: string) => appApi.documents.delete(id),
+    onSuccess: async () => {
+      notifySuccess("Document deleted.");
+      setDeleteId(null);
+      await queryClient.invalidateQueries({ queryKey: documentsQueryKey() });
+    },
+    onError: (err) => notifyError(getApiErrorMessage(err, "Delete failed.")),
+  });
+
+  const download = useCallback(async (id: string, fileName: string) => {
+    try {
+      const res = await appApi.documents.download(id);
+      const blob = new Blob([res.data]);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      notifyError(getApiErrorMessage(err, "Download failed."));
+    }
+  }, []);
+
+  const list = useErpListView({
+    listKey: "documents-vault",
+    rows: filteredDocs,
+    columns: [
+      { key: "title", label: "File name", dataType: "string" },
+      { key: "category", label: "Category", dataType: "string" },
+      { key: "module", label: "Module", dataType: "string" },
+      { key: "updatedAt", label: "Uploaded", dataType: "string" },
+      { key: "actions", label: "Actions", locked: true },
+    ],
+    getRowId: (row) => row.id,
+    loading: isLoading,
+    emptyMessage: "No documents uploaded yet.",
+    emptyAction: <ErpCreateButton label="Upload" onClick={() => setDrawerOpen(true)} />,
+    onCreate: () => setDrawerOpen(true),
+    createLabel: "Upload",
+    onRefresh: () => void refetch(),
+    renderRow: (row) => (
+      <>
+        <td className="erp-td text-xs font-semibold">{row.title}</td>
+        <td className="erp-td text-xs">{row.category}</td>
+        <td className="erp-td text-xs">{row.module}</td>
+        <td className="erp-td text-xs text-slate-500">{row.updatedAt}</td>
+        <td className="erp-td">
+          <ErpRowActions
+            onView={{
+              label: "Download",
+              onClick: () => void download(row.id, row.title),
+            }}
+            onDelete={{
+              label: "Delete",
+              onClick: () => setDeleteId(row.id),
+            }}
+            extra={
+              <button
+                type="button"
+                title="Download"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100"
+                onClick={() => void download(row.id, row.title)}
+              >
+                <Download className="h-4 w-4" />
+              </button>
+            }
+          />
+        </td>
+      </>
+    ),
+  });
+
+  const stats = [
+    { label: "Documents", value: docs.length, tone: "info" as const },
+    { label: "Categories", value: new Set(docs.map((d) => d.category)).size, tone: "positive" as const },
+    { label: "Visible", value: filteredDocs.length, tone: "neutral" as const },
   ];
 
   return (
-    <PlatformGlobalPageShell
-      title="Enterprise Document Center & Digital Signatures"
-      subtitle="Manage HR letter templates, company policy documents, employee ID card generators, and cryptographic digital signatures."
-      categoryTag="Core HRMS: Document Governance"
-      kpiMetrics={kpis}
-      searchPlaceholder="Filter document title or category..."
-      searchValue={search}
-      onSearchChange={setSearch}
-      primaryActionLabel="New Document Template"
-      onPrimaryAction={() => notifySuccess("Document template designer opened.")}
-      primaryActionIcon={<Plus className="h-4 w-4 mr-1.5" />}
+    <StandardPageLayout
+      title="Documents"
+      icon="file"
+      meta={<CrudHeaderStats items={stats} />}
+      actions={
+        <>
+          <ErpRefreshButton onClick={() => void refetch()} loading={isLoading} />
+          {list.headerTools}
+          <ErpCreateButton label="Upload" onClick={() => setDrawerOpen(true)} />
+        </>
+      }
+      filters={
+        <>
+          <ErpSearchFilter value={search} onChange={setSearch} placeholder="Filter title, category, or module…" />
+          {list.filterBar}
+        </>
+      }
     >
-      <div className="erp-table-wrap rounded-none border-0 shadow-none">
-        <table className="erp-table">
-          <thead className="erp-thead">
-            <tr>
-              <th className="erp-th">Document Template Title</th>
-              <th className="erp-th">Category</th>
-              <th className="erp-th">Digital eSign</th>
-              <th className="erp-th">Version</th>
-              <th className="erp-th">Last Updated</th>
-              <th className="erp-th text-right">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredDocs.map((d) => (
-              <tr key={d.id} className="erp-tr hover:bg-slate-50/80 dark:hover:bg-slate-900/50 transition-colors">
-                <td className="erp-td font-semibold text-xs text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                  <FileText className="h-4 w-4 text-indigo-500" />
-                  {d.title}
-                </td>
-                <td className="erp-td">
-                  <Badge variant="outline" className="text-xs font-normal">
-                    {d.category}
-                  </Badge>
-                </td>
-                <td className="erp-td">
-                  <span className={d.digitalSignatureRequired ? "erp-chip erp-chip-success" : "erp-chip erp-chip-neutral"}>
-                    {d.digitalSignatureRequired ? "Required" : "Optional"}
-                  </span>
-                </td>
-                <td className="erp-td font-mono text-xs text-indigo-600 dark:text-indigo-400 font-bold">{d.version}</td>
-                <td className="erp-td font-mono text-xs text-slate-500">{d.updatedAt}</td>
-                <td className="erp-td text-right">
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-indigo-600" onClick={() => notifySuccess(`Downloading ${d.title}`)}>
-                    <Download className="h-4 w-4" />
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </PlatformGlobalPageShell>
+      {isError ? (
+        <div className="erp-alert-error">{getApiErrorMessage(error, "Failed to load documents.")}</div>
+      ) : null}
+
+      <CrudCard>{list.table}</CrudCard>
+
+      <SideDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        title="Upload document"
+        footer={
+          <ErpDrawerFooter
+            onCancel={() => setDrawerOpen(false)}
+            onSave={() => {
+              const file = fileRef.current?.files?.[0];
+              if (!file) {
+                notifyError("Choose a file to upload.");
+                return;
+              }
+              upload.mutate(file);
+            }}
+            saving={upload.isPending}
+            saveLabel="Upload"
+          />
+        }
+      >
+        <div className="erp-form-grid">
+          <div className="erp-field md:col-span-2">
+            <label className="erp-label">File</label>
+            <input ref={fileRef} type="file" className="erp-input" />
+          </div>
+          <div className="erp-field">
+            <label className="erp-label">Module</label>
+            <input className="erp-input" value={module} onChange={(e) => setModule(e.target.value)} />
+          </div>
+          <div className="erp-field">
+            <label className="erp-label">Category</label>
+            <input className="erp-input" value={category} onChange={(e) => setCategory(e.target.value)} />
+          </div>
+          <div className="erp-field md:col-span-2">
+            <label className="erp-label">Description</label>
+            <textarea className="erp-input min-h-20" value={description} onChange={(e) => setDescription(e.target.value)} />
+          </div>
+          <div className="erp-field md:col-span-2">
+            <label className="erp-label">Tags</label>
+            <input className="erp-input" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="policy, hr, …" />
+          </div>
+          <p className="md:col-span-2 flex items-center gap-2 text-xs text-slate-500">
+            <Upload className="h-3.5 w-3.5" /> Max 10 MB per file.
+          </p>
+        </div>
+      </SideDrawer>
+
+      <UniversalDeleteDialog
+        open={Boolean(deleteId)}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        title="Delete document"
+        description="This removes the document from the vault. Storage cleanup follows tenant policy."
+        onConfirm={() => {
+          if (deleteId) remove.mutate(deleteId);
+        }}
+        loading={remove.isPending}
+      />
+    </StandardPageLayout>
   );
 }

@@ -3,32 +3,35 @@
 import { useEffect, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import ErpHeaderSummary from "@/components/layout/ErpHeaderSummary";
-import { hrApi } from "@/services/hrApi";
-
+import { reportsApi } from "@/services/modules";
 type HeadcountRow = { companyId?: string; companyName?: string; totalEmployees?: number; activeEmployees?: number; inactiveEmployees?: number };
 type AttendanceSummary = { totalRecords?: number; presentDays?: number; attendancePct?: number; daily?: { date: string; total: number }[] };
 type LeaveSummary = { totalRequests?: number; approvedDays?: number; pendingRequests?: number; byStatus?: { status: string; count: number }[] };
+type TurnoverSummary = { year?: number; joiners?: number; exits?: number; averageHeadcount?: number; turnoverRatePct?: number };
 
 export default function HrReportsPage() {
   const [headcount, setHeadcount] = useState<HeadcountRow[]>([]);
   const [attendance, setAttendance] = useState<AttendanceSummary | null>(null);
   const [leaveSummary, setLeaveSummary] = useState<LeaveSummary | null>(null);
+  const [turnover, setTurnover] = useState<TurnoverSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"headcount" | "attendance" | "leave">("headcount");
+  const [activeTab, setActiveTab] = useState<"headcount" | "attendance" | "leave" | "turnover">("headcount");
 
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
-        const [headRes, attRes, leaveRes] = await Promise.all([
-          hrApi.reports.hr.headcount(),
-          hrApi.reports.hr.attendance(),
-          hrApi.reports.hr.leave(),
+        const [headRes, attRes, leaveRes, turnoverRes] = await Promise.all([
+          reportsApi.hr.headcount(),
+          reportsApi.hr.attendance(),
+          reportsApi.hr.leave(),
+          reportsApi.hr.turnover(),
         ]);
         setHeadcount(Array.isArray(headRes.data) ? headRes.data : []);
         setAttendance(attRes.data ?? null);
         setLeaveSummary(leaveRes.data ?? null);
+        setTurnover(turnoverRes.data ?? null);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Failed to load HR reports");
       } finally {
@@ -54,6 +57,7 @@ export default function HrReportsPage() {
             { label: "Active", value: activeEmployees, tone: "success" },
             { label: "Attendance", value: attendance?.totalRecords ?? "-", tone: "info" },
             { label: "Leave Pending", value: leaveSummary?.pendingRequests ?? "-", tone: "warning" },
+            { label: "Turnover", value: turnover ? `${turnover.turnoverRatePct ?? 0}%` : "-", tone: "info" },
           ]}
         />
       }
@@ -63,14 +67,20 @@ export default function HrReportsPage() {
       <div className="erp-panel">
         <div className="erp-panel-header">
           <div className="erp-tabs-list">
-            {(["headcount", "attendance", "leave"] as const).map((tab) => (
+            {(["headcount", "attendance", "leave", "turnover"] as const).map((tab) => (
               <button
                 key={tab}
                 type="button"
                 onClick={() => setActiveTab(tab)}
                 className={activeTab === tab ? "erp-tab-trigger erp-tab-trigger-active" : "erp-tab-trigger"}
               >
-                {tab === "headcount" ? "Headcount" : tab === "attendance" ? "Attendance" : "Leave Analysis"}
+                {tab === "headcount"
+                  ? "Headcount"
+                  : tab === "attendance"
+                    ? "Attendance"
+                    : tab === "leave"
+                      ? "Leave Analysis"
+                      : "Turnover"}
               </button>
             ))}
           </div>
@@ -199,6 +209,28 @@ export default function HrReportsPage() {
                       </table>
                     </div>
                   ) : null}
+                </div>
+              )}
+
+              {activeTab === "turnover" && (
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                  <div className="rounded-xl border border-slate-200 bg-white p-4">
+                    <p className="text-xs font-semibold uppercase text-slate-500">Year</p>
+                    <p className="mt-2 text-2xl font-bold text-slate-900">{turnover?.year ?? new Date().getFullYear()}</p>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-white p-4">
+                    <p className="text-xs font-semibold uppercase text-slate-500">Joiners</p>
+                    <p className="mt-2 text-2xl font-bold text-emerald-700">{turnover?.joiners ?? 0}</p>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-white p-4">
+                    <p className="text-xs font-semibold uppercase text-slate-500">Exits</p>
+                    <p className="mt-2 text-2xl font-bold text-rose-700">{turnover?.exits ?? 0}</p>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-white p-4">
+                    <p className="text-xs font-semibold uppercase text-slate-500">Turnover</p>
+                    <p className="mt-2 text-2xl font-bold text-slate-900">{turnover?.turnoverRatePct ?? 0}%</p>
+                    <p className="mt-1 text-xs text-slate-500">Avg headcount {turnover?.averageHeadcount ?? 0}</p>
+                  </div>
                 </div>
               )}
             </>

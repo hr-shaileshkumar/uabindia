@@ -17,6 +17,7 @@ const RESERVED_TENANT_LABELS = new Set(["api", "app", "www"]);
 const apiClient: AxiosInstance = axios.create({
   baseURL: apiBaseUrl,
   withCredentials: true, // HTTP-only cookies for refresh tokens
+  timeout: 20_000,
   headers: {
     "Content-Type": "application/json",
   },
@@ -116,11 +117,12 @@ const normalizeTenantSubdomain = (value: string | null | undefined): string | nu
   return normalized;
 };
 
-const getContextHeaders = (): { companyId?: string; projectId?: string } => {
+const getContextHeaders = (): { companyId?: string; projectId?: string; financialYearKey?: string } => {
   if (typeof window === "undefined") return {};
   const companyId = window.localStorage.getItem("activeCompanyId") || undefined;
   const projectId = window.localStorage.getItem("activeProjectId") || undefined;
-  return { companyId, projectId };
+  const financialYearKey = window.localStorage.getItem("activeFinancialYearKey") || undefined;
+  return { companyId, projectId, financialYearKey };
 };
 
 
@@ -136,6 +138,7 @@ const shouldAttachOrgScopeHeaders = (url?: string): boolean => {
     "/companies",
     "/projects",
     "/tenants",
+    "/org-context",
     "/settings",
     "/platform",
     "/superadmin",
@@ -217,7 +220,8 @@ apiClient.interceptors.request.use(
     }
 
     if (shouldAttachOrgScopeHeaders(config.url)) {
-      const { companyId, projectId } = getContextHeaders();
+      const { companyId, projectId, financialYearKey } = getContextHeaders();
+      // Prefer attaching on writes; still attach on reads when context is set for scoped queries.
       if (companyId) {
         config.headers = config.headers || {};
         config.headers["X-Company-Id"] = companyId;
@@ -227,6 +231,27 @@ apiClient.interceptors.request.use(
         config.headers = config.headers || {};
         config.headers["X-Project-Id"] = projectId;
         config.headers["project_id"] = projectId;
+      }
+      if (financialYearKey && financialYearKey !== "all") {
+        config.headers = config.headers || {};
+        config.headers["X-Financial-Year"] = financialYearKey;
+      }
+
+      if (isStateChanging && !companyId) {
+        const flagshipNeedCompany =
+          typeof config.url === "string" &&
+          /\/(employees|customers|leads|salesorders|salesquotations|salesinvoices|expenses|grn|stockmovements|journalentries|payments|purchaseorders|purchaserequests|vendors|items|warehouses|bank-reconciliations|payroll|attendance|leave|documents)\b/i.test(
+            config.url,
+          );
+        if (flagshipNeedCompany) {
+          return Promise.reject(
+            new AxiosError(
+              "Select a company in the workspace switcher before saving.",
+              "ERR_ORG_SCOPE",
+              config,
+            ),
+          );
+        }
       }
     }
 
@@ -251,7 +276,22 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as (InternalAxiosRequestConfig & { _retry?: boolean }) | undefined;
 
-    if (error.response?.status === 401 && originalRequest && !originalRequest._retry && shouldAttemptRefresh(originalRequest.url)) {
+    const connectionCode = (error.code || "").toUpperCase();
+    const isConnectionDrop =
+      !error.response &&
+      (connectionCode === "ERR_NETWORK" ||
+        connectionCode === "ECONNREFUSED" ||
+        connectionCode === "ECONNRESET" ||
+        connectionCode === "ECONNABORTED" ||
+        connectionCode === "ETIMEDOUT");
+
+    if (
+      !isConnectionDrop &&
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      shouldAttemptRefresh(originalRequest.url)
+    ) {
       originalRequest._retry = true;
       const refreshed = await requestRefreshToken();
       if (refreshed) {

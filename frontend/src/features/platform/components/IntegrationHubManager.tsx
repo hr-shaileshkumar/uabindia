@@ -1,87 +1,262 @@
 ﻿"use client";
 
-import { useState } from "react";
-import { Link2, Key, Webhook, ShieldCheck, CheckCircle2, RefreshCw, ExternalLink, Plus } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { FilterBar } from "@/components/ui/filter-bar";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-
-export interface IntegrationConnector {
-  id: string;
-  name: string;
-  category: "Payment Gateway" | "ERP / Accounting" | "Cloud Storage" | "Mapping / GIS" | "Productivity";
-  provider: string;
-  status: "Connected" | "Configured" | "Available";
-  lastSync: string;
-}
-
-const INITIAL_CONNECTORS: IntegrationConnector[] = [
-  { id: "1", name: "Razorpay / Stripe Payment Gateway", category: "Payment Gateway", provider: "Razorpay Inc", status: "Connected", lastSync: "2026-08-03 22:15" },
-  { id: "2", name: "SAP S/4HANA Connector", category: "ERP / Accounting", provider: "SAP SE", status: "Configured", lastSync: "2026-08-02 18:00" },
-  { id: "3", name: "Tally Prime Financial Sync", category: "ERP / Accounting", provider: "Tally Solutions", status: "Connected", lastSync: "2026-08-03 20:30" },
-  { id: "4", name: "Google Maps & Location API", category: "Mapping / GIS", provider: "Google Cloud", status: "Connected", lastSync: "2026-08-03 23:00" },
-  { id: "5", name: "Microsoft 365 & Azure AD SSO", category: "Productivity", provider: "Microsoft Corp", status: "Connected", lastSync: "2026-08-03 12:00" },
-  { id: "6", name: "Amazon S3 Document Vault", category: "Cloud Storage", provider: "AWS", status: "Connected", lastSync: "2026-08-03 21:45" },
-];
+import { useEffect, useMemo, useState } from "react";
+import { ExternalLink, RefreshCw, PlugZap, ScrollText } from "lucide-react";
+import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
+import { ErpRefreshButton } from "@/components/erp/erp-page-kit";
+import { useErpListView } from "@/components/erp/erp-list-view";
+import { SideDrawer } from "@/components/ui/side-drawer";
+import { erpButtonClassName, erpFormInputClassName } from "@/components/erp/erpStyles";
+import { getApiErrorMessage } from "@/lib/api-errors";
+import { notifyError, notifySuccess } from "@/lib/notifications";
+import {
+  connectorConfigFields,
+  mapIntegration,
+  useIntegrationDetail,
+  useIntegrationLogs,
+  useIntegrationMutations,
+  useIntegrations,
+} from "@/features/platform/hooks/useIntegrations";
 
 export function IntegrationHubManager() {
-  const [connectors] = useState<IntegrationConnector[]>(INITIAL_CONNECTORS);
   const [search, setSearch] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showLogs, setShowLogs] = useState(false);
+  const [form, setForm] = useState<Record<string, string>>({});
 
-  const filtered = connectors.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()) || c.category.toLowerCase().includes(search.toLowerCase()));
+  const { data = [], isLoading, isError, error, refetch } = useIntegrations();
+  const { data: detail } = useIntegrationDetail(selectedId);
+  const { data: logs = [], refetch: refetchLogs } = useIntegrationLogs(showLogs ? selectedId : null);
+  const { saveConfig, testConnection, sync } = useIntegrationMutations();
+
+  const connectors = useMemo(() => data.map((item, index) => mapIntegration(item, index)), [data]);
+
+  const filtered = connectors.filter(
+    (c) =>
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.provider.toLowerCase().includes(search.toLowerCase()) ||
+      c.connectorKey.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const activeCount = connectors.filter(
+    (c) => c.status.toLowerCase() === "active" || c.status.toLowerCase() === "connected"
+  ).length;
+
+  const selected = connectors.find((c) => c.id === selectedId) ?? null;
+  const fields = connectorConfigFields(detail?.connectorKey ?? selected?.connectorKey ?? "");
+
+  useEffect(() => {
+    if (!detail?.config) {
+      setForm({});
+      return;
+    }
+    const next: Record<string, string> = {};
+    for (const [k, v] of Object.entries(detail.config)) {
+      next[k] = v ?? "";
+    }
+    setForm(next);
+  }, [detail]);
+
+  const busy = saveConfig.isPending || testConnection.isPending || sync.isPending;
+
+  const onSave = async () => {
+    if (!selectedId) return;
+    try {
+      await saveConfig.mutateAsync({ id: selectedId, config: form });
+      notifySuccess("Connector configuration saved.");
+    } catch (err) {
+      notifyError(getApiErrorMessage(err, "Failed to save configuration."));
+    }
+  };
+
+  const onTest = async () => {
+    if (!selectedId) return;
+    try {
+      const { data: res } = await testConnection.mutateAsync(selectedId);
+      const payload = res as { success?: boolean; message?: string };
+      if (payload.success) notifySuccess(payload.message ?? "Connection test passed.");
+      else notifyError(payload.message ?? "Connection test failed.");
+      void refetchLogs();
+    } catch (err) {
+      notifyError(getApiErrorMessage(err, "Connection test failed."));
+    }
+  };
+
+  const onSync = async (id: string) => {
+    try {
+      const { data: res } = await sync.mutateAsync(id);
+      const payload = res as { success?: boolean; message?: string };
+      if (payload.success) notifySuccess(payload.message ?? "Sync completed.");
+      else notifyError(payload.message ?? "Sync failed.");
+      if (selectedId === id) void refetchLogs();
+    } catch (err) {
+      notifyError(getApiErrorMessage(err, "Sync failed."));
+    }
+  };
+
+  const list = useErpListView({
+    listKey: "platform-integration-hub",
+    rows: filtered,
+    columns: [
+      { key: "name", label: "Connector" },
+      { key: "provider", label: "Provider" },
+      { key: "category", label: "Category" },
+      { key: "status", label: "Status" },
+      { key: "lastSyncAt", label: "Last sync", dataType: "date" },
+      { key: "actions", label: "Actions", locked: true },
+    ],
+    getRowId: (row) => row.id,
+    loading: isLoading,
+    emptyMessage: "No integrations configured. Restart the API so demo connectors can seed for this tenant.",
+    onRefresh: () => void refetch(),
+    extraFilters: (
+      <input
+        type="search"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search integration or provider…"
+        className={`${erpFormInputClassName} max-w-xs`}
+      />
+    ),
+    renderRow: (conn) => (
+      <tr key={conn.id} className="erp-tr">
+        <td className="erp-td font-semibold text-slate-900">{conn.name}</td>
+        <td className="erp-td">{conn.provider}</td>
+        <td className="erp-td">{conn.category}</td>
+        <td className="erp-td">
+          <span className={conn.status.toLowerCase() === "connected" || conn.status.toLowerCase() === "active" ? "erp-chip erp-chip-success" : "erp-chip erp-chip-warning"}>
+            {conn.status}
+          </span>
+        </td>
+        <td className="erp-td text-xs text-slate-500">{conn.lastSyncAt ? new Date(conn.lastSyncAt).toLocaleString() : "—"}</td>
+        <td className="erp-td">
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className={`${erpButtonClassName.ghost} h-8 gap-1 px-2 text-xs`} disabled={busy} onClick={() => void onSync(conn.id)}>
+              <RefreshCw className="h-3.5 w-3.5" /> Re-sync
+            </button>
+            <button
+              type="button"
+              className={`${erpButtonClassName.secondary} h-8 gap-1 px-2 text-xs`}
+              onClick={() => {
+                setSelectedId(conn.id);
+                setShowLogs(false);
+              }}
+            >
+              Configure <ExternalLink className="h-3 w-3" />
+            </button>
+          </div>
+        </td>
+      </tr>
+    ),
+  });
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Integration Hub & API Gateway"
-        subtitle="Manage 3rd-party connectors (SAP, Tally, Stripe, M365, AWS), Webhook endpoints, and OAuth2 API Keys"
-        breadcrumbs={[
-          { label: "Platform", href: "/platform/settings" },
-          { label: "Integration Hub" },
-        ]}
-        actions={
-          <Button size="sm" className="gap-2">
-            <Plus className="h-4 w-4" />
-            Generate API Key / Webhook
-          </Button>
+    <StandardPageLayout
+      title="Integration Hub & API Gateway"
+      subtitle="Configure GST, bank feed, and biometric connectors with test + sync logs."
+      eyebrow="Platform"
+      icon="link"
+      meta={
+        <CrudHeaderStats
+          items={[
+            { label: "Connectors", value: connectors.length, helper: "registered" },
+            { label: "Connected", value: activeCount, tone: "positive" },
+          ]}
+        />
+      }
+      actions={
+        <>
+          <ErpRefreshButton onClick={() => void refetch()} loading={isLoading} />
+          {list.headerTools}
+        </>
+      }
+      filters={list.filterBar}
+    >
+      {isError ? (
+        <div className="erp-alert-error text-sm">{getApiErrorMessage(error, "Failed to load integrations.")}</div>
+      ) : null}
+
+      <CrudCard>{list.table}</CrudCard>
+
+      <SideDrawer
+        open={Boolean(selectedId)}
+        onClose={() => {
+          setSelectedId(null);
+          setShowLogs(false);
+        }}
+        title={selected ? selected.name : "Connector"}
+        subtitle={selected ? `${selected.provider} · ${selected.connectorKey}` : undefined}
+        width="lg"
+        footer={
+          <div className="flex flex-wrap justify-end gap-2">
+            <button
+              type="button"
+              className={erpButtonClassName.ghost}
+              onClick={() => {
+                setShowLogs((v) => !v);
+                if (!showLogs) void refetchLogs();
+              }}
+            >
+              <ScrollText className="mr-1 inline h-3.5 w-3.5" />
+              {showLogs ? "Hide logs" : "Sync logs"}
+            </button>
+            <button type="button" className={erpButtonClassName.secondary} disabled={busy} onClick={() => void onTest()}>
+              <PlugZap className="mr-1 inline h-3.5 w-3.5" />
+              Test
+            </button>
+            <button type="button" className={erpButtonClassName.primary} disabled={busy} onClick={() => void onSave()}>
+              Save
+            </button>
+          </div>
         }
-      />
+      >
+        <div className="space-y-4">
+          {selected?.lastError ? (
+            <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{selected.lastError}</p>
+          ) : null}
 
-      <FilterBar searchPlaceholder="Search integration name or category..." searchValue={search} onSearchChange={setSearch} />
+          {fields.map((field) => (
+            <label key={field.key} className="block space-y-1">
+              <span className="text-xs font-medium text-slate-600">{field.label}</span>
+              <input
+                type={field.secret ? "password" : "text"}
+                className={erpFormInputClassName}
+                placeholder={field.placeholder}
+                value={form[field.key] ?? ""}
+                onChange={(e) => setForm((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                autoComplete="off"
+              />
+            </label>
+          ))}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((conn) => (
-          <Card key={conn.id} className="hover:border-indigo-500/50 transition-colors">
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <CardTitle className="text-base font-semibold">{conn.name}</CardTitle>
-                  <CardDescription className="text-xs">{conn.provider} • {conn.category}</CardDescription>
-                </div>
-                <Badge variant={conn.status === "Connected" ? "success" : "warning"}>
-                  {conn.status}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Last Sync Signal</span>
-                <span className="font-mono text-foreground">{conn.lastSync}</span>
-              </div>
-              <div className="flex items-center justify-between pt-2 border-t border-border">
-                <Button size="sm" variant="ghost" className="h-8 text-xs px-2">
-                  <RefreshCw className="h-3.5 w-3.5 mr-1" /> Re-sync
-                </Button>
-                <Button size="sm" variant="outline" className="h-8 text-xs px-2 gap-1">
-                  Configure <ExternalLink className="h-3 w-3" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
+          {showLogs ? (
+            <div className="space-y-2 border-t border-slate-100 pt-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Recent logs</p>
+              {logs.length === 0 ? (
+                <p className="text-xs text-slate-500">No sync logs yet. Run Test or Re-sync.</p>
+              ) : (
+                <ul className="max-h-64 space-y-2 overflow-y-auto">
+                  {logs.map((log) => (
+                    <li key={log.id} className="rounded-md border border-slate-100 px-3 py-2 text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium">{log.operation}</span>
+                        <span className={log.status?.toLowerCase() === "success" ? "erp-chip erp-chip-success" : "erp-chip erp-chip-danger"}>
+                          {log.status ?? "—"}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-slate-600">{log.message}</p>
+                      <p className="mt-1 text-[11px] text-slate-400">
+                        {log.startedAt ? new Date(log.startedAt).toLocaleString() : ""} · {log.recordsProcessed ?? 0} records
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ) : null}
+        </div>
+      </SideDrawer>
+    </StandardPageLayout>
   );
 }

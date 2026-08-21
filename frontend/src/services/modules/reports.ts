@@ -1,8 +1,24 @@
 import apiClient from "@/services/apiClient";
 
+export type ReportsDashboardSummary = {
+  hr?: {
+    totalEmployees?: number;
+    activeEmployees?: number;
+    todayAttendance?: number;
+    pendingLeaves?: number;
+  };
+  payroll?: {
+    thisMonthRuns?: number;
+    totalPayout?: number;
+  };
+  timestamp?: string;
+};
+
 export const reportsApi = {
+  dashboard: () => apiClient.get<ReportsDashboardSummary>("/reports/dashboard"),
   hr: {
     headcount: () => apiClient.get("/reports/hr/headcount"),
+    headcountByDepartment: () => apiClient.get("/reports/hr/headcount-by-department"),
     attendance: () => apiClient.get("/reports/hr/attendance-summary"),
     leave: (year?: number) => apiClient.get(`/reports/hr/leave-summary${year ? `?year=${year}` : ""}`),
     turnover: () => apiClient.get("/reports/hr/turnover"),
@@ -34,5 +50,25 @@ export const reportsApi = {
     },
     dataQuality: () => apiClient.get("/reports/compliance/data-quality"),
     moduleUsage: () => apiClient.get("/reports/compliance/module-usage"),
+  },
+  custom: {
+    list: () => apiClient.get("/reports/custom"),
+    create: (data: Record<string, unknown>) => apiClient.post("/reports/custom", data),
+    update: (id: string, data: Record<string, unknown>) => apiClient.put(`/reports/custom/${id}`, data),
+    run: (id: string) => apiClient.post(`/reports/custom/${id}/run`, {}),
+    activate: (id: string) => apiClient.post(`/reports/custom/${id}/activate`, {}),
+    delete: (id: string) => apiClient.delete(`/reports/custom/${id}`),
+  },
+  finance: {
+    trialBalance: () => apiClient.get("/reports/finance/trial-balance"),
+    profitAndLoss: (from?: string, to?: string) => {
+      const q = new URLSearchParams();
+      if (from) q.append("from", from);
+      if (to) q.append("to", to);
+      const suffix = q.toString() ? `?${q}` : "";
+      return apiClient.get(`/reports/finance/profit-and-loss${suffix}`);
+    },
+    balanceSheet: () => apiClient.get("/reports/finance/balance-sheet"),
+    ageing: () => apiClient.get("/reports/finance/ageing"),
   },
 };

@@ -3,10 +3,19 @@
 import { useEffect, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import ErpHeaderSummary from "@/components/layout/ErpHeaderSummary";
-import { hrApi } from "@/services/hrApi";
-
+import { reportsApi } from "@/services/modules";
 type AuditEntry = { id?: string; action?: string; entityName?: string; performedBy?: string; createdAt?: string; description?: string };
-type DataQuality = { totalRecords?: number; issueCount?: number; score?: number; issues?: { entity: string; count: number; type: string }[] };
+type DataQuality = {
+  totalRecords?: number;
+  totalEmployees?: number;
+  issueCount?: number;
+  score?: number;
+  dataQualityScore?: number;
+  missingEmployeeCode?: number;
+  missingProject?: number;
+  missingManager?: number;
+  issues?: { entity: string; count: number; type: string }[];
+};
 
 export default function ComplianceReportsPage() {
   const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
@@ -20,11 +29,40 @@ export default function ComplianceReportsPage() {
       try {
         setLoading(true);
         const [auditRes, qualityRes] = await Promise.all([
-          hrApi.reports.compliance.auditLog(),
-          hrApi.reports.compliance.dataQuality(),
+          reportsApi.compliance.auditLog(),
+          reportsApi.compliance.dataQuality(),
         ]);
-        setAuditLog(Array.isArray(auditRes.data) ? auditRes.data : Array.isArray(auditRes.data?.logs) ? auditRes.data.logs : []);
-        setDataQuality(qualityRes.data ?? null);
+        const auditPayload = auditRes.data as
+          | AuditEntry[]
+          | { breakdown?: { entity?: string; action?: string; count?: number }[]; totalLogs?: number }
+          | undefined;
+        if (Array.isArray(auditPayload)) {
+          setAuditLog(auditPayload);
+        } else {
+          setAuditLog(
+            (auditPayload?.breakdown ?? []).map((row, index) => ({
+              id: `${row.entity}-${row.action}-${index}`,
+              action: row.action,
+              entityName: row.entity,
+              description: `${row.count ?? 0} events`,
+            }))
+          );
+        }
+        const qualityPayload = qualityRes.data as DataQuality | null;
+        setDataQuality(
+          qualityPayload
+            ? {
+                totalRecords: qualityPayload.totalRecords ?? qualityPayload.totalEmployees,
+                issueCount:
+                  qualityPayload.issueCount ??
+                  ((qualityPayload.missingEmployeeCode ?? 0) +
+                    (qualityPayload.missingProject ?? 0) +
+                    (qualityPayload.missingManager ?? 0)),
+                score: qualityPayload.score ?? qualityPayload.dataQualityScore,
+                issues: qualityPayload.issues,
+              }
+            : null
+        );
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Failed to load compliance reports");
       } finally {

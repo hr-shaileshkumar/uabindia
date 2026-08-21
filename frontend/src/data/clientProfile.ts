@@ -3,21 +3,16 @@ export const clientProfile = {
   brandName: "Uabindia ERP",
   industry: "Advanced SaaS ERP",
   headquarters: "Tenant-configured headquarters",
-  employeeCount: "250+",
+  employeeCount: "",
   supportEmail: "operations@uabindia.com",
   supportPhone: "+91 9798490879",
   supportHours: "Mon-Sat | 9:00 AM - 6:30 PM",
-  supportTier: "Premium (24x6)",
+  supportTier: "Premium support",
   implementationPartner: "Uabindia ERP",
-  heroTitle: "Your company workspace, designed for modern tenant teams.",
+  heroTitle: "Your company workspace",
   heroSubtitle:
-    "This portal is built for client companies using advanced SaaS ERP services. Keep HR, payroll, finance, operations, and ERP workflows aligned with real-time visibility.",
-  snapshot: [
-    { label: "Company Users", value: "412" },
-    { label: "Active Modules", value: "8" },
-    { label: "Monthly Payroll", value: "Rs 3.1M" },
-    { label: "Service Tickets", value: "12" },
-  ],
+    "Secure login, employee self-service, support, and company updates from one portal.",
+  snapshot: [],
   workflowNote: "Approvals, payroll runs, finance controls, and cross-team workflows tracked in one flow.",
   highlights: [
     {
@@ -40,29 +35,9 @@ export const clientProfile = {
     "Client teams rely on a single source of truth for operations, compliance, leadership reporting, and cross-module process execution.",
 };
 
-export const clientJobs = [
-  {
-    role: "Finance Analyst",
-    company: "Uabindia ERP",
-    location: "Mumbai | India",
-    type: "Full-time",
-  },
-  {
-    role: "HR Operations Lead",
-    company: "Uabindia ERP",
-    location: "Bengaluru | India",
-    type: "Full-time",
-  },
-  {
-    role: "Inventory Planner",
-    company: "Uabindia ERP",
-    location: "Pune | India",
-    type: "On-site",
-  },
-  {
-    role: "Payroll Specialist",
-    company: "Uabindia ERP",
-    location: "Remote | India",
-    type: "Remote",
-  },
-];
+export const clientJobs: Array<{
+  role: string;
+  company: string;
+  location: string;
+  type: string;
+}> = [];

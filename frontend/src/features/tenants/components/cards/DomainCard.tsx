@@ -57,7 +57,7 @@ export function DomainCard({
           </div>
           <Badge 
             variant={customDomain ? "default" : "secondary"}
-            className={customDomain ? "bg-indigo-100 text-indigo-800 hover:bg-indigo-100 shadow-none border-transparent" : ""}
+            className={customDomain ? "bg-slate-100 text-slate-800 hover:bg-slate-100 shadow-none border border-slate-200" : ""}
           >
             {customDomain ? "Custom Domain" : "Subdomain"}
           </Badge>
@@ -75,7 +75,7 @@ export function DomainCard({
                 href={`https://${primaryDomain}`} 
                 target="_blank" 
                 rel="noreferrer"
-                className="text-muted-foreground hover:text-indigo-600 transition-colors"
+                className="text-muted-foreground hover:text-slate-900 transition-colors"
                 title="Open in new tab"
               >
                 <ExternalLink className="h-4 w-4" />

@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
-import { hrApi } from "@/services/hrApi";
+import { platformApi } from "@/services/modules";
 import { useAuth, type AuthUser } from "@/context/AuthContext";
 import { isAdminRole, isSuperAdminRole } from "@/lib/auth/role-utils";
 
@@ -71,7 +71,7 @@ export const TenantConfigProvider = ({ children }: { children: React.ReactNode }
       let nextConfig: TenantConfig | null = null;
       if (shouldLoadConfig) {
         try {
-          const configRes = await hrApi.platform.tenantConfig.get();
+          const configRes = await platformApi.admin.tenantConfig.get();
           nextConfig = configRes.data;
         } catch {
           nextConfig = null;
@@ -80,7 +80,7 @@ export const TenantConfigProvider = ({ children }: { children: React.ReactNode }
 
       let flags: FeatureFlag[] = [];
       try {
-        const flagsRes = await hrApi.platform.featureFlags();
+        const flagsRes = await platformApi.admin.featureFlags();
         flags = flagsRes.data || [];
       } catch {
         flags = [];

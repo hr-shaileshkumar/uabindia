@@ -3,7 +3,7 @@
   --ds-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   
   /* Explicit Light Theme Semantic Tokens */
-  --bg-app: #f8fafc;
+  --bg-app: #fafbfc;
   --bg-surface: #ffffff;
   --bg-surface-hover: #f1f5f9;
   --bg-muted: #f1f5f9;
@@ -13,10 +13,10 @@
   --text-muted: #64748b;
   --text-subtle: #94a3b8;
 
-  /* Primary Brand Tokens */
-  --primary: #4f46e5;
-  --primary-hover: #4338ca;
-  --primary-subtle: #eef2ff;
+  /* Primary Brand Tokens — public sapphire */
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-subtle: #eff6ff;
   
   /* Semantic Status Tokens */
   --success: #16a34a;
@@ -55,9 +55,9 @@
   --text-muted: #94a3b8;
   --text-subtle: #64748b;
 
-  --primary: #6366f1;
-  --primary-hover: #4f46e5;
-  --primary-subtle: rgba(99,102,241,0.15);
+  --primary: #3b82f6;
+  --primary-hover: #2563eb;
+  --primary-subtle: rgba(37, 99, 235, 0.18);
 
   --success: #22c55e;
   --success-bg: rgba(34,197,94,0.15);

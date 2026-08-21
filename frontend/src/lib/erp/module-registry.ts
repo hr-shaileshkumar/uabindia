@@ -109,6 +109,9 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: "clock",
     shellOrder: 60,
     tier: "business",
+    sourceModuleKey: "hrms",
+    pathPrefixes: ["/hrms/attendance", "/hrms/shifts", "/hrms/overtime"],
+    hiddenFromSidebar: true,
   },
   {
     key: "leave",
@@ -118,6 +121,9 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: "calendar",
     shellOrder: 70,
     tier: "business",
+    sourceModuleKey: "hrms",
+    pathPrefixes: ["/hrms/leave"],
+    hiddenFromSidebar: true,
   },
   {
     key: "recruitment",
@@ -127,6 +133,9 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: "search",
     shellOrder: 80,
     tier: "business",
+    sourceModuleKey: "hrms",
+    pathPrefixes: ["/hrms/recruitment", "/hrms/screening-schedule", "/hrms/screening-results"],
+    hiddenFromSidebar: true,
   },
   {
     key: "payroll",
@@ -147,6 +156,7 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
     tier: "business",
     sourceModuleKey: "erp",
     pathPrefixes: [
+      "/finance",
       "/chart-of-accounts",
       "/journal-entries",
       "/payments",
@@ -154,6 +164,7 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
       "/expenses",
       "/tax-management",
       "/bank-reconciliation",
+      "/accounting-periods",
     ],
   },
   {
@@ -166,6 +177,7 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
     tier: "business",
     sourceModuleKey: "erp",
     pathPrefixes: [
+      "/inventory",
       "/items",
       "/warehouses",
       "/stock-movements",
@@ -182,7 +194,7 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
     shellOrder: 120,
     tier: "business",
     sourceModuleKey: "erp",
-    pathPrefixes: ["/vendors", "/purchase-requests", "/purchase-orders", "/grn"],
+    pathPrefixes: ["/procurement", "/vendors", "/purchase-requests", "/purchase-orders", "/grn", "/vendor-bills"],
   },
   {
     key: "crm",
@@ -192,6 +204,7 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: "contact-round",
     shellOrder: 130,
     tier: "business",
+    pathPrefixes: ["/crm"],
   },
   {
     key: "sales",
@@ -202,7 +215,7 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
     shellOrder: 140,
     tier: "business",
     sourceModuleKey: "erp",
-    pathPrefixes: ["/customers", "/quotations", "/sales-orders", "/returns"],
+    pathPrefixes: ["/sales", "/customers", "/quotations", "/discounts", "/sales-orders", "/returns"],
   },
   {
     key: "projects",
@@ -212,6 +225,7 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: "folder",
     shellOrder: 150,
     tier: "business",
+    pathPrefixes: ["/projects", "/projects/tasks", "/projects/timesheets", "/platform/projects"],
   },
   {
     key: "assets",
@@ -234,20 +248,22 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
   {
     key: "notifications",
     label: "Notifications",
-    eyebrow: "Administration / Notifications",
-    description: "Email, SMS, WhatsApp, and in-app notifications with operational visibility.",
+    eyebrow: "My work / Inbox",
+    description: "In-app notification inbox — read, mark all read, and review operational alerts.",
     icon: "bell",
-    shellOrder: 180,
+    shellOrder: 47,
     tier: "cross-cutting",
+    pathPrefixes: ["/notifications"],
   },
   {
     key: "workflow",
-    label: "Workflow Engine",
-    eyebrow: "Administration / Workflow",
-    description: "Approval routing, escalation design, and workflow orchestration across modules.",
+    label: "Approvals",
+    eyebrow: "My work / Approvals",
+    description: "Cross-module approval queue — approve or reject pending workflow requests.",
     icon: "git-branch",
-    shellOrder: 190,
+    shellOrder: 48,
     tier: "cross-cutting",
+    pathPrefixes: ["/approvals", "/platform/workflow-config"],
   },
   {
     key: "helpdesk",
@@ -289,7 +305,8 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
     description: "Subscription plans, billing visibility, module packaging, and commercial controls.",
     icon: "layers",
     shellOrder: 230,
-    tier: "platform",
+    tier: "planned",
+    hiddenFromSidebar: true,
   },
   {
     key: "security",

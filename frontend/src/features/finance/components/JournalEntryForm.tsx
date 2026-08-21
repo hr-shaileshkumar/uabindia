@@ -1,163 +1,375 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Trash2, CheckCircle2, AlertCircle, Save } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useCallback, useEffect, useState } from "react";
+import { AlertCircle, CheckCircle2, FileText, Trash2 } from "lucide-react";
+import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import { SideDrawer } from "@/components/ui/side-drawer";
+import { ErpCreateButton, ErpDrawerFooter } from "@/components/erp/erp-page-kit";
+import {
+  erpButtonClassName,
+  erpFormInputClassName,
+  erpFormLabelClassName,
+  erpPanelBodyClassName,
+  erpPanelClassName,
+  erpPanelHeaderClassName,
+  erpPanelTitleClassName,
+  erpStatusBadgeTone,
+  erpTableRowHoverClassName,
+  erpTableTdClassName,
+  erpTableThClassName,
+  erpTableWrapClassName,
+} from "@/components/erp/erpStyles";
+import { financeApi } from "@/services/modules";
+import { notifyError, notifySuccess } from "@/lib/notifications";
+import { getApiErrorMessage } from "@/lib/api-errors";
+import { useDocumentMasters } from "@/components/erp/erp-document-kit";
 
 export interface JournalLine {
   id: string;
-  accountCode: string;
-  accountName: string;
+  accountId: string;
   debit: number;
   credit: number;
   memo: string;
 }
 
+type JournalEntrySummary = {
+  id: string;
+  journalNumber: string;
+  entryDate: string;
+  entryType?: string;
+  status: string;
+  totalDebit: number;
+  totalCredit: number;
+  description?: string;
+};
+
+const emptyLine = (): JournalLine => ({
+  id: String(Date.now()) + Math.random(),
+  accountId: "",
+  debit: 0,
+  credit: 0,
+  memo: "",
+});
+
+const formatCurrency = (value: number) => `₹${value.toLocaleString("en-IN")}`;
+
+const statusTone = (status: string) => {
+  switch (status) {
+    case "Posted":
+      return erpStatusBadgeTone.success;
+    case "Draft":
+      return erpStatusBadgeTone.warning;
+    default:
+      return erpStatusBadgeTone.neutral;
+  }
+};
+
 export function JournalEntryForm() {
-  const [entryDate, setEntryDate] = useState("2026-08-03");
-  const [reference, setReference] = useState("JV-2026-0089");
-  const [narration, setNarration] = useState("Monthly rent & utility allocation");
+  const { accounts } = useDocumentMasters();
+  const [entries, setEntries] = useState<JournalEntrySummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const [lines, setLines] = useState<JournalLine[]>([
-    { id: "1", accountCode: "6100", accountName: "Rent Expense", debit: 150000, credit: 0, memo: "HQ Office Rent" },
-    { id: "2", accountCode: "6200", accountName: "Electricity & Utilities", debit: 25000, credit: 0, memo: "Jul Utility Bill" },
-    { id: "3", accountCode: "1110", accountName: "HDFC Bank Operating Account", debit: 0, credit: 175000, memo: "Bank Payout" },
-  ]);
+  const [entryDate, setEntryDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [reference, setReference] = useState("");
+  const [narration, setNarration] = useState("");
+  const [lines, setLines] = useState<JournalLine[]>([emptyLine(), emptyLine()]);
 
-  const totalDebit = lines.reduce((sum, l) => sum + (Number(l.debit) || 0), 0);
-  const totalCredit = lines.reduce((sum, l) => sum + (Number(l.credit) || 0), 0);
+  const load = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await financeApi.journalEntries.list(1, 50);
+      const list = Array.isArray(res.data?.data) ? res.data.data : [];
+      setEntries(list);
+    } catch (err) {
+      const message = getApiErrorMessage(err, "Failed to load journal entries.");
+      setError(message);
+      notifyError(message, "Finance");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const totalDebit = lines.reduce((sum, line) => sum + (Number(line.debit) || 0), 0);
+  const totalCredit = lines.reduce((sum, line) => sum + (Number(line.credit) || 0), 0);
   const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01 && totalDebit > 0;
 
-  const addLine = () => {
-    const newLine: JournalLine = {
-      id: String(Date.now()),
-      accountCode: "",
-      accountName: "",
-      debit: 0,
-      credit: 0,
-      memo: "",
-    };
-    setLines([...lines, newLine]);
-  };
+  const addLine = () => setLines((current) => [...current, emptyLine()]);
 
   const removeLine = (id: string) => {
     if (lines.length <= 2) return;
-    setLines(lines.filter((l) => l.id !== id));
+    setLines((current) => current.filter((line) => line.id !== id));
   };
 
-  const updateLine = (id: string, field: keyof JournalLine, value: any) => {
-    setLines(
-      lines.map((l) => (l.id === id ? { ...l, [field]: value } : l))
+  const updateLine = (id: string, field: keyof JournalLine, value: string | number) => {
+    setLines((current) =>
+      current.map((line) => (line.id === id ? { ...line, [field]: value } : line))
     );
   };
 
+  const resetForm = () => {
+    setEntryDate(new Date().toISOString().split("T")[0]);
+    setReference("");
+    setNarration("");
+    setLines([emptyLine(), emptyLine()]);
+  };
+
+  const handleSave = async () => {
+    if (!isBalanced) return;
+
+    const payloadLines = lines
+      .filter((line) => line.accountId && (line.debit > 0 || line.credit > 0))
+      .map((line) => ({
+        accountId: line.accountId,
+        debitAmount: line.debit,
+        creditAmount: line.credit,
+        description: line.memo || undefined,
+      }));
+
+    if (payloadLines.length < 2) {
+      setError("At least two balanced lines with valid accounts are required.");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      await financeApi.journalEntries.create({
+        entryDate,
+        referenceNumber: reference || undefined,
+        narration: narration || undefined,
+        description: narration || undefined,
+        lines: payloadLines,
+      });
+      notifySuccess("Journal entry saved as draft.");
+      setShowForm(false);
+      resetForm();
+      await load();
+    } catch (err) {
+      const message = getApiErrorMessage(err, "Failed to save journal entry.");
+      setError(message);
+      notifyError(message, "Finance");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const draftCount = entries.filter((entry) => entry.status === "Draft").length;
+  const postedCount = entries.filter((entry) => entry.status === "Posted").length;
+
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Post Journal Entry"
-        subtitle="Record general ledger double-entry debit & credit transactions"
-        breadcrumbs={[
-          { label: "Finance", href: "/finance" },
-          { label: "Journal Entries", href: "/journal-entries" },
-          { label: "New Entry" },
-        ]}
-        actions={
-          <Button size="sm" disabled={!isBalanced} className="gap-2">
-            <Save className="h-4 w-4" />
-            Post Entry
-          </Button>
-        }
-      />
+    <StandardPageLayout
+      title="Journal Entries"
+      subtitle="Record double-entry transactions and review posted journal history."
+      eyebrow="Finance"
+      icon="file"
+      meta={
+        !loading ? (
+          <>
+            <span className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
+              {entries.length} entries
+            </span>
+            <span className={erpStatusBadgeTone.warning}>{draftCount} draft</span>
+            <span className={erpStatusBadgeTone.success}>{postedCount} posted</span>
+          </>
+        ) : null
+      }
+      actions={<ErpCreateButton label="New entry" onClick={() => setShowForm(true)} />}
+    >
+      {error ? (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
+      ) : null}
 
-      {/* Entry Header Info */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold">Entry Details</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-3">
-          <div className="space-y-2">
-            <Label htmlFor="jvDate">Posting Date</Label>
-            <Input id="jvDate" type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="jvRef">JV Reference No.</Label>
-            <Input id="jvRef" value={reference} onChange={(e) => setReference(e.target.value)} />
-          </div>
-          <div className="space-y-2 sm:col-span-3">
-            <Label htmlFor="narration">Narration / Memo</Label>
-            <Input id="narration" placeholder="Explain entry purpose..." value={narration} onChange={(e) => setNarration(e.target.value)} />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Debit / Credit Lines Table */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-          <div>
-            <CardTitle className="text-base font-semibold">Line Items (Double Entry)</CardTitle>
-            <CardDescription className="text-xs">Total Debits must equal Total Credits</CardDescription>
-          </div>
-          <Button size="sm" variant="outline" onClick={addLine} className="gap-1.5 h-8 text-xs">
-            <Plus className="h-3.5 w-3.5" /> Add Line
-          </Button>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm border-collapse">
+      <section className={erpPanelClassName}>
+        <div className={erpPanelHeaderClassName}>
+          <h2 className={erpPanelTitleClassName}>Journal register</h2>
+        </div>
+        <div className={erpPanelBodyClassName}>
+          <div className={erpTableWrapClassName}>
+            <table className="min-w-full divide-y divide-slate-200">
               <thead>
-                <tr className="border-b border-border bg-muted/40 text-xs font-semibold text-muted-foreground uppercase">
-                  <th className="py-2.5 px-3">Account Code & Name</th>
-                  <th className="py-2.5 px-3">Memo</th>
-                  <th className="py-2.5 px-3 text-right w-36">Debit (INR)</th>
-                  <th className="py-2.5 px-3 text-right w-36">Credit (INR)</th>
-                  <th className="py-2.5 px-3 text-center w-12">Action</th>
+                <tr>
+                  <th className={erpTableThClassName}>Journal #</th>
+                  <th className={erpTableThClassName}>Date</th>
+                  <th className={erpTableThClassName}>Type</th>
+                  <th className={erpTableThClassName}>Description</th>
+                  <th className={erpTableThClassName}>Debit</th>
+                  <th className={erpTableThClassName}>Credit</th>
+                  <th className={erpTableThClassName}>Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {loading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={i}>
+                      <td colSpan={7} className={erpTableTdClassName}>
+                        <div className="h-4 animate-pulse rounded bg-slate-100" />
+                      </td>
+                    </tr>
+                  ))
+                ) : entries.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className={`${erpTableTdClassName} py-12 text-center`}>
+                      <div className="flex flex-col items-center gap-3">
+                        <FileText className="h-10 w-10 text-slate-300" />
+                        <p className="text-sm text-slate-500">No journal entries yet. Use New entry in the header to post the first draft.</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  entries.map((entry) => (
+                    <tr key={entry.id} className={erpTableRowHoverClassName}>
+                      <td className={`${erpTableTdClassName} font-mono text-sm font-semibold text-slate-900`}>
+                        {entry.journalNumber}
+                      </td>
+                      <td className={erpTableTdClassName}>
+                        {new Date(entry.entryDate).toLocaleDateString("en-IN")}
+                      </td>
+                      <td className={erpTableTdClassName}>{entry.entryType || "Regular"}</td>
+                      <td className={erpTableTdClassName}>{entry.description || "—"}</td>
+                      <td className={erpTableTdClassName}>{formatCurrency(entry.totalDebit)}</td>
+                      <td className={erpTableTdClassName}>{formatCurrency(entry.totalCredit)}</td>
+                      <td className={erpTableTdClassName}>
+                        <span className={statusTone(entry.status)}>{entry.status}</span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <SideDrawer
+        open={showForm}
+        onClose={() => {
+          setShowForm(false);
+          resetForm();
+        }}
+        title="New journal entry"
+        subtitle="Record a balanced double-entry draft."
+        width="2xl"
+        footer={
+          <ErpDrawerFooter
+            onCancel={() => {
+              setShowForm(false);
+              resetForm();
+            }}
+            onSave={() => void handleSave()}
+            saving={saving}
+            disabled={!isBalanced}
+            saveLabel="Save draft"
+          />
+        }
+      >
+        <div className="space-y-5">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="jv-date" className={erpFormLabelClassName}>
+                Posting date
+              </label>
+              <input
+                id="jv-date"
+                type="date"
+                value={entryDate}
+                onChange={(e) => setEntryDate(e.target.value)}
+                className={`${erpFormInputClassName} mt-1`}
+              />
+            </div>
+            <div>
+              <label htmlFor="jv-ref" className={erpFormLabelClassName}>
+                Reference
+              </label>
+              <input
+                id="jv-ref"
+                value={reference}
+                onChange={(e) => setReference(e.target.value)}
+                placeholder="Optional reference"
+                className={`${erpFormInputClassName} mt-1`}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label htmlFor="jv-narration" className={erpFormLabelClassName}>
+                Narration
+              </label>
+              <input
+                id="jv-narration"
+                value={narration}
+                onChange={(e) => setNarration(e.target.value)}
+                placeholder="Describe the entry purpose"
+                className={`${erpFormInputClassName} mt-1`}
+              />
+            </div>
+          </div>
+
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className={erpTableThClassName}>Account</th>
+                  <th className={erpTableThClassName}>Memo</th>
+                  <th className={`${erpTableThClassName} text-right`}>Debit</th>
+                  <th className={`${erpTableThClassName} text-right`}>Credit</th>
+                  <th className={`${erpTableThClassName} text-center`} />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
                 {lines.map((line) => (
                   <tr key={line.id}>
-                    <td className="py-2 px-3">
-                      <Input
-                        placeholder="e.g. 1110 - HDFC Bank"
-                        value={line.accountName ? `${line.accountCode} - ${line.accountName}` : line.accountCode}
-                        onChange={(e) => updateLine(line.id, "accountName", e.target.value)}
-                        className="h-9 text-xs"
-                      />
+                    <td className={erpTableTdClassName}>
+                      <select
+                        value={line.accountId}
+                        onChange={(e) => updateLine(line.id, "accountId", e.target.value)}
+                        className={erpFormInputClassName}
+                      >
+                        <option value="">Select account</option>
+                        {accounts.map((account) => (
+                          <option key={account.id} value={account.id}>
+                            {account.label}
+                          </option>
+                        ))}
+                      </select>
                     </td>
-                    <td className="py-2 px-3">
-                      <Input
-                        placeholder="Line memo"
+                    <td className={erpTableTdClassName}>
+                      <input
                         value={line.memo}
                         onChange={(e) => updateLine(line.id, "memo", e.target.value)}
-                        className="h-9 text-xs"
+                        placeholder="Line memo"
+                        className={erpFormInputClassName}
                       />
                     </td>
-                    <td className="py-2 px-3 text-right">
-                      <Input
+                    <td className={erpTableTdClassName}>
+                      <input
                         type="number"
+                        min={0}
                         value={line.debit || ""}
                         onChange={(e) => updateLine(line.id, "debit", Number(e.target.value))}
-                        className="h-9 text-xs text-right font-mono font-semibold"
+                        className={`${erpFormInputClassName} text-right font-mono`}
                       />
                     </td>
-                    <td className="py-2 px-3 text-right">
-                      <Input
+                    <td className={erpTableTdClassName}>
+                      <input
                         type="number"
+                        min={0}
                         value={line.credit || ""}
                         onChange={(e) => updateLine(line.id, "credit", Number(e.target.value))}
-                        className="h-9 text-xs text-right font-mono font-semibold"
+                        className={`${erpFormInputClassName} text-right font-mono`}
                       />
                     </td>
-                    <td className="py-2 px-3 text-center">
+                    <td className={`${erpTableTdClassName} text-center`}>
                       <button
+                        type="button"
                         onClick={() => removeLine(line.id)}
-                        className="p-1 text-muted-foreground hover:text-rose-600 transition-colors disabled:opacity-30"
                         disabled={lines.length <= 2}
+                        className="text-slate-400 hover:text-rose-600 disabled:opacity-30"
+                        aria-label="Remove line"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -165,20 +377,22 @@ export function JournalEntryForm() {
                   </tr>
                 ))}
               </tbody>
-              <tfoot>
-                <tr className="border-t-2 border-border font-bold bg-muted/20 text-sm">
-                  <td colSpan={2} className="py-3 px-3">Total Balance Check</td>
-                  <td className="py-3 px-3 text-right font-mono text-indigo-600 dark:text-indigo-400">
-                    ₹{totalDebit.toLocaleString("en-IN")}
+              <tfoot className="bg-slate-50 font-semibold">
+                <tr>
+                  <td colSpan={2} className={erpTableTdClassName}>
+                    Totals
                   </td>
-                  <td className="py-3 px-3 text-right font-mono text-indigo-600 dark:text-indigo-400">
-                    ₹{totalCredit.toLocaleString("en-IN")}
+                  <td className={`${erpTableTdClassName} text-right font-mono text-slate-900`}>
+                    {formatCurrency(totalDebit)}
                   </td>
-                  <td className="py-3 px-3 text-center">
+                  <td className={`${erpTableTdClassName} text-right font-mono text-slate-900`}>
+                    {formatCurrency(totalCredit)}
+                  </td>
+                  <td className={`${erpTableTdClassName} text-center`}>
                     {isBalanced ? (
-                      <span title="Balanced"><CheckCircle2 className="h-5 w-5 text-emerald-500 inline-block" /></span>
+                      <CheckCircle2 className="inline h-5 w-5 text-emerald-500" />
                     ) : (
-                      <span title="Unbalanced"><AlertCircle className="h-5 w-5 text-rose-500 inline-block" /></span>
+                      <AlertCircle className="inline h-5 w-5 text-rose-500" />
                     )}
                   </td>
                 </tr>
@@ -186,14 +400,18 @@ export function JournalEntryForm() {
             </table>
           </div>
 
-          {!isBalanced && (
-            <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs text-rose-600 dark:text-rose-400 flex items-center gap-2 font-medium">
+          {!isBalanced ? (
+            <div className="flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
               <AlertCircle className="h-4 w-4 shrink-0" />
-              <span>Difference: ₹{Math.abs(totalDebit - totalCredit).toLocaleString("en-IN")}. Debits and Credits must balance to zero before posting.</span>
+              Difference: {formatCurrency(Math.abs(totalDebit - totalCredit))}. Debits and credits must balance.
             </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+          ) : null}
+
+          <button type="button" onClick={addLine} className={erpButtonClassName.secondary}>
+            Add line
+          </button>
+        </div>
+      </SideDrawer>
+    </StandardPageLayout>
   );
 }

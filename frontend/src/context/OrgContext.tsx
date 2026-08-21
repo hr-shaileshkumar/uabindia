@@ -113,10 +113,32 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
         merged.projectName = null;
       }
 
+      const scopeChanged =
+        previous.companyId !== merged.companyId || previous.projectId !== merged.projectId;
+
       persistState(merged);
+
+      if (scopeChanged && typeof window !== "undefined" && user) {
+        // Fire-and-forget audit of workspace context switches
+        void import("@/services/modules/org")
+          .then(({ orgApi }) =>
+            orgApi.contextEvents.log({
+              previousCompanyId: previous.companyId,
+              previousProjectId: previous.projectId,
+              companyId: merged.companyId,
+              projectId: merged.projectId,
+              companyName: merged.companyName,
+              projectName: merged.projectName,
+            }),
+          )
+          .catch(() => {
+            // never block UI on audit failure
+          });
+      }
+
       return merged;
     });
-  }, []);
+  }, [user]);
 
   const setFinancialYear = useCallback((financialYearKey: string | null, financialYearLabel: string | null) => {
     setContext({ financialYearKey, financialYearLabel });
@@ -170,36 +192,16 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
     return () => window.removeEventListener("storage", syncFromStorage);
   }, []);
 
-  const {
-    companyId,
-    companyName,
-    projectId,
-    projectName,
-    financialYearKey,
-    financialYearLabel,
-  } = state;
+  const { companyId, projectId } = state;
+
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
   useEffect(() => {
     const validateContext = async () => {
       if (!user) return;
 
       try {
-        if (!companyId) {
-          if (projectId) {
-            const next: OrgContextState = {
-              companyId: null,
-              companyName: null,
-              projectId: null,
-              projectName: null,
-              financialYearKey,
-              financialYearLabel,
-            };
-            setState(next);
-            persistState(next);
-          }
-          return;
-        }
-
         const roles = Array.isArray((user as { roles?: unknown[] }).roles)
           ? ((user as { roles?: unknown[] }).roles as unknown[])
           : [];
@@ -209,6 +211,12 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
           ? await apiClient.get("/companies/all")
           : await apiClient.get("/companies?page=1&limit=200");
         const companies = Array.isArray(companyRes.data?.companies) ? companyRes.data.companies : [];
+        const current = stateRef.current;
+
+        if (!companyId) {
+          return;
+        }
+
         const selectedCompany = companies.find((c: { id?: string; name?: string }) => c.id === companyId);
 
         if (!selectedCompany) {
@@ -217,8 +225,8 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
             companyName: null,
             projectId: null,
             projectName: null,
-            financialYearKey,
-            financialYearLabel,
+            financialYearKey: current.financialYearKey,
+            financialYearLabel: current.financialYearLabel,
           };
           setState(cleared);
           persistState(cleared);
@@ -226,9 +234,9 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
         }
 
         if (!projectId) {
-          if (companyName !== (selectedCompany.name || null)) {
+          if (current.companyName !== (selectedCompany.name || null)) {
             const next: OrgContextState = {
-              ...state,
+              ...current,
               companyName: selectedCompany.name || null,
             };
             setState(next);
@@ -247,22 +255,22 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
             companyName: selectedCompany.name || null,
             projectId: null,
             projectName: null,
-            financialYearKey,
-            financialYearLabel,
+            financialYearKey: current.financialYearKey,
+            financialYearLabel: current.financialYearLabel,
           };
           setState(next);
           persistState(next);
           return;
         }
 
-        if (companyName !== (selectedCompany.name || null) || projectName !== (selectedProject.name || null)) {
+        if (current.companyName !== (selectedCompany.name || null) || current.projectName !== (selectedProject.name || null)) {
           const next: OrgContextState = {
             companyId,
             companyName: selectedCompany.name || null,
             projectId,
             projectName: selectedProject.name || null,
-            financialYearKey,
-            financialYearLabel,
+            financialYearKey: current.financialYearKey,
+            financialYearLabel: current.financialYearLabel,
           };
           setState(next);
           persistState(next);
@@ -273,7 +281,7 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
     };
 
     void validateContext();
-  }, [companyId, companyName, financialYearKey, financialYearLabel, projectId, projectName, state, user]);
+  }, [companyId, projectId, user]);
 
   useEffect(() => {
     const signature = [
@@ -293,7 +301,7 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
 
     lastContextSignatureRef.current = signature;
 
-    queryClient.invalidateQueries();
+    void queryClient.invalidateQueries({ refetchType: "active" });
 
     if (typeof window !== "undefined") {
       window.dispatchEvent(

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { CrudHeaderStats } from "@/components/erp/crud-workspace";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { ROUTES } from "@/constants/routes";
-import { hrApi } from "@/services/hrApi";
+import { hrmsApi } from "@/services/modules";
 import Link from "next/link";
 
 type ScheduleRow = {
@@ -48,7 +48,7 @@ export default function ScreeningSchedulePage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await hrApi.screenings.getSchedule({
+      const res = await hrmsApi.screenings.getSchedule({
         search: search || undefined,
         status: status || undefined,
         fromDate: fromDate || undefined,

@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { CircleCheckBig, LifeBuoy, UsersRound, WalletCards } from "lucide-react";
-import { PublicCardGrid } from "@/components/public/PublicContentBlocks";
-
+import { MarketingHero } from "@/components/public/PublicMarketingBlocks";
 import PublicAudiencePageFrame from "@/components/public/PublicAudiencePageFrame";
-import PublicHeroSection from "@/components/public/PublicHeroSection";
 import { PublicPageLoading } from "@/components/public/PublicPageLoading";
 import {
   publicButtonClassName,
+  publicPanelClassName,
   publicSectionClassName,
   publicSectionSpacingClassName,
 } from "@/components/public/publicStyles";
@@ -24,7 +23,6 @@ type HomeContent = {
   trustPills: string[];
 };
 
-
 export default function TenantHomePage() {
   const {
     profile,
@@ -38,19 +36,18 @@ export default function TenantHomePage() {
   } = usePublicPageData("home", "tenant");
 
   const content = parseContent<HomeContent>({
-    eyebrow: `Welcome to ${profile.brandName}`,
+    eyebrow: profile.brandName || profile.companyName,
     title: profile.heroTitle || `${profile.companyName} workspace`,
     subtitle:
       profile.heroSubtitle ||
-      "A clean company front door for employee access, support, and operational updates.",
-    primaryCtaLabel: "Login",
+      "Secure login, employee self-service, support, and company updates in one place.",
+    primaryCtaLabel: "Sign in",
     secondaryCtaLabel: "Contact support",
-    trustPills: ["Employee access", "Support desk", "Company updates", "Secure login"],
+    trustPills: ["Employee access", "Support desk", "Secure login"],
   });
 
-
   if (isTenantContext && loading) {
-    return <PublicPageLoading label="Loading company profile from database..." />;
+    return <PublicPageLoading label="Loading..." sublabel="Preparing your company workspace" />;
   }
 
   return (
@@ -62,10 +59,13 @@ export default function TenantHomePage() {
       allowedPaths={allowedPaths}
       pageVisible={pageVisible}
     >
-      <PublicHeroSection
+      <MarketingHero
         eyebrow={content.eyebrow}
         title={content.title}
         subtitle={content.subtitle}
+        badges={content.trustPills}
+        showPreview={false}
+        trustSignals={["Secure employee login", "Self-service access", "Company support"]}
         actions={
           <>
             <Link href={withPublicAudience("/login", "tenant")} className={publicButtonClassName.primary}>
@@ -76,83 +76,65 @@ export default function TenantHomePage() {
             </Link>
           </>
         }
-        badges={content.trustPills}
-        panelLabel="Company overview"
-        metrics={[
-          { label: "Industry", value: profile.industry },
-          { label: "Support", value: profile.supportTier },
-          { label: "Headquarters", value: profile.headquarters },
-          { label: "Partner", value: profile.implementationPartner || profile.brandName },
-        ]}
-        metricColumns="two"
       />
 
       <section className={publicSectionSpacingClassName}>
-        <div className={publicSectionClassName}>
-          <PublicCardGrid
-            columns="four"
-            items={[
-              {
-                icon: <UsersRound className="h-5 w-5" />,
-                title: "Employee self service",
-                description: "A simple entry point for login, password recovery, and daily employee actions.",
-              },
-              {
-                icon: <WalletCards className="h-5 w-5" />,
-                title: "Payroll-ready operations",
-                description: "Keep people records, attendance, and payroll access aligned with one workspace URL.",
-              },
-              {
-                icon: <LifeBuoy className="h-5 w-5" />,
-                title: "Support and contact",
-                description: "Give employees and admins a clear route to help without exposing internal tools.",
-              },
-              {
-                icon: <CircleCheckBig className="h-5 w-5" />,
-                title: "Trusted company presence",
-                description: "Present careers, about, contact, and login pages in one consistent SaaS style.",
-              },
-            ]}
-          />
+        <div className={`${publicSectionClassName} grid gap-4 sm:grid-cols-2 lg:grid-cols-4`}>
+          {[
+            {
+              icon: UsersRound,
+              title: "Employee self-service",
+              description: "Login, password recovery, and daily actions from one URL.",
+            },
+            {
+              icon: WalletCards,
+              title: "Payroll access",
+              description: "People records, attendance, and payroll aligned in one workspace.",
+            },
+            {
+              icon: LifeBuoy,
+              title: "Support desk",
+              description: "A clear route to help without exposing internal tools.",
+            },
+            {
+              icon: CircleCheckBig,
+              title: "Company presence",
+              description: "Careers, about, contact, and login in one consistent experience.",
+            },
+          ].map((item) => (
+            <article key={item.title} className={publicPanelClassName}>
+              <item.icon className="h-5 w-5 text-slate-700" />
+              <h2 className="mt-3 text-base font-semibold text-slate-900">{item.title}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600">{item.description}</p>
+            </article>
+          ))}
         </div>
       </section>
 
-      <section className={publicSectionSpacingClassName}>
-        <div className={`${publicSectionClassName} grid gap-6 xl:grid-cols-2`}>
-          <div className="rounded-[24px] border border-slate-200 bg-white p-7 sm:p-9 shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-600">Employee access</p>
-            <h2 className="mt-4 text-xl font-bold tracking-tight text-slate-900">
-              Everything your team needs, in one place.
-            </h2>
-            <p className="mt-3 text-sm leading-7 text-slate-500">
-              Access payroll records, apply for leave, raise support tickets, and stay updated — all from your company workspace without needing to contact HR directly.
-            </p>
-            <ul className="mt-5 space-y-2.5">
+      <section className={`${publicSectionSpacingClassName} bg-slate-50`}>
+        <div className={`${publicSectionClassName} grid gap-4 lg:grid-cols-2`}>
+          <div className={publicPanelClassName}>
+            <h2 className="text-lg font-semibold text-slate-900">What you can do</h2>
+            <ul className="mt-4 space-y-2.5">
               {[
-                "View and download payslips anytime",
-                "Apply for leave and track approval status",
-                "Access company announcements and updates",
+                "View and download payslips",
+                "Apply for leave and track approvals",
+                "Read company announcements",
                 "Raise and track support requests",
               ].map((item) => (
                 <li key={item} className="flex items-start gap-2.5 text-sm text-slate-700">
-                  <CircleCheckBig className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                  <CircleCheckBig className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
                   {item}
                 </li>
               ))}
             </ul>
           </div>
-
-          <div className="rounded-[24px] border border-slate-200 bg-gradient-to-br from-indigo-50 to-white p-7 sm:p-9 shadow-sm flex flex-col justify-between gap-6">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-600">Quick access</p>
-              <h2 className="mt-4 text-xl font-bold tracking-tight text-slate-900">
-                Sign in to your workspace.
-              </h2>
-              <p className="mt-3 text-sm leading-7 text-slate-500">
-                Use your company email and password to access your personal workspace dashboard. Contact your HR admin if you need access or have login issues.
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3">
+          <div className={publicPanelClassName}>
+            <h2 className="text-lg font-semibold text-slate-900">Sign in to continue</h2>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              Use your company email and password. Contact HR if you need access provisioned.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
               <Link href={withPublicAudience("/login", "tenant")} className={publicButtonClassName.primary}>
                 Sign in
               </Link>
@@ -166,4 +148,3 @@ export default function TenantHomePage() {
     </PublicAudiencePageFrame>
   );
 }
-

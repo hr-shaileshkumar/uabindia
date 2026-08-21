@@ -5,13 +5,14 @@ import {
   ArrowRight,
   CheckCircle,
   Clock,
-  Plus,
-  ShoppingCart,
   XCircle,
 } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudHeaderStats } from "@/components/erp/crud-workspace";
-import { hrApi } from "@/services/hrApi";
+import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
+import { SideDrawer } from "@/components/ui/side-drawer";
+import { ErpCreateButton, ErpDrawerFooter, ErpRefreshButton } from "@/components/erp/erp-page-kit";
+import { useErpListView } from "@/components/erp/erp-list-view";
+import { procurementApi } from "@/services/modules";
 import { notifyError } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
 
@@ -101,31 +102,22 @@ export default function PurchaseRequestsPage() {
       setLoading(true);
       setError(null);
 
-      const response = await hrApi.erp.purchaseOrders.getAll(1, 50);
+      const response = await procurementApi.purchaseRequests.getAll(1, 50);
       const raw = response.data;
       const list = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
 
-      const requests: PurchaseRequest[] = list
-        .filter((purchaseOrder: PurchaseRequest) =>
-          ["Draft", "Submitted", "Approved"].includes(purchaseOrder.status || ""),
-        )
-        .map((purchaseOrder: PurchaseRequest, index: number) => ({
-          id: purchaseOrder.id || String(index),
-          requestNumber: `PR-${(purchaseOrder.poNumber || purchaseOrder.id?.slice(0, 8) || "").replace("PO-", "")}`,
-          requestedBy: purchaseOrder.requestedBy || "System User",
-          itemDescription: purchaseOrder.description || `Requested item ${index + 1}`,
-          quantity: Math.max(1, Math.floor((purchaseOrder.totalAmount || 0) / 1000)) || 1,
-          estimatedCost: purchaseOrder.totalAmount || 0,
-          requiredDate: purchaseOrder.expectedDeliveryDate,
-          department: purchaseOrder.department || "Operations",
-          status:
-            purchaseOrder.status === "Approved"
-              ? "Approved"
-              : purchaseOrder.status === "Submitted"
-                ? "Pending"
-                : "Draft",
-          createdAt: purchaseOrder.poDate,
-        }));
+      const requests: PurchaseRequest[] = list.map((row: PurchaseRequest, index: number) => ({
+        id: row.id || String(index),
+        requestNumber: row.requestNumber,
+        requestedBy: row.requestedBy || "User",
+        itemDescription: row.itemDescription,
+        quantity: row.quantity || 1,
+        estimatedCost: row.estimatedCost || 0,
+        requiredDate: row.requiredDate,
+        department: row.department,
+        status: row.status || "Pending",
+        createdAt: row.createdAt,
+      }));
 
       setRecords(requests);
     } catch (err) {
@@ -141,24 +133,20 @@ export default function PurchaseRequestsPage() {
     void load();
   }, [load]);
 
-  const handleSave = async (event: React.FormEvent) => {
-    event.preventDefault();
+  const handleSave = async () => {
     if (!form.itemDescription || form.quantity <= 0) {
       return;
     }
 
     try {
       setSaving(true);
-      await hrApi.erp.purchaseOrders.create({
-        poNumber: `PR-${Date.now()}`,
-        vendorId: "TBD",
-        poDate: new Date().toISOString(),
-        expectedDeliveryDate: form.requiredDate,
-        totalAmount: form.estimatedCost * form.quantity,
-        status: "Draft",
-        description: form.itemDescription,
+      await procurementApi.purchaseRequests.create({
+        itemDescription: form.itemDescription,
+        quantity: form.quantity,
+        estimatedCost: form.estimatedCost,
+        requiredDate: form.requiredDate || undefined,
         department: form.department,
-        notes: form.justification,
+        justification: form.justification,
       });
       setShowForm(false);
       setForm({
@@ -194,6 +182,70 @@ export default function PurchaseRequestsPage() {
   const pendingCount = filtered.filter((record) => record.status === "Pending").length;
   const totalValue = filtered.reduce((sum, record) => sum + (record.estimatedCost || 0), 0);
 
+  const list = useErpListView({
+    listKey: "purchase-requests",
+    rows: filtered,
+    columns: [
+      { key: "requestNumber", label: "Request" },
+      { key: "itemDescription", label: "Item" },
+      { key: "quantity", label: "Qty", dataType: "number" },
+      { key: "estimatedCost", label: "Estimate", className: "text-right", dataType: "currency" },
+      { key: "requiredDate", label: "Required By", dataType: "date" },
+      { key: "department", label: "Department" },
+      { key: "status", label: "Status" },
+    ],
+    getRowId: (record) => record.id,
+    loading,
+    emptyMessage: "No purchase requests found. Use New request in the header to raise one.",
+    onCreate: () => setShowForm(true),
+    createLabel: "New request",
+    onRefresh: () => void load(),
+    extraFilters: (
+      <>
+        <input
+          className="erp-input max-w-xs"
+          placeholder="Request number, item, or requester..."
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+        <select className="erp-select w-40" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+          <option value="">All Status</option>
+          <option value="Draft">Draft</option>
+          <option value="Pending">Pending</option>
+          <option value="Approved">Approved</option>
+          <option value="Rejected">Rejected</option>
+          <option value="Converted">Converted to PO</option>
+        </select>
+      </>
+    ),
+    renderRow: (record) => {
+      const status = STATUS_CONFIG[record.status || "Pending"] || STATUS_CONFIG.Pending;
+      return (
+        <tr key={record.id} className="erp-tr">
+          <td className="erp-td font-mono text-xs font-semibold text-slate-700">{record.requestNumber || "-"}</td>
+          <td className="erp-td">
+            <p className="font-semibold text-slate-900">{record.itemDescription || "-"}</p>
+            {record.requestedBy ? <p className="text-xs text-slate-500">Requested by {record.requestedBy}</p> : null}
+          </td>
+          <td className="erp-td text-slate-600">{record.quantity || 0}</td>
+          <td className="erp-td text-right font-semibold text-slate-900">{formatCurrency(record.estimatedCost)}</td>
+          <td className="erp-td text-slate-600">
+            {record.requiredDate ? new Date(record.requiredDate).toLocaleDateString("en-IN") : "-"}
+          </td>
+          <td className="erp-td">
+            <span className="erp-chip erp-chip-neutral text-xs">{record.department || "-"}</span>
+          </td>
+          <td className="erp-td">
+            <span className={`${status.chip} flex w-fit items-center gap-1`}>
+              {status.icon}
+              {status.label}
+            </span>
+          </td>
+        </tr>
+      );
+    },
+  });
+
   return (
     <StandardPageLayout
       title="Purchase Requests"
@@ -211,249 +263,98 @@ export default function PurchaseRequestsPage() {
         />
       }
       actions={
-        <button
-          type="button"
-          onClick={() => setShowForm((current) => !current)}
-          className="erp-action-btn erp-action-btn-primary"
-        >
-          <Plus className="h-4 w-4" />
-          Raise Request
-        </button>
+        <>
+          <ErpRefreshButton onClick={() => void load()} loading={loading} />
+          {list.headerTools}
+          <ErpCreateButton label="New request" onClick={() => setShowForm(true)} />
+        </>
       }
-      filters={
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="min-w-48 flex-1">
-            <label className="erp-label">Search</label>
-            <input
-              className="erp-input"
-              placeholder="Request number, item, or requester..."
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-          </div>
-          <div>
-            <label className="erp-label">Status</label>
-            <select
-              className="erp-select w-40"
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
-            >
-              <option value="">All Status</option>
-              <option value="Draft">Draft</option>
-              <option value="Pending">Pending</option>
-              <option value="Approved">Approved</option>
-              <option value="Rejected">Rejected</option>
-              <option value="Converted">Converted to PO</option>
-            </select>
-          </div>
-          {(search || statusFilter) && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearch("");
-                setStatusFilter("");
-              }}
-              className="erp-action-btn erp-action-btn-secondary"
-            >
-              Clear
-            </button>
-          )}
-        </div>
-      }
+      filters={list.filterBar}
     >
       {error && <div className="erp-alert-error">{error}</div>}
 
-      {showForm && (
-        <div className="erp-panel">
-          <div className="erp-panel-header">
-            <div>
-              <h2 className="erp-panel-title">Raise Purchase Request</h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Capture the item need, department, timing, and justification before sourcing starts.
-              </p>
-            </div>
-          </div>
-          <div className="erp-panel-body">
-            <form onSubmit={handleSave} className="space-y-4">
-              <div className="erp-form-grid erp-form-grid-2">
-                <div className="md:col-span-2">
-                  <label className="erp-label">Item Description</label>
-                  <input
-                    className="erp-input"
-                    placeholder="5 HP ProBook laptops, safety stock, office furniture..."
-                    value={form.itemDescription}
-                    onChange={(event) => setForm({ ...form, itemDescription: event.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="erp-label">Quantity</label>
-                  <input
-                    className="erp-input"
-                    type="number"
-                    min={1}
-                    value={form.quantity}
-                    onChange={(event) => setForm({ ...form, quantity: Number(event.target.value) })}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="erp-label">Estimated Unit Cost (Rs)</label>
-                  <input
-                    className="erp-input"
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={form.estimatedCost}
-                    onChange={(event) =>
-                      setForm({ ...form, estimatedCost: Number(event.target.value) })
-                    }
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="erp-label">Required By</label>
-                  <input
-                    className="erp-input"
-                    type="date"
-                    value={form.requiredDate}
-                    onChange={(event) => setForm({ ...form, requiredDate: event.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="erp-label">Department</label>
-                  <input
-                    className="erp-input"
-                    placeholder="Engineering, Operations, Admin..."
-                    value={form.department}
-                    onChange={(event) => setForm({ ...form, department: event.target.value })}
-                    required
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="erp-label">Business Justification</label>
-                  <textarea
-                    className="erp-input"
-                    rows={3}
-                    value={form.justification}
-                    onChange={(event) => setForm({ ...form, justification: event.target.value })}
-                    placeholder="Explain why the purchase is needed and any urgency..."
-                  />
-                </div>
-              </div>
-              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <span className="text-sm text-slate-600">Estimated Total</span>
-                <span className="font-bold text-slate-900">
-                  {formatCurrency(form.quantity * form.estimatedCost)}
-                </span>
-              </div>
-              <div className="erp-form-actions">
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="erp-action-btn erp-action-btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button type="submit" disabled={saving} className="erp-action-btn erp-action-btn-primary">
-                  {saving ? "Submitting..." : "Submit Request"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <CrudCard>{list.table}</CrudCard>
 
-      <div className="erp-panel">
-        <div className="erp-panel-header">
+      <SideDrawer
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        title="New purchase request"
+        subtitle="Capture the item need, department, timing, and justification."
+        width="md"
+        footer={
+          <ErpDrawerFooter
+            onCancel={() => setShowForm(false)}
+            onSave={() => void handleSave()}
+            saving={saving}
+            saveLabel="Submit request"
+          />
+        }
+      >
+        <div className="grid grid-cols-1 gap-4">
           <div>
-            <h2 className="erp-panel-title">Requisition Register</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Review requested items, required dates, department demand, and approval state.
-            </p>
+            <label className="erp-label">Item Description</label>
+            <input
+              className="erp-input mt-1"
+              placeholder="5 HP ProBook laptops, safety stock, office furniture..."
+              value={form.itemDescription}
+              onChange={(event) => setForm({ ...form, itemDescription: event.target.value })}
+            />
+          </div>
+          <div>
+            <label className="erp-label">Quantity</label>
+            <input
+              className="erp-input mt-1"
+              type="number"
+              min={1}
+              value={form.quantity}
+              onChange={(event) => setForm({ ...form, quantity: Number(event.target.value) })}
+            />
+          </div>
+          <div>
+            <label className="erp-label">Estimated Unit Cost (Rs)</label>
+            <input
+              className="erp-input mt-1"
+              type="number"
+              min={0}
+              step="0.01"
+              value={form.estimatedCost}
+              onChange={(event) => setForm({ ...form, estimatedCost: Number(event.target.value) })}
+            />
+          </div>
+          <div>
+            <label className="erp-label">Required By</label>
+            <input
+              className="erp-input mt-1"
+              type="date"
+              value={form.requiredDate}
+              onChange={(event) => setForm({ ...form, requiredDate: event.target.value })}
+            />
+          </div>
+          <div>
+            <label className="erp-label">Department</label>
+            <input
+              className="erp-input mt-1"
+              placeholder="Engineering, Operations, Admin..."
+              value={form.department}
+              onChange={(event) => setForm({ ...form, department: event.target.value })}
+            />
+          </div>
+          <div>
+            <label className="erp-label">Business Justification</label>
+            <textarea
+              className="erp-input mt-1"
+              rows={3}
+              value={form.justification}
+              onChange={(event) => setForm({ ...form, justification: event.target.value })}
+              placeholder="Explain why the purchase is needed and any urgency..."
+            />
+          </div>
+          <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <span className="text-sm text-slate-600">Estimated Total</span>
+            <span className="font-bold text-slate-900">{formatCurrency(form.quantity * form.estimatedCost)}</span>
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="erp-table">
-            <thead className="erp-thead">
-              <tr>
-                <th className="erp-th">Request</th>
-                <th className="erp-th">Item</th>
-                <th className="erp-th">Qty</th>
-                <th className="erp-th text-right">Estimate</th>
-                <th className="erp-th">Required By</th>
-                <th className="erp-th">Department</th>
-                <th className="erp-th">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                Array.from({ length: 5 }).map((_, index) => (
-                  <tr key={index}>
-                    <td colSpan={7} className="erp-td">
-                      <div className="h-4 animate-pulse rounded bg-slate-100" />
-                    </td>
-                  </tr>
-                ))
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="erp-td py-16 text-center">
-                    <div className="flex flex-col items-center gap-3">
-                      <ShoppingCart className="h-10 w-10 text-slate-300" />
-                      <p className="text-sm text-slate-400">No purchase requests found.</p>
-                      <button
-                        type="button"
-                        onClick={() => setShowForm(true)}
-                        className="erp-action-btn erp-action-btn-secondary text-xs"
-                      >
-                        Raise Request
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((record) => {
-                  const status = STATUS_CONFIG[record.status || "Pending"] || STATUS_CONFIG.Pending;
-                  return (
-                    <tr key={record.id} className="erp-tr">
-                      <td className="erp-td font-mono text-xs font-semibold text-slate-700">
-                        {record.requestNumber || "-"}
-                      </td>
-                      <td className="erp-td">
-                        <p className="font-semibold text-slate-900">{record.itemDescription || "-"}</p>
-                        {record.requestedBy && (
-                          <p className="text-xs text-slate-500">Requested by {record.requestedBy}</p>
-                        )}
-                      </td>
-                      <td className="erp-td text-slate-600">{record.quantity || 0}</td>
-                      <td className="erp-td text-right font-semibold text-slate-900">
-                        {formatCurrency(record.estimatedCost)}
-                      </td>
-                      <td className="erp-td text-slate-600">
-                        {record.requiredDate
-                          ? new Date(record.requiredDate).toLocaleDateString("en-IN")
-                          : "-"}
-                      </td>
-                      <td className="erp-td">
-                        <span className="erp-chip erp-chip-neutral text-xs">
-                          {record.department || "-"}
-                        </span>
-                      </td>
-                      <td className="erp-td">
-                        <span className={`${status.chip} flex w-fit items-center gap-1`}>
-                          {status.icon}
-                          {status.label}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      </SideDrawer>
     </StandardPageLayout>
   );
 }

@@ -1,12 +1,24 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Plus, Gift } from "lucide-react";
-import { CrudHeaderStats } from "@/components/erp/crud-workspace";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { hrApi } from "@/services/hrApi";
-import { notifyError } from "@/lib/notifications";
+import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
+import {
+  ErpApproveRejectButtons,
+  ErpCreateButton,
+  ErpDrawerFooter,
+  ErpEmptyState,
+  ErpRefreshButton,
+  ErpRowActions,
+  ErpSearchFilter,
+} from "@/components/erp/erp-page-kit";
+import { SideDrawer } from "@/components/ui/side-drawer";
+import { erpButtonClassName } from "@/components/erp/erpStyles";
+import { payrollApi } from "@/services/modules";
+import { notifyError, notifySuccess } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
+
+type EmployeeOption = { id: string; fullName?: string; employeeCode?: string };
 
 type BonusRow = {
   id: string;
@@ -14,247 +26,376 @@ type BonusRow = {
   employeeName?: string;
   employeeCode?: string;
   bonusType?: string;
+  amount?: number;
   bonusAmount?: number;
-  grossSalary?: number;
-  month?: string;
   paymentMonth?: string;
   status?: string;
   remarks?: string;
 };
 
-type BonusForm = {
-  employeeId: string;
-  bonusType: string;
-  bonusAmount: number;
-  paymentMonth: string;
-  remarks: string;
+const BONUS_TYPES = [
+  "Performance Bonus",
+  "Festival Bonus",
+  "Retention Bonus",
+  "Joining Bonus",
+  "Annual Bonus",
+  "Referral Bonus",
+  "Special Award",
+  "Other",
+];
+const formatCurrency = (v?: number) => (v != null ? `₹${v.toLocaleString("en-IN")}` : "—");
+
+const emptyForm = () => ({
+  employeeId: "",
+  bonusType: "Performance Bonus",
+  amount: "",
+  paymentMonth: new Date().toISOString().slice(0, 7),
+  remarks: "",
+});
+
+const asList = (raw: unknown): BonusRow[] => {
+  if (Array.isArray(raw)) return raw as BonusRow[];
+  if (raw && typeof raw === "object") {
+    const obj = raw as Record<string, unknown>;
+    if (Array.isArray(obj.data)) return obj.data as BonusRow[];
+  }
+  return [];
 };
 
-const BONUS_TYPES = ["Performance Bonus", "Festival Bonus", "Retention Bonus", "Joining Bonus", "Annual Bonus", "Referral Bonus", "Special Award", "Other"];
-const STATUS_CONFIG: Record<string, { chip: string; label: string }> = {
-  Approved:  { chip: "erp-chip erp-chip-success", label: "Approved"  },
-  Pending:   { chip: "erp-chip erp-chip-warning", label: "Pending"   },
-  Paid:      { chip: "erp-chip erp-chip-success", label: "Paid"      },
-  Rejected:  { chip: "erp-chip erp-chip-danger",  label: "Rejected"  },
-  Draft:     { chip: "erp-chip erp-chip-neutral", label: "Draft"     },
+const chip = (status?: string) => {
+  const s = (status || "").toLowerCase();
+  if (s === "paid" || s === "approved") return "erp-chip erp-chip-success";
+  if (s === "rejected") return "erp-chip erp-chip-danger";
+  return "erp-chip erp-chip-warning";
 };
-const formatCurrency = (v?: number) => v != null ? `₹${v.toLocaleString("en-IN")}` : "—";
 
 export default function PayrollBonusPage() {
   const [records, setRecords] = useState<BonusRow[]>([]);
+  const [employees, setEmployees] = useState<EmployeeOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
-  const [form, setForm] = useState<BonusForm>({
-    employeeId: "", bonusType: "Performance Bonus", bonusAmount: 0, paymentMonth: new Date().toISOString().slice(0, 7), remarks: "",
-  });
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [viewRow, setViewRow] = useState<BonusRow | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState(emptyForm());
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      // Use payslips as proxy data for bonuses
-      const res = await hrApi.payroll.payslips.list({});
-      const raw = res.data;
-      const list = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
-      // Show employees with gross > 0 as potential bonus recipients
-      const mapped: BonusRow[] = list.slice(0, 20).map((p: BonusRow) => ({
-        id: `bonus-${p.id}`,
-        employeeId: p.employeeId,
-        employeeName: p.employeeName,
-        employeeCode: p.employeeCode,
-        bonusType: "Performance Bonus",
-        bonusAmount: Math.round((p.grossSalary || 0) * 0.1),
-        paymentMonth: p.month || new Date().toISOString().slice(0, 7),
-        status: "Pending",
-      }));
-      setRecords(mapped);
-    } catch {
-      setRecords([]);
+      const [bonusRes, empRes] = await Promise.all([payrollApi.bonuses.list(), payrollApi.employees()]);
+      setRecords(asList(bonusRes.data));
+      const empRaw = empRes.data?.employees ?? empRes.data ?? [];
+      setEmployees(Array.isArray(empRaw) ? empRaw : []);
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Failed to load bonuses"));
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.employeeId || form.bonusAmount <= 0) return;
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return records.filter((r) => {
+      const matchesSearch =
+        !q ||
+        [r.employeeName, r.employeeCode, r.bonusType, r.status].some((v) =>
+          (v || "").toLowerCase().includes(q),
+        );
+      const matchesStatus = statusFilter === "all" || (r.status || "").toLowerCase() === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [records, search, statusFilter]);
+
+  const amountOf = (r: BonusRow) => r.amount ?? r.bonusAmount ?? 0;
+
+  const handleSave = async () => {
+    if (!form.employeeId || !form.amount || !form.paymentMonth) {
+      notifyError("Employee, amount, and payment month are required.");
+      return;
+    }
     try {
       setSaving(true);
-      // Store as a payroll component adjustment
-      await hrApi.payroll.components.create({
-        componentName: form.bonusType,
-        componentType: "Bonus",
+      await payrollApi.bonuses.create({
         employeeId: form.employeeId,
-        amount: form.bonusAmount,
-        period: form.paymentMonth,
-        remarks: form.remarks,
-        status: "Pending",
+        bonusType: form.bonusType,
+        amount: Number(form.amount),
+        paymentMonth: form.paymentMonth,
+        remarks: form.remarks || undefined,
       });
-      setShowForm(false);
-      setForm({ employeeId: "", bonusType: "Performance Bonus", bonusAmount: 0, paymentMonth: new Date().toISOString().slice(0, 7), remarks: "" });
+      notifySuccess("Bonus created.");
+      setDrawerOpen(false);
+      setForm(emptyForm());
       void load();
     } catch (err) {
-      notifyError(getApiErrorMessage(err, "Failed to create bonus entry."), "Bonus");
+      notifyError(getApiErrorMessage(err, "Failed to create bonus."));
     } finally {
       setSaving(false);
     }
   };
 
-  const filtered = records.filter((r) => {
-    const q = search.toLowerCase();
-    const matchSearch = !q || (r.employeeName || "").toLowerCase().includes(q) || (r.employeeCode || "").toLowerCase().includes(q);
-    const matchType = !typeFilter || r.bonusType === typeFilter;
-    return matchSearch && matchType;
-  });
-
-  const totalBonus   = filtered.reduce((s, r) => s + (r.bonusAmount || 0), 0);
-  const paidCount    = filtered.filter((r) => r.status === "Paid").length;
-  const pendingCount = filtered.filter((r) => r.status === "Pending").length;
+  const runAction = async (id: string, action: "approve" | "pay" | "reject") => {
+    try {
+      if (action === "approve") await payrollApi.bonuses.approve(id);
+      if (action === "pay") await payrollApi.bonuses.pay(id);
+      if (action === "reject") await payrollApi.bonuses.reject(id);
+      notifySuccess("Bonus updated.");
+      void load();
+    } catch (err) {
+      notifyError(getApiErrorMessage(err, "Action failed."));
+    }
+  };
 
   return (
     <StandardPageLayout
       title="Bonus Management"
-      subtitle="Create, review, and approve employee bonus payments. Track performance bonuses, festival payouts, and special awards."
-      eyebrow="Payroll / Supplemental Pay"
       icon="credit-card"
-      actions={
-        <button type="button" onClick={() => setShowForm((p) => !p)} className="erp-action-btn erp-action-btn-primary">
-          <Plus className="h-4 w-4" />
-          Add Bonus
-        </button>
-      }
-      filters={
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="flex-1 min-w-48">
-            <label className="erp-label">Search</label>
-            <input className="erp-input" placeholder="Employee name or code…" value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
-          <div>
-            <label className="erp-label">Bonus Type</label>
-            <select className="erp-select w-48" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-              <option value="">All Types</option>
-              {BONUS_TYPES.map((t) => <option key={t}>{t}</option>)}
-            </select>
-          </div>
-          {(search || typeFilter) && (
-            <button type="button" onClick={() => { setSearch(""); setTypeFilter(""); }} className="erp-action-btn erp-action-btn-secondary">Clear</button>
-          )}
-        </div>
-      }
       meta={
         <CrudHeaderStats
           items={[
-            { label: "Bonuses", value: filtered.length, helper: "entries" },
-            { label: "Paid", value: paidCount, helper: "disbursed", tone: "positive" },
-            { label: "Pending", value: pendingCount, helper: "approval", tone: "warning" },
-            { label: "Outlay", value: formatCurrency(totalBonus), helper: "filtered", tone: "info" },
+            { label: "Bonuses", value: records.length },
+            {
+              label: "Paid",
+              value: records.filter((r) => (r.status || "").toLowerCase() === "paid").length,
+              tone: "positive",
+            },
+            {
+              label: "Pending",
+              value: records.filter((r) => (r.status || "").toLowerCase() === "pending").length,
+              tone: "warning",
+            },
+            {
+              label: "Outlay",
+              value: formatCurrency(records.reduce((s, r) => s + amountOf(r), 0)),
+              tone: "info",
+            },
           ]}
         />
       }
-    >
-      {error && <div className="erp-alert-error">{error}</div>}
-
-      {showForm && (
-        <div className="erp-panel">
-          <div className="erp-panel-header">
-            <div>
-              <h2 className="erp-panel-title">Add Bonus Entry</h2>
-              <p className="mt-1 text-sm text-slate-500">Allocate a one-time or recurring bonus to an employee for the selected payment month.</p>
-            </div>
-          </div>
-          <div className="erp-panel-body">
-            <form onSubmit={handleSave} className="space-y-4">
-              <div className="erp-form-grid erp-form-grid-2">
-                <div>
-                  <label className="erp-label">Employee ID</label>
-                  <input className="erp-input" placeholder="Enter employee ID" value={form.employeeId} onChange={(e) => setForm({ ...form, employeeId: e.target.value })} required />
-                </div>
-                <div>
-                  <label className="erp-label">Bonus Type</label>
-                  <select className="erp-select" value={form.bonusType} onChange={(e) => setForm({ ...form, bonusType: e.target.value })}>
-                    {BONUS_TYPES.map((t) => <option key={t}>{t}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="erp-label">Bonus Amount (₹)</label>
-                  <input className="erp-input" type="number" min={0} step="0.01" value={form.bonusAmount} onChange={(e) => setForm({ ...form, bonusAmount: Number(e.target.value) })} required />
-                </div>
-                <div>
-                  <label className="erp-label">Payment Month</label>
-                  <input className="erp-input" type="month" value={form.paymentMonth} onChange={(e) => setForm({ ...form, paymentMonth: e.target.value })} required />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="erp-label">Remarks / Justification</label>
-                  <textarea className="erp-input" rows={2} value={form.remarks} onChange={(e) => setForm({ ...form, remarks: e.target.value })} placeholder="Performance achievement or bonus rationale…" />
-                </div>
-              </div>
-              <div className="erp-form-actions">
-                <button type="button" onClick={() => setShowForm(false)} className="erp-action-btn erp-action-btn-secondary">Cancel</button>
-                <button type="submit" disabled={saving} className="erp-action-btn erp-action-btn-primary">{saving ? "Saving…" : "Add Bonus"}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      <div className="erp-panel">
-        <div className="erp-panel-header">
+      actions={
+        <>
+          <ErpRefreshButton onClick={() => void load()} loading={loading} />
+          <ErpCreateButton
+            label="Add bonus"
+            onClick={() => {
+              setForm(emptyForm());
+              setDrawerOpen(true);
+            }}
+          />
+        </>
+      }
+      filters={
+        <div className="flex flex-wrap items-end gap-3">
+          <ErpSearchFilter value={search} onChange={setSearch} placeholder="Filter employee or type…" />
           <div>
-            <h2 className="erp-panel-title">Bonus Register</h2>
-            <p className="mt-1 text-sm text-slate-500">{filtered.length} bonus entries</p>
+            <label className="erp-label">Status</label>
+            <select
+              className="erp-select w-36"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="all">All statuses</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="paid">Paid</option>
+              <option value="rejected">Rejected</option>
+            </select>
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="erp-table">
+      }
+    >
+      {error ? <div className="erp-alert-error">{error}</div> : null}
+
+      <CrudCard>
+        <div className="erp-table-wrap">
+          <table className="erp-table table-auto">
             <thead className="erp-thead">
               <tr>
                 <th className="erp-th">Employee</th>
-                <th className="erp-th">Bonus Type</th>
-                <th className="erp-th text-right">Amount</th>
-                <th className="erp-th">Payment Month</th>
+                <th className="erp-th">Type</th>
+                <th className="erp-th">Amount</th>
+                <th className="erp-th">Month</th>
                 <th className="erp-th">Status</th>
+                <th className="erp-th text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}><td colSpan={5} className="erp-td"><div className="h-4 animate-pulse rounded bg-slate-100" /></td></tr>
-                ))
+                <tr>
+                  <td colSpan={6} className="erp-td py-8 text-center text-xs text-slate-500">
+                    Loading…
+                  </td>
+                </tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={5} className="erp-td py-16 text-center">
-                  <div className="flex flex-col items-center gap-3">
-                    <Gift className="h-10 w-10 text-slate-300" />
-                    <p className="text-sm text-slate-400">No bonus entries found. Add one to get started.</p>
-                    <button type="button" onClick={() => setShowForm(true)} className="erp-action-btn erp-action-btn-secondary text-xs">Add Bonus</button>
-                  </div>
-                </td></tr>
+                <tr>
+                  <td colSpan={6} className="erp-td">
+                    <ErpEmptyState
+                      message="No bonus entries found."
+                      action={
+                        <ErpCreateButton
+                          label="Add bonus"
+                          onClick={() => {
+                            setForm(emptyForm());
+                            setDrawerOpen(true);
+                          }}
+                        />
+                      }
+                    />
+                  </td>
+                </tr>
               ) : (
-                filtered.map((r) => {
-                  const cfg = STATUS_CONFIG[r.status || "Pending"] || STATUS_CONFIG.Pending;
-                  return (
-                    <tr key={r.id} className="erp-tr">
-                      <td className="erp-td">
-                        <p className="font-semibold text-slate-900">{r.employeeName || "—"}</p>
-                        {r.employeeCode && <p className="text-xs text-slate-500">{r.employeeCode}</p>}
-                      </td>
-                      <td className="erp-td"><span className="erp-chip erp-chip-neutral text-xs">{r.bonusType || "—"}</span></td>
-                      <td className="erp-td text-right font-semibold text-emerald-700">{formatCurrency(r.bonusAmount)}</td>
-                      <td className="erp-td text-slate-600">{r.paymentMonth || "—"}</td>
-                      <td className="erp-td"><span className={cfg.chip}>{cfg.label}</span></td>
-                    </tr>
-                  );
-                })
+                filtered.map((r) => (
+                  <tr key={r.id} className="erp-tr">
+                    <td className="erp-td">
+                      <p className="font-semibold text-slate-900">{r.employeeName || "—"}</p>
+                      {r.employeeCode ? <p className="text-xs text-slate-500">{r.employeeCode}</p> : null}
+                    </td>
+                    <td className="erp-td">
+                      <span className="erp-chip erp-chip-neutral">{r.bonusType}</span>
+                    </td>
+                    <td className="erp-td font-medium text-emerald-700">{formatCurrency(amountOf(r))}</td>
+                    <td className="erp-td text-slate-600">{r.paymentMonth || "—"}</td>
+                    <td className="erp-td">
+                      <span className={chip(r.status)}>{r.status}</span>
+                    </td>
+                    <td className="erp-td text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        {(r.status || "").toLowerCase() === "pending" ? (
+                          <ErpApproveRejectButtons
+                            onApprove={() => void runAction(r.id, "approve")}
+                            onReject={() => void runAction(r.id, "reject")}
+                          />
+                        ) : null}
+                        {(r.status || "").toLowerCase() === "approved" ? (
+                          <button
+                            type="button"
+                            className={`${erpButtonClassName.secondary} text-xs`}
+                            onClick={() => void runAction(r.id, "pay")}
+                          >
+                            Mark paid
+                          </button>
+                        ) : null}
+                        <ErpRowActions onView={{ label: "View", onClick: () => setViewRow(r) }} />
+                      </div>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
         </div>
-      </div>
+      </CrudCard>
+
+      <SideDrawer open={Boolean(viewRow)} onClose={() => setViewRow(null)} title="Bonus details">
+        {viewRow ? (
+          <div className="erp-form-grid">
+            <div className="erp-field md:col-span-2">
+              <label className="erp-label">Employee</label>
+              <p className="text-sm text-slate-800">
+                {viewRow.employeeName || "—"}
+                {viewRow.employeeCode ? ` (${viewRow.employeeCode})` : ""}
+              </p>
+            </div>
+            <div className="erp-field">
+              <label className="erp-label">Type</label>
+              <p className="text-sm text-slate-800">{viewRow.bonusType || "—"}</p>
+            </div>
+            <div className="erp-field">
+              <label className="erp-label">Amount</label>
+              <p className="text-sm text-slate-800">{formatCurrency(amountOf(viewRow))}</p>
+            </div>
+            <div className="erp-field">
+              <label className="erp-label">Month</label>
+              <p className="text-sm text-slate-800">{viewRow.paymentMonth || "—"}</p>
+            </div>
+            <div className="erp-field">
+              <label className="erp-label">Status</label>
+              <p className="text-sm text-slate-800">{viewRow.status || "—"}</p>
+            </div>
+            <div className="erp-field md:col-span-2">
+              <label className="erp-label">Remarks</label>
+              <p className="text-sm text-slate-800">{viewRow.remarks || "—"}</p>
+            </div>
+          </div>
+        ) : null}
+      </SideDrawer>
+
+      <SideDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        title="Add bonus"
+        footer={
+          <ErpDrawerFooter
+            onCancel={() => setDrawerOpen(false)}
+            onSave={() => void handleSave()}
+            saving={saving}
+            saveLabel="Create"
+          />
+        }
+      >
+        <div className="erp-form-grid">
+          <div className="erp-field md:col-span-2">
+            <label className="erp-label">Employee *</label>
+            <select
+              className="erp-select"
+              value={form.employeeId}
+              onChange={(e) => setForm({ ...form, employeeId: e.target.value })}
+            >
+              <option value="">Select employee</option>
+              {employees.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.fullName || e.employeeCode || e.id}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="erp-field md:col-span-2">
+            <label className="erp-label">Bonus type</label>
+            <select
+              className="erp-select"
+              value={form.bonusType}
+              onChange={(e) => setForm({ ...form, bonusType: e.target.value })}
+            >
+              {BONUS_TYPES.map((t) => (
+                <option key={t}>{t}</option>
+              ))}
+            </select>
+          </div>
+          <div className="erp-field">
+            <label className="erp-label">Amount *</label>
+            <input
+              type="number"
+              className="erp-input"
+              value={form.amount}
+              onChange={(e) => setForm({ ...form, amount: e.target.value })}
+            />
+          </div>
+          <div className="erp-field">
+            <label className="erp-label">Payment month *</label>
+            <input
+              type="month"
+              className="erp-input"
+              value={form.paymentMonth}
+              onChange={(e) => setForm({ ...form, paymentMonth: e.target.value })}
+            />
+          </div>
+          <div className="erp-field md:col-span-2">
+            <label className="erp-label">Remarks</label>
+            <textarea
+              className="erp-input min-h-20"
+              rows={2}
+              value={form.remarks}
+              onChange={(e) => setForm({ ...form, remarks: e.target.value })}
+            />
+          </div>
+        </div>
+      </SideDrawer>
     </StandardPageLayout>
   );
 }

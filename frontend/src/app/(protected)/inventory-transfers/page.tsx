@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { ArrowRight, CheckCircle, Clock, Package, Plus, Truck } from "lucide-react";
+import { ArrowRight, CheckCircle, Clock, Package, Truck } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { CrudHeaderStats } from "@/components/erp/crud-workspace";
-import { hrApi } from "@/services/hrApi";
+import { SideDrawer } from "@/components/ui/side-drawer";
+import { ErpCreateButton, ErpDrawerFooter } from "@/components/erp/erp-page-kit";
+import { inventoryApi } from "@/services/modules";
 import { notifyError } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
 
@@ -87,9 +89,9 @@ export default function InventoryTransfersPage() {
       setError(null);
 
       const [movementResponse, itemsResponse, warehousesResponse] = await Promise.all([
-        hrApi.erp.stockMovements.list(1, 50),
-        hrApi.erp.items.getAll(1, 100),
-        hrApi.erp.warehouses.list(1, 50),
+        inventoryApi.stockMovements.list(1, 50),
+        inventoryApi.items.getAll(1, 100),
+        inventoryApi.warehouses.list(1, 50),
       ]);
 
       const movementList = Array.isArray(movementResponse.data)
@@ -153,8 +155,7 @@ export default function InventoryTransfersPage() {
     void load();
   }, [load]);
 
-  const handleSave = async (event: React.FormEvent) => {
-    event.preventDefault();
+  const handleSave = async () => {
     if (!form.itemId || !form.fromWarehouseId || !form.toWarehouseId || form.quantity <= 0) {
       return;
     }
@@ -165,10 +166,11 @@ export default function InventoryTransfersPage() {
 
     try {
       setSaving(true);
-      await hrApi.erp.stockMovements.create({
+      await inventoryApi.stockMovements.create({
         movementType: "Transfer",
         itemId: form.itemId,
         fromWarehouseId: form.fromWarehouseId,
+        toWarehouseId: form.toWarehouseId,
         warehouseId: form.toWarehouseId,
         quantity: form.quantity,
         movementDate: form.transferDate,
@@ -225,16 +227,7 @@ export default function InventoryTransfersPage() {
           ]}
         />
       }
-      actions={
-        <button
-          type="button"
-          onClick={() => setShowForm((current) => !current)}
-          className="erp-action-btn erp-action-btn-primary"
-        >
-          <Plus className="h-4 w-4" />
-          Create Transfer
-        </button>
-      }
+      actions={<ErpCreateButton label="New transfer" onClick={() => setShowForm(true)} />}
       filters={
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-48 flex-1">
@@ -277,118 +270,6 @@ export default function InventoryTransfersPage() {
     >
       {error && <div className="erp-alert-error">{error}</div>}
 
-      {showForm && (
-        <div className="erp-panel">
-          <div className="erp-panel-header">
-            <div>
-              <h2 className="erp-panel-title">Create Stock Transfer</h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Select the item, source warehouse, destination warehouse, and transfer reason.
-              </p>
-            </div>
-          </div>
-          <div className="erp-panel-body">
-            <form onSubmit={handleSave} className="space-y-4">
-              <div className="erp-form-grid erp-form-grid-2">
-                <div className="md:col-span-2">
-                  <label className="erp-label">Item</label>
-                  <select
-                    className="erp-select"
-                    value={form.itemId}
-                    onChange={(event) => setForm({ ...form, itemId: event.target.value })}
-                    required
-                  >
-                    <option value="">Select item...</option>
-                    {items.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.itemCode} - {item.itemName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="erp-label">From Warehouse</label>
-                  <select
-                    className="erp-select"
-                    value={form.fromWarehouseId}
-                    onChange={(event) => setForm({ ...form, fromWarehouseId: event.target.value })}
-                    required
-                  >
-                    <option value="">Select source warehouse...</option>
-                    {warehouses.map((warehouse) => (
-                      <option key={warehouse.id} value={warehouse.id}>
-                        {warehouse.warehouseName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="erp-label">To Warehouse</label>
-                  <select
-                    className="erp-select"
-                    value={form.toWarehouseId}
-                    onChange={(event) => setForm({ ...form, toWarehouseId: event.target.value })}
-                    required
-                  >
-                    <option value="">Select destination warehouse...</option>
-                    {warehouses
-                      .filter((warehouse) => warehouse.id !== form.fromWarehouseId)
-                      .map((warehouse) => (
-                        <option key={warehouse.id} value={warehouse.id}>
-                          {warehouse.warehouseName}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="erp-label">Quantity</label>
-                  <input
-                    className="erp-input"
-                    type="number"
-                    min={1}
-                    value={form.quantity}
-                    onChange={(event) => setForm({ ...form, quantity: Number(event.target.value) })}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="erp-label">Transfer Date</label>
-                  <input
-                    className="erp-input"
-                    type="date"
-                    value={form.transferDate}
-                    onChange={(event) => setForm({ ...form, transferDate: event.target.value })}
-                    required
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="erp-label">Reason or Notes</label>
-                  <textarea
-                    className="erp-input"
-                    rows={3}
-                    value={form.reason}
-                    onChange={(event) => setForm({ ...form, reason: event.target.value })}
-                    placeholder="Reason for stock movement..."
-                  />
-                </div>
-              </div>
-              <div className="erp-form-actions">
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="erp-action-btn erp-action-btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button type="submit" disabled={saving} className="erp-action-btn erp-action-btn-primary">
-                  {saving ? "Creating..." : "Create Transfer"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       <div className="erp-panel">
         <div className="erp-panel-header">
           <div>
@@ -424,14 +305,7 @@ export default function InventoryTransfersPage() {
                   <td colSpan={6} className="erp-td py-16 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <Package className="h-10 w-10 text-slate-300" />
-                      <p className="text-sm text-slate-400">No inventory transfers found.</p>
-                      <button
-                        type="button"
-                        onClick={() => setShowForm(true)}
-                        className="erp-action-btn erp-action-btn-secondary text-xs"
-                      >
-                        Create Transfer
-                      </button>
+                      <p className="text-sm text-slate-400">No inventory transfers found. Use New transfer in the header to create one.</p>
                     </div>
                   </td>
                 </tr>
@@ -480,6 +354,101 @@ export default function InventoryTransfersPage() {
           </table>
         </div>
       </div>
+
+      <SideDrawer
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        title="New transfer"
+        subtitle="Select the item, source warehouse, destination warehouse, and reason."
+        width="md"
+        footer={
+          <ErpDrawerFooter
+            onCancel={() => setShowForm(false)}
+            onSave={() => void handleSave()}
+            saving={saving}
+            saveLabel="Create transfer"
+          />
+        }
+      >
+        <div className="grid grid-cols-1 gap-4">
+          <div>
+            <label className="erp-label">Item</label>
+            <select
+              className="erp-select mt-1"
+              value={form.itemId}
+              onChange={(event) => setForm({ ...form, itemId: event.target.value })}
+            >
+              <option value="">Select item...</option>
+              {items.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.itemCode} - {item.itemName}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="erp-label">From Warehouse</label>
+            <select
+              className="erp-select mt-1"
+              value={form.fromWarehouseId}
+              onChange={(event) => setForm({ ...form, fromWarehouseId: event.target.value })}
+            >
+              <option value="">Select source warehouse...</option>
+              {warehouses.map((warehouse) => (
+                <option key={warehouse.id} value={warehouse.id}>
+                  {warehouse.warehouseName}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="erp-label">To Warehouse</label>
+            <select
+              className="erp-select mt-1"
+              value={form.toWarehouseId}
+              onChange={(event) => setForm({ ...form, toWarehouseId: event.target.value })}
+            >
+              <option value="">Select destination warehouse...</option>
+              {warehouses
+                .filter((warehouse) => warehouse.id !== form.fromWarehouseId)
+                .map((warehouse) => (
+                  <option key={warehouse.id} value={warehouse.id}>
+                    {warehouse.warehouseName}
+                  </option>
+                ))}
+            </select>
+          </div>
+          <div>
+            <label className="erp-label">Quantity</label>
+            <input
+              className="erp-input mt-1"
+              type="number"
+              min={1}
+              value={form.quantity}
+              onChange={(event) => setForm({ ...form, quantity: Number(event.target.value) })}
+            />
+          </div>
+          <div>
+            <label className="erp-label">Transfer Date</label>
+            <input
+              className="erp-input mt-1"
+              type="date"
+              value={form.transferDate}
+              onChange={(event) => setForm({ ...form, transferDate: event.target.value })}
+            />
+          </div>
+          <div>
+            <label className="erp-label">Reason or Notes</label>
+            <textarea
+              className="erp-input mt-1"
+              rows={3}
+              value={form.reason}
+              onChange={(event) => setForm({ ...form, reason: event.target.value })}
+              placeholder="Reason for stock movement..."
+            />
+          </div>
+        </div>
+      </SideDrawer>
     </StandardPageLayout>
   );
 }

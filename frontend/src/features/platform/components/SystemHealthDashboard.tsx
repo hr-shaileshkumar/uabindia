@@ -14,10 +14,14 @@ import {
   Wifi,
   HardDrive,
 } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { hrApi } from "@/services/hrApi";
+import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import { CrudHeaderStats } from "@/components/erp/crud-workspace";
+import {
+  erpButtonClassName,
+  erpPanelClassName,
+  erpStatCardClassName,
+} from "@/components/erp/erpStyles";
+import { platformApi } from "@/services/modules";
 
 type ComponentStatus = "healthy" | "degraded" | "down" | "unknown";
 
@@ -104,33 +108,31 @@ function StatusBadge({ status }: { status: ComponentStatus }) {
 function ComponentCard({ component }: { component: HealthComponent }) {
   const cfg = STATUS_CONFIG[component.status];
   return (
-    <Card className="overflow-hidden border-border/60">
+    <article className={`${erpPanelClassName} overflow-hidden`}>
       <div className={`h-1 w-full ${cfg.dotClass}`} />
-      <CardHeader className="pb-2 pt-4 flex flex-row items-start justify-between space-y-0">
+      <div className="flex flex-row items-start justify-between gap-3 px-5 pb-2 pt-4">
         <div className="flex items-center gap-2.5">
           <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${cfg.bgClass} ${cfg.textClass}`}>
             {component.icon}
           </div>
           <div>
-            <CardTitle className="text-[13px] font-semibold text-foreground">{component.name}</CardTitle>
+            <h3 className="text-[13px] font-semibold text-slate-900">{component.name}</h3>
             {component.latencyMs != null && (
-              <p className="text-[11px] text-muted-foreground mt-0.5">{component.latencyMs}ms</p>
+              <p className="mt-0.5 text-[11px] text-slate-500">{component.latencyMs}ms</p>
             )}
           </div>
         </div>
         <StatusBadge status={component.status} />
-      </CardHeader>
-      <CardContent className="pb-4">
-        <p className="text-[12.5px] text-muted-foreground">{component.detail}</p>
-      </CardContent>
-    </Card>
+      </div>
+      <p className="px-5 pb-4 text-[12.5px] text-slate-600">{component.detail}</p>
+    </article>
   );
 }
 
 function OverallStatusBanner({ status, checkedAt }: { status: ComponentStatus; checkedAt: string | null }) {
   const cfg = STATUS_CONFIG[status];
   return (
-    <div className={`flex items-center justify-between rounded-xl px-5 py-4 ${cfg.bgClass} border border-current/10`}>
+    <div className={`flex items-center justify-between rounded-xl border border-slate-200 px-5 py-4 ${cfg.bgClass}`}>
       <div className="flex items-center gap-3">
         <StatusDot status={status} pulse />
         <div>
@@ -138,14 +140,14 @@ function OverallStatusBanner({ status, checkedAt }: { status: ComponentStatus; c
             {status === "healthy" ? "All Systems Operational" : status === "degraded" ? "Partial Degradation Detected" : "System Issue Detected"}
           </p>
           {checkedAt && (
-            <p className="text-[12px] text-muted-foreground mt-0.5 flex items-center gap-1">
+            <p className="mt-0.5 flex items-center gap-1 text-[12px] text-slate-500">
               <Clock className="h-3 w-3" />
               Last checked: {new Date(checkedAt).toLocaleTimeString()}
             </p>
           )}
         </div>
       </div>
-      <span className={`hidden sm:block text-[11px] font-bold uppercase tracking-widest ${cfg.textClass} opacity-60`}>
+      <span className={`hidden text-[11px] font-bold uppercase tracking-widest opacity-60 sm:block ${cfg.textClass}`}>
         {cfg.label}
       </span>
     </div>
@@ -165,8 +167,7 @@ export function SystemHealthDashboard() {
     setState((prev) => ({ ...prev, loading: true, error: null }));
     const start = performance.now();
     try {
-      // Attempt real backend health check
-      const res = await hrApi.platform.systemHealth?.();
+      const res = await platformApi.admin.systemHealth?.();
       const latencyMs = Math.round(performance.now() - start);
       const data = res?.data || {};
       const checks = Array.isArray(data.checks) ? data.checks : [];
@@ -175,7 +176,6 @@ export function SystemHealthDashboard() {
       const databaseHealthy = (databaseCheck?.status || "").toString().toLowerCase() === "healthy";
       const apiHealthy = (apiCheck?.status || data.status || "").toString().toLowerCase() === "healthy";
 
-      // Map ASP.NET health probe response to component cards.
       const components: HealthComponent[] = [
         {
           name: "API Gateway",
@@ -246,99 +246,98 @@ export function SystemHealthDashboard() {
 
   useEffect(() => {
     void fetchHealth();
-    // Auto-refresh every 60 seconds
     const interval = setInterval(() => void fetchHealth(), 60_000);
     return () => clearInterval(interval);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const summaryStats = [
-    {
-      label: "Healthy Components",
-      value: `${state.components.filter((c) => c.status === "healthy").length} / ${state.components.length || "—"}`,
-      icon: <CheckCircle2 className="h-4 w-4 text-emerald-500" />,
-    },
-    {
-      label: "API Response Time",
-      value: state.components[0]?.latencyMs != null ? `${state.components[0].latencyMs}ms` : "—",
-      icon: <Activity className="h-4 w-4 text-indigo-500" />,
-    },
-    {
-      label: "Degraded / Down",
-      value: state.components.filter((c) => c.status !== "healthy" && c.status !== "unknown").length || 0,
-      icon: <AlertTriangle className="h-4 w-4 text-amber-500" />,
-    },
-    {
-      label: "Last Refresh",
-      value: state.checkedAt ? new Date(state.checkedAt).toLocaleTimeString() : "—",
-      icon: <Clock className="h-4 w-4 text-slate-400" />,
-    },
-  ];
+  const healthyCount = state.components.filter((c) => c.status === "healthy").length;
+  const degradedCount = state.components.filter((c) => c.status !== "healthy" && c.status !== "unknown").length;
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="System Health"
-        subtitle="Real-time status of API gateway, database connections, job queues, and core platform services."
-        breadcrumbs={[
-          { label: "Platform", href: "/platform/settings" },
-          { label: "System Health" },
-        ]}
-        actions={
-          <Button
-            size="sm"
-            variant="outline"
-            className="gap-2"
-            onClick={() => void fetchHealth()}
-            disabled={state.loading}
-          >
-            <RefreshCw className={`h-4 w-4 ${state.loading ? "animate-spin" : ""}`} />
-            {state.loading ? "Checking..." : "Refresh Now"}
-          </Button>
-        }
-      />
-
-      {/* Overall status banner */}
+    <StandardPageLayout
+      title="System Health"
+      subtitle="Real-time status of API gateway, database connections, job queues, and core platform services."
+      eyebrow="Platform"
+      icon="activity"
+      meta={
+        <CrudHeaderStats
+          items={[
+            { label: "Healthy", value: `${healthyCount} / ${state.components.length || "—"}`, helper: "components" },
+            { label: "Response", value: state.components[0]?.latencyMs != null ? `${state.components[0].latencyMs}ms` : "—", helper: "API latency" },
+            { label: "Issues", value: degradedCount, tone: degradedCount > 0 ? "warning" : "positive" },
+            { label: "Checked", value: state.checkedAt ? new Date(state.checkedAt).toLocaleTimeString() : "—", helper: "last refresh" },
+          ]}
+        />
+      }
+      actions={
+        <button
+          type="button"
+          className={`${erpButtonClassName.secondary} gap-2`}
+          onClick={() => void fetchHealth()}
+          disabled={state.loading}
+        >
+          <RefreshCw className={`h-4 w-4 ${state.loading ? "animate-spin" : ""}`} />
+          {state.loading ? "Checking..." : "Refresh Now"}
+        </button>
+      }
+    >
       {!state.loading && (
         <OverallStatusBanner status={state.overall} checkedAt={state.checkedAt} />
       )}
 
       {state.loading && (
-        <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-card px-5 py-4 text-[13px] text-muted-foreground animate-pulse">
-          <RefreshCw className="h-4 w-4 animate-spin text-indigo-500" />
+        <div className="flex animate-pulse items-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-4 text-[13px] text-slate-600">
+          <RefreshCw className="h-4 w-4 animate-spin text-slate-500" />
           Checking system health...
         </div>
       )}
 
       {state.error && (
-        <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-500/10 px-5 py-4 text-[13px] text-red-600 dark:text-red-400 flex items-start gap-2.5">
-          <XCircle className="h-4 w-4 mt-0.5 shrink-0" />
+        <div className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-[13px] text-red-600 dark:border-red-800 dark:bg-red-500/10 dark:text-red-400">
+          <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
           {state.error}
         </div>
       )}
 
-      {/* Summary stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {summaryStats.map((stat) => (
-          <div
-            key={stat.label}
-            className="rounded-xl border border-border/60 bg-card px-5 py-4 flex items-center gap-4"
-          >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+        {[
+          {
+            label: "Healthy Components",
+            value: `${healthyCount} / ${state.components.length || "—"}`,
+            icon: <CheckCircle2 className="h-4 w-4 text-emerald-500" />,
+          },
+          {
+            label: "API Response Time",
+            value: state.components[0]?.latencyMs != null ? `${state.components[0].latencyMs}ms` : "—",
+            icon: <Activity className="h-4 w-4 text-slate-600" />,
+          },
+          {
+            label: "Degraded / Down",
+            value: degradedCount || 0,
+            icon: <AlertTriangle className="h-4 w-4 text-amber-500" />,
+          },
+          {
+            label: "Last Refresh",
+            value: state.checkedAt ? new Date(state.checkedAt).toLocaleTimeString() : "—",
+            icon: <Clock className="h-4 w-4 text-slate-400" />,
+          },
+        ].map((stat) => (
+          <div key={stat.label} className={`${erpStatCardClassName} flex items-center gap-4`}>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100">
               {stat.icon}
             </div>
             <div>
-              <p className="text-[22px] font-bold text-foreground leading-tight">{stat.value}</p>
-              <p className="text-[11.5px] text-muted-foreground mt-0.5">{stat.label}</p>
+              <p className="text-[22px] font-bold leading-tight text-slate-900">{stat.value}</p>
+              <p className="mt-0.5 text-[11.5px] text-slate-500">{stat.label}</p>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Component cards */}
       {state.components.length > 0 && (
         <div>
-          <h3 className="text-[13px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          <h3 className="mb-3 text-[13px] font-semibold uppercase tracking-wider text-slate-500">
             Component Status
           </h3>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -348,6 +347,6 @@ export function SystemHealthDashboard() {
           </div>
         </div>
       )}
-    </div>
+    </StandardPageLayout>
   );
 }

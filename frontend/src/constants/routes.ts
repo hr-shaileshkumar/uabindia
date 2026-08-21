@@ -5,11 +5,13 @@ export const ROUTES = {
   SUPERADMIN_DASHBOARD: "/superadmin/dashboard",
 
   DASHBOARD: "/dashboard",
-  ADMINISTRATION_HOME: "/administration",
-  ADMINISTRATION_APPROVALS: "/administration/approvals",
-  ADMINISTRATION_NOTIFICATIONS: "/administration/notifications",
-  ADMINISTRATION_DOCUMENTS: "/administration/documents",
-  ADMINISTRATION_PROFILE: "/administration/profile",
+  ESS_HOME: "/ess",
+  MSS_HOME: "/mss",
+  ADMINISTRATION_HOME: "/platform/settings",
+  ADMINISTRATION_APPROVALS: "/approvals",
+  ADMINISTRATION_NOTIFICATIONS: "/notifications",
+  ADMINISTRATION_DOCUMENTS: "/documents",
+  ADMINISTRATION_PROFILE: "/profile",
   ADMINISTRATION_SECURITY: "/security",
 
   // ── HRMS ────────────────────────────────────────────────────────────────────
@@ -35,6 +37,8 @@ export const ROUTES = {
   ASSESSMENTS: "/hrms/assessments",
   // Performance
   PERFORMANCE: "/hrms/performance",
+  // Travel
+  TRAVEL: "/hrms/travel",
   // HR Operations
   HR_PAYROLL: "/hrms/payroll",
 
@@ -73,6 +77,16 @@ export const ROUTES = {
   PLATFORM_TENANTS_DETAIL: "/platform/tenants/[id]",
   PLATFORM_TENANTS_EDIT: "/platform/tenants/[id]/edit",
   PLATFORM_PROJECTS: "/platform/projects",
+  PROJECT_TASKS: "/projects/tasks",
+  PROJECT_TIMESHEETS: "/projects/timesheets",
+  // Organization masters (canonical — not under HRMS)
+  PLATFORM_DEPARTMENTS: "/platform/departments",
+  PLATFORM_DESIGNATIONS: "/platform/designations",
+  PLATFORM_BRANCHES: "/platform/branches",
+  PLATFORM_COST_CENTERS: "/platform/cost-centers",
+  PLATFORM_BUSINESS_UNITS: "/platform/business-units",
+  PLATFORM_ORG_CHART: "/platform/org-chart",
+  PLATFORM_HOLIDAY_CALENDAR: "/platform/holiday-calendar",
   // Access Control
   PLATFORM_USERS: "/platform/users",
   PLATFORM_ROLES: "/platform/roles",
@@ -102,9 +116,11 @@ export const ROUTES = {
   JOURNAL_ENTRIES: "/journal-entries",
   PAYMENTS: "/payments",
   INVOICES: "/invoices",
+  VENDOR_BILLS: "/vendor-bills",
   EXPENSES: "/expenses",
   TAX_MANAGEMENT: "/tax-management",
   BANK_RECONCILIATION: "/bank-reconciliation",
+  ACCOUNTING_PERIODS: "/accounting-periods",
   // Procurement
   PROCUREMENT_HOME: "/procurement",
   VENDORS: "/vendors",
@@ -115,9 +131,10 @@ export const ROUTES = {
   CRM_HOME: "/crm",
   LEADS: "/crm/leads",
   SALES_HOME: "/sales",
-  CUSTOMERS: "/customers",
-  QUOTATIONS: "/quotations",
-  SALES_ORDERS: "/sales-orders",
+  CUSTOMERS: "/crm/customers",
+    QUOTATIONS: "/quotations",
+    DISCOUNTS: "/discounts",
+    SALES_ORDERS: "/sales-orders",
   RETURNS: "/returns",
   // Inventory
   INVENTORY_HOME: "/inventory",
@@ -131,6 +148,7 @@ export const ROUTES = {
   NOTIFICATIONS: "/notifications",
   DOCUMENTS: "/documents",
   PROFILE: "/profile",
+  ASSETS_HOME: "/hrms/assets",
 
   // ── Licensing ───────────────────────────────────────────────────────────────
   LICENSING_HOME: "/licensing",
@@ -142,7 +160,7 @@ export const ROUTES = {
 
   // ── Security ────────────────────────────────────────────────────────────────
   SECURITY_HOME: "/security",
-  SECURITY_SESSIONS: "/security/sessions",
+  SECURITY_SESSIONS: "/platform/security/sessions",
   SECURITY_MFA: "/security/mfa",
   SECURITY_DEVICES: "/security/devices",
   SECURITY_PASSWORD_POLICIES: "/security/password-policies",

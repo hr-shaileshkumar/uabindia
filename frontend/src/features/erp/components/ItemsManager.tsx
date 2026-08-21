@@ -2,15 +2,16 @@
 
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { notifyError, notifySuccess } from "@/lib/notifications";
-import { GlobalLoading } from "@/components/ui/GlobalLoading";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { SideDrawer } from "@/components/ui/side-drawer";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { hrApi } from "@/services/hrApi";
-import { Search, Plus, Eye, Edit3, Trash2, Package, Tag, DollarSign, Layers, ShieldAlert } from "lucide-react";
+import { CrudCard } from "@/components/erp/crud-workspace";
+import { ErpCreateButton, ErpRefreshButton, ErpRowActions } from "@/components/erp/erp-page-kit";
+import { useErpListView } from "@/components/erp/erp-list-view";
+import { inventoryApi } from "@/services/modules";
+import { Tag, DollarSign, Layers } from "lucide-react";
 
 type Item = {
   id: string;
@@ -39,7 +40,7 @@ type ItemForm = {
   reorderLevel: number;
 };
 
-const itemsApi = hrApi.erp.items;
+const itemsApi = inventoryApi.items;
 
 const INITIAL_FORM: ItemForm = {
   itemCode: "",
@@ -200,6 +201,65 @@ export default function ItemsManager() {
     }
   };
 
+  const list = useErpListView({
+    listKey: "items",
+    rows: filteredItems,
+    columns: [
+      { key: "itemCode", label: "Code / SKU" },
+      { key: "itemName", label: "Item Name" },
+      { key: "category", label: "Category" },
+      { key: "unitOfMeasure", label: "UOM" },
+      { key: "hsnCode", label: "HSN Code" },
+      { key: "purchasePrice", label: "Purchase Price", dataType: "currency" },
+      { key: "sellingPrice", label: "Selling Price", dataType: "currency" },
+      { key: "actions", label: "Actions", className: "text-right", locked: true },
+    ],
+    getRowId: (row) => row.id,
+    loading,
+    emptyMessage: searchTerm ? "No products match your search query." : "No catalog items found. Click New item to create the first record.",
+    onCreate: openCreateDrawer,
+    createLabel: "New item",
+    onRefresh: () => void fetchItems(),
+    extraFilters: (
+      <input
+        type="search"
+        placeholder="Search item code, name, category, HSN..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="erp-input max-w-xs"
+      />
+    ),
+    onBulkDelete: async (rows) => {
+      for (const row of rows) {
+        await itemsApi.delete(row.id);
+      }
+      notifySuccess(`${rows.length} item record(s) deleted.`);
+      await fetchItems();
+    },
+    renderRow: (item) => (
+      <tr key={item.id} className="erp-tr">
+        <td className="erp-td font-mono text-xs font-semibold text-slate-900">{item.itemCode}</td>
+        <td className="erp-td font-medium text-slate-900">{item.itemName}</td>
+        <td className="erp-td">
+          <Badge variant="outline" className="text-xs font-normal">
+            {item.category}
+          </Badge>
+        </td>
+        <td className="erp-td text-slate-600">{item.unitOfMeasure}</td>
+        <td className="erp-td font-mono text-xs text-slate-600">{item.hsnCode || "-"}</td>
+        <td className="erp-td font-medium text-slate-700">{formatCurrency(item.purchasePrice)}</td>
+        <td className="erp-td font-bold text-slate-900">{formatCurrency(item.sellingPrice)}</td>
+        <td className="erp-td text-right">
+          <ErpRowActions
+            onView={{ label: "View", onClick: () => openViewDrawer(item) }}
+            onEdit={{ label: "Edit", onClick: () => openEditDrawer(item) }}
+            onDelete={{ label: "Delete", onClick: () => void handleDelete(item.id, item.itemName) }}
+          />
+        </td>
+      </tr>
+    ),
+  });
+
   return (
     <StandardPageLayout
       title="Items & Inventory Master"
@@ -208,103 +268,26 @@ export default function ItemsManager() {
       icon="package"
       meta={
         <>
-          <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
+          <span className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
             {items.length} Catalog Items
           </span>
-          <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700">
+          <span className="rounded-md border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
             {categoryCount} Categories
           </span>
         </>
       }
       actions={
-        <Button onClick={openCreateDrawer} className="gap-2">
-          <Plus className="h-4 w-4" /> Add Item
-        </Button>
+        <>
+          <ErpRefreshButton onClick={() => void fetchItems()} loading={loading} />
+          {list.headerTools}
+          <ErpCreateButton label="New item" onClick={openCreateDrawer} />
+        </>
       }
+      filters={list.filterBar}
     >
-      <div className="space-y-4">
-        {confirmDialog}
-
-        <Card className="border border-slate-200/80 shadow-sm">
-          <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-            <div>
-              <CardTitle className="text-lg font-bold text-slate-900">Product & SKU Directory</CardTitle>
-              <p className="mt-0.5 text-xs text-slate-500">
-                Review SKUs, HSN codes, UOM, unit prices, and reorder stock thresholds.
-              </p>
-            </div>
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search item code, name, category, HSN..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="erp-input pl-9 text-xs"
-              />
-            </div>
-          </CardHeader>
-
-          <CardContent className="p-0">
-            {loading && items.length === 0 ? (
-              <div className="p-12">
-                <GlobalLoading label="Loading catalog items..." variant="inline" />
-              </div>
-            ) : filteredItems.length === 0 ? (
-              <div className="erp-empty py-12">
-                {searchTerm ? "No products match your search query." : "No catalog items found. Click Add Item to create the first record."}
-              </div>
-            ) : (
-              <div className="erp-table-wrap border-0 shadow-none">
-                <table className="erp-table">
-                  <thead className="erp-thead">
-                    <tr>
-                      <th className="erp-th">Code / SKU</th>
-                      <th className="erp-th">Item Name</th>
-                      <th className="erp-th">Category</th>
-                      <th className="erp-th">UOM</th>
-                      <th className="erp-th">HSN Code</th>
-                      <th className="erp-th">Purchase Price</th>
-                      <th className="erp-th">Selling Price</th>
-                      <th className="erp-th text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredItems.map((item) => (
-                      <tr key={item.id} className="erp-tr hover:bg-slate-50/80 transition-colors">
-                        <td className="erp-td font-semibold text-slate-900 font-mono text-xs">{item.itemCode}</td>
-                        <td className="erp-td font-medium text-slate-900">{item.itemName}</td>
-                        <td className="erp-td">
-                          <Badge variant="outline" className="text-xs font-normal">
-                            {item.category}
-                          </Badge>
-                        </td>
-                        <td className="erp-td text-slate-600">{item.unitOfMeasure}</td>
-                        <td className="erp-td font-mono text-xs text-slate-600">{item.hsnCode || "-"}</td>
-                        <td className="erp-td font-medium text-slate-700">{formatCurrency(item.purchasePrice)}</td>
-                        <td className="erp-td font-bold text-slate-900">{formatCurrency(item.sellingPrice)}</td>
-                        <td className="erp-td text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-600 hover:text-slate-900" onClick={() => openViewDrawer(item)} title="View Item Details">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-blue-600 hover:text-blue-800" onClick={() => openEditDrawer(item)} title="Edit Item">
-                              <Edit3 className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-rose-600 hover:text-rose-800" onClick={() => void handleDelete(item.id, item.itemName)} title="Delete Item">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      {confirmDialog}
+      {error ? <div className="erp-alert-error text-sm">{error}</div> : null}
+      <CrudCard>{list.table}</CrudCard>
 
       {/* Slide-Over Drawer for Create / Edit Item Form */}
       <SideDrawer
@@ -418,7 +401,7 @@ export default function ItemsManager() {
 
             <div className="space-y-3">
               <div className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 bg-white">
-                <Tag className="h-5 w-5 text-indigo-600 shrink-0" />
+                <Tag className="h-5 w-5 text-slate-600 shrink-0" />
                 <div>
                   <p className="text-xs text-slate-500">Unit of Measure & HSN</p>
                   <p className="text-sm font-semibold text-slate-900">{selectedItem.unitOfMeasure} (HSN: {selectedItem.hsnCode || "None"})</p>

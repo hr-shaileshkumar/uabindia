@@ -1,71 +1,71 @@
 "use client";
 
-import React, { useState } from "react";
-import { Database, Upload, Download, RefreshCw, CheckCircle2, ShieldCheck, FileSpreadsheet } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { PlatformGlobalPageShell, KpiMetricItem } from "@/components/platform/PlatformGlobalPageShell";
-import { notifySuccess } from "@/lib/notifications";
+import Link from "next/link";
+import { ArrowUpRight, FileText, Inbox, Recycle, Users } from "lucide-react";
+import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import { CrudCard } from "@/components/erp/crud-workspace";
+import {
+  erpActionCardClassName,
+  erpActionCardTitleClassName,
+} from "@/components/erp/erpStyles";
+import { ROUTES } from "@/constants/routes";
+
+const LINKS = [
+  {
+    href: ROUTES.PLATFORM_RECYCLE_BIN,
+    label: "Recycle bin",
+    desc: "Restore soft-deleted platform records.",
+    icon: Recycle,
+  },
+  {
+    href: ROUTES.ADMINISTRATION_DOCUMENTS,
+    label: "Documents",
+    desc: "Upload and download tenant files.",
+    icon: FileText,
+  },
+  {
+    href: ROUTES.PLATFORM_CONTACT_SUBMISSIONS,
+    label: "Contact submissions",
+    desc: "Inbound public-site requests.",
+    icon: Inbox,
+  },
+  {
+    href: ROUTES.CUSTOMERS,
+    label: "Customer and vendor masters",
+    desc: "Create and export records from live list pages.",
+    icon: Users,
+  },
+] as const;
 
 export default function DataManagementPage() {
-  const [isExporting, setIsExporting] = useState(false);
-
-  const handleExportAll = () => {
-    setIsExporting(true);
-    setTimeout(() => {
-      setIsExporting(false);
-      notifySuccess("Enterprise full data archive export started (CSV / JSON).");
-    }, 1200);
-  };
-
-  const kpis: KpiMetricItem[] = [
-    { label: "Data Integrity", value: "100%", tone: "positive", icon: <ShieldCheck className="h-3.5 w-3.5" />, subtext: "Validated" },
-    { label: "Supported Formats", value: "CSV, Excel, JSON", tone: "info", icon: <FileSpreadsheet className="h-3.5 w-3.5" />, subtext: "Batch Processing" },
-    { label: "Sync Engine", value: "Async Queue", tone: "warning", icon: <RefreshCw className="h-3.5 w-3.5" />, subtext: "Background Tasks" },
-    { label: "Migration Status", value: "Ready", tone: "positive", icon: <CheckCircle2 className="h-3.5 w-3.5" />, subtext: "Schema Aligned" },
-  ];
-
   return (
-    <PlatformGlobalPageShell
-      title="Data Management, Import/Export & Migration"
-      subtitle="Execute bulk CSV/Excel data imports, full database exports, schema migration scripts, and duplicate record cleanups."
-      categoryTag="Data Lifecycle Operations"
-      kpiMetrics={kpis}
-      primaryActionLabel="Export Database Archive"
-      onPrimaryAction={handleExportAll}
-      primaryActionIcon={<Download className="h-4 w-4 mr-1.5" />}
-    >
-      <div className="p-6 grid gap-6 md:grid-cols-2">
-        <div className="p-5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-4">
-          <div className="flex items-center gap-2">
-            <Upload className="h-5 w-5 text-indigo-500" />
-            <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">Bulk CSV / Excel Data Importer</h3>
-          </div>
-          <p className="text-xs text-slate-500 leading-relaxed">
-            Batch import Chart of Accounts, Customers, Employees, Products, and Opening Balances with schema validation and error rollback.
+    <StandardPageLayout title="Data management" icon="database">
+      <CrudCard>
+        <div className="space-y-4 p-4">
+          <p className="text-sm text-slate-600">
+            Use live registers to create and export records. There is no in-browser full-database dump or fake
+            import wizard on this page.
           </p>
-          <div className="pt-2 flex justify-end">
-            <Button size="sm" variant="outline" onClick={() => notifySuccess("Import wizard launched.")}>
-              Launch Import Wizard
-            </Button>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {LINKS.map((link) => (
+              <Link key={link.href} href={link.href} className={erpActionCardClassName}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600">
+                      <link.icon className="h-4 w-4" />
+                    </span>
+                    <div>
+                      <p className={erpActionCardTitleClassName}>{link.label}</p>
+                      <p className="mt-1 text-xs leading-5 text-slate-500">{link.desc}</p>
+                    </div>
+                  </div>
+                  <ArrowUpRight className="mt-1 h-4 w-4 shrink-0 text-slate-400" />
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
-
-        <div className="p-5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-4">
-          <div className="flex items-center gap-2">
-            <Database className="h-5 w-5 text-emerald-500" />
-            <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">Data Cleanup & De-duplication</h3>
-          </div>
-          <p className="text-xs text-slate-500 leading-relaxed">
-            Scan and merge duplicate supplier records, clean up orphaned temp tables, and optimize PostgreSQL database indexes.
-          </p>
-          <div className="pt-2 flex justify-end">
-            <Button size="sm" variant="outline" onClick={() => notifySuccess("Duplicate scanner started.")}>
-              Run Duplicate Scanner
-            </Button>
-          </div>
-        </div>
-      </div>
-    </PlatformGlobalPageShell>
+      </CrudCard>
+    </StandardPageLayout>
   );
 }

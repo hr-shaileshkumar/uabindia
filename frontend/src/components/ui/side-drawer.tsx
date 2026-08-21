@@ -1,9 +1,9 @@
 ﻿"use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { useNavigationStore } from "@/store/navigationStore";
 
 interface SideDrawerProps {
   open: boolean;
@@ -12,110 +12,94 @@ interface SideDrawerProps {
   subtitle?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
-  width?: "sm" | "md" | "lg" | "xl";
+  width?: "sm" | "md" | "lg" | "xl" | "2xl" | "full";
   side?: "right" | "left";
 }
 
-const widthMap = {
-  sm: "max-w-sm",
-  md: "max-w-md",
-  lg: "max-w-lg",
-  xl: "max-w-xl",
-};
+export const ERP_WORKSPACE_CONTENT_ID = "erp-workspace-content";
 
 export function SideDrawer({
   open,
   onClose,
   title,
-  subtitle,
   children,
   footer,
-  width = "md",
-  side = "right",
 }: SideDrawerProps) {
-  const panelRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+  const isSidebarCollapsed = useNavigationStore((state) => state.isSidebarCollapsed);
 
-  // Close on Escape key
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
     };
     if (open) document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [open, onClose]);
 
-  // Lock body scroll when open
   useEffect(() => {
-    if (open) document.body.style.overflow = "hidden";
-    else document.body.style.overflow = "";
-    return () => { document.body.style.overflow = ""; };
-  }, [open]);
+    if (!mounted) return;
+    const host = document.getElementById(ERP_WORKSPACE_CONTENT_ID);
+    if (!host) return;
+    if (open) {
+      host.dataset.erpFormOpen = "true";
+      host.scrollTop = 0;
+    } else {
+      delete host.dataset.erpFormOpen;
+    }
+    return () => {
+      delete host.dataset.erpFormOpen;
+    };
+  }, [open, mounted]);
 
-  const initial = side === "right" ? { x: "100%" } : { x: "-100%" };
-  const animate = { x: 0 };
-  const exit = initial;
+  if (!open || !mounted) return null;
+
+  const host = document.getElementById(ERP_WORKSPACE_CONTENT_ID);
+
+  const panel = (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      className="flex h-full min-h-0 flex-col bg-slate-50 p-3 sm:p-4"
+    >
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-4 py-2.5">
+          <h2 className="truncate text-lg font-semibold text-slate-900">{title}</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">{children}</div>
+        {footer ? <div className="shrink-0 border-t border-slate-200 px-4 py-3">{footer}</div> : null}
+      </div>
+    </div>
+  );
+
+  if (host) {
+    return createPortal(
+      <div className="absolute inset-0 z-20" data-erp-form-page="true">
+        {panel}
+      </div>,
+      host,
+    );
+  }
+
+  const sidebarWidth = isSidebarCollapsed
+    ? "lg:left-[var(--erp-sidebar-collapsed-width)]"
+    : "lg:left-[var(--erp-sidebar-width)]";
 
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
-            onClick={onClose}
-            aria-hidden="true"
-          />
-
-          {/* Panel */}
-          <motion.div
-            ref={panelRef}
-            role="dialog"
-            aria-modal="true"
-            aria-label={title}
-            initial={initial}
-            animate={animate}
-            exit={exit}
-            transition={{ duration: 0.25, ease: "easeInOut" }}
-            className={cn(
-              "fixed inset-y-0 z-50 flex flex-col bg-background shadow-2xl border-border",
-              side === "right" ? "right-0 border-l" : "left-0 border-r",
-              "w-full",
-              widthMap[width]
-            )}
-          >
-            {/* Header */}
-            <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-5 shrink-0">
-              <div className="min-w-0">
-                <h2 className="text-base font-semibold text-foreground truncate">{title}</h2>
-                {subtitle && <p className="mt-0.5 text-sm text-muted-foreground truncate">{subtitle}</p>}
-              </div>
-              <button
-                onClick={onClose}
-                aria-label="Close drawer"
-                className="shrink-0 flex items-center justify-center h-7 w-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto px-6 py-5">
-              {children}
-            </div>
-
-            {/* Footer */}
-            {footer && (
-              <div className="shrink-0 border-t border-border px-6 py-4">
-                {footer}
-              </div>
-            )}
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+    <div className={`fixed inset-x-0 bottom-0 top-[var(--erp-topbar-height)] z-20 ${sidebarWidth}`}>
+      {panel}
+    </div>
   );
 }

@@ -1,359 +1,454 @@
-'use client';
+"use client";
 
-import React, { useCallback, useEffect, useState } from 'react';
-import ErpHeaderSummary from '@/components/layout/ErpHeaderSummary';
-import StandardPageLayout from '@/components/layout/StandardPageLayout';
-import { useAssets } from '@/hooks/useHrmsApi';
-import { notifyError } from '@/lib/notifications';
-import { getApiErrorMessage } from '@/lib/api-errors';
+import { useCallback, useEffect, useMemo, useState } from "react";
+import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
+import {
+  ErpCreateButton,
+  ErpDrawerFooter,
+  ErpEmptyState,
+  ErpRefreshButton,
+  ErpRowActions,
+  ErpSearchFilter,
+} from "@/components/erp/erp-page-kit";
+import { SideDrawer } from "@/components/ui/side-drawer";
+import { erpButtonClassName } from "@/components/erp/erpStyles";
+import { useAssets } from "@/hooks/useHrmsApi";
+import { hrmsApi } from "@/services/modules";
+import { notifyError, notifySuccess } from "@/lib/notifications";
+import { getApiErrorMessage } from "@/lib/api-errors";
+
+type AssetRow = {
+  id: string;
+  assetCode?: string;
+  assetName?: string;
+  assetCategory?: string;
+  assetType?: string;
+  purchaseDate?: string;
+  purchaseValue?: number;
+};
+
+type AllocationRow = {
+  id: string;
+  assetId?: string;
+  assetName?: string;
+  employeeId?: string;
+  employeeName?: string;
+};
 
 const formatCurrency = (value: number) =>
-  new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
     maximumFractionDigits: 0,
   }).format(value || 0);
 
-export default function AssetsPage() {
-  const {
-    getAssets,
-    createAsset,
-    getAllocations,
-    allocateAsset,
-    loading,
-    error,
-  } = useAssets();
+const emptyAsset = () => ({
+  assetCode: "",
+  assetName: "",
+  assetCategory: "Laptop",
+  assetType: "",
+  purchaseDate: new Date().toISOString().slice(0, 10),
+  purchaseValue: "",
+});
 
-  const [assets, setAssets] = useState<any[]>([]);
-  const [allocations, setAllocations] = useState<any[]>([]);
+export default function AssetsPage() {
+  const { getAssets, createAsset, getAllocations, allocateAsset, loading, error } = useAssets();
+  const [assets, setAssets] = useState<AssetRow[]>([]);
+  const [allocations, setAllocations] = useState<AllocationRow[]>([]);
+  const [employees, setEmployees] = useState<{ id: string; fullName: string }[]>([]);
+  const [search, setSearch] = useState("");
   const [showAssetForm, setShowAssetForm] = useState(false);
   const [showAllocationForm, setShowAllocationForm] = useState(false);
-  const [assetForm, setAssetForm] = useState({
-    assetCode: '',
-    assetName: '',
-    assetCategory: 'Laptop',
-    assetType: '',
-    purchaseDate: '',
-    purchaseValue: 0,
-    depreciation: 0,
-  });
+  const [viewAsset, setViewAsset] = useState<AssetRow | null>(null);
+  const [assetForm, setAssetForm] = useState(emptyAsset());
   const [allocationForm, setAllocationForm] = useState({
-    assetId: '',
-    employeeId: '',
-    allocationReason: '',
+    assetId: "",
+    employeeId: "",
+    allocationReason: "",
   });
 
   const loadData = useCallback(async () => {
     try {
       const assetsData = await getAssets();
-      const assetList = Array.isArray(assetsData) ? assetsData : [];
+      const assetList = (Array.isArray(assetsData) ? assetsData : []) as AssetRow[];
       const allocationGroups = await Promise.all(
         assetList
-          .map((asset: any) => asset?.id ?? asset?.assetId)
-          .filter((assetId: unknown): assetId is string => typeof assetId === 'string' && assetId.length > 0)
+          .map((asset) => asset.id)
+          .filter((assetId): assetId is string => Boolean(assetId))
           .map((assetId) => getAllocations(undefined, assetId))
       );
-      const allocationsData = allocationGroups.flatMap((group: any) => (Array.isArray(group) ? group : []));
+      const allocationsData = allocationGroups.flatMap((group) => (Array.isArray(group) ? group : [])) as AllocationRow[];
       setAssets(assetList);
-      setAllocations(allocationsData || []);
+      setAllocations(allocationsData);
     } catch (err) {
-      notifyError(getApiErrorMessage(err, 'Failed to load assets.'), 'Assets');
+      notifyError(getApiErrorMessage(err, "Failed to load assets."), "Assets");
     }
   }, [getAssets, getAllocations]);
 
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      void loadData();
-    }, 0);
-    return () => clearTimeout(timeoutId);
+    void loadData();
   }, [loadData]);
 
-  const handleAssetSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const filteredAssets = useMemo(() => {
+    const q = search.toLowerCase();
+    return assets.filter(
+      (a) =>
+        !q ||
+        (a.assetName ?? "").toLowerCase().includes(q) ||
+        (a.assetCode ?? "").toLowerCase().includes(q) ||
+        (a.assetCategory ?? "").toLowerCase().includes(q)
+    );
+  }, [assets, search]);
+
+  const handleAssetSubmit = async () => {
+    if (!assetForm.assetCode.trim() || !assetForm.assetName.trim()) {
+      notifyError("Asset code and name are required.");
+      return;
+    }
     try {
-      await createAsset(assetForm);
-      setAssetForm({
-        assetCode: '',
-        assetName: '',
-        assetCategory: 'Laptop',
-        assetType: '',
-        purchaseDate: '',
-        purchaseValue: 0,
+      await createAsset({
+        ...assetForm,
+        purchaseValue: Number(assetForm.purchaseValue) || 0,
         depreciation: 0,
       });
+      notifySuccess("Asset created.");
+      setAssetForm(emptyAsset());
       setShowAssetForm(false);
-      loadData();
+      await loadData();
     } catch (err) {
-      notifyError(getApiErrorMessage(err, 'Failed to create asset.'), 'New Asset');
+      notifyError(getApiErrorMessage(err, "Failed to create asset."), "New Asset");
     }
   };
 
-  const handleAllocationSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const openAllocate = async () => {
+    setShowAllocationForm(true);
+    try {
+      const res = await hrmsApi.hrms.employees.list(1, 100);
+      const raw = res.data;
+      const list = Array.isArray(raw)
+        ? raw
+        : Array.isArray((raw as { data?: unknown })?.data)
+          ? ((raw as { data: unknown[] }).data)
+          : [];
+      setEmployees(
+        (list as Record<string, unknown>[]).map((e) => ({
+          id: String(e.id),
+          fullName: String(
+            e.fullName ?? (`${e.firstName ?? ""} ${e.lastName ?? ""}`.trim() || e.employeeCode || e.id)
+          ),
+        }))
+      );
+    } catch {
+      setEmployees([]);
+    }
+  };
+
+  const handleAllocationSubmit = async () => {
+    if (!allocationForm.assetId || !allocationForm.employeeId) {
+      notifyError("Asset and employee are required.");
+      return;
+    }
     try {
       await allocateAsset(allocationForm);
-      setAllocationForm({
-        assetId: '',
-        employeeId: '',
-        allocationReason: '',
-      });
+      notifySuccess("Asset allocated.");
+      setAllocationForm({ assetId: "", employeeId: "", allocationReason: "" });
       setShowAllocationForm(false);
-      loadData();
+      await loadData();
     } catch (err) {
-      notifyError(getApiErrorMessage(err, 'Failed to allocate asset.'), 'Asset Allocation');
+      notifyError(getApiErrorMessage(err, "Failed to allocate asset."), "Asset Allocation");
     }
   };
 
   const averageAssetValue = assets.length
-    ? assets.reduce((sum: number, item: any) => sum + Number(item.purchaseValue || 0), 0) / assets.length
+    ? assets.reduce((sum, item) => sum + Number(item.purchaseValue || 0), 0) / assets.length
     : 0;
-  const categoryCount = new Set(assets.map((item: any) => item.assetCategory).filter(Boolean)).size;
 
   return (
     <StandardPageLayout
-      title="Asset Management"
-      subtitle="Control asset masters, employee allocations, and lifecycle transactions through one coordinated HRMS operations view."
-      eyebrow="HRMS / Asset Control"
+      title="Assets"
       icon="box"
-      actions={
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setShowAssetForm(!showAssetForm)}
-            className="erp-action-btn erp-action-btn-primary"
-          >
-            {showAssetForm ? 'Close Asset Form' : 'New Asset'}
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowAllocationForm(!showAllocationForm)}
-            className="erp-action-btn erp-action-btn-secondary"
-          >
-            {showAllocationForm ? 'Close Allocation Form' : 'Allocate Asset'}
-          </button>
-        </div>
-      }
       meta={
-        <ErpHeaderSummary
+        <CrudHeaderStats
           items={[
-            { label: 'Assets', value: assets.length },
-            { label: 'Allocations', value: allocations.length, tone: 'info' },
-            { label: 'Categories', value: categoryCount, tone: 'warning' },
-            { label: 'Avg Value', value: formatCurrency(averageAssetValue), tone: 'success' },
+            { label: "Assets", value: assets.length, tone: "info" },
+            { label: "Allocations", value: allocations.length, tone: "positive" },
+            { label: "Avg value", value: formatCurrency(averageAssetValue), tone: "neutral" },
           ]}
         />
       }
+      actions={
+        <>
+          <ErpRefreshButton onClick={() => void loadData()} loading={loading} />
+          <button type="button" className={erpButtonClassName.secondary} onClick={() => void openAllocate()}>
+            Allocate
+          </button>
+          <ErpCreateButton label="New asset" onClick={() => setShowAssetForm(true)} />
+        </>
+      }
+      filters={<ErpSearchFilter value={search} onChange={setSearch} placeholder="Filter code, name, or category…" />}
     >
-      {error ? <div className="erp-alert-error">Error: {error}</div> : null}
+      {error ? <div className="erp-alert-error">{error}</div> : null}
 
-      <div className="erp-section-grid">
-      {showAssetForm && (
-        <div className="erp-panel">
-          <div className="erp-panel-header">
-            <div>
-              <h2 className="erp-panel-title">Create New Asset</h2>
-              <p className="mt-1 text-sm text-slate-500">Maintain asset codes, category, acquisition data, and financial attributes.</p>
-            </div>
-          </div>
-          <div className="erp-panel-body">
-          <form onSubmit={handleAssetSubmit} className="space-y-4">
-            <div className="erp-form-grid erp-form-grid-2">
-              <div>
-                <label className="erp-label">Asset Code</label>
-                <input
-                  type="text"
-                  value={assetForm.assetCode}
-                  onChange={(e) => setAssetForm({ ...assetForm, assetCode: e.target.value })}
-                  required
-                  className="erp-input"
-                />
-              </div>
-              <div>
-                <label className="erp-label">Asset Name</label>
-                <input
-                  type="text"
-                  value={assetForm.assetName}
-                  onChange={(e) => setAssetForm({ ...assetForm, assetName: e.target.value })}
-                  required
-                  className="erp-input"
-                />
-              </div>
-            </div>
-            <div className="erp-form-grid erp-form-grid-2">
-              <div>
-                <label className="erp-label">Category</label>
-                <select
-                  value={assetForm.assetCategory}
-                  onChange={(e) => setAssetForm({ ...assetForm, assetCategory: e.target.value })}
-                  className="erp-select"
-                >
-                  <option>Laptop</option>
-                  <option>Desktop</option>
-                  <option>Mobile</option>
-                  <option>Furniture</option>
-                  <option>Equipment</option>
-                  <option>Vehicle</option>
-                  <option>Other</option>
-                </select>
-              </div>
-              <div>
-                <label className="erp-label">Asset Type</label>
-                <input
-                  type="text"
-                  value={assetForm.assetType}
-                  onChange={(e) => setAssetForm({ ...assetForm, assetType: e.target.value })}
-                  className="erp-input"
-                />
-              </div>
-            </div>
-            <div className="erp-form-grid erp-form-grid-2">
-              <div>
-                <label className="erp-label">Purchase Date</label>
-                <input
-                  type="date"
-                  value={assetForm.purchaseDate}
-                  onChange={(e) => setAssetForm({ ...assetForm, purchaseDate: e.target.value })}
-                  required
-                  className="erp-input"
-                />
-              </div>
-              <div>
-                <label className="erp-label">Purchase Value (₹)</label>
-                <input
-                  type="number"
-                  value={assetForm.purchaseValue}
-                  onChange={(e) => setAssetForm({ ...assetForm, purchaseValue: parseInt(e.target.value) })}
-                  min="0"
-                  className="erp-input"
-                />
-              </div>
-            </div>
-            <div className="erp-form-actions">
-              <button type="button" onClick={() => setShowAssetForm(false)} className="erp-action-btn erp-action-btn-secondary">
-                Cancel
-              </button>
-              <button type="submit" disabled={loading} className="erp-action-btn erp-action-btn-primary">
-                {loading ? 'Creating...' : 'Create Asset'}
-              </button>
-            </div>
-          </form>
+      <CrudCard>
+        <div className="erp-table-wrap">
+          <table className="erp-table table-auto">
+            <thead className="erp-thead">
+              <tr>
+                <th className="erp-th">Asset</th>
+                <th className="erp-th">Category</th>
+                <th className="erp-th">Purchase</th>
+                <th className="erp-th">Value</th>
+                <th className="erp-th text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && assets.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="erp-td py-8 text-center text-xs text-slate-500">
+                    Loading…
+                  </td>
+                </tr>
+              ) : filteredAssets.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="erp-td">
+                    <ErpEmptyState
+                      message="No assets yet."
+                      action={<ErpCreateButton label="New asset" onClick={() => setShowAssetForm(true)} />}
+                    />
+                  </td>
+                </tr>
+              ) : (
+                filteredAssets.map((asset) => (
+                  <tr key={asset.id} className="erp-tr">
+                    <td className="erp-td">
+                      <div className="erp-row-title">{asset.assetName}</div>
+                      <div className="text-xs text-slate-500">{asset.assetCode}</div>
+                    </td>
+                    <td className="erp-td">
+                      <span className="erp-chip">{asset.assetCategory || "Asset"}</span>
+                    </td>
+                    <td className="erp-td text-xs text-slate-500">
+                      {asset.purchaseDate ? new Date(asset.purchaseDate).toLocaleDateString("en-IN") : "—"}
+                    </td>
+                    <td className="erp-td text-xs font-medium">{formatCurrency(Number(asset.purchaseValue || 0))}</td>
+                    <td className="erp-td">
+                      <ErpRowActions
+                        onView={{ label: "View", onClick: () => setViewAsset(asset) }}
+                        extra={
+                          <button
+                            type="button"
+                            className={`${erpButtonClassName.secondary} text-xs`}
+                            onClick={() => {
+                              setAllocationForm((f) => ({ ...f, assetId: asset.id }));
+                              void openAllocate();
+                            }}
+                          >
+                            Allocate
+                          </button>
+                        }
+                      />
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-        </div>
-      )}
+      </CrudCard>
 
-      {showAllocationForm && (
-        <div className="erp-panel">
-          <div className="erp-panel-header">
-            <div>
-              <h2 className="erp-panel-title">Allocate Asset</h2>
-              <p className="mt-1 text-sm text-slate-500">Assign assets to employees while preserving the same asset-control interaction standard.</p>
-            </div>
-          </div>
-          <div className="erp-panel-body">
-          <form onSubmit={handleAllocationSubmit} className="space-y-4">
-            <div className="erp-form-grid erp-form-grid-2">
-              <div>
-                <label className="erp-label">Asset ID</label>
-                <input
-                  type="text"
-                  value={allocationForm.assetId}
-                  onChange={(e) => setAllocationForm({ ...allocationForm, assetId: e.target.value })}
-                  required
-                  className="erp-input"
-                />
-              </div>
-              <div>
-                <label className="erp-label">Employee ID</label>
-                <input
-                  type="text"
-                  value={allocationForm.employeeId}
-                  onChange={(e) => setAllocationForm({ ...allocationForm, employeeId: e.target.value })}
-                  required
-                  className="erp-input"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="erp-label">Reason</label>
-              <textarea
-                value={allocationForm.allocationReason}
-                onChange={(e) => setAllocationForm({ ...allocationForm, allocationReason: e.target.value })}
-                required
-                rows={3}
-                className="erp-input"
-              />
-            </div>
-            <div className="erp-form-actions">
-              <button type="button" onClick={() => setShowAllocationForm(false)} className="erp-action-btn erp-action-btn-secondary">
-                Cancel
-              </button>
-              <button type="submit" disabled={loading} className="erp-action-btn erp-action-btn-primary">
-                {loading ? 'Allocating...' : 'Allocate Asset'}
-              </button>
-            </div>
-          </form>
+      <CrudCard>
+        <h2 className="mb-3 px-1 text-sm font-semibold text-slate-900">Allocations</h2>
+        <div className="erp-table-wrap">
+          <table className="erp-table table-auto">
+            <thead className="erp-thead">
+              <tr>
+                <th className="erp-th">Asset</th>
+                <th className="erp-th">Employee</th>
+                <th className="erp-th">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {allocations.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="erp-td py-6 text-center text-xs text-slate-500">
+                    No allocations yet.
+                  </td>
+                </tr>
+              ) : (
+                allocations.map((row) => (
+                  <tr key={row.id} className="erp-tr">
+                    <td className="erp-td text-xs font-medium">{row.assetName || row.assetId}</td>
+                    <td className="erp-td text-xs">{row.employeeName || row.employeeId}</td>
+                    <td className="erp-td">
+                      <span className="erp-chip erp-chip-success">Allocated</span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-        </div>
-      )}
-      </div>
+      </CrudCard>
 
-      <div className="erp-section-grid erp-section-grid-two">
-        <div className="erp-panel">
-          <div className="erp-panel-header">
-            <div>
-              <h2 className="erp-panel-title">Assets</h2>
-              <p className="mt-1 text-sm text-slate-500">Asset master records with classification and acquisition visibility.</p>
-            </div>
+      <SideDrawer
+        open={showAssetForm}
+        onClose={() => setShowAssetForm(false)}
+        title="New asset"
+        footer={
+          <ErpDrawerFooter
+            onCancel={() => setShowAssetForm(false)}
+            onSave={() => void handleAssetSubmit()}
+            saving={loading}
+            saveLabel="Create"
+          />
+        }
+      >
+        <div className="erp-form-grid">
+          <div className="erp-field">
+            <label className="erp-label">Asset code *</label>
+            <input
+              className="erp-input"
+              value={assetForm.assetCode}
+              onChange={(e) => setAssetForm((f) => ({ ...f, assetCode: e.target.value }))}
+            />
           </div>
-          <div className="erp-panel-body">
-          {assets.length === 0 ? (
-            <div className="erp-empty">No assets found.</div>
-          ) : (
-            <div className="erp-record-grid">
-              {assets.map((asset: any) => (
-                <div key={asset.id} className="erp-record-card">
-                  <div className="erp-record-header">
-                    <div>
-                      <div className="erp-record-title">{asset.assetName}</div>
-                      <div className="erp-record-meta">{asset.assetCode} • {asset.assetCategory}</div>
-                    </div>
-                    <span className="erp-chip erp-chip-info">{asset.assetCategory || 'Asset'}</span>
-                  </div>
-                </div>
+          <div className="erp-field">
+            <label className="erp-label">Asset name *</label>
+            <input
+              className="erp-input"
+              value={assetForm.assetName}
+              onChange={(e) => setAssetForm((f) => ({ ...f, assetName: e.target.value }))}
+            />
+          </div>
+          <div className="erp-field">
+            <label className="erp-label">Category</label>
+            <select
+              className="erp-input"
+              value={assetForm.assetCategory}
+              onChange={(e) => setAssetForm((f) => ({ ...f, assetCategory: e.target.value }))}
+            >
+              <option>Laptop</option>
+              <option>Desktop</option>
+              <option>Mobile</option>
+              <option>Furniture</option>
+              <option>Equipment</option>
+              <option>Vehicle</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div className="erp-field">
+            <label className="erp-label">Type</label>
+            <input
+              className="erp-input"
+              value={assetForm.assetType}
+              onChange={(e) => setAssetForm((f) => ({ ...f, assetType: e.target.value }))}
+            />
+          </div>
+          <div className="erp-field">
+            <label className="erp-label">Purchase date</label>
+            <input
+              type="date"
+              className="erp-input"
+              value={assetForm.purchaseDate}
+              onChange={(e) => setAssetForm((f) => ({ ...f, purchaseDate: e.target.value }))}
+            />
+          </div>
+          <div className="erp-field">
+            <label className="erp-label">Purchase value (₹)</label>
+            <input
+              type="number"
+              min={0}
+              className="erp-input"
+              value={assetForm.purchaseValue}
+              onChange={(e) => setAssetForm((f) => ({ ...f, purchaseValue: e.target.value }))}
+            />
+          </div>
+        </div>
+      </SideDrawer>
+
+      <SideDrawer
+        open={showAllocationForm}
+        onClose={() => setShowAllocationForm(false)}
+        title="Allocate asset"
+        footer={
+          <ErpDrawerFooter
+            onCancel={() => setShowAllocationForm(false)}
+            onSave={() => void handleAllocationSubmit()}
+            saving={loading}
+            saveLabel="Allocate"
+          />
+        }
+      >
+        <div className="erp-form-grid">
+          <div className="erp-field md:col-span-2">
+            <label className="erp-label">Asset *</label>
+            <select
+              className="erp-input"
+              value={allocationForm.assetId}
+              onChange={(e) => setAllocationForm((f) => ({ ...f, assetId: e.target.value }))}
+            >
+              <option value="">Select asset</option>
+              {assets.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.assetName} ({a.assetCode})
+                </option>
               ))}
-            </div>
-          )}
-        </div>
-        </div>
-
-        <div className="erp-panel">
-          <div className="erp-panel-header">
-            <div>
-              <h2 className="erp-panel-title">Allocations</h2>
-              <p className="mt-1 text-sm text-slate-500">Employee allocation movements and current assignee visibility.</p>
-            </div>
+            </select>
           </div>
-          <div className="erp-panel-body">
-          {allocations.length === 0 ? (
-            <div className="erp-empty">No allocations found.</div>
-          ) : (
-            <div className="erp-record-grid">
-              {allocations.map((allocation: any) => (
-                <div key={allocation.id} className="erp-record-card">
-                  <div className="erp-record-header">
-                    <div>
-                      <div className="erp-record-title">{allocation.assetName}</div>
-                      <div className="erp-record-meta">{allocation.employeeName || allocation.employeeId}</div>
-                    </div>
-                    <span className="erp-chip erp-chip-success">Allocated</span>
-                  </div>
-                </div>
+          <div className="erp-field md:col-span-2">
+            <label className="erp-label">Employee *</label>
+            <select
+              className="erp-input"
+              value={allocationForm.employeeId}
+              onChange={(e) => setAllocationForm((f) => ({ ...f, employeeId: e.target.value }))}
+            >
+              <option value="">Select employee</option>
+              {employees.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.fullName}
+                </option>
               ))}
-            </div>
-          )}
+            </select>
+          </div>
+          <div className="erp-field md:col-span-2">
+            <label className="erp-label">Reason</label>
+            <textarea
+              className="erp-input min-h-20"
+              value={allocationForm.allocationReason}
+              onChange={(e) => setAllocationForm((f) => ({ ...f, allocationReason: e.target.value }))}
+            />
+          </div>
         </div>
-        </div>
-      </div>
+      </SideDrawer>
+
+      <SideDrawer
+        open={Boolean(viewAsset)}
+        onClose={() => setViewAsset(null)}
+        title={viewAsset?.assetName || "Asset"}
+        footer={
+          <button type="button" className={erpButtonClassName.secondary} onClick={() => setViewAsset(null)}>
+            Close
+          </button>
+        }
+      >
+        {viewAsset ? (
+          <div className="space-y-2 text-sm text-slate-700">
+            <p>
+              <span className="font-medium">Code:</span> {viewAsset.assetCode}
+            </p>
+            <p>
+              <span className="font-medium">Category:</span> {viewAsset.assetCategory}
+            </p>
+            <p>
+              <span className="font-medium">Type:</span> {viewAsset.assetType || "—"}
+            </p>
+            <p>
+              <span className="font-medium">Value:</span> {formatCurrency(Number(viewAsset.purchaseValue || 0))}
+            </p>
+          </div>
+        ) : null}
+      </SideDrawer>
     </StandardPageLayout>
   );
 }

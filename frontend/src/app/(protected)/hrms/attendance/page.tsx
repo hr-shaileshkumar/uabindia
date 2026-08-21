@@ -3,8 +3,7 @@
 import { useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import AttendanceList from "@/features/hrms/components/AttendanceList";
-import { hrApi } from "@/services/hrApi";
-
+import { hrmsApi } from "@/services/modules";
 type AttendanceRecord = {
   id: string;
   date?: string;
@@ -25,7 +24,7 @@ export default function AttendancePage() {
   const employeeId = searchParams.get("employeeId")?.trim() || undefined;
 
   const fetchAttendance = useCallback(async (): Promise<AttendanceRecord[]> => {
-    const response = await hrApi.hrms.attendance.list(1, 50, employeeId ? { employeeId } : undefined);
+    const response = await hrmsApi.hrms.attendance.list(1, 50, employeeId ? { employeeId } : undefined);
     const raw = response.data;
     const items = Array.isArray(raw)
       ? raw

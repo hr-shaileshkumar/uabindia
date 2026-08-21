@@ -1,19 +1,19 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { AppShell } from "@/components/layout/AppShell";
 import { DataTable } from "@/components/ui/data-table";
-import { KPICard } from "@/components/ui/kpi-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { SideDrawer } from "@/components/ui/side-drawer";
 import { ERPFormGrid, ERPFormField } from "@/components/ui/erp-form-grid";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PlatformGlobalPageShell, type KpiMetricItem } from "@/components/platform/PlatformGlobalPageShell";
+import { erpButtonClassName } from "@/components/erp/erpStyles";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { platformApi } from "@/services/modules/platform";
-import { Building2, Plus, Users, ShieldCheck, Activity, Search, RefreshCw, Power } from "lucide-react";
+import { Building2, Plus, Power } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 
 export interface TenantItem {
@@ -51,20 +51,20 @@ export function SuperadminTenantsManager() {
       setIsLoading(true);
       const res = await platformApi.superadmin.tenants(1, 100, searchTerm);
       const dataList = res.data?.data || res.data?.tenants || [];
-      const mapped: TenantItem[] = dataList.map((item: any) => ({
-        id: item.id || item.tenantId,
-        name: item.name || item.companyName || "Unnamed Tenant",
-        subdomain: item.subdomain || "default",
-        adminEmail: item.adminEmail || item.ownerEmail || "admin@system.local",
-        adminName: item.adminName || item.ownerName || "Admin",
-        subscriptionPlan: item.subscriptionPlan || item.planTier || "Enterprise",
-        isActive: item.isActive ?? (item.status === "active"),
-        status: item.isActive ? "active" : "suspended",
-        createdAt: item.createdAt || new Date().toISOString(),
+      const mapped: TenantItem[] = dataList.map((item: Record<string, unknown>) => ({
+        id: String(item.id || item.tenantId || ""),
+        name: String(item.name || item.companyName || "Unnamed Tenant"),
+        subdomain: String(item.subdomain || "default"),
+        adminEmail: String(item.adminEmail || item.ownerEmail || "admin@system.local"),
+        adminName: String(item.adminName || item.ownerName || "Admin"),
+        subscriptionPlan: String(item.subscriptionPlan || item.planTier || "Enterprise"),
+        isActive: typeof item.isActive === "boolean" ? item.isActive : item.status === "active",
+        status: item.isActive === false || item.status === "suspended" ? "suspended" : "active",
+        createdAt: String(item.createdAt || new Date().toISOString()),
       }));
       setTenants(mapped);
-    } catch (err: any) {
-      notifyError(err?.message || "Failed to load superadmin tenant registry");
+    } catch (err: unknown) {
+      notifyError(err instanceof Error ? err.message : "Failed to load tenant registry");
     } finally {
       setIsLoading(false);
     }
@@ -72,18 +72,25 @@ export function SuperadminTenantsManager() {
 
   useEffect(() => {
     void fetchTenants();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm]);
 
   const activeCount = useMemo(() => tenants.filter((t) => t.isActive).length, [tenants]);
   const suspendedCount = useMemo(() => tenants.filter((t) => !t.isActive).length, [tenants]);
 
+  const kpiMetrics: KpiMetricItem[] = [
+    { label: "Total tenants", value: tenants.length, subtext: "Registered" },
+    { label: "Active", value: activeCount, subtext: "Operational", tone: "positive" },
+    { label: "Suspended", value: suspendedCount, subtext: "Blocked", tone: suspendedCount > 0 ? "warning" : "neutral" },
+  ];
+
   const handleToggleStatus = async (tenant: TenantItem) => {
     const nextStatus = !tenant.isActive;
     const actionText = nextStatus ? "activate" : "suspend";
     const isConfirmed = await confirm({
-      title: `${nextStatus ? "Activate" : "Suspend"} Tenant Organization`,
-      message: `Are you sure you want to ${actionText} "${tenant.name}" (${tenant.subdomain})? Users in this tenant will ${nextStatus ? "regain access" : "be blocked"}.`,
-      confirmText: nextStatus ? "Activate Tenant" : "Suspend Tenant",
+      title: `${nextStatus ? "Activate" : "Suspend"} tenant`,
+      message: `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} "${tenant.name}" (${tenant.subdomain})? Users in this tenant will ${nextStatus ? "regain access" : "be blocked"}.`,
+      confirmText: nextStatus ? "Activate" : "Suspend",
       variant: nextStatus ? "primary" : "danger",
     });
 
@@ -91,10 +98,10 @@ export function SuperadminTenantsManager() {
 
     try {
       await platformApi.superadmin.updateStatus(tenant.id, nextStatus, nextStatus ? "active" : "suspended");
-      notifySuccess(`Tenant "${tenant.name}" has been ${actionText}d successfully.`);
+      notifySuccess(`Tenant "${tenant.name}" has been ${actionText}d.`);
       void fetchTenants();
-    } catch (err: any) {
-      notifyError(err?.message || `Failed to ${actionText} tenant.`);
+    } catch (err: unknown) {
+      notifyError(err instanceof Error ? err.message : `Failed to ${actionText} tenant.`);
     }
   };
 
@@ -118,7 +125,7 @@ export function SuperadminTenantsManager() {
         selectedModules: ["platform", "hrms", "finance", "inventory"],
       });
 
-      notifySuccess(`Tenant "${form.name}" provisioned successfully with default Admin!`);
+      notifySuccess(`Tenant "${form.name}" provisioned successfully.`);
       setIsDrawerOpen(false);
       setForm({
         name: "",
@@ -130,8 +137,8 @@ export function SuperadminTenantsManager() {
         status: "active",
       });
       void fetchTenants();
-    } catch (err: any) {
-      notifyError(err?.message || "Failed to provision new tenant organization");
+    } catch (err: unknown) {
+      notifyError(err instanceof Error ? err.message : "Failed to provision tenant");
     } finally {
       setSubmitting(false);
     }
@@ -140,34 +147,34 @@ export function SuperadminTenantsManager() {
   const columns: ColumnDef<TenantItem>[] = [
     {
       accessorKey: "name",
-      header: "Organization Name",
+      header: "Organization",
       cell: ({ row }) => (
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--primary-subtle)] text-[var(--primary)] shrink-0 font-bold text-xs">
+          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600">
             <Building2 className="h-4 w-4" />
-          </div>
+          </span>
           <div>
-            <span className="font-semibold text-[var(--text-main)] block">{row.original.name}</span>
-            <span className="text-3xs text-[var(--text-muted)] font-mono">{row.original.subdomain}.uabindia.local</span>
+            <span className="block font-semibold text-slate-900">{row.original.name}</span>
+            <span className="font-mono text-xs text-slate-500">{row.original.subdomain}.uabindia.local</span>
           </div>
         </div>
       ),
     },
     {
       accessorKey: "adminEmail",
-      header: "Default Admin",
+      header: "Default admin",
       cell: ({ row }) => (
         <div>
-          <span className="font-medium text-[var(--text-main)] block">{row.original.adminName || "Tenant Admin"}</span>
-          <span className="text-3xs text-[var(--text-muted)]">{row.original.adminEmail}</span>
+          <span className="block font-medium text-slate-900">{row.original.adminName || "Tenant Admin"}</span>
+          <span className="text-xs text-slate-500">{row.original.adminEmail}</span>
         </div>
       ),
     },
     {
       accessorKey: "subscriptionPlan",
-      header: "Plan Tier",
+      header: "Plan",
       cell: ({ row }) => (
-        <span className="inline-flex items-center rounded-md bg-[var(--bg-muted)] px-2 py-1 text-2xs font-semibold text-[var(--text-main)] capitalize">
+        <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium capitalize text-slate-700">
           {row.original.subscriptionPlan}
         </span>
       ),
@@ -184,67 +191,55 @@ export function SuperadminTenantsManager() {
     },
     {
       id: "actions",
-      header: "Actions",
+      header: "",
       cell: ({ row }) => (
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-8 text-xs border-[var(--border-subtle)] hover:bg-[var(--bg-surface-hover)]"
-          onClick={() => handleToggleStatus(row.original)}
+        <button
+          type="button"
+          className={erpButtonClassName.secondary + " !h-8 !px-3 !text-xs"}
+          onClick={() => void handleToggleStatus(row.original)}
         >
-          <Power className={`mr-1.5 h-3.5 w-3.5 ${row.original.isActive ? "text-[var(--danger)]" : "text-[var(--success)]"}`} />
+          <Power className={`h-3.5 w-3.5 ${row.original.isActive ? "text-rose-600" : "text-emerald-600"}`} />
           {row.original.isActive ? "Suspend" : "Activate"}
-        </Button>
+        </button>
       ),
     },
   ];
 
   return (
-    <AppShell
-      title="Superadmin Tenant Provisioning & Registry"
-      description="Global tenant administration, multi-tenant isolation control, plan assignments, and provisioning"
-      breadcrumbs={[{ label: "Superadmin", href: "/superadmin/dashboard" }, { label: "Tenants" }]}
-      actions={
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => fetchTenants()} className="h-9 border-[var(--border-subtle)]">
-            <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
-            Refresh
-          </Button>
-          <Button size="sm" onClick={() => setIsDrawerOpen(true)} className="h-9 bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)]">
-            <Plus className="mr-1.5 h-4 w-4" />
-            Provision New Tenant
-          </Button>
-        </div>
-      }
-    >
-      {/* Metric Cards Sweep */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-        <KPICard title="Total Onboarded Tenants" value={tenants.length} icon={<Building2 className="h-5 w-5" />} description="System-wide registered organizations" />
-        <KPICard title="Active Organizations" value={activeCount} icon={<Activity className="h-5 w-5" />} trend={{ value: "100%", positive: true, label: "Operational" }} />
-        <KPICard title="Suspended Organizations" value={suspendedCount} icon={<ShieldCheck className="h-5 w-5" />} trend={{ value: `${suspendedCount}`, neutral: true, label: "Blocked" }} />
-      </div>
-
-      {/* Main Tenant Table */}
-      <DataTable
-        title="Tenant Directory"
-        description="All registered tenant organizations across the SaaS platform"
-        columns={columns}
-        data={tenants}
+    <>
+      <PlatformGlobalPageShell
+        title="Tenant registry"
+        subtitle="Provision and manage isolated tenant organizations across the platform."
+        categoryTag="Platform / Tenants"
+        kpiMetrics={kpiMetrics}
+        searchPlaceholder="Search tenants…"
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        onRefresh={() => void fetchTenants()}
         isLoading={isLoading}
-        striped
-        enableFiltering
-      />
+        primaryActionLabel="Provision tenant"
+        primaryActionIcon={<Plus className="h-4 w-4" />}
+        onPrimaryAction={() => setIsDrawerOpen(true)}
+        totalRecords={tenants.length}
+      >
+        <DataTable
+          columns={columns}
+          data={tenants}
+          isLoading={isLoading}
+          striped
+          enableFiltering={false}
+        />
+      </PlatformGlobalPageShell>
 
-      {/* Provisioning Drawer Modal */}
       <SideDrawer
         open={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
-        title="Provision New Tenant Organization"
-        subtitle="Create a new isolated tenant schema + default Tenant Admin user account"
+        title="Provision tenant"
+        subtitle="Create a tenant schema and default admin account"
       >
         <form onSubmit={handleCreateTenant} className="space-y-5 p-1">
-          <ERPFormGrid columns={1} title="Organization Details">
-            <ERPFormField label="Company / Tenant Name" required>
+          <ERPFormGrid columns={1} title="Organization">
+            <ERPFormField label="Company / tenant name" required>
               <Input
                 placeholder="Acme Enterprise Pvt Ltd"
                 value={form.name}
@@ -253,31 +248,36 @@ export function SuperadminTenantsManager() {
               />
             </ERPFormField>
 
-            <ERPFormField label="Subdomain Handle" required helperText="Must be unique (e.g. acme => acme.uabindia.local)">
+            <ERPFormField label="Subdomain" required helperText="Unique handle (e.g. acme → acme.uabindia.local)">
               <Input
                 placeholder="acme"
                 value={form.subdomain}
-                onChange={(e) => setForm((prev) => ({ ...prev, subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") }))}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""),
+                  }))
+                }
                 required
               />
             </ERPFormField>
 
-            <ERPFormField label="Subscription Plan Tier">
+            <ERPFormField label="Subscription plan">
               <Select value={form.subscriptionPlan} onValueChange={(val) => setForm((prev) => ({ ...prev, subscriptionPlan: val }))}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select Plan" />
+                  <SelectValue placeholder="Select plan" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Starter">Starter Plan</SelectItem>
-                  <SelectItem value="Growth">Growth Plan</SelectItem>
-                  <SelectItem value="Enterprise">Enterprise Plan</SelectItem>
+                  <SelectItem value="Starter">Starter</SelectItem>
+                  <SelectItem value="Growth">Growth</SelectItem>
+                  <SelectItem value="Enterprise">Enterprise</SelectItem>
                 </SelectContent>
               </Select>
             </ERPFormField>
           </ERPFormGrid>
 
-          <ERPFormGrid columns={1} title="Default Tenant Admin Account">
-            <ERPFormField label="Admin Full Name" required>
+          <ERPFormGrid columns={1} title="Default admin">
+            <ERPFormField label="Admin full name" required>
               <Input
                 placeholder="John Doe"
                 value={form.adminName}
@@ -286,7 +286,7 @@ export function SuperadminTenantsManager() {
               />
             </ERPFormField>
 
-            <ERPFormField label="Admin Work Email" required>
+            <ERPFormField label="Admin email" required>
               <Input
                 type="email"
                 placeholder="admin@acme.com"
@@ -296,7 +296,7 @@ export function SuperadminTenantsManager() {
               />
             </ERPFormField>
 
-            <ERPFormField label="Initial Password" helperText="Defaults to Admin@123456 if left empty">
+            <ERPFormField label="Initial password" helperText="Defaults to Admin@123456 if empty">
               <Input
                 type="password"
                 placeholder="••••••••"
@@ -306,19 +306,19 @@ export function SuperadminTenantsManager() {
             </ERPFormField>
           </ERPFormGrid>
 
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--border-subtle)]">
+          <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4">
             <Button variant="outline" type="button" onClick={() => setIsDrawerOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={submitting} className="bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)]">
-              {submitting ? "Provisioning..." : "Provision Tenant"}
-            </Button>
+            <button type="submit" disabled={submitting} className={erpButtonClassName.primary}>
+              {submitting ? "Provisioning…" : "Provision tenant"}
+            </button>
           </div>
         </form>
       </SideDrawer>
 
       {confirmDialog}
-    </AppShell>
+    </>
   );
 }
 

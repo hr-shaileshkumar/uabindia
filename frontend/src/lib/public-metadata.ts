@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { publicSiteUrl } from "@/lib/public-marketing";
+import { publicSiteUrl } from "@/lib/public-site-url";
 
 const SITE_NAME = "UabIndia ERP";
 

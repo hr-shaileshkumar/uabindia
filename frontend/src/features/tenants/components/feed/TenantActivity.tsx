@@ -22,7 +22,7 @@ export function TenantActivity({ activities }: TenantActivityProps) {
       case "system": return <Settings className="h-4 w-4 text-slate-500" />;
       case "billing": return <CreditCard className="h-4 w-4 text-emerald-500" />;
       case "security": return <Shield className="h-4 w-4 text-amber-500" />;
-      default: return <Activity className="h-4 w-4 text-indigo-500" />;
+      default: return <Activity className="h-4 w-4 text-slate-500" />;
     }
   };
 

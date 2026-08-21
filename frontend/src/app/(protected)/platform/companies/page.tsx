@@ -142,7 +142,27 @@ export default function CompaniesMasterEnginePage() {
         <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3 shadow-xs">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-xs text-slate-900 dark:text-slate-100">Company Directory ({filteredCompanies.length})</h3>
-            <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => notifySuccess("Exporting directory to Excel...")}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-[11px]"
+              onClick={() => {
+                const header = "Code,Display Name,Legal Name,GSTIN,Currency,Employees,Status";
+                const lines = filteredCompanies.map((c) =>
+                  [c.companyCode, c.displayName, c.legalName, c.gstin, c.baseCurrency, String(c.employeeCount), c.status]
+                    .map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`)
+                    .join(","),
+                );
+                const blob = new Blob([[header, ...lines].join("\n")], { type: "text/csv;charset=utf-8" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "companies.csv";
+                a.click();
+                URL.revokeObjectURL(url);
+                notifySuccess(`Exported ${filteredCompanies.length} compan${filteredCompanies.length === 1 ? "y" : "ies"} to CSV.`);
+              }}
+            >
               <FileSpreadsheet className="h-3 w-3 mr-1" /> Export
             </Button>
           </div>
@@ -164,13 +184,13 @@ export default function CompaniesMasterEnginePage() {
                 onClick={() => setSelectedCompanyId(c.id)}
                 className={`p-3.5 rounded-xl border text-xs cursor-pointer transition-all ${
                   selectedCompany?.id === c.id
-                    ? "border-indigo-500 bg-indigo-50/30 dark:bg-indigo-950/30 ring-1 ring-indigo-500 shadow-xs"
+                    ? "border-slate-500 bg-slate-50/30 dark:bg-slate-900/30 ring-1 ring-slate-400 shadow-xs"
                     : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
                 }`}
               >
                 <div className="flex items-center justify-between font-bold text-slate-900 dark:text-slate-100">
                   <span className="flex items-center gap-2 truncate">
-                    <Building2 className="h-4 w-4 text-indigo-500 shrink-0" />
+                    <Building2 className="h-4 w-4 text-slate-600 shrink-0" />
                     {c.displayName}
                   </span>
                   <Badge variant="outline" className="font-mono text-[10px] shrink-0">{c.companyCode}</Badge>
@@ -178,7 +198,7 @@ export default function CompaniesMasterEnginePage() {
                 <p className="mt-1 text-[11px] text-slate-500 truncate">{c.legalName}</p>
                 <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px]">
                   <span className="font-mono text-slate-500">{c.employeeCount} Employees • {c.branchCount} Branches</span>
-                  <span className="font-bold text-indigo-600 dark:text-indigo-400">{c.baseCurrency}</span>
+                  <span className="font-bold text-slate-700 dark:text-slate-300">{c.baseCurrency}</span>
                 </div>
               </div>
               ))
@@ -192,7 +212,7 @@ export default function CompaniesMasterEnginePage() {
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div>
                 <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-indigo-500" />
+                  <Building2 className="h-5 w-5 text-slate-600" />
                   {selectedCompany.displayName} ({selectedCompany.companyCode})
                 </h2>
                 <p className="text-xs text-slate-500">{selectedCompany.legalName}</p>
@@ -236,7 +256,7 @@ export default function CompaniesMasterEnginePage() {
                   </div>
                   <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border">
                     <span className="text-slate-500 block mb-1">Active Branches</span>
-                    <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{selectedCompany.branchCount} Locations</span>
+                    <span className="text-lg font-bold text-slate-700 dark:text-slate-300">{selectedCompany.branchCount} Locations</span>
                   </div>
                   <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border">
                     <span className="text-slate-500 block mb-1">Company Projects</span>
@@ -249,7 +269,7 @@ export default function CompaniesMasterEnginePage() {
               <TabsContent value="general" className="space-y-3 text-xs">
                 <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border">
                   <div><span className="text-slate-500">Legal Corporate Name:</span> <p className="font-bold text-slate-900 dark:text-slate-100">{selectedCompany.legalName}</p></div>
-                  <div><span className="text-slate-500">CIN (Corporate ID Number):</span> <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{selectedCompany.cin}</p></div>
+                  <div><span className="text-slate-500">CIN (Corporate ID Number):</span> <p className="font-mono font-bold text-slate-800 dark:text-slate-200">{selectedCompany.cin}</p></div>
                   <div><span className="text-slate-500">PAN Number:</span> <p className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{selectedCompany.pan}</p></div>
                   <div><span className="text-slate-500">GSTIN Tax Registration:</span> <p className="font-mono font-bold text-amber-600 dark:text-amber-400">{selectedCompany.gstin}</p></div>
                   <div><span className="text-slate-500">Incorporation Date:</span> <p className="font-mono text-slate-700 dark:text-slate-300">15 January 2024</p></div>
@@ -260,9 +280,9 @@ export default function CompaniesMasterEnginePage() {
               {/* Tab 3: Contact */}
               <TabsContent value="contact" className="space-y-3 text-xs">
                 <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border">
-                  <div><span className="text-slate-500">Primary Official Email:</span> <p className="font-mono text-indigo-600 font-bold">{selectedCompany.email || "—"}</p></div>
+                  <div><span className="text-slate-500">Primary Official Email:</span> <p className="font-mono text-slate-800 font-bold">{selectedCompany.email || "—"}</p></div>
                   <div><span className="text-slate-500">Contact Number:</span> <p className="font-mono text-slate-800 font-bold">{selectedCompany.phoneNumber || "—"}</p></div>
-                  <div><span className="text-slate-500">Official Website:</span> <p className="font-mono text-indigo-600">{selectedCompany.websiteUrl || "—"}</p></div>
+                  <div><span className="text-slate-500">Official Website:</span> <p className="font-mono text-slate-700">{selectedCompany.websiteUrl || "—"}</p></div>
                   <div><span className="text-slate-500">City / State:</span> <p className="font-mono text-slate-800 font-bold">{[selectedCompany.city, selectedCompany.state].filter(Boolean).join(", ") || "—"}</p></div>
                 </div>
               </TabsContent>
@@ -389,7 +409,7 @@ export default function CompaniesMasterEnginePage() {
             <div className="flex items-center justify-between pt-3 border-t">
               <Button variant="ghost" size="sm" onClick={() => setIsWizardOpen(false)}>Cancel</Button>
               {wizardStep < 6 ? (
-                <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={handleNextStep}>
+                <Button size="sm" className="bg-slate-900 hover:bg-slate-800 text-white" onClick={handleNextStep}>
                   Next Step <ArrowRight className="h-3.5 w-3.5 ml-1" />
                 </Button>
               ) : (

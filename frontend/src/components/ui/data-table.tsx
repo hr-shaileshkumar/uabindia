@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import {
@@ -10,8 +12,9 @@ import {
   type ColumnDef,
   type SortingState,
 } from "@tanstack/react-table";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Button } from "@/components/ui/button";
-import { Inbox, ChevronDown, ChevronUp, Filter, Search, Loader2 } from "lucide-react";
+import { Inbox, ChevronDown, ChevronUp, Filter, Search } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -51,6 +54,7 @@ export function DataTable<TData>({
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = React.useState("");
+  const scrollRef = React.useRef<HTMLDivElement>(null);
 
   const table = useReactTable({
     data,
@@ -71,6 +75,18 @@ export function DataTable<TData>({
       },
     },
   });
+
+  const rows = table.getRowModel().rows;
+  const rowVirtualizer = useVirtualizer({
+    count: isLoading ? 0 : rows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 44,
+    overscan: 12,
+  });
+  const virtualRows = rowVirtualizer.getVirtualItems();
+  const paddingTop = virtualRows.length > 0 ? virtualRows[0]!.start : 0;
+  const paddingBottom =
+    virtualRows.length > 0 ? rowVirtualizer.getTotalSize() - virtualRows[virtualRows.length - 1]!.end : 0;
 
   return (
     <Card className={cn("border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-sm", className)}>
@@ -124,7 +140,7 @@ export function DataTable<TData>({
         </CardHeader>
       )}
       <CardContent className="p-0">
-        <div className="relative overflow-x-auto max-h-[600px] border-b border-[var(--border-subtle)]">
+        <div ref={scrollRef} className="relative overflow-auto max-h-[600px] border-b border-[var(--border-subtle)]">
           <table className="w-full text-left text-xs border-collapse">
             <thead className="sticky top-0 z-10 bg-[var(--bg-surface)] border-b border-[var(--border-subtle)] shadow-xs">
               {table.getHeaderGroups().map((headerGroup) => (
@@ -174,7 +190,7 @@ export function DataTable<TData>({
                     ))}
                   </tr>
                 ))
-              ) : table.getRowModel().rows.length === 0 ? (
+              ) : rows.length === 0 ? (
                 <tr>
                   <td colSpan={columns.length} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center justify-center gap-2">
@@ -185,21 +201,38 @@ export function DataTable<TData>({
                   </td>
                 </tr>
               ) : (
-                table.getRowModel().rows.map((row, rowIndex) => (
-                  <tr
-                    key={row.id}
-                    className={cn(
-                      "transition-colors hover:bg-[var(--bg-surface-hover)]",
-                      striped && rowIndex % 2 === 1 ? "bg-[var(--bg-app)]/50" : ""
-                    )}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-4 py-3 align-middle text-[var(--text-main)] whitespace-nowrap">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
-                  </tr>
-                ))
+                <>
+                  {paddingTop > 0 ? (
+                    <tr aria-hidden="true">
+                      <td colSpan={columns.length} style={{ height: paddingTop }} className="p-0" />
+                    </tr>
+                  ) : null}
+                  {virtualRows.map((virtualRow) => {
+                    const row = rows[virtualRow.index];
+                    if (!row) return null;
+                    return (
+                      <tr
+                        key={row.id}
+                        data-index={virtualRow.index}
+                        className={cn(
+                          "transition-colors hover:bg-[var(--bg-surface-hover)]",
+                          striped && virtualRow.index % 2 === 1 ? "bg-[var(--bg-app)]/50" : ""
+                        )}
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <td key={cell.id} className="px-4 py-3 align-middle text-[var(--text-main)] whitespace-nowrap">
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })}
+                  {paddingBottom > 0 ? (
+                    <tr aria-hidden="true">
+                      <td colSpan={columns.length} style={{ height: paddingBottom }} className="p-0" />
+                    </tr>
+                  ) : null}
+                </>
               )}
             </tbody>
           </table>

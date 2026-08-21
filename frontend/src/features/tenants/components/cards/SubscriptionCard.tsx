@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button";
 import { CreditCard, CheckCircle2, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { erpButtonClassName } from "@/components/erp/erpStyles";
 
 interface SubscriptionCardProps {
   planName: string;
@@ -87,7 +88,7 @@ export function SubscriptionCard({
           </Button>
         )}
         {onUpgrade && (
-          <Button size="sm" onClick={onUpgrade} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+          <Button size="sm" onClick={onUpgrade} className={erpButtonClassName.primary}>
             Upgrade Plan
           </Button>
         )}

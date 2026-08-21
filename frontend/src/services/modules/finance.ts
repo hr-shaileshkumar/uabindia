@@ -29,6 +29,41 @@ export const financeApi = {
     create: (data: ApiPayload) => apiClient.post("/payments", data),
     delete: (id: string) => apiClient.delete(`/payments/${id}`),
   },
+  expenses: {
+    getAll: (page = 1, limit = 50, status?: string) => {
+      const q = new URLSearchParams({ page: String(page), limit: String(limit) });
+      if (status) q.append("status", status);
+      return apiClient.get(`/expenses?${q}`);
+    },
+    create: (data: ApiPayload) => apiClient.post("/expenses", data),
+    update: (id: string, data: ApiPayload) => apiClient.put(`/expenses/${id}`, data),
+    delete: (id: string) => apiClient.delete(`/expenses/${id}`),
+    approve: (id: string) => apiClient.post(`/expenses/${id}/approve`, {}),
+    reject: (id: string, reason?: string) =>
+      apiClient.post(`/expenses/${id}/reject`, reason ? { reason } : {}),
+    markPaid: (id: string) => apiClient.post(`/expenses/${id}/mark-paid`, {}),
+  },
+  bankReconciliations: {
+    getAll: (page = 1, limit = 50) => apiClient.get(`/bank-reconciliations?page=${page}&limit=${limit}`),
+    create: (data: ApiPayload) => apiClient.post("/bank-reconciliations", data),
+    delete: (id: string) => apiClient.delete(`/bank-reconciliations/${id}`),
+  },
+  tax: {
+    calculate: (data: ApiPayload) => apiClient.post("/tax/gst/calculate", data),
+    gstr1: (year?: number, month?: number) => {
+      const q = new URLSearchParams();
+      if (year) q.append("year", String(year));
+      if (month) q.append("month", String(month));
+      const suffix = q.toString() ? `?${q}` : "";
+      return apiClient.get(`/tax/gst/gstr1${suffix}`);
+    },
+    summary: () => apiClient.get("/tax/gst/summary"),
+  },
+  periods: {
+    list: (year?: number) => apiClient.get(`/finance/periods${year ? `?year=${year}` : ""}`),
+    close: (data: ApiPayload) => apiClient.post("/finance/periods/close", data),
+    reopen: (data: ApiPayload) => apiClient.post("/finance/periods/reopen", data),
+  },
 };
 
 export const complianceApi = {

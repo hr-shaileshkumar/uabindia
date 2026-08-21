@@ -1,24 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRight, ChevronDown, Menu, Sparkles, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import type { ClientProfile } from "@/lib/publicProfile";
 import type { PublicAudience } from "@/lib/public-audience";
 import type { PublicHeaderContent } from "@/lib/publicSiteContent";
 import { withPublicAudience } from "@/lib/public-audience";
-import {
-  filterPublicLinks,
-  getDefaultPublicHomeHref,
-  isSupportedPublicHref,
-} from "@/lib/public-site-map";
-import {
-  marketingIndustries,
-  marketingModules,
-  publicPrimaryNav,
-  resources,
-} from "@/lib/public-marketing";
+import { getDefaultPublicHomeHref, getPublicNavLinks } from "@/lib/public-site-map";
 import { cn } from "@/lib/utils";
 import { publicButtonClassName, publicSectionClassName } from "@/components/public/publicStyles";
 
@@ -29,44 +19,48 @@ type PublicHeaderProps = {
   allowedPaths?: string[];
 };
 
-type PlatformMenuKey = "products" | "industries" | "resources" | null;
+/** Compact primary nav for the marketing header (logo covers Home; Book demo is a CTA). */
+const PLATFORM_HEADER_HREFS = ["/products", "/industries", "/pricing", "/resources", "/about", "/careers", "/contact"];
+const TENANT_HEADER_HREFS = ["/about", "/careers", "/contact"];
 
 export default function PublicHeader({
   audience = "tenant",
   profile,
   headerContent,
-  allowedPaths,
 }: PublicHeaderProps) {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [openMenu, setOpenMenu] = useState<PlatformMenuKey>(null);
   const [isScrolled, setIsScrolled] = useState(false);
 
   const brandName = profile.brandName || profile.companyName || "UabIndia ERP";
   const platformMode = audience === "platform";
 
-  const homeHref = useMemo(() => {
-    if (headerContent.homeHref && isSupportedPublicHref(headerContent.homeHref, audience, allowedPaths)) {
-      return headerContent.homeHref;
+  const homeHref = headerContent.homeHref || getDefaultPublicHomeHref(audience);
+
+  const navLinks = useMemo(() => {
+    const defaults = getPublicNavLinks(audience, "primary");
+    const preferred = platformMode ? PLATFORM_HEADER_HREFS : TENANT_HEADER_HREFS;
+    const fromDefaults = preferred
+      .map((href) => defaults.find((link) => link.href === href))
+      .filter((link): link is { label: string; href: string } => Boolean(link));
+
+    // CMS links may only include Home — never let that collapse the marketing nav.
+    if (fromDefaults.length > 0) {
+      return fromDefaults;
     }
-    return getDefaultPublicHomeHref(audience);
-  }, [allowedPaths, audience, headerContent.homeHref]);
 
-  const tenantLinks = useMemo(
-    () => filterPublicLinks(headerContent.navLinks, audience, allowedPaths).filter((l) => l.href !== "/login"),
-    [allowedPaths, audience, headerContent.navLinks]
+    return defaults.filter((link) => link.href !== "/" && link.href !== "/login" && link.href !== "/book-demo");
+  }, [audience, platformMode]);
+
+  const primaryCtaHref = withPublicAudience(
+    headerContent.primaryCtaHref || (platformMode ? "/book-demo" : "/login"),
+    audience,
   );
-
-  const platformLinks = useMemo(
-    () => publicPrimaryNav.filter((item) => isSupportedPublicHref(item.href, audience, allowedPaths)),
-    [allowedPaths, audience]
-  );
-
-  const primaryCtaHref = withPublicAudience("/login", audience);
-  const primaryCtaLabel = "Login";
+  const primaryCtaLabel = headerContent.primaryCtaLabel || (platformMode ? "Book demo" : "Login");
+  const secondaryCtaHref = platformMode ? withPublicAudience("/login", audience) : null;
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 16);
+    const handleScroll = () => setIsScrolled(window.scrollY > 4);
     handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
@@ -74,289 +68,105 @@ export default function PublicHeader({
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
-    setOpenMenu(null);
   }, [pathname]);
+
+  const isActive = (href: string) => {
+    const path = href.split("?")[0];
+    if (path === "/") return pathname === "/";
+    return pathname === path || pathname.startsWith(`${path}/`);
+  };
 
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 w-full transition-all duration-300",
-        isScrolled
-          ? "border-b border-slate-200 bg-white/85 shadow-sm backdrop-blur-[12px]"
-          : "border-b border-transparent bg-white/80 backdrop-blur-[12px]"
+        "sticky top-0 z-50 w-full border-b bg-white/90 backdrop-blur-xl transition-shadow",
+        isScrolled ? "border-slate-200/90 shadow-sm shadow-slate-200/40" : "border-slate-200/70",
       )}
     >
-      {/* Announcement banner */}
-      {platformMode && headerContent.announcement ? (
-        <div className="w-full border-b border-indigo-100 bg-indigo-50/90 py-2 px-3">
-          <div className="w-full flex items-center justify-center gap-2 text-center">
-            <Sparkles className="h-3.5 w-3.5 shrink-0 text-indigo-600" />
-            <p className="font-semibold tracking-wide text-indigo-700 whitespace-nowrap text-[10px] min-[400px]:text-[11px] sm:text-xs md:text-sm">
-              {headerContent.announcement}
-            </p>
-          </div>
-        </div>
-      ) : null}
-
-      <div className="mx-auto w-full max-w-[88rem] px-8 xl:px-16 flex items-center justify-between gap-4 h-20">
-        {/* Logo */}
+      <div className={cn(publicSectionClassName, "flex h-16 items-center justify-between gap-4")}>
         <Link
           href={withPublicAudience(homeHref, audience)}
-          className="flex min-w-0 items-center gap-2 group"
-          onClick={() => { setIsMobileMenuOpen(false); setOpenMenu(null); }}
+          className="flex shrink-0 items-center"
+          onClick={() => setIsMobileMenuOpen(false)}
         >
-          <img
-            src="/logo.png"
-            alt={brandName}
-            className="h-6 w-auto object-contain transition group-hover:opacity-80"
-          />
+          <img src="/logo.png" alt={brandName} className="h-7 w-auto object-contain" />
         </Link>
 
-        {/* Desktop nav */}
-        <div className="hidden flex-1 items-center justify-center gap-1 lg:flex">
-          {platformMode ? (
-            <nav className="flex items-center gap-0.5">
-              {platformLinks.map((item) =>
-                item.label === "Products" ? (
-                  <MenuTrigger
-                    key={item.label}
-                    label={item.label}
-                    active={pathname.startsWith("/products")}
-                    isOpen={openMenu === "products"}
-                    onOpenChange={(next) => setOpenMenu(next ? "products" : null)}
-                    content={
-                      <MegaMenuGrid
-                        title="Product suite"
-                        subtitle="Connected modules for people, finance, operations, and service teams."
-                        featuredLinks={marketingModules.slice(0, 6).map((m) => ({
-                          label: m.title,
-                          href: `/products/${m.slug}`,
-                          description: m.summary,
-                        }))}
-                        footerHref="/products"
-                        footerLabel="View all products"
-                        audience={audience}
-                      />
-                    }
-                  />
-                ) : item.label === "Industries" ? (
-                  <MenuTrigger
-                    key={item.label}
-                    label={item.label}
-                    active={pathname.startsWith("/industries")}
-                    isOpen={openMenu === "industries"}
-                    onOpenChange={(next) => setOpenMenu(next ? "industries" : null)}
-                    content={
-                      <MegaMenuGrid
-                        title="Industry solutions"
-                        subtitle="See how the same platform adapts to different operating models."
-                        featuredLinks={marketingIndustries.slice(0, 6).map((ind) => ({
-                          label: ind.title,
-                          href: `/industries/${ind.slug}`,
-                          description: ind.summary,
-                        }))}
-                        footerHref="/industries"
-                        footerLabel="View all industries"
-                        audience={audience}
-                      />
-                    }
-                  />
-                ) : item.label === "Resources" ? (
-                  <MenuTrigger
-                    key={item.label}
-                    label={item.label}
-                    active={pathname.startsWith("/resources")}
-                    isOpen={openMenu === "resources"}
-                    onOpenChange={(next) => setOpenMenu(next ? "resources" : null)}
-                    content={
-                      <MegaMenuGrid
-                        title="Resources"
-                        subtitle="Practical material for evaluation, rollout planning, and executive review."
-                        featuredLinks={resources.slice(0, 4).map((r) => ({
-                          label: r.title,
-                          href: r.href,
-                          description: r.summary,
-                        }))}
-                        footerHref="/resources"
-                        footerLabel="Open resource center"
-                        audience={audience}
-                      />
-                    }
-                  />
-                ) : (
-                  <Link
-                    key={item.label}
-                    href={withPublicAudience(item.href, audience)}
-                    className={cn(
-                      "transition-all duration-200 text-sm font-semibold",
-                      pathname === item.href || pathname.startsWith(item.href + "/")
-                        ? "rounded-full bg-indigo-50/70 text-indigo-700 shadow-[0_2px_8px_rgba(79,70,229,0.08)] px-4 py-2 border border-indigo-100/50"
-                        : "rounded-lg px-3.5 py-2 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                    )}
-                  >
-                    {item.label}
-                  </Link>
-                )
+        <nav className="hidden items-center gap-0.5 lg:flex">
+          {navLinks.map((item) => (
+            <Link
+              key={item.href}
+              href={withPublicAudience(item.href, audience)}
+              className={cn(
+                "rounded-lg px-3 py-2 text-sm font-medium transition",
+                isActive(item.href)
+                  ? "bg-slate-100 text-slate-900"
+                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
               )}
-            </nav>
-          ) : (
-            <nav className="flex items-center gap-0.5">
-              {tenantLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={withPublicAudience(link.href, audience)}
-                  className={cn(
-                    "transition-all duration-200 text-sm font-semibold",
-                    pathname === link.href
-                      ? "rounded-full bg-indigo-50/70 text-indigo-700 shadow-[0_2px_8px_rgba(79,70,229,0.08)] px-4 py-2 border border-indigo-100/50"
-                      : "rounded-lg px-3.5 py-2 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                  )}
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
-          )}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="hidden items-center gap-2 lg:flex">
+          {secondaryCtaHref ? (
+            <Link href={secondaryCtaHref} className={publicButtonClassName.ghost}>
+              Login
+            </Link>
+          ) : null}
+          <Link href={primaryCtaHref} className={publicButtonClassName.primary}>
+            {primaryCtaLabel}
+          </Link>
         </div>
 
-        {/* CTA row */}
-        <div className="flex items-center gap-3">
-          <Link
-            href={primaryCtaHref}
-            className="hidden lg:inline-flex h-[52px] px-8 items-center justify-center gap-2 rounded-2xl bg-indigo-600 text-sm font-semibold text-white shadow-[0_4px_14px_rgba(79,70,229,0.4)] transition-all duration-200 hover:bg-gradient-to-r hover:from-indigo-600 hover:to-indigo-700 hover:shadow-[0_6px_20px_rgba(79,70,229,0.5)] hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-          >
-            {primaryCtaLabel}
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-          {/* Mobile menu toggle */}
-          <button
-            type="button"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 lg:hidden"
-            onClick={() => setIsMobileMenuOpen((v) => !v)}
-            aria-label="Toggle menu"
-          >
-            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
-        </div>
+        <button
+          type="button"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-700 lg:hidden"
+          onClick={() => setIsMobileMenuOpen((open) => !open)}
+          aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
+        >
+          {isMobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+        </button>
       </div>
 
-      {/* Mobile menu */}
-      {isMobileMenuOpen && (
-        <div className="border-t border-slate-100 bg-white lg:hidden">
-          <div className={cn(publicSectionClassName, "py-5 space-y-1")}>
-            {(platformMode ? platformLinks : tenantLinks).map((item) => (
+      {isMobileMenuOpen ? (
+        <div className="border-t border-slate-200 bg-white lg:hidden">
+          <div className={cn(publicSectionClassName, "space-y-1 py-3")}>
+            {navLinks.map((item) => (
               <Link
-                key={item.href || item.label}
-                href={withPublicAudience("href" in item ? item.href : "#", audience)}
+                key={item.href}
+                href={withPublicAudience(item.href, audience)}
                 className={cn(
-                  "flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                  pathname === ("href" in item ? item.href : "")
-                    ? "bg-indigo-50 text-indigo-700"
-                    : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                  "block rounded-lg px-3 py-2.5 text-sm font-medium",
+                  isActive(item.href) ? "bg-slate-100 text-slate-900" : "text-slate-700",
                 )}
+                onClick={() => setIsMobileMenuOpen(false)}
               >
                 {item.label}
               </Link>
             ))}
-            <div className="pt-3 border-t border-slate-100 mt-3">
-              <Link href={primaryCtaHref} className={cn(publicButtonClassName.primary, "w-full justify-center")}>
+            <div className="flex flex-col gap-2 border-t border-slate-100 pt-3">
+              {secondaryCtaHref ? (
+                <Link
+                  href={secondaryCtaHref}
+                  className={publicButtonClassName.secondary}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Login
+                </Link>
+              ) : null}
+              <Link
+                href={primaryCtaHref}
+                className={publicButtonClassName.primary}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
                 {primaryCtaLabel}
-                <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </header>
-  );
-}
-
-// ─── Menu Trigger ──────────────────────────────────────────────────────────────
-
-function MenuTrigger({
-  label,
-  active,
-  isOpen,
-  onOpenChange,
-  content,
-}: {
-  label: string;
-  active: boolean;
-  isOpen: boolean;
-  onOpenChange: (next: boolean) => void;
-  content: ReactNode;
-}) {
-  return (
-    <div className="relative" onMouseEnter={() => onOpenChange(true)} onMouseLeave={() => onOpenChange(false)}>
-      <button
-        type="button"
-        className={cn(
-          "flex items-center gap-1 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors",
-          active || isOpen
-            ? "bg-indigo-50 text-indigo-700"
-            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-        )}
-        aria-expanded={isOpen}
-      >
-        {label}
-        <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", isOpen && "rotate-180")} />
-      </button>
-
-      {isOpen && (
-        <div className="absolute left-1/2 top-full z-50 w-[680px] -translate-x-1/2 pt-2">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_16px_48px_rgba(15,23,42,0.12)]">
-            {content}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Mega Menu Grid ────────────────────────────────────────────────────────────
-
-function MegaMenuGrid({
-  title,
-  subtitle,
-  featuredLinks,
-  footerHref,
-  footerLabel,
-  audience,
-}: {
-  title: string;
-  subtitle: string;
-  featuredLinks: Array<{ label: string; href: string; description: string }>;
-  footerHref: string;
-  footerLabel: string;
-  audience: PublicAudience;
-}) {
-  return (
-    <div>
-      <div className="mb-4 border-b border-slate-100 pb-4">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-600">{title}</p>
-        <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
-      </div>
-      <div className="grid grid-cols-2 gap-1.5">
-        {featuredLinks.map((link) => (
-          <Link
-            key={link.href}
-            href={withPublicAudience(link.href, audience)}
-            className="group rounded-xl p-3 transition-colors hover:bg-indigo-50"
-          >
-            <p className="text-sm font-semibold text-slate-800 group-hover:text-indigo-700">{link.label}</p>
-            <p className="mt-0.5 text-xs leading-5 text-slate-500 line-clamp-2">{link.description}</p>
-          </Link>
-        ))}
-      </div>
-      <div className="mt-4 border-t border-slate-100 pt-3">
-        <Link
-          href={withPublicAudience(footerHref, audience)}
-          className="flex items-center gap-1.5 text-sm font-semibold text-indigo-600 transition hover:text-indigo-700"
-        >
-          {footerLabel}
-          <ArrowRight className="h-4 w-4" />
-        </Link>
-      </div>
-    </div>
   );
 }

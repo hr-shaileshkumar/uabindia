@@ -47,10 +47,10 @@ export default function PublicAudiencePageFrame({
       {pageVisible ? (
         children
       ) : (
-        <section className="py-20 sm:py-28">
+        <section className="py-12 sm:py-16">
           <div className={publicSectionClassName}>
             <div className="mx-auto max-w-2xl rounded-2xl border border-white/8 bg-white/4 p-8 text-center backdrop-blur-xl shadow-[0_16px_48px_rgba(0,0,0,0.4)]">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-indigo-400">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-blue-300">
                 Page Unavailable
               </p>
               <h1 className="mt-3 text-2xl font-bold tracking-tight text-white sm:text-3xl">

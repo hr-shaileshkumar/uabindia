@@ -4,7 +4,7 @@ import { getApiErrorMessage } from "@/lib/api-errors";
 import { notifyError } from "@/lib/notifications";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { hrApi } from "@/services/hrApi";
+import { appApi } from "@/services/modules";
 import type { Module } from "@/types";
 import {
   parseDashboardSchema,
@@ -96,10 +96,10 @@ export const UiSchemaProvider = ({ children }: { children: React.ReactNode }) =>
       setSchemaError(null);
 
       const [modulesRes, navRes, rulesRes, dashboardRes] = await Promise.allSettled([
-        hrApi.modules.getEnabled(),
-        hrApi.uiShell.getNavigation(),
-        hrApi.uiShell.getRouteRules(),
-        hrApi.uiShell.getDashboard(),
+        appApi.modules.getEnabled(),
+        appApi.uiShell.getNavigation(),
+        appApi.uiShell.getRouteRules(),
+        appApi.uiShell.getDashboard(),
       ]);
 
       const moduleValue = modulesRes.status === "fulfilled" && Array.isArray(modulesRes.value.data?.modules)
@@ -118,7 +118,7 @@ export const UiSchemaProvider = ({ children }: { children: React.ReactNode }) =>
         ? parseDashboardSchema(dashboardRes.value.data)
         : EMPTY_DASHBOARD;
 
-      if (moduleValue.length > 0) setEnabledModules(moduleValue);
+      if (modulesRes.status === "fulfilled") setEnabledModules(moduleValue);
       if (navValue.modules.length > 0) setNavigation(navValue);
       if (rulesValue.rules.length > 0) setRouteRules(rulesValue);
       if (dashboardValue.sections.length > 0) setDashboard(dashboardValue);
@@ -165,7 +165,7 @@ export const UiSchemaProvider = ({ children }: { children: React.ReactNode }) =>
 
   const getPageSchema = useCallback(async (pageKey: string) => {
     try {
-      const res = await hrApi.uiShell.getPageSchema(pageKey);
+      const res = await appApi.uiShell.getPageSchema(pageKey);
       return parsePageSchema(res.data);
     } catch {
       return null;

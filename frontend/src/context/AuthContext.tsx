@@ -73,6 +73,7 @@ const normalizeAuthUser = (payload: unknown): AuthUser | null => {
     fullName: asOptionalString(data.fullName) ?? "",
     role,
     roles: roleList.length > 0 ? roleList : [role],
+    employeeId: asOptionalString(data.employeeId),
     companyId: asOptionalString(data.companyId),
     tenantId: asOptionalString(data.tenantId),
     isActive: typeof data.isActive === "boolean" ? data.isActive : true,

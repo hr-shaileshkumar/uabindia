@@ -139,7 +139,7 @@ const isTransientConnectionError = (error: unknown) => {
   }
   if (error.response) return false;
   const code = (error.code || "").toUpperCase();
-  return code === "ERR_NETWORK" || code === "ECONNREFUSED" || code === "ECONNABORTED";
+  return code === "ERR_NETWORK" || code === "ECONNREFUSED" || code === "ECONNRESET" || code === "ECONNABORTED" || code === "ETIMEDOUT";
 };
 
 const runOptionalPublicRead = <T>(key: string, execute: () => Promise<T>): Promise<T> => {

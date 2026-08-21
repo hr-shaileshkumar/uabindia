@@ -42,7 +42,7 @@ export function CrudHeaderStats({ items }: { items: CrudStat[] }) {
 }
 
 type CrudCardProps = {
-  title: string;
+  title?: string;
   description?: ReactNode;
   badge?: ReactNode;
   actions?: ReactNode;
@@ -50,26 +50,23 @@ type CrudCardProps = {
 };
 
 export function CrudCard({
-  title,
-  description,
   badge,
   actions,
   children,
 }: CrudCardProps) {
+  const showHeader = Boolean(badge || actions);
   return (
     <section className="erp-crud-card">
-      <div className="erp-crud-card-header">
-        <div className="min-w-0">
-          <h2 className="erp-crud-card-title">{title}</h2>
-          {description ? <p className="erp-crud-card-description">{description}</p> : null}
+      {showHeader ? (
+        <div className="erp-crud-card-header">
+          {badge || actions ? (
+            <div className="erp-crud-card-aside ml-auto">
+              {badge}
+              {actions}
+            </div>
+          ) : null}
         </div>
-        {badge || actions ? (
-          <div className="erp-crud-card-aside">
-            {badge}
-            {actions}
-          </div>
-        ) : null}
-      </div>
+      ) : null}
       <div className="erp-crud-card-body">{children}</div>
     </section>
   );
@@ -86,12 +83,12 @@ export function EntityAvatar({ name, subtext }: { name: string; subtext?: string
 
   return (
     <div className="flex items-center gap-2.5 min-w-0">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-xs font-bold text-indigo-600 dark:text-indigo-400 border border-indigo-200/80 dark:border-indigo-900/50">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 text-xs font-semibold text-slate-800">
         {initials}
       </div>
       <div className="min-w-0">
-        <p className="font-semibold text-xs text-slate-900 dark:text-slate-100 truncate">{name}</p>
-        {subtext && <p className="text-[11px] text-slate-500 truncate">{subtext}</p>}
+        <p className="truncate text-xs font-semibold text-slate-900">{name}</p>
+        {subtext ? <p className="truncate text-[11px] text-slate-500">{subtext}</p> : null}
       </div>
     </div>
   );

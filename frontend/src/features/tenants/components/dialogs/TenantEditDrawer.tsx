@@ -143,7 +143,7 @@ export function TenantEditDrawer({ open, onClose, tenant, onSuccess }: TenantEdi
               id="status"
               value={formData.status}
               onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-              className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10"
             >
               <option value="active">Active</option>
               <option value="suspended">Suspended</option>
@@ -158,7 +158,7 @@ export function TenantEditDrawer({ open, onClose, tenant, onSuccess }: TenantEdi
               id="plan"
               value={formData.subscriptionPlan}
               onChange={(e) => setFormData({ ...formData, subscriptionPlan: e.target.value as any })}
-              className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10"
             >
               <option value="Basic">Basic Plan</option>
               <option value="Enterprise">Enterprise Plan</option>

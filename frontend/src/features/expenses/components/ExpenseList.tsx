@@ -1,120 +1,331 @@
 ﻿"use client";
 
-import { useState } from "react";
-import { Wallet, Plus, FileText, Check, X, Upload } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { FilterBar } from "@/components/ui/filter-bar";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { useCallback, useEffect, useState } from "react";
+import { Pencil } from "lucide-react";
+import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import { CrudCard } from "@/components/erp/crud-workspace";
+import { StatusBadge } from "@/components/erp/status-badge";
+import {
+  erpButtonClassName,
+  erpFormInputClassName,
+  erpFormLabelClassName,
+} from "@/components/erp/erpStyles";
+import { ListCreateButton, ListSearchInput, ListStatusFilter } from "@/components/erp/list-toolbar";
+import { ErpRefreshButton } from "@/components/erp/erp-page-kit";
+import { useErpListView } from "@/components/erp/erp-list-view";
 import { SideDrawer } from "@/components/ui/side-drawer";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { financeApi, orgApi } from "@/services/modules";
+import { getApiErrorMessage } from "@/lib/api-errors";
+import { notifyError, notifySuccess } from "@/lib/notifications";
 import type { Expense } from "@/types";
 
-const INITIAL_EXPENSES: Expense[] = [
-  { id: "1", employeeName: "Rahul Verma", title: "Client Dinner & Entertainment", amount: 4500, category: "Meals", date: "2026-08-01", status: "Submitted" },
-  { id: "2", employeeName: "Ananya Roy", title: "Flight to Mumbai Office", amount: 12800, category: "Travel", date: "2026-07-28", status: "Approved" },
-  { id: "3", employeeName: "Vikram Singh", title: "Software Subscription", amount: 3200, category: "Software", date: "2026-07-25", status: "Paid" },
-];
+const emptyForm = () => ({
+  title: "",
+  description: "",
+  amount: "",
+  category: "Travel",
+  date: new Date().toISOString().slice(0, 10),
+  employeeName: "",
+  receiptUrl: "",
+  projectId: "",
+});
 
 export function ExpenseList() {
-  const [expenses, setExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [formData, setFormData] = useState({ title: "", amount: "", category: "Travel", date: "2026-08-03" });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [formData, setFormData] = useState(emptyForm());
 
-  const filtered = expenses.filter((e) => e.title.toLowerCase().includes(search.toLowerCase()) || (e.employeeName || "").toLowerCase().includes(search.toLowerCase()));
+  const load = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [response, projectsRes] = await Promise.all([financeApi.expenses.getAll(1, 100), orgApi.project.getAll()]);
+      const raw = response.data;
+      const list = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
+      setExpenses(
+        list.map((row: Record<string, unknown>) => ({
+          id: String(row.id),
+          employeeId: row.employeeId ? String(row.employeeId) : undefined,
+          employeeName: String(row.employeeName ?? ""),
+          title: String(row.title ?? ""),
+          description: row.description ? String(row.description) : undefined,
+          amount: Number(row.amount ?? 0),
+          currency: String(row.currency ?? "INR"),
+          category: String(row.category ?? "General"),
+          date: String(row.date ?? "").slice(0, 10),
+          status: String(row.status ?? "Draft") as Expense["status"],
+          receiptUrl: row.receiptUrl ? String(row.receiptUrl) : undefined,
+          approvedBy: row.approvedBy ? String(row.approvedBy) : undefined,
+          submittedAt: row.submittedAt ? String(row.submittedAt) : undefined,
+          projectId: row.projectId ? String(row.projectId) : undefined,
+        })),
+      );
+      const projList = Array.isArray(projectsRes.data?.projects) ? projectsRes.data.projects : [];
+      setProjects(projList.map((p) => ({ id: String(p.id), name: String(p.name ?? p.projectCode ?? p.id) })));
+    } catch (err) {
+      notifyError(getApiErrorMessage(err, "Failed to load expenses."), "Expenses");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const handleSave = () => {
-    if (!formData.title || !formData.amount) return;
-    const newExp: Expense = {
-      id: String(Date.now()),
-      employeeName: "Current User",
-      title: formData.title,
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const openCreate = () => {
+    setEditingId(null);
+    setFormData(emptyForm());
+    setDrawerOpen(true);
+  };
+
+  const openEdit = (exp: Expense) => {
+    setEditingId(exp.id);
+    setFormData({
+      title: exp.title,
+      description: exp.description ?? "",
+      amount: String(exp.amount),
+      category: exp.category ?? "Travel",
+      date: exp.date,
+      employeeName: exp.employeeName ?? "",
+      receiptUrl: exp.receiptUrl ?? "",
+      projectId: exp.projectId ?? "",
+    });
+    setDrawerOpen(true);
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.title.trim() || !formData.amount) return;
+    const payload = {
+      title: formData.title.trim(),
+      description: formData.description.trim() || undefined,
       amount: Number(formData.amount),
       category: formData.category,
       date: formData.date,
-      status: "Submitted",
+      employeeName: formData.employeeName.trim() || undefined,
+      receiptUrl: formData.receiptUrl.trim() || undefined,
+      projectId: formData.projectId || undefined,
+      status: editingId ? undefined : "Submitted",
     };
-    setExpenses((prev) => [newExp, ...prev]);
-    setDrawerOpen(false);
+    try {
+      setSaving(true);
+      if (editingId) {
+        await financeApi.expenses.update(editingId, payload);
+        notifySuccess("Expense updated.", "Expenses");
+      } else {
+        await financeApi.expenses.create(payload);
+        notifySuccess("Expense submitted.", "Expenses");
+      }
+      setDrawerOpen(false);
+      setEditingId(null);
+      setFormData(emptyForm());
+      void load();
+    } catch (err) {
+      notifyError(getApiErrorMessage(err, "Failed to save expense."), "Expenses");
+    } finally {
+      setSaving(false);
+    }
   };
 
+  const runAction = async (id: string, action: "approve" | "reject" | "markPaid") => {
+    try {
+      if (action === "approve") await financeApi.expenses.approve(id);
+      else if (action === "reject") await financeApi.expenses.reject(id);
+      else await financeApi.expenses.markPaid(id);
+      notifySuccess(
+        action === "approve" ? "Expense approved." : action === "reject" ? "Expense rejected." : "Marked as paid.",
+        "Expenses",
+      );
+      void load();
+    } catch (err) {
+      notifyError(getApiErrorMessage(err, "Expense action failed."), "Expenses");
+    }
+  };
+
+  const filtered = expenses.filter((e) => {
+    const q = search.toLowerCase();
+    const matchesSearch =
+      e.title.toLowerCase().includes(q) || (e.employeeName || "").toLowerCase().includes(q);
+    const matchesStatus = statusFilter === "all" || e.status.toLowerCase() === statusFilter.toLowerCase();
+    return matchesSearch && matchesStatus;
+  });
+
+  const expenseStatusTone = (status: string) => {
+    if (status === "Paid" || status === "Approved") return "positive" as const;
+    if (status === "Submitted") return "warning" as const;
+    if (status === "Rejected") return "danger" as const;
+    return "neutral" as const;
+  };
+
+  const projectName = (id?: string) => (id ? projects.find((p) => p.id === id)?.name ?? "—" : "—");
+
+  const listRows = filtered.map((exp) => ({ ...exp, projectName: projectName(exp.projectId) }));
+
+  const list = useErpListView({
+    listKey: "expenses",
+    rows: listRows,
+    columns: [
+      { key: "title", label: "Title" },
+      { key: "employeeName", label: "Employee" },
+      { key: "projectName", label: "Project" },
+      { key: "amount", label: "Amount", dataType: "currency" },
+      { key: "status", label: "Status" },
+      { key: "actions", label: "Actions", className: "text-right", locked: true },
+    ],
+    getRowId: (row) => row.id,
+    loading,
+    emptyMessage: "No expense reports submitted. Create the first expense claim to start the reimbursement workflow.",
+    onCreate: openCreate,
+    createLabel: "Submit Expense",
+    onRefresh: () => void load(),
+    extraFilters: (
+      <>
+        <ListSearchInput value={search} onChange={setSearch} placeholder="Search expense title or employee…" />
+        <ListStatusFilter
+          value={statusFilter}
+          onChange={setStatusFilter}
+          options={[
+            { label: "All statuses", value: "all" },
+            { label: "Submitted", value: "submitted" },
+            { label: "Approved", value: "approved" },
+            { label: "Paid", value: "paid" },
+            { label: "Rejected", value: "rejected" },
+          ]}
+        />
+      </>
+    ),
+    renderRow: (exp) => (
+      <tr key={exp.id} className="erp-tr">
+        <td className="erp-td">
+          <p className="text-xs font-semibold">{exp.title}</p>
+          <p className="text-[11px] text-slate-500">
+            {exp.category} · {exp.date}
+          </p>
+        </td>
+        <td className="erp-td text-xs">{exp.employeeName || "Unassigned"}</td>
+        <td className="erp-td text-xs">{exp.projectName}</td>
+        <td className="erp-td text-xs font-semibold">₹{exp.amount.toLocaleString("en-IN")}</td>
+        <td className="erp-td">
+          <StatusBadge tone={expenseStatusTone(exp.status)}>{exp.status}</StatusBadge>
+        </td>
+        <td className="erp-td text-right">
+          <div className="inline-flex flex-wrap justify-end gap-1">
+            {exp.status === "Draft" || exp.status === "Submitted" ? (
+              <button type="button" className={`${erpButtonClassName.ghost} h-8 px-2`} onClick={() => openEdit(exp)}>
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            ) : null}
+            {exp.status === "Submitted" ? (
+              <>
+                <button type="button" className={`${erpButtonClassName.primary} h-8 px-3 text-xs`} onClick={() => void runAction(exp.id, "approve")}>
+                  Approve
+                </button>
+                <button type="button" className={`${erpButtonClassName.secondary} h-8 px-3 text-xs`} onClick={() => void runAction(exp.id, "reject")}>
+                  Reject
+                </button>
+              </>
+            ) : null}
+            {exp.status === "Approved" ? (
+              <button type="button" className={`${erpButtonClassName.primary} h-8 px-3 text-xs`} onClick={() => void runAction(exp.id, "markPaid")}>
+                Mark paid
+              </button>
+            ) : null}
+          </div>
+        </td>
+      </tr>
+    ),
+  });
+
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Expense Management & Reimbursements"
-        subtitle="Submit, review, and approve employee business expense reports and receipts"
-        breadcrumbs={[
-          { label: "Expenses", href: "/expenses" },
-          { label: "All Expenses" },
-        ]}
-        actions={
-          <Button size="sm" onClick={() => setDrawerOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Submit Expense Report
-          </Button>
-        }
-      />
-
-      <FilterBar searchPlaceholder="Search by expense title or employee..." searchValue={search} onSearchChange={setSearch} />
-
-      <div className="space-y-3">
-        {filtered.map((exp) => (
-          <Card key={exp.id} className="hover:border-indigo-500/50 transition-colors">
-            <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-3">
-                  <span className="font-bold text-foreground text-sm">{exp.title}</span>
-                  <Badge variant={exp.status === "Paid" ? "success" : exp.status === "Approved" ? "success" : exp.status === "Submitted" ? "warning" : "secondary"}>
-                    {exp.status}
-                  </Badge>
-                  <Badge variant="outline">{exp.category}</Badge>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Employee: <span className="font-medium text-foreground">{exp.employeeName}</span> • Date: {exp.date}
-                </p>
-              </div>
-
-              <div className="flex items-center gap-4 shrink-0">
-                <div className="text-right">
-                  <p className="text-xs text-muted-foreground">Amount</p>
-                  <p className="font-bold text-indigo-600 dark:text-indigo-400 text-base">₹{exp.amount.toLocaleString("en-IN")}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+    <StandardPageLayout
+      title="Expense Management & Reimbursements"
+      subtitle="Submit, review, and approve employee business expense reports and receipts."
+      eyebrow="Finance"
+      icon="wallet"
+      actions={
+        <>
+          <ErpRefreshButton onClick={() => void load()} loading={loading} />
+          {list.headerTools}
+          <ListCreateButton label="Submit Expense" onClick={openCreate} />
+        </>
+      }
+      filters={list.filterBar}
+    >
+      <CrudCard>{list.table}</CrudCard>
 
       <SideDrawer
         open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        title="Submit New Expense Report"
-        subtitle="Upload receipt and enter expense details"
+        onClose={() => {
+          setDrawerOpen(false);
+          setEditingId(null);
+        }}
+        title={editingId ? "Edit expense" : "Submit Expense Report"}
+        subtitle="Persists to /api/v1/expenses for the current tenant."
         footer={
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setDrawerOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave}>Submit Expense</Button>
+            <button type="button" onClick={() => setDrawerOpen(false)} className={erpButtonClassName.secondary}>
+              Cancel
+            </button>
+            <button type="button" onClick={() => void handleSubmit()} className={erpButtonClassName.primary} disabled={saving}>
+              {saving ? "Saving…" : editingId ? "Save changes" : "Submit Expense"}
+            </button>
           </div>
         }
       >
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="title">Expense Title *</Label>
-            <Input id="title" placeholder="e.g. Travel & Flight Booking" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} />
+          <div>
+            <label className={erpFormLabelClassName}>Expense title *</label>
+            <input className={`${erpFormInputClassName} mt-1`} value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="amount">Amount (INR) *</Label>
-            <Input id="amount" type="number" placeholder="5000" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} />
+          <div>
+            <label className={erpFormLabelClassName}>Description</label>
+            <textarea className={`${erpFormInputClassName} mt-1`} rows={3} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="date">Expense Date</Label>
-            <Input id="date" type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} />
+          <div>
+            <label className={erpFormLabelClassName}>Employee name</label>
+            <input className={`${erpFormInputClassName} mt-1`} value={formData.employeeName} onChange={(e) => setFormData({ ...formData, employeeName: e.target.value })} />
+          </div>
+          <div>
+            <label className={erpFormLabelClassName}>Project</label>
+            <select className={`${erpFormInputClassName} mt-1`} value={formData.projectId} onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}>
+              <option value="">None</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={erpFormLabelClassName}>Amount (INR) *</label>
+              <input type="number" className={`${erpFormInputClassName} mt-1`} value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} />
+            </div>
+            <div>
+              <label className={erpFormLabelClassName}>Date</label>
+              <input type="date" className={`${erpFormInputClassName} mt-1`} value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} />
+            </div>
+          </div>
+          <div>
+            <label className={erpFormLabelClassName}>Category</label>
+            <select className={`${erpFormInputClassName} mt-1`} value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })}>
+              <option>Travel</option>
+              <option>Meals</option>
+              <option>Office</option>
+              <option>General</option>
+            </select>
+          </div>
+          <div>
+            <label className={erpFormLabelClassName}>Receipt URL</label>
+            <input className={`${erpFormInputClassName} mt-1`} value={formData.receiptUrl} onChange={(e) => setFormData({ ...formData, receiptUrl: e.target.value })} placeholder="https://…" />
           </div>
         </div>
       </SideDrawer>
-    </div>
+    </StandardPageLayout>
   );
 }

@@ -2,15 +2,16 @@
 
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { notifyError, notifySuccess } from "@/lib/notifications";
-import { GlobalLoading } from "@/components/ui/GlobalLoading";
-import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { SideDrawer } from "@/components/ui/side-drawer";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CrudCard } from "@/components/erp/crud-workspace";
+import { ErpCreateButton, ErpRefreshButton, ErpRowActions } from "@/components/erp/erp-page-kit";
+import { useErpListView } from "@/components/erp/erp-list-view";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { hrApi } from "@/services/hrApi";
-import { Search, Plus, Eye, Edit3, Trash2, Mail, Phone, MapPin, Building2, CreditCard, ShieldCheck } from "lucide-react";
+import { crmApi } from "@/services/modules/crm";
+import { Mail, Phone, MapPin, Building2, CreditCard } from "lucide-react";
 
 type Customer = {
   id: string;
@@ -41,7 +42,7 @@ type CustomerForm = {
   status: string;
 };
 
-const customersApi = hrApi.erp.customers;
+const customersApi = crmApi.customers;
 
 const getErrorMessage = (err: unknown, fallback: string) => {
   if (err instanceof Error) return err.message;
@@ -210,6 +211,72 @@ export default function CustomersManager() {
     }
   };
 
+  const list = useErpListView({
+    listKey: "customers",
+    rows: filteredCustomers,
+    columns: [
+      { key: "customerCode", label: "Code" },
+      { key: "customerName", label: "Customer Name" },
+      { key: "email", label: "Contact Info" },
+      { key: "city", label: "Location" },
+      { key: "gstNumber", label: "GST Number" },
+      { key: "creditLimit", label: "Credit Limit", dataType: "currency" },
+      { key: "status", label: "Status" },
+      { key: "actions", label: "Actions", className: "text-right", locked: true },
+    ],
+    getRowId: (row) => row.id,
+    loading,
+    emptyMessage: searchTerm ? "No customer accounts match your search query." : "No customer accounts found. Click New customer to begin.",
+    onCreate: openCreateDrawer,
+    createLabel: "New customer",
+    onRefresh: () => void fetchCustomers(),
+    extraFilters: (
+      <input
+        type="search"
+        placeholder="Search customer, GST, email, city..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="erp-input max-w-xs"
+      />
+    ),
+    onBulkDelete: async (rows) => {
+      for (const row of rows) {
+        await customersApi.delete(row.id);
+      }
+      notifySuccess(`${rows.length} customer record(s) deleted.`);
+      await fetchCustomers();
+    },
+    renderRow: (customer) => (
+      <tr key={customer.id} className="erp-tr">
+        <td className="erp-td font-semibold text-slate-900">{customer.customerCode}</td>
+        <td className="erp-td font-medium text-slate-900">{customer.customerName}</td>
+        <td className="erp-td">
+          <div className="space-y-0.5 text-xs">
+            <p className="text-slate-700">{customer.email || "-"}</p>
+            <p className="font-mono text-slate-500">{customer.phoneNumber}</p>
+          </div>
+        </td>
+        <td className="erp-td text-slate-600">
+          {customer.city ? `${customer.city}${customer.state ? `, ${customer.state}` : ""}` : "-"}
+        </td>
+        <td className="erp-td font-mono text-xs text-slate-600">{customer.gstNumber || "-"}</td>
+        <td className="erp-td font-semibold text-slate-900">{formatCurrency(customer.creditLimit)}</td>
+        <td className="erp-td">
+          <Badge variant={customer.status === "Inactive" ? "outline" : "default"} className="text-xs">
+            {customer.status || "Active"}
+          </Badge>
+        </td>
+        <td className="erp-td text-right">
+          <ErpRowActions
+            onView={{ label: "View", onClick: () => openViewDrawer(customer) }}
+            onEdit={{ label: "Edit", onClick: () => openEditDrawer(customer) }}
+            onDelete={{ label: "Delete", onClick: () => void handleDelete(customer.id, customer.customerName) }}
+          />
+        </td>
+      </tr>
+    ),
+  });
+
   return (
     <StandardPageLayout
       title="Customers Master"
@@ -227,109 +294,22 @@ export default function CustomersManager() {
         </>
       }
       actions={
-        <Button onClick={openCreateDrawer} className="gap-2">
-          <Plus className="h-4 w-4" /> Add Customer
-        </Button>
+        <>
+          <ErpRefreshButton onClick={() => void fetchCustomers()} loading={loading} />
+          {list.headerTools}
+          <ErpCreateButton label="New customer" onClick={openCreateDrawer} />
+        </>
       }
+      filters={list.filterBar}
     >
-      <div className="space-y-4">
-        {confirmDialog}
+      {confirmDialog}
+      {error ? <div className="erp-alert-error text-sm">{error}</div> : null}
+      <CrudCard>{list.table}</CrudCard>
 
-        <Card className="border border-slate-200/80 shadow-sm">
-          <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-            <div>
-              <CardTitle className="text-lg font-bold text-slate-900">Customer Accounts Directory</CardTitle>
-              <p className="mt-0.5 text-xs text-slate-500">
-                Review legal identity, credit limits, contact emails, and city locations.
-              </p>
-            </div>
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search customer, GST, email, city..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="erp-input pl-9 text-xs"
-              />
-            </div>
-          </CardHeader>
-
-          <CardContent className="p-0">
-            {loading && customers.length === 0 ? (
-              <div className="p-12">
-                <GlobalLoading label="Loading customer accounts..." variant="inline" />
-              </div>
-            ) : filteredCustomers.length === 0 ? (
-              <div className="erp-empty py-12">
-                {searchTerm ? "No customer accounts match your search query." : "No customer accounts found. Click Add Customer to begin."}
-              </div>
-            ) : (
-              <div className="erp-table-wrap border-0 shadow-none">
-                <table className="erp-table">
-                  <thead className="erp-thead">
-                    <tr>
-                      <th className="erp-th">Code</th>
-                      <th className="erp-th">Customer Name</th>
-                      <th className="erp-th">Contact Info</th>
-                      <th className="erp-th">Location</th>
-                      <th className="erp-th">GST Number</th>
-                      <th className="erp-th">Credit Limit</th>
-                      <th className="erp-th">Status</th>
-                      <th className="erp-th text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredCustomers.map((customer) => (
-                      <tr key={customer.id} className="erp-tr hover:bg-slate-50/80 transition-colors">
-                        <td className="erp-td font-semibold text-slate-900">{customer.customerCode}</td>
-                        <td className="erp-td font-medium text-slate-900">{customer.customerName}</td>
-                        <td className="erp-td">
-                          <div className="text-xs space-y-0.5">
-                            <p className="text-slate-700">{customer.email || "-"}</p>
-                            <p className="text-slate-500 font-mono">{customer.phoneNumber}</p>
-                          </div>
-                        </td>
-                        <td className="erp-td text-slate-600">
-                          {customer.city ? `${customer.city}${customer.state ? `, ${customer.state}` : ""}` : "-"}
-                        </td>
-                        <td className="erp-td font-mono text-xs text-slate-600">{customer.gstNumber || "-"}</td>
-                        <td className="erp-td font-semibold text-slate-900">{formatCurrency(customer.creditLimit)}</td>
-                        <td className="erp-td">
-                          <Badge variant={customer.status === "Inactive" ? "outline" : "default"} className="text-xs">
-                            {customer.status || "Active"}
-                          </Badge>
-                        </td>
-                        <td className="erp-td text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-600 hover:text-slate-900" onClick={() => openViewDrawer(customer)} title="View Details">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-blue-600 hover:text-blue-800" onClick={() => openEditDrawer(customer)} title="Edit Account">
-                              <Edit3 className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-rose-600 hover:text-rose-800" onClick={() => void handleDelete(customer.id, customer.customerName)} title="Delete Account">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Slide-Over Drawer for Create / Edit Customer Form */}
       <SideDrawer
         open={isFormDrawerOpen}
         onClose={() => setIsFormDrawerOpen(false)}
-        title={editingId ? `Edit Customer: ${formData.customerCode}` : "Create New Customer"}
-        subtitle="Capture billing details, GST credentials, credit terms, and contact information."
-        width="lg"
+        title={editingId ? "Edit Customer" : "Create New Customer"}
         footer={
           <div className="flex justify-end gap-2 w-full">
             <Button variant="outline" onClick={() => setIsFormDrawerOpen(false)}>Cancel</Button>
@@ -405,13 +385,10 @@ export default function CustomersManager() {
         </div>
       </SideDrawer>
 
-      {/* Slide-Over Drawer for Quick View Details */}
       <SideDrawer
         open={isViewDrawerOpen}
         onClose={() => setIsViewDrawerOpen(false)}
-        title={selectedCustomer ? selectedCustomer.customerName : "Customer Account Details"}
-        subtitle={selectedCustomer ? `Customer Code: ${selectedCustomer.customerCode}` : ""}
-        width="md"
+        title={selectedCustomer ? selectedCustomer.customerName : "Customer details"}
         footer={
           <div className="flex justify-between w-full">
             <Button variant="outline" onClick={() => setIsViewDrawerOpen(false)}>Close</Button>
@@ -438,7 +415,7 @@ export default function CustomersManager() {
 
             <div className="space-y-3">
               <div className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 bg-white">
-                <Mail className="h-5 w-5 text-indigo-600 shrink-0" />
+                <Mail className="h-5 w-5 text-slate-600 shrink-0" />
                 <div>
                   <p className="text-xs text-slate-500">Billing Email</p>
                   <p className="text-sm font-semibold text-slate-900">{selectedCustomer.email || "Not Provided"}</p>

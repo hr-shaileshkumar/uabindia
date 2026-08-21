@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { TenantWizard, buildTenantUpdatePayload } from "@/features/companies/TenantWizard";
-import { hrApi } from "@/services/hrApi";
+import { platformApi } from "@/services/modules";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
 import type { TenantDto, TenantFormValues } from "@/features/companies/types";
@@ -25,7 +25,7 @@ export default function EditTenantPage() {
     const load = async () => {
       setLoading(true);
       try {
-        const res = await hrApi.platform.tenants();
+        const res = await platformApi.admin.tenants();
         const row = Array.isArray(res.data?.tenants)
           ? (res.data.tenants as Record<string, unknown>[]).map(parseTenant).find((item) => item.id === tenantId)
           : undefined;
@@ -101,7 +101,7 @@ export default function EditTenantPage() {
           onCancel={() => router.push("/platform/tenants")}
           onSubmit={async (values) => {
             const payload = buildTenantUpdatePayload(values);
-            await hrApi.platform.updateTenant(tenant.id, payload);
+            await platformApi.admin.updateTenant(tenant.id, payload);
             if (typeof window !== "undefined") {
               window.localStorage.removeItem(`tenant-edit-draft-${tenant.id}`);
             }

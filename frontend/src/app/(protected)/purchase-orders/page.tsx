@@ -1,17 +1,29 @@
 "use client";
 
-import { useEffect, useState, type ChangeEvent } from "react";
-import { hrApi } from "@/services/hrApi";
+import { useEffect, useMemo, useState } from "react";
+import { procurementApi } from "@/services/modules";
+import { notifyError, notifySuccess } from "@/lib/notifications";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
-import ModuleIcon from "@/components/ModuleIcon";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SideDrawer } from "@/components/ui/side-drawer";
+import { ErpCreateButton, ErpDrawerFooter, ErpRefreshButton, ErpRowActions } from "@/components/erp/erp-page-kit";
+import { useErpListView } from "@/components/erp/erp-list-view";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
-import { TableActionMenu } from "@/components/table/TableActionMenu";
 import { usePermissions } from "@/context/PermissionContext";
 import { PERMISSIONS } from "@/constants/permissions";
+import {
+  DocLine,
+  ErpLineGrid,
+  ErpMasterSelect,
+  ErpTotalsStrip,
+  documentTotals,
+  emptyBillDiscount,
+  emptyDocLine,
+  formatInr,
+  payloadLines,
+  useDocumentMasters,
+  withBillDiscount,
+} from "@/components/erp/erp-document-kit";
 
 type PurchaseOrder = {
   id: string;
@@ -28,7 +40,6 @@ type PurchaseOrderForm = {
   vendorId: string;
   poDate: string;
   expectedDeliveryDate: string;
-  totalAmount: number;
   status: string;
 };
 
@@ -42,16 +53,8 @@ const createDefaultFormData = (): PurchaseOrderForm => ({
   vendorId: "",
   poDate: new Date().toISOString().split("T")[0],
   expectedDeliveryDate: "",
-  totalAmount: 0,
   status: "Draft",
 });
-
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(value || 0);
 
 const getStatusChipClass = (status: string) => {
   switch (status) {
@@ -72,6 +75,7 @@ const getStatusChipClass = (status: string) => {
 export default function PurchaseOrdersPage() {
   const { confirm, confirmDialog } = useConfirmDialog();
   const { hasPermission } = usePermissions();
+  const { vendors, items } = useDocumentMasters();
   const canCreatePurchaseOrder = hasPermission([PERMISSIONS.PURCHASE_ORDERS_CREATE]);
   const canEditPurchaseOrder = hasPermission([PERMISSIONS.PURCHASE_ORDERS_EDIT]);
   const canDeletePurchaseOrder = hasPermission([PERMISSIONS.PURCHASE_ORDERS_DELETE]);
@@ -79,14 +83,21 @@ export default function PurchaseOrdersPage() {
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("list");
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<PurchaseOrderForm>(createDefaultFormData);
+  const [lines, setLines] = useState<DocLine[]>([emptyDocLine()]);
+  const [discount, setDiscount] = useState(emptyBillDiscount);
+
+  const totals = useMemo(() => documentTotals(lines), [lines]);
+  const billed = useMemo(() => withBillDiscount(totals, discount), [totals, discount]);
+
+  const vendorName = (id: string) => vendors.find((vendor) => vendor.id === id)?.label || id;
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const response = await hrApi.erp.purchaseOrders.getAll();
+      const response = await procurementApi.purchaseOrders.getAll(1, 50);
       setOrders(response.data?.data || []);
       setError(null);
     } catch (err) {
@@ -100,22 +111,17 @@ export default function PurchaseOrdersPage() {
     void fetchOrders();
   }, []);
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === "totalAmount" ? Number(value) : value,
-    }));
-  };
-
   const canSavePurchaseOrder = editingId ? canEditPurchaseOrder : canCreatePurchaseOrder;
 
   const handleSave = async () => {
-    if (!formData.poNumber.trim() || !formData.vendorId.trim()) {
-      setError("PO number and vendor are required");
+    if (!formData.vendorId.trim()) {
+      setError("Vendor is required");
       return;
     }
-
+    if (!editingId && payloadLines(lines).length === 0) {
+      setError("Add at least one item line.");
+      return;
+    }
     if (!canSavePurchaseOrder) {
       setError("You do not have permission to save this purchase order.");
       return;
@@ -124,13 +130,28 @@ export default function PurchaseOrdersPage() {
     try {
       setLoading(true);
       if (editingId) {
-        await hrApi.erp.purchaseOrders.update(editingId, formData);
+        await procurementApi.purchaseOrders.update(editingId, {
+          poDate: formData.poDate,
+          expectedDeliveryDate: formData.expectedDeliveryDate || undefined,
+          status: formData.status,
+        });
       } else {
-        await hrApi.erp.purchaseOrders.create(formData);
+        await procurementApi.purchaseOrders.create({
+          poNumber: formData.poNumber || undefined,
+          vendorId: formData.vendorId,
+          poDate: formData.poDate,
+          expectedDeliveryDate: formData.expectedDeliveryDate || undefined,
+          status: formData.status,
+          items: payloadLines(lines),
+          discountAmount: billed.discountAmount,
+          totalAmount: billed.netTotal,
+        });
       }
-      setActiveTab("list");
+      setDrawerOpen(false);
       setEditingId(null);
       setFormData(createDefaultFormData());
+      setLines([emptyDocLine()]);
+      setDiscount(emptyBillDiscount());
       await fetchOrders();
       setError(null);
     } catch (err) {
@@ -146,11 +167,11 @@ export default function PurchaseOrdersPage() {
       vendorId: order.vendorId,
       poDate: order.poDate.split("T")[0],
       expectedDeliveryDate: order.expectedDeliveryDate?.split("T")[0] || "",
-      totalAmount: order.totalAmount,
       status: order.status,
     });
     setEditingId(order.id);
-    setActiveTab("form");
+    setDiscount(emptyBillDiscount());
+    setDrawerOpen(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -162,7 +183,7 @@ export default function PurchaseOrdersPage() {
     });
     if (!ok) return;
     try {
-      await hrApi.erp.purchaseOrders.delete(id);
+      await procurementApi.purchaseOrders.delete(id);
       await fetchOrders();
     } catch (err) {
       setError(getErrorMessage(err, "Failed to delete purchase order"));
@@ -172,7 +193,9 @@ export default function PurchaseOrdersPage() {
   const handleCreateNew = () => {
     setEditingId(null);
     setFormData(createDefaultFormData());
-    setActiveTab("form");
+    setLines([emptyDocLine()]);
+    setDiscount(emptyBillDiscount());
+    setDrawerOpen(true);
   };
 
   const totalValue = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
@@ -180,10 +203,92 @@ export default function PurchaseOrdersPage() {
   const receivedCount = orders.filter((order) => order.status === "Received").length;
   const averageValue = orders.length ? Math.round(totalValue / orders.length) : 0;
 
+  const listRows = useMemo(
+    () => orders.map((order) => ({ ...order, vendorName: vendorName(order.vendorId) })),
+    [orders, vendors],
+  );
+
+  const list = useErpListView({
+    listKey: "purchase-orders",
+    rows: listRows,
+    columns: [
+      { key: "poNumber", label: "PO #" },
+      { key: "vendorName", label: "Vendor" },
+      { key: "poDate", label: "Order Date", dataType: "date" },
+      { key: "expectedDeliveryDate", label: "Expected Delivery", dataType: "date" },
+      { key: "status", label: "Status" },
+      { key: "totalAmount", label: "Amount", dataType: "currency" },
+      { key: "actions", label: "Actions", className: "text-right", locked: true },
+    ],
+    getRowId: (order) => order.id,
+    loading,
+    emptyMessage: "No purchase orders found. Use New purchase order to create the first record.",
+    onCreate: canCreatePurchaseOrder ? handleCreateNew : undefined,
+    createLabel: "New purchase order",
+    onRefresh: () => void fetchOrders(),
+    onBulkDelete: canDeletePurchaseOrder
+      ? async (selectedOrders) => {
+          const ok = await confirm({
+            title: `Delete ${selectedOrders.length} purchase orders`,
+            message: "Permanently delete the selected purchase orders? This cannot be undone.",
+            confirmText: "Delete",
+            variant: "danger",
+          });
+          if (!ok) return;
+          for (const order of selectedOrders) {
+            await procurementApi.purchaseOrders.delete(order.id);
+          }
+          await fetchOrders();
+        }
+      : undefined,
+    renderRow: (order) => (
+      <tr key={order.id} className="erp-tr">
+        <td className="erp-td font-semibold text-slate-900">{order.poNumber}</td>
+        <td className="erp-td">{order.vendorName}</td>
+        <td className="erp-td">{new Date(order.poDate).toLocaleDateString()}</td>
+        <td className="erp-td">
+          {order.expectedDeliveryDate ? new Date(order.expectedDeliveryDate).toLocaleDateString() : "-"}
+        </td>
+        <td className="erp-td">
+          <span className={getStatusChipClass(order.status)}>{order.status}</span>
+        </td>
+        <td className="erp-td font-semibold text-slate-900">{formatInr(order.totalAmount)}</td>
+        <td className="erp-td">
+          <ErpRowActions
+            onEdit={canEditPurchaseOrder ? { label: "Edit", onClick: () => handleEdit(order) } : undefined}
+            onDelete={
+              canDeletePurchaseOrder ? { label: "Delete", onClick: () => void handleDelete(order.id) } : undefined
+            }
+            extra={
+              <button
+                type="button"
+                className="rounded-md px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100"
+                onClick={async () => {
+                  try {
+                    await procurementApi.bills.create({
+                      purchaseOrderId: order.id,
+                      vendorId: order.vendorId,
+                      invoiceDate: new Date().toISOString(),
+                    });
+                    notifySuccess(`Bill created from ${order.poNumber}.`);
+                  } catch (err) {
+                    notifyError(getErrorMessage(err, "Could not create vendor bill."));
+                  }
+                }}
+              >
+                Vendor bill
+              </button>
+            }
+          />
+        </td>
+      </tr>
+    ),
+  });
+
   return (
     <StandardPageLayout
       title="Purchase Orders"
-      subtitle="Run procurement transactions with a clean workspace for monitoring, approval, and receipt status."
+      subtitle="Commit vendor lines, GST, and receipt status from one purchase register."
       eyebrow="Procurement / Purchase Orders"
       icon="box"
       meta={
@@ -192,144 +297,115 @@ export default function PurchaseOrdersPage() {
             { label: "Orders", value: orders.length, helper: "procurement" },
             { label: "In Process", value: inFlightCount, tone: "info" },
             { label: "Received", value: receivedCount, tone: "positive" },
-            { label: "Avg Value", value: formatCurrency(averageValue), tone: "warning" },
+            { label: "Avg Value", value: formatInr(averageValue), tone: "warning" },
           ]}
         />
       }
       actions={
-        canCreatePurchaseOrder ? (
-          <button type="button" onClick={handleCreateNew} className="erp-action-btn erp-action-btn-primary">
-            Create Purchase Order
-          </button>
-        ) : null
+        <>
+          <ErpRefreshButton onClick={() => void fetchOrders()} loading={loading} />
+          {list.headerTools}
+          {canCreatePurchaseOrder ? (
+            <ErpCreateButton label="New purchase order" onClick={handleCreateNew} />
+          ) : null}
+        </>
       }
+      filters={list.filterBar}
     >
       {confirmDialog}
       {error ? <div className="erp-alert-error">{error}</div> : null}
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="erp-tabs-list">
-          <TabsTrigger value="list" className="erp-tab-trigger data-[state=active]:erp-tab-trigger-active">Purchase Order List</TabsTrigger>
-          <TabsTrigger value="form" className="erp-tab-trigger data-[state=active]:erp-tab-trigger-active">{editingId ? "Edit Order" : "New Order"}</TabsTrigger>
-        </TabsList>
+      <CrudCard>{list.table}</CrudCard>
 
-        <TabsContent value="list">
-          <CrudCard
-            title="Procurement Workbench"
-            description="Review vendor commitments, due dates, and receipt progress in one place."
-            actions={<Button onClick={handleCreateNew}>Add Order</Button>}
-          >
-            {loading ? (
-              <div className="erp-loading">Loading orders...</div>
-            ) : orders.length === 0 ? (
-              <div className="erp-empty">No purchase orders found.</div>
-            ) : (
-              <div className="erp-table-wrap">
-                <table className="erp-table">
-                  <thead className="erp-thead">
-                    <tr>
-                      <th className="erp-th">PO #</th>
-                      <th className="erp-th">Vendor</th>
-                      <th className="erp-th">Order Date</th>
-                      <th className="erp-th">Expected Delivery</th>
-                      <th className="erp-th">Status</th>
-                      <th className="erp-th">Amount</th>
-                      <th className="erp-th">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {orders.map((order) => (
-                      <tr key={order.id} className="erp-tr">
-                        <td className="erp-td font-semibold text-slate-900">{order.poNumber}</td>
-                        <td className="erp-td">{order.vendorId}</td>
-                        <td className="erp-td">{new Date(order.poDate).toLocaleDateString()}</td>
-                        <td className="erp-td">
-                          {order.expectedDeliveryDate ? new Date(order.expectedDeliveryDate).toLocaleDateString() : "-"}
-                        </td>
-                        <td className="erp-td">
-                          <span className={getStatusChipClass(order.status)}>{order.status}</span>
-                        </td>
-                        <td className="erp-td font-semibold text-slate-900">{formatCurrency(order.totalAmount)}</td>
-                        <td className="erp-td">
-                          {(() => {
-                            const actionItems = [
-                              ...(canEditPurchaseOrder ? [{ label: "Edit", onClick: () => handleEdit(order) }] : []),
-                              ...(canDeletePurchaseOrder ? [{ label: "Delete", onClick: () => handleDelete(order.id), danger: true }] : []),
-                            ];
-                            return actionItems.length > 0 ? (
-                              <TableActionMenu items={actionItems} />
-                            ) : (
-                              <span className="text-xs text-slate-500">No actions available</span>
-                            );
-                          })()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+      <SideDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        title={editingId ? "Edit purchase order" : "New purchase order"}
+        subtitle="Pick the vendor and item lines. Amounts are calculated from quantity, rate, and GST."
+        width="full"
+        footer={
+          <ErpDrawerFooter
+            onCancel={() => setDrawerOpen(false)}
+            onSave={() => void handleSave()}
+            saving={loading}
+            isEdit={Boolean(editingId)}
+            disabled={!formData.vendorId || (!editingId && payloadLines(lines).length === 0)}
+            saveLabel={editingId ? "Update order" : "Save order"}
+          />
+        }
+      >
+        <div className="grid grid-cols-1 gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <ErpMasterSelect
+              label="Vendor"
+              value={formData.vendorId}
+              options={vendors}
+              placeholder="Select vendor"
+              disabled={Boolean(editingId)}
+              onChange={(id) => setFormData((current) => ({ ...current, vendorId: id }))}
+            />
+            <div>
+              <label className="erp-label">PO Number (optional)</label>
+              <input
+                value={formData.poNumber}
+                disabled={Boolean(editingId)}
+                onChange={(e) => setFormData((current) => ({ ...current, poNumber: e.target.value }))}
+                className="erp-input mt-1"
+                placeholder="Auto-generated if blank"
+              />
+            </div>
+            <div>
+              <label className="erp-label">PO Date</label>
+              <input
+                type="date"
+                value={formData.poDate}
+                onChange={(e) => setFormData((current) => ({ ...current, poDate: e.target.value }))}
+                className="erp-input mt-1"
+              />
+            </div>
+            <div>
+              <label className="erp-label">Expected Delivery</label>
+              <input
+                type="date"
+                value={formData.expectedDeliveryDate}
+                onChange={(e) => setFormData((current) => ({ ...current, expectedDeliveryDate: e.target.value }))}
+                className="erp-input mt-1"
+              />
+            </div>
+            {editingId ? (
+              <div>
+                <label className="erp-label">Status</label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData((current) => ({ ...current, status: e.target.value }))}
+                  className="erp-select mt-1"
+                >
+                  <option value="Draft">Draft</option>
+                  <option value="Submitted">Submitted</option>
+                  <option value="Approved">Approved</option>
+                  <option value="Partial">Partial</option>
+                  <option value="Received">Received</option>
+                  <option value="Cancelled">Cancelled</option>
+                </select>
               </div>
-            )}
-          </CrudCard>
-        </TabsContent>
-
-        <TabsContent value="form">
-          <Card className="erp-panel">
-            <CardHeader className="border-b border-slate-100 bg-white/75">
-              <CardTitle className="flex items-center gap-2">
-                <span className="erp-inline-icon" aria-hidden>
-                  <ModuleIcon name="file" className="h-4 w-4" />
-                </span>
-                {editingId ? "Edit Purchase Order" : "Create Purchase Order"}
-              </CardTitle>
-              <p className="text-sm text-slate-500">
-                Capture vendor, delivery, and order-value information using the shared ERP transaction standard.
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="erp-form-grid erp-form-grid-2">
-                <div>
-                  <label className="erp-label">PO Number</label>
-                  <input name="poNumber" value={formData.poNumber} onChange={handleChange} className="erp-input" />
-                </div>
-                <div>
-                  <label className="erp-label">Vendor ID</label>
-                  <input name="vendorId" value={formData.vendorId} onChange={handleChange} className="erp-input" />
-                </div>
-                <div>
-                  <label className="erp-label">PO Date</label>
-                  <input name="poDate" type="date" value={formData.poDate} onChange={handleChange} className="erp-input" />
-                </div>
-                <div>
-                  <label className="erp-label">Expected Delivery</label>
-                  <input name="expectedDeliveryDate" type="date" value={formData.expectedDeliveryDate} onChange={handleChange} className="erp-input" />
-                </div>
-                <div>
-                  <label className="erp-label">Total Amount</label>
-                  <input name="totalAmount" type="number" value={formData.totalAmount} onChange={handleChange} className="erp-input" />
-                </div>
-                <div>
-                  <label className="erp-label">Status</label>
-                  <select name="status" value={formData.status} onChange={handleChange} className="erp-select">
-                    <option value="Draft">Draft</option>
-                    <option value="Submitted">Submitted</option>
-                    <option value="Approved">Approved</option>
-                    <option value="Partial">Partial</option>
-                    <option value="Received">Received</option>
-                    <option value="Cancelled">Cancelled</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="erp-form-actions">
-                <Button variant="outline" onClick={() => setActiveTab("list")}>Cancel</Button>
-                <Button onClick={handleSave} disabled={loading}>
-                  {editingId ? "Update Order" : "Save Order"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            ) : null}
+          </div>
+          {!editingId ? (
+            <>
+              <ErpLineGrid lines={lines} onChange={setLines} items={items} priceField="purchasePrice" />
+              <ErpTotalsStrip
+                subTotal={totals.subTotal}
+                taxAmount={totals.taxAmount}
+                total={totals.total}
+                discount={discount}
+                onDiscountChange={setDiscount}
+              />
+            </>
+          ) : (
+            <p className="text-sm text-slate-500">Line items are locked after create. Use status to track receipt.</p>
+          )}
+        </div>
+      </SideDrawer>
     </StandardPageLayout>
   );
 }

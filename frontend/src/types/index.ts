@@ -99,6 +99,227 @@ export interface ProjectsResponse {
   projects: Project[];
 }
 
+export interface PermissionRecord {
+  id: string;
+  name: string;
+  description?: string | null;
+  module: string;
+  action: string;
+}
+
+export interface PermissionsResponse {
+  permissions: PermissionRecord[];
+}
+
+export interface HelpdeskTicketRecord {
+  id: string;
+  ticketNumber: string;
+  subject: string;
+  requester?: string;
+  category?: string | null;
+  priority?: string | null;
+  assignedTo?: string | null;
+  status?: string | null;
+  createdAt: string;
+  slaDueAt?: string | null;
+}
+
+export interface HelpdeskTicketsResponse {
+  tickets?: HelpdeskTicketRecord[];
+  records?: HelpdeskTicketRecord[];
+  total?: number;
+  page?: number;
+  limit?: number;
+}
+
+export interface ContactSubmissionRecord {
+  id: string;
+  name: string;
+  email: string;
+  phoneNumber?: string | null;
+  companyName?: string | null;
+  subject?: string | null;
+  message: string;
+  source?: string | null;
+  isResolved: boolean;
+  createdAt: string;
+}
+
+export interface ContactSubmissionsResponse {
+  submissions: ContactSubmissionRecord[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface RecycleBinLogRecord {
+  id: string;
+  tenantId?: string;
+  entityName?: string | null;
+  entityId?: string | null;
+  action?: string | null;
+  performedAt: string;
+  performedBy?: string | null;
+  ip?: string | null;
+}
+
+export interface RecycleBinResponse {
+  logs: RecycleBinLogRecord[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface DeviceSessionRecord {
+  id: string;
+  deviceId: string;
+  expiresAt: string;
+  isRevoked: boolean;
+}
+
+export interface DeviceSessionsResponse {
+  sessions: DeviceSessionRecord[];
+}
+
+export interface HolidayRecord {
+  id: string;
+  name: string;
+  date: string;
+  type?: string | null;
+  isOptional?: boolean;
+  description?: string | null;
+}
+
+export interface EnabledModuleRecord {
+  key: string;
+  name: string;
+  displayName: string;
+  icon?: string | null;
+  description?: string | null;
+  basePath?: string | null;
+  isEnabled: boolean;
+  order?: number;
+}
+
+export interface EnabledModulesResponse {
+  modules: EnabledModuleRecord[];
+}
+
+export interface EntityFieldDefinitionRecord {
+  id: string;
+  entityName: string;
+  fieldKey: string;
+  fieldLabel: string;
+  fieldType: string;
+  options?: string[] | null;
+  isRequired: boolean;
+  isActive: boolean;
+  sortOrder?: number;
+  section?: string | null;
+}
+
+export interface EntityFieldDefinitionsResponse {
+  definitions: EntityFieldDefinitionRecord[];
+}
+
+export interface CommunicationTemplateRecord {
+  id: string;
+  name: string;
+  subject: string;
+  message: string;
+  triggerEvent: string;
+  language: string;
+  status: string;
+  templateKind: string;
+}
+
+export interface CommunicationTemplatesResponse {
+  records: CommunicationTemplateRecord[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface DocumentRecord {
+  id: string;
+  fileName: string;
+  module?: string | null;
+  category?: string | null;
+  contentType?: string | null;
+  fileSizeBytes?: number;
+  description?: string | null;
+  createdAt: string;
+}
+
+export interface WorkflowDefinitionRecord {
+  id: string;
+  key: string;
+  name: string;
+  isActive: boolean;
+  steps?: { stepOrder: number; roleRequired: string; approvalType?: string }[];
+}
+
+export interface WorkflowDefinitionsResponse {
+  definitions: WorkflowDefinitionRecord[];
+}
+
+export interface IntegrationRecord {
+  id?: string;
+  connectorKey?: string;
+  name?: string;
+  provider?: string;
+  category?: string;
+  status?: string;
+  lastTestedAt?: string | null;
+  lastSyncAt?: string | null;
+  lastError?: string | null;
+  config?: Record<string, string | null | undefined>;
+}
+
+export interface IntegrationSyncLogRecord {
+  id: string;
+  connectorKey?: string;
+  direction?: string;
+  operation?: string;
+  status?: string;
+  recordsProcessed?: number;
+  message?: string | null;
+  startedAt?: string;
+  completedAt?: string | null;
+}
+
+export interface IntegrationsResponse {
+  integrations: IntegrationRecord[];
+}
+
+export interface ModuleCatalogRecord {
+  key: string;
+  name: string;
+  isEnabled: boolean;
+  version?: string;
+}
+
+export interface ModuleCatalogResponse {
+  modules: ModuleCatalogRecord[];
+}
+
+export interface OrgStructureRecord {
+  id: string;
+  tenantId?: string;
+  companyId: string;
+  name: string;
+  code: string;
+  description?: string | null;
+  isActive: boolean;
+  city?: string | null;
+  state?: string | null;
+  gstin?: string | null;
+  isWarehouse?: boolean;
+  grade?: string | null;
+  level?: string | null;
+  costCenterType?: string | null;
+}
+
 export interface AppVersion {
   version: string;
   buildNumber: string;
@@ -107,6 +328,7 @@ export interface AppVersion {
 
 export interface SearchResult {
   title: string;
+  subtitle?: string;
   path: string;
   module: string;
   category: "module" | "page" | "action";
@@ -124,9 +346,56 @@ export interface FinancialYear {
 export interface DashboardStats {
   totalEmployees: number;
   activeEmployees: number;
-  onLeave: number;
-  newJoiners: number;
-  pendingApprovals: number;
+  onLeaveToday: number;
+  newJoinersMTD: number;
+  exitsMTD: number;
+  openPositions: number;
+  presentToday: number;
+  absentToday: number;
+  lateCheckins: number;
+  attendancePctMTD: number;
+  pendingLeaves: number;
+  approvedLeavesMTD: number;
+  leaveAlerts: number;
+  attendanceTrend: number[];
+  headcountTrend: number[];
+  attritionTrend: number[];
+  activity: unknown[];
+}
+
+export interface PayrollOverviewStats {
+  totalRuns: number;
+  completedRuns: number;
+  draftRuns: number;
+  totalPayslips: number;
+  totalPayout: number;
+}
+
+export interface LeaveRequestSummary {
+  id: string;
+  employeeId: string;
+  employeeName?: string | null;
+  leavePolicyId?: string | null;
+  fromDate: string;
+  toDate: string;
+  days: number;
+  period?: string | null;
+  status?: string | null;
+  reason?: string | null;
+}
+
+export interface LeaveRequestsResponse {
+  requests: LeaveRequestSummary[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface PayrollRunSummary {
+  id: string;
+  companyId?: string | null;
+  runDate: string;
+  status?: string | null;
 }
 
 export interface ApiError {
@@ -421,6 +690,8 @@ export interface Expense {
   receiptUrl?: string;
   approvedBy?: string;
   submittedAt?: string;
+  costCenterId?: string;
+  projectId?: string;
 }
 
 // ─── Helpdesk Domain Types ───────────────────────────────────────────────────

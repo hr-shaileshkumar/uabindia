@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { PERMISSIONS } from "@/constants/permissions";
-import { hrApi } from "@/services/hrApi";
+import { platformApi } from "@/services/modules";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { notifySuccess } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
@@ -45,7 +45,7 @@ export default function AuditLogsPage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await hrApi.platform.auditLogs({
+      const res = await platformApi.admin.auditLogs({
         page,
         limit: pageSize,
         entity: entityFilter !== "all" ? entityFilter : undefined,
@@ -182,7 +182,7 @@ export default function AuditLogsPage() {
                 </div>
                 <div>
                   <span className="text-slate-500 font-medium">Action Mutation:</span>
-                  <p className="font-semibold text-indigo-600 dark:text-indigo-400">{selectedLog.action}</p>
+                  <p className="font-semibold text-slate-800 dark:text-slate-200">{selectedLog.action}</p>
                 </div>
                 <div>
                   <span className="text-slate-500 font-medium">Actor User:</span>
@@ -229,7 +229,7 @@ export default function AuditLogsPage() {
                 <tr key={log.id} className="erp-tr hover:bg-slate-50/80 dark:hover:bg-slate-900/50 transition-colors">
                   <td className="erp-td">
                     <span className="font-semibold text-xs text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                      <Shield className="h-3.5 w-3.5 text-indigo-500" />
+                      <Shield className="h-3.5 w-3.5 text-slate-600" />
                       {log.entityName}
                     </span>
                   </td>
@@ -249,7 +249,7 @@ export default function AuditLogsPage() {
                   <td className="erp-td font-mono text-xs text-slate-500">{log.ip || "-"}</td>
                   <td className="erp-td text-xs text-slate-500">{new Date(log.performedAt).toLocaleString()}</td>
                   <td className="erp-td text-right">
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-950/50" onClick={() => setSelectedLog(log)}>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => setSelectedLog(log)}>
                       <Eye className="h-4 w-4" />
                     </Button>
                   </td>

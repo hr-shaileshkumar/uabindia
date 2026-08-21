@@ -2,14 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { PageHeader } from "@/design-system";
 import { CrudHeaderStats } from "@/components/erp/crud-workspace";
-import { StatusBadge } from "@/components/erp/status-badge";
+import { erpButtonClassName } from "@/components/erp/erpStyles";
 import { PERMISSIONS } from "@/constants/permissions";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { usePermissions } from "@/context/PermissionContext";
-import { hrApi } from "@/services/hrApi";
+import { hrmsApi } from "@/services/modules";
 
 type AttendanceRecord = {
   id: string;
@@ -90,7 +89,7 @@ export default function AttendanceList({ fetchAttendance, employeeId }: Attendan
     try {
       setPunching(true);
       setError(null);
-      await hrApi.hrms.attendance.markAttendance({
+      await hrmsApi.hrms.attendance.markAttendance({
         employeeId: employeeValue.trim(),
         punchType,
         timestamp: new Date(timestamp).toISOString(),
@@ -109,32 +108,35 @@ export default function AttendanceList({ fetchAttendance, employeeId }: Attendan
   };
 
   return (
-    <div className="erp-page space-y-5">
-      <PageHeader
-        title="Attendance Management"
-        subtitle="Track employee punches and mark daily presence from the HRMS workspace."
-        eyebrow="HRMS / Attendance"
-        icon="clock"
-        stats={[
-          { label: "Punches", value: records.length },
-          { label: "IN", value: punchStats.inCount, tone: "success" },
-          { label: "OUT", value: punchStats.outCount, tone: "warning" },
-          { label: "Geo Verified", value: punchStats.geoValidated, tone: "info" },
-        ]}
-        actions={
-          canPunchAttendance ? (
-            <button
-              type="button"
-              onClick={() => void handlePunch()}
-              disabled={punching}
-              className="h-9 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs shadow-sm disabled:opacity-50"
-            >
-              {punching ? "Saving..." : "Mark Attendance"}
-            </button>
-          ) : null
-        }
-      />
-      <section className="rounded-[1.1rem] border border-slate-200/85 bg-[linear-gradient(180deg,#ffffff,#f8fbff)] p-4 shadow-[var(--erp-shadow-sm)]">
+    <StandardPageLayout
+      title="Attendance Management"
+      subtitle="Track employee punches and mark daily presence from the HRMS workspace."
+      eyebrow="HRMS / Attendance"
+      icon="clock"
+      meta={
+        <CrudHeaderStats
+          items={[
+            { label: "Punches", value: records.length },
+            { label: "IN", value: punchStats.inCount, tone: "positive" },
+            { label: "OUT", value: punchStats.outCount, tone: "warning" },
+            { label: "Geo Verified", value: punchStats.geoValidated, tone: "info" },
+          ]}
+        />
+      }
+      actions={
+        canPunchAttendance ? (
+          <button
+            type="button"
+            onClick={() => void handlePunch()}
+            disabled={punching}
+            className={erpButtonClassName.primary}
+          >
+            {punching ? "Saving..." : "Mark Attendance"}
+          </button>
+        ) : null
+      }
+    >
+      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(18rem,0.85fr)] lg:items-start">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
@@ -148,16 +150,16 @@ export default function AttendanceList({ fetchAttendance, employeeId }: Attendan
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-            <div className="rounded-[0.95rem] border border-slate-200 bg-white px-3.5 py-3">
+            <div className="rounded-xl border border-slate-200 bg-white px-3.5 py-3">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Latest punch</p>
               <p className="mt-2 text-sm font-semibold text-slate-950">{latestPunch?.employeeName || "No recent punch"}</p>
               <p className="mt-1 text-xs leading-5 text-slate-500">{latestPunch ? formatTimestamp(latestPunch.timestamp) : "Waiting for records"}</p>
             </div>
-            <div className="rounded-[0.95rem] border border-slate-200 bg-white px-3.5 py-3">
+            <div className="rounded-xl border border-slate-200 bg-white px-3.5 py-3">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Validated</p>
               <p className="mt-2 text-[1.4rem] font-semibold tracking-[-0.04em] text-slate-950">{punchStats.geoValidated}</p>
             </div>
-            <div className="rounded-[0.95rem] border border-slate-200 bg-white px-3.5 py-3">
+            <div className="rounded-xl border border-slate-200 bg-white px-3.5 py-3">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Direction split</p>
               <p className="mt-2 text-sm font-semibold text-slate-950">{punchStats.inCount} IN / {punchStats.outCount} OUT</p>
             </div>
@@ -166,7 +168,7 @@ export default function AttendanceList({ fetchAttendance, employeeId }: Attendan
       </section>
 
       {canPunchAttendance ? (
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="grid gap-3 lg:grid-cols-5">
             <div className="lg:col-span-1">
               <label className="erp-label">Employee ID</label>
@@ -220,13 +222,13 @@ export default function AttendanceList({ fetchAttendance, employeeId }: Attendan
       ) : null}
 
       {loading && (
-        <div className="p-8 text-center">
-          <p className="text-gray-600">Loading attendance records...</p>
+        <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
+          <p className="text-sm text-slate-600">Loading attendance records...</p>
         </div>
       )}
 
       {error && (
-        <div className="m-4 rounded-lg border border-red-200 bg-red-50 p-4">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4">
           <p className="font-medium text-red-700">Error: {error}</p>
         </div>
       )}
@@ -234,28 +236,28 @@ export default function AttendanceList({ fetchAttendance, employeeId }: Attendan
       {!loading && !error && (
         <>
           {records.length === 0 ? (
-            <div className="p-8 text-center">
-              <p className="text-gray-600">No attendance records found</p>
+            <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
+              <p className="text-sm text-slate-600">No attendance records found</p>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
               <table className="w-full text-sm">
-                <thead className="border-b border-gray-200 bg-gray-50">
+                <thead className="border-b border-slate-200 bg-slate-50">
                   <tr>
-                    <th className="px-6 py-3 text-left font-medium text-gray-700">Date</th>
-                    <th className="px-6 py-3 text-left font-medium text-gray-700">Employee</th>
-                    <th className="px-6 py-3 text-left font-medium text-gray-700">Punch Type</th>
-                    <th className="px-6 py-3 text-left font-medium text-gray-700">Check-in</th>
-                    <th className="px-6 py-3 text-left font-medium text-gray-700">Check-out</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Employee</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Punch Type</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Check-in</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Check-out</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-slate-100">
                   {records.map((record) => {
                     const punch = (record.punchType ?? record.status ?? "").toUpperCase();
                     return (
-                      <tr key={record.id} className="transition hover:bg-gray-50">
-                        <td className="px-6 py-3 text-gray-900">{record.date || formatTimestamp(record.timestamp)}</td>
-                        <td className="px-6 py-3 text-gray-600">
+                      <tr key={record.id} className="transition hover:bg-slate-50">
+                        <td className="px-6 py-3 text-slate-900">{record.date || formatTimestamp(record.timestamp)}</td>
+                        <td className="px-6 py-3 text-slate-600">
                           <div className="font-medium text-slate-900">{record.employeeName || "N/A"}</div>
                           {record.employeeCode ? <div className="text-xs text-slate-500">{record.employeeCode}</div> : null}
                         </td>
@@ -265,17 +267,17 @@ export default function AttendanceList({ fetchAttendance, employeeId }: Attendan
                               punch === "IN"
                                 ? "bg-green-100 text-green-700"
                                 : punch === "OUT"
-                                  ? "bg-sky-100 text-sky-700"
+                                  ? "bg-slate-100 text-slate-700"
                                   : "bg-yellow-100 text-yellow-700"
                             }`}
                           >
                             {punch || "N/A"}
                           </span>
                         </td>
-                        <td className="px-6 py-3 text-gray-600">
+                        <td className="px-6 py-3 text-slate-600">
                           {punch === "IN" ? formatTimestamp(record.timestamp) : "-"}
                         </td>
-                        <td className="px-6 py-3 text-gray-600">
+                        <td className="px-6 py-3 text-slate-600">
                           {punch === "OUT" ? formatTimestamp(record.timestamp) : "-"}
                         </td>
                       </tr>
@@ -287,6 +289,6 @@ export default function AttendanceList({ fetchAttendance, employeeId }: Attendan
           )}
         </>
       )}
-    </div>
+    </StandardPageLayout>
   );
 }

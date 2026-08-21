@@ -2,11 +2,11 @@
 
 import React, { useState } from "react";
 import { Globe, Shield, Activity, RefreshCw, CheckCircle2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { PlatformGlobalPageShell, KpiMetricItem } from "@/components/platform/PlatformGlobalPageShell";
+import { erpButtonClassName } from "@/components/erp/erpStyles";
 import { notifySuccess } from "@/lib/notifications";
 
 export default function WebsiteSettingsPage() {
@@ -54,9 +54,9 @@ export default function WebsiteSettingsPage() {
           </div>
 
           <div className="pt-4 flex justify-end">
-            <Button type="submit" size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white">
+            <button type="submit" className={erpButtonClassName.primary}>
               Save Website Settings
-            </Button>
+            </button>
           </div>
         </form>
       </div>

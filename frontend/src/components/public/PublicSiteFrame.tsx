@@ -34,19 +34,7 @@ export default function PublicSiteFrame({
   const brandingStyle: CSSProperties = brandingThemeToCssVars(profile.theme || {});
 
   return (
-    <div
-      className="pub-page public-site-shell relative flex min-h-screen flex-col overflow-x-clip"
-      style={brandingStyle}
-    >
-      {/* Very subtle indigo radial glow at top — adds depth without dark background */}
-      <div
-        className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-[480px]"
-        style={{
-          background:
-            "radial-gradient(ellipse 70% 60% at 50% -10%, rgba(79,70,229,0.08) 0%, transparent 70%)",
-        }}
-      />
-
+    <div className="relative flex min-h-screen flex-col bg-white text-slate-900" style={brandingStyle}>
       {showHeader ? (
         <PublicHeader
           audience={audience}
@@ -55,7 +43,7 @@ export default function PublicSiteFrame({
           allowedPaths={allowedPaths}
         />
       ) : null}
-      <main className="public-page-main flex-1">{children}</main>
+      <main className="relative z-10 flex min-h-0 flex-1 flex-col">{children}</main>
       {showFooter ? (
         <PublicFooter
           audience={audience}

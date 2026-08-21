@@ -1,108 +1,92 @@
-/* ─── ERP Internal: Cartoon Brutalist Theme ──────────────────────────────
-   Buttons, panels, stat cards, sections — using CSS variable tokens
-   via Tailwind arbitrary value syntax. Parallel to publicStyles.ts */
+/* ERP Internal — aligned with public enterprise SaaS (slate) */
 
 export const erpButtonClassName = {
   primary:
-    "inline-flex min-h-[3rem] items-center justify-center gap-2 rounded-xl px-6 py-2 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 active:translate-y-0 [background:var(--erp-primary)] [box-shadow:var(--erp-shadow-sm)] hover:[background:var(--erp-primary-hover)] hover:[box-shadow:var(--erp-shadow-md)] focus-visible:ring-[color:var(--erp-primary)]",
+    "inline-flex h-8 items-center justify-center gap-1.5 rounded-md bg-slate-900 px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
   secondary:
-    "inline-flex min-h-[3rem] items-center justify-center gap-2 rounded-xl px-6 py-2 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 [border:2px_solid_var(--erp-border)] [background:var(--erp-surface)] [color:var(--erp-ink-secondary)] [box-shadow:var(--erp-shadow-sm)] hover:[border-color:var(--erp-border-strong)] hover:[background:var(--erp-surface-muted)] hover:[color:var(--erp-ink)] focus-visible:ring-[color:var(--erp-primary)]",
+    "inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
   ghost:
-    "inline-flex min-h-[3rem] items-center justify-center gap-2 rounded-xl px-5 py-2 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 [color:var(--erp-muted)] [background:transparent] hover:[background:var(--erp-surface-muted)] hover:[color:var(--erp-ink)] focus-visible:ring-[color:var(--erp-primary)]",
+    "inline-flex h-8 items-center justify-center gap-1.5 rounded-md px-3 text-xs font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:pointer-events-none disabled:opacity-50",
   outline:
-    "inline-flex min-h-[3rem] items-center justify-center gap-2 rounded-xl bg-transparent px-6 py-2 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 [border:2px_solid_var(--erp-primary)] [color:var(--erp-primary)] hover:[background:var(--erp-primary)] hover:text-white focus-visible:ring-[color:var(--erp-primary)]",
+    "inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-slate-900 bg-transparent px-3 text-xs font-medium text-slate-900 transition hover:bg-slate-900 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
   danger:
-    "inline-flex min-h-[3rem] items-center justify-center gap-2 rounded-xl px-6 py-2 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 [background:var(--erp-danger)] [box-shadow:var(--erp-shadow-sm)] hover:[box-shadow:var(--erp-shadow-md)] focus-visible:ring-[color:var(--erp-danger)]",
+    "inline-flex h-8 items-center justify-center gap-1.5 rounded-md bg-rose-600 px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
 };
 
-/* Cards / panels */
 export const erpPanelClassName =
-  "overflow-hidden rounded-[0.75rem] [border:2px_solid_var(--erp-border)] [background:var(--erp-surface)] [box-shadow:var(--erp-shadow)]";
+  "overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm";
 
-export const erpPanelHeaderClassName =
-  "flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b-2 [border-color:var(--erp-border)] [background:var(--erp-surface)]";
+export const erpPanelHeaderClassName = "hidden";
 
-export const erpPanelTitleClassName =
-  "text-[0.98rem] font-bold [color:var(--erp-ink)]";
+export const erpPanelTitleClassName = "text-sm font-semibold text-slate-900";
 
-export const erpPanelBodyClassName = "p-5";
+export const erpPanelBodyClassName = "p-3";
 
-/* Stat cards (KPI tiles) */
 export const erpStatCardClassName =
-  "rounded-[0.75rem] px-4 py-3 [border:2px_solid_var(--erp-border)] [background:var(--erp-surface)] [box-shadow:var(--erp-shadow-sm)]";
+  "rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm";
 
 export const erpStatCardLabelClassName =
-  "text-[11px] font-bold uppercase tracking-[0.14em] [color:var(--erp-muted)]";
+  "text-xs font-semibold uppercase tracking-[0.14em] text-slate-500";
 
 export const erpStatCardValueClassName =
-  "mt-1.5 text-[1.125rem] font-bold tracking-[-0.04em] [color:var(--erp-ink)]";
+  "mt-0.5 text-lg font-semibold tracking-tight text-slate-900";
 
-export const erpStatCardHelperClassName =
-  "mt-0.5 text-[11px] leading-4 [color:var(--erp-muted)]";
+export const erpStatCardHelperClassName = "mt-0.5 text-xs text-slate-500";
 
-/* Status badge tones */
 export const erpStatusBadgeTone = {
   success:
-    "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold [background:var(--erp-success-bg)] [color:var(--erp-success)]",
+    "inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700",
   warning:
-    "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold [background:var(--erp-warning-bg)] [color:var(--erp-warning)]",
+    "inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700",
   danger:
-    "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold [background:var(--erp-danger-bg)] [color:var(--erp-danger)]",
+    "inline-flex items-center gap-1 rounded-md bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700",
   info:
-    "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold [background:var(--erp-info-bg)] [color:var(--erp-info)]",
+    "inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700",
   accent:
-    "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold [background:var(--erp-accent-soft)] [color:var(--erp-accent)]",
+    "inline-flex items-center gap-1 rounded-md bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700",
   neutral:
-    "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold [background:var(--erp-surface-muted)] [color:var(--erp-muted)]",
+    "inline-flex items-center gap-1 rounded-md bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-500",
 };
 
-/* Layout sections */
 export const erpSectionClassName =
-  "rounded-[0.75rem] [border:2px_solid_var(--erp-border)] [background:var(--erp-surface)] [box-shadow:var(--erp-shadow-sm)] p-5";
+  "rounded-lg border border-slate-200 bg-white p-3 shadow-sm";
 
-export const erpSectionEyebrowClassName =
-  "text-[11px] font-semibold uppercase tracking-[0.16em] [color:var(--erp-muted)]";
+export const erpSectionEyebrowClassName = "hidden";
 
-export const erpSectionTitleClassName =
-  "mt-1 text-xl font-semibold tracking-[-0.03em] [color:var(--erp-ink)]";
+export const erpSectionTitleClassName = "hidden";
 
-export const erpSectionSubtitleClassName =
-  "text-sm leading-6 [color:var(--erp-muted)]";
+export const erpSectionSubtitleClassName = "hidden";
 
-/* Module tag / pill */
 export const erpModuleTagClassName =
-  "rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] [border:1px_solid_var(--erp-border)] [background:var(--erp-surface-muted)] [color:var(--erp-muted)]";
+  "rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-slate-500";
 
-/* Quick-action link card */
 export const erpActionCardClassName =
-  "rounded-[1rem] px-4 py-4 transition [border:1px_solid_var(--erp-border)] [background:var(--erp-surface)] hover:[border-color:var(--erp-border-strong)] hover:[background:var(--erp-surface-muted)]";
+  "rounded-lg border border-slate-200 bg-white px-3 py-2.5 transition hover:border-slate-300 hover:bg-slate-50";
 
 export const erpActionCardIconClassName =
-  "inline-flex h-9 w-9 items-center justify-center rounded-xl [background:var(--erp-surface-muted)] [color:var(--erp-primary)]";
+  "inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-50 to-teal-50 text-blue-700";
 
-export const erpActionCardTitleClassName =
-  "truncate text-sm font-semibold [color:var(--erp-ink)]";
+export const erpActionCardTitleClassName = "truncate text-sm font-semibold text-slate-900";
 
-export const erpActionCardSubtitleClassName =
-  "truncate text-xs [color:var(--erp-muted)]";
+export const erpActionCardSubtitleClassName = "hidden";
 
-/* Table styles */
 export const erpTableWrapClassName =
-  "overflow-x-auto rounded-[0.75rem] [border:2px_solid_var(--erp-border)] [background:var(--erp-surface)]";
+  "overflow-x-auto rounded-xl border border-slate-200 bg-white";
 
 export const erpTableThClassName =
-  "sticky top-0 z-10 px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.14em] [color:var(--erp-muted)] backdrop-blur";
+  "sticky top-0 z-10 border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500";
 
-export const erpTableTdClassName =
-  "px-4 py-3 text-sm [color:var(--erp-ink-secondary)]";
+export const erpTableTdClassName = "px-4 py-3 text-sm text-slate-600";
 
-export const erpTableRowHoverClassName =
-  "transition hover:[background:var(--erp-surface-muted)]";
+export const erpTableRowHoverClassName = "transition-colors hover:bg-blue-50/50";
 
-/* Welcome / hero banner */
 export const erpWelcomeBannerClassName =
-  "rounded-[var(--erp-radius-panel)] [border:2px_solid_var(--erp-border)] [box-shadow:var(--erp-shadow-sm)] p-5 md:p-6 [background:linear-gradient(180deg,var(--erp-surface),var(--erp-surface-muted))]";
+  "rounded-xl border border-slate-200 bg-white p-5 md:p-6 shadow-sm";
 
-/* Sidebar / aside panel */
 export const erpAsidePanelClassName =
-  "rounded-[0.75rem] p-4 [border:2px_solid_var(--erp-border)] [background:var(--erp-surface)] [box-shadow:var(--erp-shadow-sm)]";
+  "rounded-xl border border-slate-200 bg-white p-4 shadow-sm";
+
+export const erpFormLabelClassName = "block text-sm font-medium text-slate-700";
+
+export const erpFormInputClassName =
+  "erp-input h-8 w-full rounded-md border border-slate-200 bg-white text-sm transition placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10";

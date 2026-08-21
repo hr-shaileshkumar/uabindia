@@ -1,12 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { FileText, Plus } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudHeaderStats } from "@/components/erp/crud-workspace";
-import { hrApi } from "@/services/hrApi";
-import { notifyError } from "@/lib/notifications";
+import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
+import { SideDrawer } from "@/components/ui/side-drawer";
+import { ErpCreateButton, ErpDrawerFooter, ErpRefreshButton } from "@/components/erp/erp-page-kit";
+import { useErpListView } from "@/components/erp/erp-list-view";
+import { salesApi } from "@/services/modules";
+import { notifyError, notifySuccess } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
+import {
+  DocLine,
+  ErpLineGrid,
+  ErpMasterSelect,
+  ErpTotalsStrip,
+  documentTotals,
+  emptyBillDiscount,
+  emptyDocLine,
+  payloadLines,
+  useDocumentMasters,
+  withBillDiscount,
+} from "@/components/erp/erp-document-kit";
 
 type QuotationRow = {
   id: string;
@@ -26,7 +40,6 @@ type QuotationRow = {
 
 type QuoteForm = {
   customerId: string;
-  amount: number;
   validUntil: string;
   notes: string;
 };
@@ -44,6 +57,7 @@ const formatCurrency = (value?: number) =>
   value != null ? `Rs ${value.toLocaleString("en-IN")}` : "-";
 
 export default function QuotationsPage() {
+  const { customers, items, schemes } = useDocumentMasters();
   const [records, setRecords] = useState<QuotationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,35 +65,37 @@ export default function QuotationsPage() {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [convertingId, setConvertingId] = useState<string | null>(null);
   const [form, setForm] = useState<QuoteForm>({
     customerId: "",
-    amount: 0,
     validUntil: "",
     notes: "",
   });
+  const [lines, setLines] = useState<DocLine[]>([emptyDocLine()]);
+  const [discount, setDiscount] = useState(emptyBillDiscount);
+  const totals = useMemo(() => documentTotals(lines), [lines]);
+  const billed = useMemo(() => withBillDiscount(totals, discount), [totals, discount]);
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await hrApi.erp.salesOrders.getAll(1, 50);
+      const response = await salesApi.quotations.getAll(1, 50);
       const raw = response.data;
       const list = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
 
-      const mapped: QuotationRow[] = list
-        .filter((salesOrder: QuotationRow) => salesOrder.status === "Draft")
-        .map((salesOrder: QuotationRow) => ({
-          id: salesOrder.id,
-          quoteNumber: `QT-${(salesOrder.soNumber || salesOrder.id?.slice(0, 8) || "").replace("SO-", "")}`,
-          customerId: salesOrder.customerId,
-          customerName: salesOrder.customerName || salesOrder.customerId,
-          amount: salesOrder.totalAmount,
-          validUntil: salesOrder.expectedDeliveryDate,
-          createdDate: salesOrder.soDate,
-          status: "Pending",
-          notes: salesOrder.notes,
-        }));
+      const mapped: QuotationRow[] = list.map((row: Record<string, unknown>) => ({
+        id: String(row.id),
+        quoteNumber: String(row.quotationNumber ?? row.quoteNumber ?? ""),
+        customerId: row.customerId ? String(row.customerId) : undefined,
+        customerName: String(row.customerName ?? row.customerId ?? ""),
+        amount: Number(row.totalAmount ?? row.amount ?? 0),
+        validUntil: row.validUntil ? String(row.validUntil) : undefined,
+        createdDate: row.quotationDate ? String(row.quotationDate) : undefined,
+        status: String(row.status ?? "Draft"),
+        notes: row.notes ? String(row.notes) : undefined,
+      }));
 
       setRecords(mapped);
     } catch (err) {
@@ -95,30 +111,46 @@ export default function QuotationsPage() {
     void load();
   }, [load]);
 
-  const handleSave = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!form.customerId || form.amount <= 0) {
+  const handleSave = async () => {
+    const itemsPayload = payloadLines(lines);
+    if (!form.customerId || itemsPayload.length === 0) {
       return;
     }
 
     try {
       setSaving(true);
-      await hrApi.erp.salesOrders.create({
-        soNumber: `QT-${Date.now()}`,
+      await salesApi.quotations.create({
         customerId: form.customerId,
-        soDate: new Date().toISOString(),
-        expectedDeliveryDate: form.validUntil,
-        totalAmount: form.amount,
+        quotationDate: new Date().toISOString(),
+        validUntil: form.validUntil || new Date(Date.now() + 30 * 86400000).toISOString(),
         status: "Draft",
         notes: form.notes,
+        items: itemsPayload,
+        discountAmount: billed.discountAmount,
+        totalAmount: billed.netTotal,
       });
       setShowForm(false);
-      setForm({ customerId: "", amount: 0, validUntil: "", notes: "" });
+      setForm({ customerId: "", validUntil: "", notes: "" });
+      setLines([emptyDocLine()]);
+      setDiscount(emptyBillDiscount());
       void load();
     } catch (err) {
       notifyError(getApiErrorMessage(err, "Failed to create quotation."), "Quotation");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const convertToOrder = async (id: string) => {
+    try {
+      setConvertingId(id);
+      await salesApi.quotations.convertToOrder(id);
+      notifySuccess("Quotation converted to sales order.", "Sales");
+      void load();
+    } catch (err) {
+      notifyError(getApiErrorMessage(err, "Convert to order failed."), "Sales");
+    } finally {
+      setConvertingId(null);
     }
   };
 
@@ -141,6 +173,89 @@ export default function QuotationsPage() {
     .reduce((sum, record) => sum + (record.amount || 0), 0);
   const conversionRate = filtered.length ? Math.round((acceptedCount / filtered.length) * 100) : 0;
 
+  const list = useErpListView({
+    listKey: "sales-quotations",
+    rows: filtered,
+    columns: [
+      { key: "quoteNumber", label: "Quotation" },
+      { key: "customerName", label: "Customer" },
+      { key: "amount", label: "Amount", dataType: "currency" },
+      { key: "createdDate", label: "Created", dataType: "date" },
+      { key: "validUntil", label: "Valid Until", dataType: "date" },
+      { key: "status", label: "Status" },
+      { key: "actions", label: "Actions", locked: true },
+    ],
+    getRowId: (record) => record.id,
+    loading,
+    emptyMessage: "No quotations found. Use New quotation in the header to create one.",
+    onCreate: () => {
+      setForm({ customerId: "", validUntil: "", notes: "" });
+      setLines([emptyDocLine()]);
+      setDiscount(emptyBillDiscount());
+      setShowForm(true);
+    },
+    createLabel: "New quotation",
+    onRefresh: () => void load(),
+    extraFilters: (
+      <>
+        <input
+          className="erp-input max-w-xs"
+          placeholder="Quotation number or customer..."
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+        <select className="erp-select w-36" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+          <option value="">All Status</option>
+          <option value="Draft">Draft</option>
+          <option value="Sent">Sent</option>
+          <option value="Pending">Pending</option>
+          <option value="Accepted">Accepted</option>
+          <option value="Rejected">Rejected</option>
+        </select>
+      </>
+    ),
+    renderRow: (record) => {
+      const isExpired = record.validUntil && new Date(record.validUntil) < new Date();
+      const statusKey = isExpired ? "Expired" : record.status || "Draft";
+      const status = STATUS_CONFIG[statusKey] || STATUS_CONFIG.Draft;
+      const canConvert =
+        !isExpired && !["Accepted", "Rejected", "Expired"].includes(record.status || "");
+      return (
+        <tr key={record.id} className="erp-tr">
+          <td className="erp-td font-mono text-sm font-semibold text-slate-900">{record.quoteNumber || "-"}</td>
+          <td className="erp-td text-slate-700">{record.customerName || record.customerId || "-"}</td>
+          <td className="erp-td font-semibold text-slate-900">{formatCurrency(record.amount)}</td>
+          <td className="erp-td text-slate-600">
+            {record.createdDate ? new Date(record.createdDate).toLocaleDateString("en-IN") : "-"}
+          </td>
+          <td className="erp-td">
+            <span className={isExpired ? "font-semibold text-red-600" : "text-slate-600"}>
+              {record.validUntil ? new Date(record.validUntil).toLocaleDateString("en-IN") : "-"}
+              {isExpired ? <span className="ml-1 text-xs">Expired</span> : null}
+            </span>
+          </td>
+          <td className="erp-td">
+            <span className={status.chip}>{status.label}</span>
+          </td>
+          <td className="erp-td">
+            {canConvert ? (
+              <button
+                type="button"
+                className="erp-action-btn erp-action-btn-secondary text-xs"
+                disabled={convertingId === record.id}
+                onClick={() => void convertToOrder(record.id)}
+              >
+                {convertingId === record.id ? "Converting…" : "To order"}
+              </button>
+            ) : (
+              <span className="text-xs text-slate-400">—</span>
+            )}
+          </td>
+        </tr>
+      );
+    },
+  });
+
   return (
     <StandardPageLayout
       title="Quotations"
@@ -158,218 +273,81 @@ export default function QuotationsPage() {
         />
       }
       actions={
-        <button
-          type="button"
-          onClick={() => setShowForm((current) => !current)}
-          className="erp-action-btn erp-action-btn-primary"
-        >
-          <Plus className="h-4 w-4" />
-          New Quotation
-        </button>
+        <>
+          <ErpRefreshButton onClick={() => void load()} loading={loading} />
+          {list.headerTools}
+          <ErpCreateButton
+            label="New quotation"
+            onClick={() => {
+              setForm({ customerId: "", validUntil: "", notes: "" });
+              setLines([emptyDocLine()]);
+              setDiscount(emptyBillDiscount());
+              setShowForm(true);
+            }}
+          />
+        </>
       }
-      filters={
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="min-w-48 flex-1">
-            <label className="erp-label">Search</label>
-            <input
-              className="erp-input"
-              placeholder="Quotation number or customer..."
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-          </div>
-          <div>
-            <label className="erp-label">Status</label>
-            <select
-              className="erp-select w-36"
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
-            >
-              <option value="">All Status</option>
-              <option value="Draft">Draft</option>
-              <option value="Sent">Sent</option>
-              <option value="Pending">Pending</option>
-              <option value="Accepted">Accepted</option>
-              <option value="Rejected">Rejected</option>
-            </select>
-          </div>
-          {(search || statusFilter) && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearch("");
-                setStatusFilter("");
-              }}
-              className="erp-action-btn erp-action-btn-secondary"
-            >
-              Clear
-            </button>
-          )}
-        </div>
-      }
+      filters={list.filterBar}
     >
       {error && <div className="erp-alert-error">{error}</div>}
 
-      {showForm && (
-        <div className="erp-panel">
-          <div className="erp-panel-header">
+      <CrudCard>{list.table}</CrudCard>
+
+      <SideDrawer
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        title="New quotation"
+        subtitle="Pick the customer and item lines. Totals follow quantity, rate, and GST."
+        width="full"
+        footer={
+          <ErpDrawerFooter
+            onCancel={() => setShowForm(false)}
+            onSave={() => void handleSave()}
+            saving={saving}
+            disabled={!form.customerId || payloadLines(lines).length === 0}
+            saveLabel="Create quotation"
+          />
+        }
+      >
+        <div className="grid grid-cols-1 gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <ErpMasterSelect
+              label="Customer"
+              value={form.customerId}
+              options={customers}
+              placeholder="Select customer"
+              onChange={(id) => setForm({ ...form, customerId: id })}
+            />
             <div>
-              <h2 className="erp-panel-title">Create Quotation</h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Set customer reference, value, validity period, and commercial notes.
-              </p>
+              <label className="erp-label">Valid Until</label>
+              <input
+                className="erp-input mt-1"
+                type="date"
+                value={form.validUntil}
+                onChange={(event) => setForm({ ...form, validUntil: event.target.value })}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="erp-label">Notes or Terms</label>
+              <textarea
+                className="erp-input mt-1"
+                rows={2}
+                value={form.notes}
+                onChange={(event) => setForm({ ...form, notes: event.target.value })}
+                placeholder="Pricing notes, validity terms, delivery assumptions..."
+              />
             </div>
           </div>
-          <div className="erp-panel-body">
-            <form onSubmit={handleSave} className="space-y-4">
-              <div className="erp-form-grid erp-form-grid-2">
-                <div>
-                  <label className="erp-label">Customer ID</label>
-                  <input
-                    className="erp-input"
-                    placeholder="Enter customer ID"
-                    value={form.customerId}
-                    onChange={(event) => setForm({ ...form, customerId: event.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="erp-label">Quotation Amount (Rs)</label>
-                  <input
-                    className="erp-input"
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={form.amount}
-                    onChange={(event) => setForm({ ...form, amount: Number(event.target.value) })}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="erp-label">Valid Until</label>
-                  <input
-                    className="erp-input"
-                    type="date"
-                    value={form.validUntil}
-                    onChange={(event) => setForm({ ...form, validUntil: event.target.value })}
-                    required
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="erp-label">Notes or Terms</label>
-                  <textarea
-                    className="erp-input"
-                    rows={3}
-                    value={form.notes}
-                    onChange={(event) => setForm({ ...form, notes: event.target.value })}
-                    placeholder="Pricing notes, validity terms, delivery assumptions..."
-                  />
-                </div>
-              </div>
-              <div className="erp-form-actions">
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="erp-action-btn erp-action-btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button type="submit" disabled={saving} className="erp-action-btn erp-action-btn-primary">
-                  {saving ? "Creating..." : "Create Quotation"}
-                </button>
-              </div>
-            </form>
-          </div>
+          <ErpLineGrid lines={lines} onChange={setLines} items={items} priceField="sellingPrice" schemes={schemes} />
+          <ErpTotalsStrip
+            subTotal={totals.subTotal}
+            taxAmount={totals.taxAmount}
+            total={totals.total}
+            discount={discount}
+            onDiscountChange={setDiscount}
+          />
         </div>
-      )}
-
-      <div className="erp-panel">
-        <div className="erp-panel-header">
-          <div>
-            <h2 className="erp-panel-title">Quotation Register</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Review quote value, customer, creation date, validity, and status in one list.
-            </p>
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="erp-table">
-            <thead className="erp-thead">
-              <tr>
-                <th className="erp-th">Quotation</th>
-                <th className="erp-th">Customer</th>
-                <th className="erp-th">Amount</th>
-                <th className="erp-th">Created</th>
-                <th className="erp-th">Valid Until</th>
-                <th className="erp-th">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                Array.from({ length: 5 }).map((_, index) => (
-                  <tr key={index}>
-                    <td colSpan={6} className="erp-td">
-                      <div className="h-4 animate-pulse rounded bg-slate-100" />
-                    </td>
-                  </tr>
-                ))
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="erp-td py-16 text-center">
-                    <div className="flex flex-col items-center gap-3">
-                      <FileText className="h-10 w-10 text-slate-300" />
-                      <p className="text-sm text-slate-400">No quotations found.</p>
-                      <button
-                        type="button"
-                        onClick={() => setShowForm(true)}
-                        className="erp-action-btn erp-action-btn-secondary text-xs"
-                      >
-                        New Quotation
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((record) => {
-                  const isExpired = record.validUntil && new Date(record.validUntil) < new Date();
-                  const statusKey = isExpired ? "Expired" : record.status || "Draft";
-                  const status = STATUS_CONFIG[statusKey] || STATUS_CONFIG.Draft;
-
-                  return (
-                    <tr key={record.id} className="erp-tr">
-                      <td className="erp-td font-mono text-sm font-semibold text-slate-900">
-                        {record.quoteNumber || "-"}
-                      </td>
-                      <td className="erp-td text-slate-700">
-                        {record.customerName || record.customerId || "-"}
-                      </td>
-                      <td className="erp-td font-semibold text-slate-900">
-                        {formatCurrency(record.amount)}
-                      </td>
-                      <td className="erp-td text-slate-600">
-                        {record.createdDate
-                          ? new Date(record.createdDate).toLocaleDateString("en-IN")
-                          : "-"}
-                      </td>
-                      <td className="erp-td">
-                        <span className={isExpired ? "font-semibold text-red-600" : "text-slate-600"}>
-                          {record.validUntil
-                            ? new Date(record.validUntil).toLocaleDateString("en-IN")
-                            : "-"}
-                          {isExpired ? <span className="ml-1 text-xs">Expired</span> : null}
-                        </span>
-                      </td>
-                      <td className="erp-td">
-                        <span className={status.chip}>{status.label}</span>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      </SideDrawer>
     </StandardPageLayout>
   );
 }

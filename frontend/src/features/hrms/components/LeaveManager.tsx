@@ -2,13 +2,21 @@
 
 import { useEffect, useMemo, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { PageHeader } from "@/design-system";
 import { CrudHeaderStats } from "@/components/erp/crud-workspace";
-import { hrApi } from "@/services/hrApi";
+import {
+  erpButtonClassName,
+  erpPanelClassName,
+  erpSectionClassName,
+  erpStatusBadgeTone,
+  erpTableThClassName,
+  erpTableTdClassName,
+  erpTableWrapClassName,
+} from "@/components/erp/erpStyles";
+import { hrmsApi } from "@/services/modules";
 
 type TabKey = "policies" | "balances" | "requests" | "approvals" | "holidays" | "allocations" | "types";
 
-const leaveApi = hrApi.hrms.leave;
+const leaveApi = hrmsApi.hrms.leave;
 
 export default function LeaveManager() {
   const [activeTab, setActiveTab] = useState<TabKey>("requests");
@@ -144,207 +152,240 @@ export default function LeaveManager() {
     }
   };
 
+  const tabs: TabKey[] = ["requests", "approvals", "balances", "policies", "types", "holidays", "allocations"];
+
   return (
-    <div className="erp-page space-y-5">
-      <PageHeader
-        title="Leave Management"
-        subtitle="Policies, requests, approvals, balances, and holiday allocations in one HR operations workspace."
-        eyebrow="HRMS / Time Off"
-        icon="leave"
-        stats={[
-          { label: "Requests", value: requests.length },
-          { label: "Pending", value: pendingApprovals.length, tone: "warning" },
-          { label: "Approved", value: approvedRequests, tone: "info" },
-          { label: "Balance", value: leaveBalanceTotal, tone: "success" },
-        ]}
-      />
-      <div className="space-y-4">
-        {error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-            <p className="font-medium text-red-700">{error}</p>
-          </div>
-        )}
+    <StandardPageLayout
+      title="Leave Management"
+      subtitle="Policies, requests, approvals, balances, and holiday allocations in one HR operations workspace."
+      eyebrow="HRMS / Time Off"
+      icon="calendar"
+      meta={
+        <CrudHeaderStats
+          items={[
+            { label: "Requests", value: requests.length },
+            { label: "Pending", value: pendingApprovals.length, tone: "warning" },
+            { label: "Approved", value: approvedRequests, tone: "info" },
+            { label: "Balance", value: leaveBalanceTotal, tone: "positive" },
+          ]}
+        />
+      }
+    >
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+          <p className="font-medium text-red-700">{error}</p>
+        </div>
+      )}
+
+      <div className={`${erpPanelClassName} p-4`}>
         <div className="flex flex-wrap gap-2">
-          {(["requests", "approvals", "balances", "policies", "types", "holidays", "allocations"] as TabKey[]).map((tab) => (
+          {tabs.map((tab) => (
             <button
               key={tab}
+              type="button"
               onClick={() => setActiveTab(tab)}
-              className={`erp-tab-trigger ${activeTab === tab ? "erp-tab-trigger-active" : ""}`}
+              className={activeTab === tab ? "erp-tab-trigger erp-tab-trigger-active" : "erp-tab-trigger"}
             >
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
         </div>
-
-        {activeTab === "requests" && (
-          <div className="rounded-lg border bg-white p-4 shadow-[var(--erp-shadow-sm)]">
-            <div className="mb-3">
-              <h2 className="font-semibold text-slate-950">Leave Requests</h2>
-              <p className="mt-1 text-sm text-slate-500">Use this as the daily operator queue for submitted time-off requests.</p>
-            </div>
-            {loadingRequests ? (
-              <div className="text-sm text-gray-500">Loading...</div>
-            ) : requests.length === 0 ? (
-              <div className="text-sm text-gray-500">No requests found.</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-3 py-2 text-left">Employee</th>
-                      <th className="px-3 py-2 text-left">From</th>
-                      <th className="px-3 py-2 text-left">To</th>
-                      <th className="px-3 py-2 text-left">Days</th>
-                      <th className="px-3 py-2 text-left">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {requests.map((req) => (
-                      <tr key={req.id}>
-                        <td className="px-3 py-2">{req.employeeName || req.employeeId}</td>
-                        <td className="px-3 py-2">{req.fromDate}</td>
-                        <td className="px-3 py-2">{req.toDate}</td>
-                        <td className="px-3 py-2">{req.days}</td>
-                        <td className="px-3 py-2">
-                          <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
-                            {req.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === "approvals" && (
-          <div className="rounded-lg border bg-white p-4 shadow-[var(--erp-shadow-sm)]">
-            <div className="mb-3">
-              <h2 className="font-semibold text-slate-950">Pending Approvals</h2>
-              <p className="mt-1 text-sm text-slate-500">Managers should only need context and decision controls from this queue.</p>
-            </div>
-            {loadingApprovals ? (
-              <div className="text-sm text-gray-500">Loading...</div>
-            ) : pendingApprovals.length === 0 ? (
-              <div className="text-sm text-gray-500">No approvals pending.</div>
-            ) : (
-              <div className="space-y-3">
-                {pendingApprovals.map((req) => (
-                  <div key={req.id} className="flex items-center justify-between rounded-md border p-3">
-                    <div>
-                      <div className="font-medium">{req.employeeName || req.employeeId}</div>
-                      <div className="text-xs text-gray-500">
-                        {req.fromDate} to {req.toDate} ({req.days} days)
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button className="erp-action-btn erp-action-btn-primary text-xs min-h-8! px-3!" onClick={() => void handleApproveRequest(req.id)}>
-                        Approve
-                      </button>
-                      <button className="erp-action-btn erp-action-btn-danger text-xs min-h-8! px-3!" onClick={() => void handleRejectRequest(req.id)}>
-                        Reject
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === "balances" && (
-          <div className="rounded-lg border bg-white p-4 shadow-[var(--erp-shadow-sm)]">
-            <h2 className="mb-3 font-semibold text-slate-950">Leave Balances</h2>
-            {loadingBalances ? <div className="text-sm text-gray-500">Loading...</div> : balances.length === 0 ? <div className="text-sm text-gray-500">No leave balances available.</div> : (
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {balances.map((balance, index) => (
-                  <div key={balance.id || index} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      {balance.leaveTypeName || balance.leaveType || "Leave balance"}
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-slate-950">
-                      {Number(balance.balance || balance.remaining || 0)}
-                    </p>
-                    <p className="mt-1 text-sm text-slate-500">
-                      Allocated {Number(balance.allocated || 0)} | Used {Number(balance.used || 0)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === "policies" && (
-          <div className="rounded-lg border bg-white p-4 shadow-[var(--erp-shadow-sm)]">
-            <h2 className="mb-3 font-semibold">Leave Policies</h2>
-            {loadingPolicies ? <div className="text-sm text-gray-500">Loading...</div> : policies.length === 0 ? <div className="text-sm text-gray-500">No leave policies configured.</div> : (
-              <div className="grid gap-3 md:grid-cols-2">
-                {policies.map((policy, index) => (
-                  <div key={policy.id || index} className="rounded-2xl border border-slate-200 bg-white p-4">
-                    <p className="font-semibold text-slate-900">{policy.name || policy.policyName || "Leave policy"}</p>
-                    <p className="mt-1 text-sm text-slate-500">
-                      {policy.description || `${policy.leaveTypeName || "General"} policy setup`}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === "types" && (
-          <div className="rounded-lg border bg-white p-4 shadow-[var(--erp-shadow-sm)]">
-            <h2 className="mb-3 font-semibold">Leave Types</h2>
-            {loadingTypes ? <div className="text-sm text-gray-500">Loading...</div> : leaveTypes.length === 0 ? <div className="text-sm text-gray-500">No leave types configured.</div> : (
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {leaveTypes.map((type, index) => (
-                  <div key={type.id || index} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                    <p className="font-semibold text-slate-900">{type.name || type.leaveTypeName || "Leave type"}</p>
-                    <p className="mt-1 text-sm text-slate-500">{type.description || "Configured leave category for employees."}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === "holidays" && (
-          <div className="rounded-lg border bg-white p-4 shadow-[var(--erp-shadow-sm)]">
-            <h2 className="mb-3 font-semibold">Holidays</h2>
-            {loadingHolidays ? <div className="text-sm text-gray-500">Loading...</div> : holidays.length === 0 ? <div className="text-sm text-gray-500">No holidays configured for {currentYear}.</div> : (
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {holidays.map((holiday, index) => (
-                  <div key={holiday.id || index} className="rounded-2xl border border-slate-200 bg-white p-4">
-                    <p className="font-semibold text-slate-900">{holiday.name || holiday.holidayName || "Holiday"}</p>
-                    <p className="mt-1 text-sm text-slate-500">{holiday.date || holiday.holidayDate || "Date not provided"}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === "allocations" && (
-          <div className="rounded-lg border bg-white p-4 shadow-[var(--erp-shadow-sm)]">
-            <h2 className="mb-3 font-semibold">Allocations</h2>
-            {loadingAllocations ? <div className="text-sm text-gray-500">Loading...</div> : allocations.length === 0 ? <div className="text-sm text-gray-500">No annual allocations available.</div> : (
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {allocations.map((allocation, index) => (
-                  <div key={allocation.id || index} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                    <p className="font-semibold text-slate-900">{allocation.employeeName || allocation.employeeId || "Allocation"}</p>
-                    <p className="mt-1 text-sm text-slate-500">
-                      {allocation.leaveTypeName || allocation.leaveType || "Leave type"} | {Number(allocation.allocated || 0)} allocated
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </div>
-    </div>
+
+      {activeTab === "requests" && (
+        <section className={erpSectionClassName}>
+          <div className="mb-3">
+            <h2 className="font-semibold text-slate-950">Leave Requests</h2>
+            <p className="mt-1 text-sm text-slate-500">Use this as the daily operator queue for submitted time-off requests.</p>
+          </div>
+          {loadingRequests ? (
+            <div className="text-sm text-slate-500">Loading...</div>
+          ) : requests.length === 0 ? (
+            <div className="text-sm text-slate-500">No requests found.</div>
+          ) : (
+            <div className={erpTableWrapClassName}>
+              <table className="min-w-full">
+                <thead>
+                  <tr>
+                    <th className={erpTableThClassName}>Employee</th>
+                    <th className={erpTableThClassName}>From</th>
+                    <th className={erpTableThClassName}>To</th>
+                    <th className={erpTableThClassName}>Days</th>
+                    <th className={erpTableThClassName}>Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {requests.map((req) => (
+                    <tr key={req.id}>
+                      <td className={erpTableTdClassName}>{req.employeeName || req.employeeId}</td>
+                      <td className={erpTableTdClassName}>{req.fromDate}</td>
+                      <td className={erpTableTdClassName}>{req.toDate}</td>
+                      <td className={erpTableTdClassName}>{req.days}</td>
+                      <td className={erpTableTdClassName}>
+                        <span className={erpStatusBadgeTone.info}>{req.status}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
+
+      {activeTab === "approvals" && (
+        <section className={erpSectionClassName}>
+          <div className="mb-3">
+            <h2 className="font-semibold text-slate-950">Pending Approvals</h2>
+            <p className="mt-1 text-sm text-slate-500">Managers should only need context and decision controls from this queue.</p>
+          </div>
+          {loadingApprovals ? (
+            <div className="text-sm text-slate-500">Loading...</div>
+          ) : pendingApprovals.length === 0 ? (
+            <div className="text-sm text-slate-500">No approvals pending.</div>
+          ) : (
+            <div className="space-y-3">
+              {pendingApprovals.map((req) => (
+                <div key={req.id} className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-3">
+                  <div>
+                    <div className="font-medium text-slate-900">{req.employeeName || req.employeeId}</div>
+                    <div className="text-xs text-slate-500">
+                      {req.fromDate} to {req.toDate} ({req.days} days)
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      className={`${erpButtonClassName.primary} h-8 px-3 text-xs`}
+                      onClick={() => void handleApproveRequest(req.id)}
+                    >
+                      Approve
+                    </button>
+                    <button
+                      type="button"
+                      className={`${erpButtonClassName.danger} h-8 px-3 text-xs`}
+                      onClick={() => void handleRejectRequest(req.id)}
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {activeTab === "balances" && (
+        <section className={erpSectionClassName}>
+          <h2 className="mb-3 font-semibold text-slate-950">Leave Balances</h2>
+          {loadingBalances ? (
+            <div className="text-sm text-slate-500">Loading...</div>
+          ) : balances.length === 0 ? (
+            <div className="text-sm text-slate-500">No leave balances available.</div>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {balances.map((balance, index) => (
+                <div key={balance.id || index} className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {balance.leaveTypeName || balance.leaveType || "Leave balance"}
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
+                    {Number(balance.balance || balance.remaining || 0)}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Allocated {Number(balance.allocated || 0)} | Used {Number(balance.used || 0)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {activeTab === "policies" && (
+        <section className={erpSectionClassName}>
+          <h2 className="mb-3 font-semibold text-slate-950">Leave Policies</h2>
+          {loadingPolicies ? (
+            <div className="text-sm text-slate-500">Loading...</div>
+          ) : policies.length === 0 ? (
+            <div className="text-sm text-slate-500">No leave policies configured.</div>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2">
+              {policies.map((policy, index) => (
+                <div key={policy.id || index} className="rounded-xl border border-slate-200 bg-white p-4">
+                  <p className="font-semibold text-slate-900">{policy.name || policy.policyName || "Leave policy"}</p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {policy.description || `${policy.leaveTypeName || "General"} policy setup`}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {activeTab === "types" && (
+        <section className={erpSectionClassName}>
+          <h2 className="mb-3 font-semibold text-slate-950">Leave Types</h2>
+          {loadingTypes ? (
+            <div className="text-sm text-slate-500">Loading...</div>
+          ) : leaveTypes.length === 0 ? (
+            <div className="text-sm text-slate-500">No leave types configured.</div>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {leaveTypes.map((type, index) => (
+                <div key={type.id || index} className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                  <p className="font-semibold text-slate-900">{type.name || type.leaveTypeName || "Leave type"}</p>
+                  <p className="mt-1 text-sm text-slate-500">{type.description || "Configured leave category for employees."}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {activeTab === "holidays" && (
+        <section className={erpSectionClassName}>
+          <h2 className="mb-3 font-semibold text-slate-950">Holidays</h2>
+          {loadingHolidays ? (
+            <div className="text-sm text-slate-500">Loading...</div>
+          ) : holidays.length === 0 ? (
+            <div className="text-sm text-slate-500">No holidays configured for {currentYear}.</div>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {holidays.map((holiday, index) => (
+                <div key={holiday.id || index} className="rounded-xl border border-slate-200 bg-white p-4">
+                  <p className="font-semibold text-slate-900">{holiday.name || holiday.holidayName || "Holiday"}</p>
+                  <p className="mt-1 text-sm text-slate-500">{holiday.date || holiday.holidayDate || "Date not provided"}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {activeTab === "allocations" && (
+        <section className={erpSectionClassName}>
+          <h2 className="mb-3 font-semibold text-slate-950">Allocations</h2>
+          {loadingAllocations ? (
+            <div className="text-sm text-slate-500">Loading...</div>
+          ) : allocations.length === 0 ? (
+            <div className="text-sm text-slate-500">No annual allocations available.</div>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {allocations.map((allocation, index) => (
+                <div key={allocation.id || index} className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                  <p className="font-semibold text-slate-900">{allocation.employeeName || allocation.employeeId || "Allocation"}</p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {allocation.leaveTypeName || allocation.leaveType || "Leave type"} | {Number(allocation.allocated || 0)} allocated
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+    </StandardPageLayout>
   );
 }

@@ -5,17 +5,12 @@ import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet"
+import { SideDrawer } from "@/components/ui/side-drawer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
+import { erpButtonClassName } from "@/components/erp/erpStyles"
 import type { CompanyRecord, TenantSummary } from "@/features/companies/types"
 
 const companyFormSchema = z.object({
@@ -97,22 +92,22 @@ export function CompanyDrawerForm({
   })
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto sm:max-w-xl flex flex-col gap-0 p-0 z-[100]">
-        <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80">
-          <SheetHeader>
-            <SheetTitle className="text-xl font-bold text-slate-900 dark:text-slate-100">
-              {company ? "Edit Company Master" : "Create New Company"}
-            </SheetTitle>
-            <SheetDescription className="text-sm text-slate-500">
-              {company
-                ? "Update company master details, code, and organization linkage."
-                : "Add a new company entity to the system and link to tenant."}
-            </SheetDescription>
-          </SheetHeader>
+    <SideDrawer
+      open={open}
+      onClose={() => onOpenChange(false)}
+      title={company ? "Edit Company" : "Create New Company"}
+      footer={
+        <div className="flex items-center justify-end gap-2">
+          <Button variant="outline" type="button" onClick={() => onOpenChange(false)} disabled={saving} className={erpButtonClassName.secondary}>
+            Cancel
+          </Button>
+          <Button type="submit" form="company-form" disabled={saving} className={erpButtonClassName.primary}>
+            {saving ? "Saving..." : company ? "Update Company" : "Create Company"}
+          </Button>
         </div>
-        
-        <form id="company-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
+      }
+    >
+        <form id="company-form" onSubmit={handleSubmit} className="space-y-5">
           {isSuperAdmin && !company && (
             <div className="space-y-2">
               <Label htmlFor="tenantId" className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
@@ -120,7 +115,7 @@ export function CompanyDrawerForm({
               </Label>
               <select
                 id="tenantId"
-                className="flex h-10 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-background px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="flex h-10 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-background px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-900/20"
                 {...form.register("tenantId")}
               >
                 <option value="">Select Target Tenant</option>
@@ -184,16 +179,6 @@ export function CompanyDrawerForm({
             </Label>
           </div>
         </form>
-
-        <div className="px-6 py-4 pb-8 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end space-x-3 bg-slate-50/80 dark:bg-slate-900/80">
-          <Button variant="outline" type="button" onClick={() => onOpenChange(false)} disabled={saving} className="h-10 px-5">
-            Cancel
-          </Button>
-          <Button type="submit" form="company-form" disabled={saving} className="h-10 px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-sm">
-            {saving ? "Saving..." : company ? "Update Company" : "Create Company"}
-          </Button>
-        </div>
-      </SheetContent>
-    </Sheet>
+    </SideDrawer>
   )
 }
