@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Clock3, Mail, MapPinned, PhoneCall } from "lucide-react";
 import { DemoAgendaPanel, SupportLaneGrid } from "@/components/public/PublicMarketingBlocks";
@@ -12,7 +12,7 @@ import {
   publicSectionClassName,
   publicSectionSpacingClassName,
 } from "@/components/public/publicStyles";
-import { ContactDemoForm } from "@/components/erp/contact-demo-form";
+import { ContactDemoForm } from "@/components/workspace/contact-demo-form";
 import { supportLanes, publicSiteUrl } from "@/lib/public-marketing";
 import { usePublicPageData } from "@/hooks/usePublicPageData";
 import type { PublicAudience } from "@/lib/public-audience";

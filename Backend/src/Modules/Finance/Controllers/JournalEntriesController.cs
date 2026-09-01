@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using UabIndia.Application.Interfaces;
-using UabIndia.Core.Entities;
 using UabIndia.Infrastructure.Data;
 
 namespace UabIndia.Api.Modules.Finance.Controllers
@@ -19,11 +18,16 @@ namespace UabIndia.Api.Modules.Finance.Controllers
     {
         private readonly ApplicationDbContext _db;
         private readonly ITenantAccessor _tenantAccessor;
+        private readonly IJournalEntryService _journalEntries;
 
-        public JournalEntriesController(ApplicationDbContext db, ITenantAccessor tenantAccessor)
+        public JournalEntriesController(
+            ApplicationDbContext db,
+            ITenantAccessor tenantAccessor,
+            IJournalEntryService journalEntries)
         {
             _db = db;
             _tenantAccessor = tenantAccessor;
+            _journalEntries = journalEntries;
         }
 
         [HttpGet]
@@ -104,133 +108,62 @@ namespace UabIndia.Api.Modules.Finance.Controllers
         [Authorize(Policy = "AdminOnly")]
         public async Task<IActionResult> Create([FromBody] CreateJournalEntryDto dto)
         {
-            if (dto.Lines == null || dto.Lines.Count < 2)
-                return BadRequest(new { message = "At least two lines are required." });
-
-            var tenantId = _tenantAccessor.GetTenantId();
-            var totalDebit = dto.Lines.Sum(l => l.DebitAmount);
-            var totalCredit = dto.Lines.Sum(l => l.CreditAmount);
-            if (totalDebit != totalCredit || totalDebit <= 0)
-                return BadRequest(new { message = "Total debits must equal total credits and be greater than zero." });
-
-            var accountIds = dto.Lines.Select(l => l.AccountId).Distinct().ToList();
-            var accounts = await _db.ChartOfAccounts
-                .Where(a => accountIds.Contains(a.Id) && a.TenantId == tenantId && !a.IsDeleted && !a.IsGroup)
-                .ToListAsync();
-            if (accounts.Count != accountIds.Count)
-                return BadRequest(new { message = "One or more accounts are invalid or are group headers." });
-
-            var journalNumber = $"JE-{DateTime.UtcNow:yyyyMMdd}-{Random.Shared.Next(10000, 99999)}";
-
-            var entry = new JournalEntry
+            try
             {
-                TenantId = tenantId,
-                JournalNumber = journalNumber,
-                EntryDate = dto.EntryDate.Kind == DateTimeKind.Unspecified
-                    ? DateTime.SpecifyKind(dto.EntryDate, DateTimeKind.Utc)
-                    : dto.EntryDate.ToUniversalTime(),
-                EntryType = string.IsNullOrWhiteSpace(dto.EntryType) ? "Regular" : dto.EntryType,
-                ReferenceNumber = dto.ReferenceNumber,
-                Description = dto.Description,
-                Narration = dto.Narration,
-                TotalDebit = totalDebit,
-                TotalCredit = totalCredit,
-                Status = "Draft",
-                CreatedAt = DateTime.UtcNow,
-                Lines = dto.Lines.Select(l => new JournalEntryLine
-                {
-                    TenantId = tenantId,
-                    AccountId = l.AccountId,
-                    DebitAmount = l.DebitAmount,
-                    CreditAmount = l.CreditAmount,
-                    Description = l.Description,
-                    CreatedAt = DateTime.UtcNow
-                }).ToList()
-            };
+                var created = await _journalEntries.CreateDraftAsync(new CreateJournalEntryCommand(
+                    dto.EntryDate,
+                    dto.EntryType,
+                    dto.ReferenceNumber,
+                    dto.Description,
+                    dto.Narration,
+                    (dto.Lines ?? new List<CreateJournalLineDto>()).Select(l =>
+                        new CreateJournalLineCommand(l.AccountId, l.DebitAmount, l.CreditAmount, l.Description)).ToList()));
 
-            _db.JournalEntries.Add(entry);
-            await _db.SaveChangesAsync();
-            return Ok(new { message = "Journal entry created as draft.", id = entry.Id, journalNumber = entry.JournalNumber });
+                return Ok(new { message = "Journal entry created as draft.", id = created.Id, journalNumber = created.JournalNumber });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPost("{id:guid}/post")]
         [Authorize(Policy = "AdminOnly")]
         public async Task<IActionResult> Post(Guid id)
         {
-            var tenantId = _tenantAccessor.GetTenantId();
-            await using var trx = await _db.Database.BeginTransactionAsync();
-
-            var entry = await _db.JournalEntries
-                .Include(j => j.Lines)
-                .FirstOrDefaultAsync(j => j.Id == id && j.TenantId == tenantId);
-
-            if (entry == null)
+            try
             {
-                await trx.RollbackAsync();
+                var userId = GetUserId();
+                await _journalEntries.PostAsync(id, userId == Guid.Empty ? null : userId);
+                return Ok(new { message = "Journal entry posted.", id });
+            }
+            catch (KeyNotFoundException)
+            {
                 return NotFound();
             }
-
-            if (entry.Status != "Draft")
+            catch (InvalidOperationException ex)
             {
-                await trx.RollbackAsync();
-                return BadRequest(new { message = "Only draft entries can be posted." });
+                return BadRequest(new { message = ex.Message });
             }
-
-            if (entry.TotalDebit != entry.TotalCredit || entry.TotalDebit <= 0)
-            {
-                await trx.RollbackAsync();
-                return BadRequest(new { message = "Entry is not balanced." });
-            }
-
-            var accountIds = entry.Lines.Select(l => l.AccountId).Distinct().ToList();
-            var accounts = await _db.ChartOfAccounts
-                .Where(a => accountIds.Contains(a.Id) && a.TenantId == tenantId && !a.IsDeleted)
-                .ToDictionaryAsync(a => a.Id);
-
-            foreach (var line in entry.Lines)
-            {
-                if (!accounts.TryGetValue(line.AccountId, out var acc) || acc.IsGroup)
-                {
-                    await trx.RollbackAsync();
-                    return BadRequest(new { message = $"Invalid account on line {line.Id}." });
-                }
-
-                acc.CurrentBalance += line.DebitAmount - line.CreditAmount;
-                acc.UpdatedAt = DateTime.UtcNow;
-            }
-
-            var userId = GetUserId();
-            entry.Status = "Posted";
-            entry.PostedDate = DateTime.UtcNow;
-            entry.PostedBy = userId == Guid.Empty ? null : userId;
-            entry.UpdatedAt = DateTime.UtcNow;
-
-            await _db.SaveChangesAsync();
-            await trx.CommitAsync();
-            return Ok(new { message = "Journal entry posted.", id = entry.Id });
         }
 
         [HttpDelete("{id:guid}")]
         [Authorize(Policy = "AdminOnly")]
         public async Task<IActionResult> DeleteDraft(Guid id)
         {
-            var tenantId = _tenantAccessor.GetTenantId();
-            var entry = await _db.JournalEntries.FirstOrDefaultAsync(j => j.Id == id && j.TenantId == tenantId);
-            if (entry == null) return NotFound();
-            if (entry.Status != "Draft")
-                return BadRequest(new { message = "Only draft entries can be deleted." });
-
-            entry.IsDeleted = true;
-            entry.UpdatedAt = DateTime.UtcNow;
-            var lines = await _db.JournalEntryLines.Where(l => l.JournalEntryId == id && l.TenantId == tenantId).ToListAsync();
-            foreach (var line in lines)
+            try
             {
-                line.IsDeleted = true;
-                line.UpdatedAt = DateTime.UtcNow;
+                await _journalEntries.DeleteDraftAsync(id);
+                return Ok(new { message = "Draft journal entry removed." });
             }
-
-            await _db.SaveChangesAsync();
-            return Ok(new { message = "Draft journal entry removed." });
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         private Guid GetUserId()

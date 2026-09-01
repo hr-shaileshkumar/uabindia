@@ -18,6 +18,7 @@ export const hrmsApi = {
         return apiClient.get(`/employees?${query}`);
       },
       getById: (id: string) => apiClient.get(`/employees/${id}`),
+      getProfile360: (id: string) => apiClient.get(`/employees/${id}/profile-360`),
       create: (data: ApiPayload) => apiClient.post("/employees", data),
       update: (id: string, data: ApiPayload) => apiClient.put(`/employees/${id}`, data),
       delete: (id: string) => apiClient.delete(`/employees/${id}`),

@@ -3,16 +3,17 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
+import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
 import {
   ErpCreateButton,
   ErpDrawerFooter,
-  ErpEmptyState,
   ErpRefreshButton,
   ErpRowActions,
   ErpSearchFilter,
-} from "@/components/erp/erp-page-kit";
+} from "@/components/workspace/page-kit";
+import { useErpListView } from "@/components/workspace/list-view";
 import { SideDrawer } from "@/components/ui/side-drawer";
+import { erpTableRowHoverClassName, erpTableTdClassName } from "@/components/workspace/styles";
 import {
   mapJobPosting,
   recruitmentJobPostingsQueryKey,
@@ -58,10 +59,19 @@ export default function RecruitmentAtsPage() {
   });
 
   const postings = useMemo(() => (data?.jobPostings ?? []).map(mapJobPosting), [data?.jobPostings]);
-  const filtered = postings.filter((p) => {
-    const q = search.toLowerCase();
-    return !q || p.title.toLowerCase().includes(q) || p.department.toLowerCase().includes(q);
-  });
+  const filtered = useMemo(
+    () =>
+      postings.filter((p) => {
+        const q = search.toLowerCase();
+        return !q || p.title.toLowerCase().includes(q) || p.department.toLowerCase().includes(q);
+      }),
+    [postings, search],
+  );
+
+  const openCreate = () => {
+    setForm(emptyForm());
+    setDrawerOpen(true);
+  };
 
   const handleCreate = async () => {
     if (
@@ -96,9 +106,47 @@ export default function RecruitmentAtsPage() {
     }
   };
 
+  const list = useErpListView({
+    listKey: "hrms-recruitment",
+    rows: filtered,
+    columns: [
+      { key: "title", label: "Job Title" },
+      { key: "department", label: "Department" },
+      { key: "location", label: "Location" },
+      { key: "status", label: "Status" },
+      { key: "actions", label: "Actions", className: "text-right", locked: true },
+    ],
+    getRowId: (row) => row.id,
+    loading: isLoading,
+    emptyMessage: "No job postings found. Create a posting to start hiring.",
+    onCreate: openCreate,
+    createLabel: "New posting",
+    onRefresh: () => void refetch(),
+    extraFilters: (
+      <ErpSearchFilter value={search} onChange={setSearch} placeholder="Filter job title or department…" />
+    ),
+    renderRow: (p) => (
+      <tr key={p.id} className={erpTableRowHoverClassName}>
+        <td className={`${erpTableTdClassName} text-xs font-semibold text-slate-900`}>{p.title}</td>
+        <td className={`${erpTableTdClassName} text-xs`}>{p.department}</td>
+        <td className={`${erpTableTdClassName} text-xs text-slate-500`}>{p.location}</td>
+        <td className={erpTableTdClassName}>
+          <span className={p.status === "Active" ? "erp-chip erp-chip-success" : "erp-chip erp-chip-warning"}>
+            {p.status}
+          </span>
+        </td>
+        <td className={`${erpTableTdClassName} text-right`}>
+          <ErpRowActions onView={{ label: "View", onClick: () => setViewRow(p) }} />
+        </td>
+      </tr>
+    ),
+  });
+
   return (
     <StandardPageLayout
-      title="Recruitment"
+      title="Recruitment & Openings"
+      subtitle="Manage job postings, candidate pipelines, applications, and hiring stages."
+      eyebrow="HRMS / Talent Acquisition"
       icon="users"
       meta={
         <CrudHeaderStats
@@ -109,81 +157,20 @@ export default function RecruitmentAtsPage() {
           ]}
         />
       }
-      filters={<ErpSearchFilter value={search} onChange={setSearch} placeholder="Filter job title or department…" />}
       actions={
         <>
           <ErpRefreshButton onClick={() => void refetch()} loading={isLoading || isFetching} />
-          <ErpCreateButton
-            label="New posting"
-            onClick={() => {
-              setForm(emptyForm());
-              setDrawerOpen(true);
-            }}
-          />
+          {list.headerTools}
+          <ErpCreateButton label="New posting" onClick={openCreate} />
         </>
       }
+      filters={list.filterBar}
     >
       {isError ? (
         <div className="erp-alert-error text-sm">{getApiErrorMessage(error, "Failed to load job postings.")}</div>
       ) : null}
 
-      <CrudCard>
-        <div className="erp-table-wrap">
-          <table className="erp-table table-auto">
-            <thead className="erp-thead">
-              <tr>
-                <th className="erp-th">Job Title</th>
-                <th className="erp-th">Department</th>
-                <th className="erp-th">Location</th>
-                <th className="erp-th">Status</th>
-                <th className="erp-th text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr>
-                  <td colSpan={5} className="erp-td py-8 text-center text-xs text-slate-500">
-                    Loading…
-                  </td>
-                </tr>
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="erp-td">
-                    <ErpEmptyState
-                      message="No job postings found. Create a posting to start hiring."
-                      action={
-                        <ErpCreateButton
-                          label="New posting"
-                          onClick={() => {
-                            setForm(emptyForm());
-                            setDrawerOpen(true);
-                          }}
-                        />
-                      }
-                    />
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((p) => (
-                  <tr key={p.id} className="erp-tr">
-                    <td className="erp-td text-xs font-semibold text-slate-900">{p.title}</td>
-                    <td className="erp-td text-xs">{p.department}</td>
-                    <td className="erp-td text-xs text-slate-500">{p.location}</td>
-                    <td className="erp-td">
-                      <span className={p.status === "Active" ? "erp-chip erp-chip-success" : "erp-chip erp-chip-warning"}>
-                        {p.status}
-                      </span>
-                    </td>
-                    <td className="erp-td text-right">
-                      <ErpRowActions onView={{ label: "View", onClick: () => setViewRow(p) }} />
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </CrudCard>
+      <CrudCard>{list.table}</CrudCard>
 
       <SideDrawer open={Boolean(viewRow)} onClose={() => setViewRow(null)} title="Job posting details">
         {viewRow ? (

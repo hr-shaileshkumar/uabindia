@@ -10,6 +10,9 @@ namespace UabIndia.Tests.TestUtilities
         private bool _includeDeleted;
         private bool _includeAllTenants;
 
+        private Guid? _companyId;
+        private Guid? _projectId;
+
         public Guid GetTenantId() => _tenantId;
 
         public string? GetTenantSchema() => _schema;
@@ -27,5 +30,15 @@ namespace UabIndia.Tests.TestUtilities
         public bool IncludeDeleted() => _includeDeleted;
 
         public bool IncludeAllTenants() => _includeAllTenants;
+
+        public void SetOrgScope(Guid? companyId, Guid? projectId, string? financialYearKey, DateTime? financialYearStart, DateTime? financialYearEnd)
+        {
+            _companyId = companyId;
+            _projectId = projectId;
+        }
+
+        public Guid? GetCompanyId() => _companyId;
+
+        public Guid? GetProjectId() => _projectId;
     }
 }

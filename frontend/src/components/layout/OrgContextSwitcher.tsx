@@ -24,17 +24,19 @@ type ProjectOption = { id: string; name: string; companyId?: string };
 
 const triggerClass = (active: boolean) =>
   cn(
-    "inline-flex h-8 max-w-[9.5rem] items-center gap-1.5 rounded-lg border px-2 py-1 text-xs font-medium outline-none transition lg:max-w-[12rem]",
-    "focus-visible:ring-2 focus-visible:ring-slate-300",
+    "inline-flex h-8 max-w-[7.5rem] sm:max-w-[9rem] lg:max-w-[11rem] items-center gap-1.5 rounded-lg border px-2 py-1 text-xs font-medium outline-none transition",
+    "focus-visible:ring-2 focus-visible:ring-blue-500",
     active
-      ? "border-slate-200 bg-slate-50 text-slate-700 hover:bg-white"
-      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+      ? "border-slate-200 bg-slate-50 text-slate-800 hover:bg-white dark:border-slate-800 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:bg-slate-800"
+      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800",
   );
 
 const itemClass = (selected: boolean) =>
   cn(
     "cursor-pointer text-xs",
-    selected ? "bg-slate-50 font-semibold text-slate-900" : "text-slate-700",
+    selected
+      ? "bg-slate-50 font-semibold text-slate-900 dark:bg-slate-800 dark:text-blue-400"
+      : "text-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100",
   );
 
 export function OrgContextSwitcher() {
@@ -56,7 +58,9 @@ export function OrgContextSwitcher() {
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [loadingFinancialYears, setLoadingFinancialYears] = useState(false);
   const financialYearKeyRef = useRef(financialYearKey);
-  financialYearKeyRef.current = financialYearKey;
+  useEffect(() => {
+    financialYearKeyRef.current = financialYearKey;
+  }, [financialYearKey]);
 
   const isSuperAdmin = (() => {
     const roles = Array.isArray((user as { roles?: unknown[] } | null)?.roles)
@@ -71,8 +75,17 @@ export function OrgContextSwitcher() {
       const response = isSuperAdmin
         ? await orgApi.company.getAllForSuperAdmin()
         : await orgApi.company.getAll(1, 200);
-      const list = (response.data as { companies?: CompanyOption[] })?.companies;
-      setCompanies(Array.isArray(list) ? list.map((c) => ({ id: c.id, name: c.name })) : []);
+      const rawList =
+        (response.data as { companies?: any[] })?.companies ||
+        (response.data as { data?: any[] })?.data ||
+        (Array.isArray(response.data) ? response.data : []);
+      const list: CompanyOption[] = Array.isArray(rawList)
+        ? rawList.map((c: any, idx: number) => ({
+            id: String(c.id || c._id || c.code || `company-${idx}`),
+            name: String(c.name || c.company_name || c.title || `Company ${idx + 1}`),
+          }))
+        : [];
+      setCompanies(list);
     } catch {
       setCompanies([]);
     } finally {
@@ -86,12 +99,18 @@ export function OrgContextSwitcher() {
       const response = activeCompanyId
         ? await orgApi.project.getByCompany(activeCompanyId)
         : await orgApi.project.getAll();
-      const list = (response.data as { projects?: Array<ProjectOption & { companyId?: string }> })?.projects;
-      setProjects(
-        Array.isArray(list)
-          ? list.map((p) => ({ id: p.id, name: p.name, companyId: p.companyId }))
-          : [],
-      );
+      const rawList =
+        (response.data as { projects?: any[] })?.projects ||
+        (response.data as { data?: any[] })?.data ||
+        (Array.isArray(response.data) ? response.data : []);
+      const list: ProjectOption[] = Array.isArray(rawList)
+        ? rawList.map((p: any, idx: number) => ({
+            id: String(p.id || p._id || p.code || `project-${idx}`),
+            name: String(p.name || p.project_name || p.title || `Project ${idx + 1}`),
+            companyId: p.companyId || p.company_id || undefined,
+          }))
+        : [];
+      setProjects(list);
     } catch {
       setProjects([]);
     } finally {
@@ -103,14 +122,27 @@ export function OrgContextSwitcher() {
     try {
       setLoadingFinancialYears(true);
       const response = await appApi.system.financialYears();
-      const payload = response.data as FinancialYear[] | { financialYears?: FinancialYear[] } | undefined;
-      const list = Array.isArray(payload)
+      const payload = response.data as any;
+      const rawList = Array.isArray(payload)
         ? payload
         : Array.isArray(payload?.financialYears)
           ? payload.financialYears
-          : [];
+          : Array.isArray(payload?.items)
+            ? payload.items
+            : Array.isArray(payload?.data)
+              ? payload.data
+              : [];
+      const list: FinancialYear[] = Array.isArray(rawList)
+        ? rawList.map((year: any, idx: number) => ({
+            key: String(year.key || year.id || year._id || `fy-${idx}`),
+            label: String(year.label || year.name || year.year || year.title || `FY ${idx + 1}`),
+            isCurrent: Boolean(year.isCurrent || year.is_current || year.current),
+            startDate: year.startDate || year.start_date || "",
+            endDate: year.endDate || year.end_date || "",
+          }))
+        : [];
       setFinancialYears(list);
-      if (!financialYearKeyRef.current) {
+      if (!financialYearKeyRef.current && list.length > 0) {
         const current = list.find((year) => year.isCurrent) ?? list[0];
         if (current) setFinancialYear(current.key, current.label);
       }
@@ -156,8 +188,8 @@ export function OrgContextSwitcher() {
             <ChevronDown className="h-3 w-3 shrink-0 opacity-50" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="z-[80] max-h-80 w-72 overflow-y-auto p-1">
-          <DropdownMenuLabel className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+        <DropdownMenuContent align="start" className="z-[80] max-h-80 w-72 overflow-y-auto p-1 scrollbar-thin">
+          <DropdownMenuLabel className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             Company
           </DropdownMenuLabel>
           <DropdownMenuItem
@@ -168,13 +200,13 @@ export function OrgContextSwitcher() {
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           {loadingCompanies ? (
-            <div className="px-2 py-3 text-xs text-slate-400">Loading…</div>
+            <div className="px-2 py-3 text-xs text-slate-400 dark:text-slate-500">Loading…</div>
           ) : companies.length === 0 ? (
-            <div className="px-2 py-3 text-xs text-slate-400">No companies available.</div>
+            <div className="px-2 py-3 text-xs text-slate-400 dark:text-slate-500">No companies available.</div>
           ) : (
-            companies.map((company) => (
+            companies.map((company, index) => (
               <DropdownMenuItem
-                key={company.id}
+                key={company.id ? `comp-${company.id}` : `comp-idx-${index}`}
                 className={itemClass(company.id === companyId)}
                 onSelect={() =>
                   setContext({
@@ -204,8 +236,8 @@ export function OrgContextSwitcher() {
             <ChevronDown className="h-3 w-3 shrink-0 opacity-50" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="z-[80] max-h-80 w-72 overflow-y-auto p-1">
-          <DropdownMenuLabel className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+        <DropdownMenuContent align="start" className="z-[80] max-h-80 w-72 overflow-y-auto p-1 scrollbar-thin">
+          <DropdownMenuLabel className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             Project
           </DropdownMenuLabel>
           <DropdownMenuItem
@@ -216,15 +248,15 @@ export function OrgContextSwitcher() {
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           {loadingProjects ? (
-            <div className="px-2 py-3 text-xs text-slate-400">Loading…</div>
+            <div className="px-2 py-3 text-xs text-slate-400 dark:text-slate-500">Loading…</div>
           ) : projects.length === 0 ? (
-            <div className="px-2 py-3 text-xs text-slate-400">
+            <div className="px-2 py-3 text-xs text-slate-400 dark:text-slate-500">
               {companyId ? "No projects for this company." : "No projects available."}
             </div>
           ) : (
-            projects.map((project) => (
+            projects.map((project, index) => (
               <DropdownMenuItem
-                key={project.id}
+                key={project.id ? `proj-${project.id}` : `proj-idx-${index}`}
                 className={itemClass(project.id === projectId)}
                 onSelect={() => {
                   const nextCompanyId = companyId || project.companyId || null;
@@ -258,8 +290,8 @@ export function OrgContextSwitcher() {
             <ChevronDown className="h-3 w-3 shrink-0 opacity-50" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="z-[80] max-h-80 w-72 overflow-y-auto p-1">
-          <DropdownMenuLabel className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+        <DropdownMenuContent align="end" className="z-[80] max-h-80 w-72 overflow-y-auto p-1 scrollbar-thin">
+          <DropdownMenuLabel className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             Date range
           </DropdownMenuLabel>
           <DropdownMenuItem
@@ -270,13 +302,13 @@ export function OrgContextSwitcher() {
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           {loadingFinancialYears ? (
-            <div className="px-2 py-3 text-xs text-slate-400">Loading…</div>
+            <div className="px-2 py-3 text-xs text-slate-400 dark:text-slate-500">Loading…</div>
           ) : financialYears.length === 0 ? (
-            <div className="px-2 py-3 text-xs text-slate-400">No financial years configured.</div>
+            <div className="px-2 py-3 text-xs text-slate-400 dark:text-slate-500">No financial years configured.</div>
           ) : (
-            financialYears.map((year) => (
+            financialYears.map((year, index) => (
               <DropdownMenuItem
-                key={year.key}
+                key={year.key ? `fy-${year.key}` : `fy-idx-${index}`}
                 className={itemClass(year.key === financialYearKey)}
                 onSelect={() => setFinancialYear(year.key, year.label)}
               >

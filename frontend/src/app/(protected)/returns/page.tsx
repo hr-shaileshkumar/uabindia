@@ -1,13 +1,13 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { CheckCircle, Clock, XCircle } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
+import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
 import { SideDrawer } from "@/components/ui/side-drawer";
-import { ErpCreateButton, ErpDrawerFooter, ErpRefreshButton, ErpRowActions } from "@/components/erp/erp-page-kit";
-import { useErpListView } from "@/components/erp/erp-list-view";
-import { ErpDocumentStatusActions } from "@/components/erp/erp-document-kit";
+import { ErpCreateButton, ErpDrawerFooter, ErpRefreshButton, ErpRowActions } from "@/components/workspace/page-kit";
+import { useErpListView } from "@/components/workspace/list-view";
+import { ErpDocumentStatusActions } from "@/components/workspace/document-kit";
 import { salesApi } from "@/services/modules";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";

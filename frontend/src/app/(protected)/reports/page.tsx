@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ArrowUpRight, BarChart3, Shield, Wallet, Building2, FileSpreadsheet } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import ErpHeaderSummary from "@/components/layout/ErpHeaderSummary";
+import HeaderSummary from "@/components/layout/HeaderSummary";
 import { ROUTES } from "@/constants/routes";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { useReportsDashboard } from "@/features/reports/hooks/useReportsDashboard";
@@ -31,9 +31,9 @@ const REPORT_CATALOG = [
     icon: Shield,
   },
   {
-    title: "ERP Operations",
+    title: "Operations Reports",
     description: "Customers, vendors, inventory, and order summaries.",
-    href: ROUTES.REPORTS_ERP,
+    href: ROUTES.REPORTS_OPERATIONS,
     icon: Building2,
   },
   {
@@ -60,7 +60,7 @@ export default function ReportsCenterPage() {
       eyebrow="Reports / Analytics Hub"
       icon="bar-chart"
       meta={
-        <ErpHeaderSummary
+        <HeaderSummary
           items={[
             { label: "Employees", value: data?.hr?.totalEmployees ?? (isLoading ? "…" : "-"), tone: "info" },
             { label: "Active", value: data?.hr?.activeEmployees ?? (isLoading ? "…" : "-"), tone: "success" },

@@ -17,11 +17,13 @@ namespace UabIndia.Api.Modules.Inventory.Controllers
     {
         private readonly ApplicationDbContext _db;
         private readonly ITenantAccessor _tenantAccessor;
+        private readonly IInventoryStockService _stock;
 
-        public StockMovementsController(ApplicationDbContext db, ITenantAccessor tenantAccessor)
+        public StockMovementsController(ApplicationDbContext db, ITenantAccessor tenantAccessor, IInventoryStockService stock)
         {
             _db = db;
             _tenantAccessor = tenantAccessor;
+            _stock = stock;
         }
 
         [HttpGet]
@@ -58,7 +60,9 @@ namespace UabIndia.Api.Modules.Inventory.Controllers
                     UnitPrice = m.UnitPrice,
                     TotalValue = m.TotalValue,
                     ReferenceNumber = m.ReferenceNumber,
-                    Remarks = m.Remarks
+                    Remarks = m.Remarks,
+                    FromWarehouseId = m.FromWarehouseId,
+                    ToWarehouseId = m.ToWarehouseId
                 })
                 .ToListAsync();
 
@@ -69,86 +73,33 @@ namespace UabIndia.Api.Modules.Inventory.Controllers
         [Authorize(Policy = "AdminOnly")]
         public async Task<IActionResult> Create([FromBody] CreateStockMovementDto dto)
         {
-            var tenantId = _tenantAccessor.GetTenantId();
-            if (dto.Quantity == 0)
-                return BadRequest(new { message = "Quantity cannot be zero." });
-
-            var item = await _db.Items.FirstOrDefaultAsync(i => i.Id == dto.ItemId && i.TenantId == tenantId);
-            if (item == null) return NotFound(new { message = "Item not found." });
-
-            Warehouse? warehouse = null;
-            if (dto.WarehouseId.HasValue)
+            try
             {
-                warehouse = await _db.Warehouses.FirstOrDefaultAsync(w => w.Id == dto.WarehouseId && w.TenantId == tenantId);
-                if (warehouse == null) return BadRequest(new { message = "Warehouse not found." });
+                var movement = await _stock.RecordAsync(new RecordStockMovementCommand(
+                    dto.MovementDate,
+                    dto.MovementType,
+                    dto.ItemId,
+                    dto.WarehouseId,
+                    dto.Quantity,
+                    dto.UnitPrice,
+                    dto.TotalValue,
+                    dto.ReferenceType,
+                    dto.ReferenceId,
+                    dto.ReferenceNumber,
+                    dto.Remarks,
+                    dto.AdjustmentType,
+                    dto.FromWarehouseId,
+                    dto.ToWarehouseId));
+                return Ok(new { message = "Stock movement recorded.", movement });
             }
-
-            var movementType = string.IsNullOrWhiteSpace(dto.MovementType) ? "In" : dto.MovementType;
-            var qty = dto.Quantity;
-            var unitPrice = dto.UnitPrice >= 0 ? dto.UnitPrice : item.PurchasePrice;
-            var totalValue = dto.TotalValue > 0 ? dto.TotalValue : Math.Abs(qty) * unitPrice;
-
-            await using var trx = await _db.Database.BeginTransactionAsync();
-
-            if (movementType.Equals("In", StringComparison.OrdinalIgnoreCase))
+            catch (KeyNotFoundException ex)
             {
-                item.CurrentStock += Math.Abs(qty);
+                return NotFound(new { message = ex.Message });
             }
-            else if (movementType.Equals("Out", StringComparison.OrdinalIgnoreCase))
+            catch (InvalidOperationException ex)
             {
-                var outQty = Math.Abs(qty);
-                if (item.CurrentStock < outQty)
-                {
-                    await trx.RollbackAsync();
-                    return BadRequest(new { message = "Insufficient stock for this item." });
-                }
-                item.CurrentStock -= outQty;
+                return BadRequest(new { message = ex.Message });
             }
-            else if (movementType.Equals("Adjustment", StringComparison.OrdinalIgnoreCase))
-            {
-                item.CurrentStock += qty;
-                if (item.CurrentStock < 0)
-                {
-                    await trx.RollbackAsync();
-                    return BadRequest(new { message = "Adjustment would make stock negative." });
-                }
-            }
-            else
-            {
-                await trx.RollbackAsync();
-                return BadRequest(new { message = "MovementType must be In, Out, or Adjustment." });
-            }
-
-            item.UpdatedAt = DateTime.UtcNow;
-
-            var movement = new StockMovement
-            {
-                TenantId = tenantId,
-                MovementNumber = $"MV-{DateTime.UtcNow:yyyyMMdd}-{Random.Shared.Next(10000, 99999)}",
-                MovementDate = dto.MovementDate.Kind == DateTimeKind.Unspecified
-                    ? DateTime.SpecifyKind(dto.MovementDate, DateTimeKind.Utc)
-                    : dto.MovementDate.ToUniversalTime(),
-                MovementType = movementType,
-                ItemId = dto.ItemId,
-                WarehouseId = dto.WarehouseId,
-                Quantity = qty,
-                UnitPrice = unitPrice,
-                TotalValue = totalValue,
-                ReferenceType = dto.ReferenceType,
-                ReferenceId = dto.ReferenceId,
-                ReferenceNumber = dto.ReferenceNumber,
-                Remarks = dto.Remarks,
-                FromWarehouseId = dto.FromWarehouseId,
-                ToWarehouseId = dto.ToWarehouseId,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            _db.StockMovements.Add(movement);
-
-            await _db.SaveChangesAsync();
-            await trx.CommitAsync();
-
-            return Ok(new { message = "Stock movement recorded.", movement });
         }
     }
 
@@ -168,6 +119,8 @@ namespace UabIndia.Api.Modules.Inventory.Controllers
         public decimal TotalValue { get; set; }
         public string? ReferenceNumber { get; set; }
         public string? Remarks { get; set; }
+        public Guid? FromWarehouseId { get; set; }
+        public Guid? ToWarehouseId { get; set; }
     }
 
     public class CreateStockMovementDto
@@ -183,6 +136,7 @@ namespace UabIndia.Api.Modules.Inventory.Controllers
         public Guid? ReferenceId { get; set; }
         public string? ReferenceNumber { get; set; }
         public string? Remarks { get; set; }
+        public string? AdjustmentType { get; set; }
         public Guid? FromWarehouseId { get; set; }
         public Guid? ToWarehouseId { get; set; }
     }

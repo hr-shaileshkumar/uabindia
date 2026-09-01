@@ -28,9 +28,10 @@ public static class MigrationHistoryRepair
     public static async Task TryRepairPendingMigrationsAsync(
         ApplicationDbContext db,
         ILogger logger,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool force = false)
     {
-        if (!IsEnabled())
+        if (!IsEnabled() && !force)
         {
             logger.LogWarning(
                 "Migration history repair skipped. Set {EnvVar}=true to enable operator-controlled reconciliation.",

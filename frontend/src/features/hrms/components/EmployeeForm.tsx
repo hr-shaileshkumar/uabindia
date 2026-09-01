@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -11,9 +11,12 @@ import {
   erpPanelClassName,
   erpPanelHeaderClassName,
   erpPanelTitleClassName,
-} from "@/components/erp/erpStyles";
+} from "@/components/workspace/styles";
 import { hrmsApi, orgApi } from "@/services/modules";
 import { ROUTES } from "@/constants/routes";
+import { DynamicCustomFieldsForm } from "@/components/workspace/DynamicCustomFieldsForm";
+import { useOrgContext } from "@/context/OrgContext";
+import { User, Briefcase, CreditCard, Building2, AlertCircle, Sparkles } from "lucide-react";
 
 type OptionRow = { id: string; name: string };
 
@@ -106,9 +109,11 @@ const EMPTY: EmployeeFormValues = {
 
 export default function EmployeeForm({ initialValues, employeeId, title }: EmployeeFormProps) {
   const router = useRouter();
+  const { companyId: currentCompanyId } = useOrgContext();
   const isEdit = Boolean(employeeId);
 
   const [values, setValues] = useState<EmployeeFormValues>({ ...EMPTY, ...initialValues });
+  const [customValues, setCustomValues] = useState<Record<string, string | undefined>>({});
   const [companies, setCompanies] = useState<OptionRow[]>([]);
   const [projects, setProjects] = useState<OptionRow[]>([]);
   const [departments, setDepartments] = useState<OptionRow[]>([]);
@@ -120,48 +125,71 @@ export default function EmployeeForm({ initialValues, employeeId, title }: Emplo
   const [serverError, setServerError] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
     const load = async () => {
       try {
+        setLoadingCompanies(true);
         const res = await orgApi.company.getAll(1, 100);
-        setCompanies(asOptionRows(res.data?.companies ?? res.data));
+        const rows = asOptionRows(res.data?.companies ?? res.data);
+        if (isMounted) {
+          setCompanies(rows);
+          // Auto-select company if not set
+          setValues((prev) => {
+            if (prev.companyId) return prev;
+            if (currentCompanyId && rows.some((r) => r.id === currentCompanyId)) {
+              return { ...prev, companyId: currentCompanyId };
+            }
+            if (rows.length > 0) {
+              return { ...prev, companyId: rows[0].id };
+            }
+            return prev;
+          });
+        }
       } catch {
-        setCompanies([]);
+        if (isMounted) setCompanies([]);
       } finally {
-        setLoadingCompanies(false);
+        if (isMounted) setLoadingCompanies(false);
       }
     };
     void load();
-  }, []);
+    return () => { isMounted = false; };
+  }, [currentCompanyId]);
 
   useEffect(() => {
     if (!values.companyId) {
       setProjects([]);
+      setDepartments([]);
+      setDesignations([]);
       return;
     }
+    let isMounted = true;
     const load = async () => {
       try {
         setLoadingProjects(true);
         const res = await orgApi.project.getByCompany(values.companyId);
-        setProjects(asOptionRows(res.data?.projects ?? res.data));
+        if (isMounted) {
+          setProjects(asOptionRows(res.data?.projects ?? res.data));
+        }
         try {
           const dept = await orgApi.orgStructure.departments.list(values.companyId);
-          setDepartments(asOptionRows(dept.data));
+          if (isMounted) setDepartments(asOptionRows(dept.data));
         } catch {
-          setDepartments([]);
+          if (isMounted) setDepartments([]);
         }
         try {
           const des = await orgApi.orgStructure.designations.list(values.companyId);
-          setDesignations(asOptionRows(des.data));
+          if (isMounted) setDesignations(asOptionRows(des.data));
         } catch {
-          setDesignations([]);
+          if (isMounted) setDesignations([]);
         }
       } catch {
-        setProjects([]);
+        if (isMounted) setProjects([]);
       } finally {
-        setLoadingProjects(false);
+        if (isMounted) setLoadingProjects(false);
       }
     };
     void load();
+    return () => { isMounted = false; };
   }, [values.companyId]);
 
   const set = (field: keyof EmployeeFormValues, value: string) => {
@@ -233,27 +261,35 @@ export default function EmployeeForm({ initialValues, employeeId, title }: Emplo
   return (
     <StandardPageLayout
       title={formTitle}
-      subtitle={isEdit ? "Update employee master record." : "Create a new employee record."}
-      eyebrow="HRMS"
-      icon="user"
+      subtitle={isEdit ? "Update employee master record, organizational assignment, and payroll parameters." : "Register a new employee into the enterprise directory."}
+      eyebrow="HRMS / People"
+      icon="users"
       actions={
         <button type="button" onClick={() => router.back()} className={erpButtonClassName.secondary}>
-          Back
+          Back to Directory
         </button>
       }
     >
-      <form onSubmit={(e) => void handleSubmit(e)} className="mx-auto w-full max-w-3xl space-y-4">
+      <form onSubmit={(e) => void handleSubmit(e)} className="mx-auto w-full max-w-4xl space-y-6 pb-16">
         {serverError ? (
-          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-            {serverError}
+          <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 shadow-2xs">
+            <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
+            <span>{serverError}</span>
           </div>
         ) : null}
 
-        <section className={erpPanelClassName}>
-          <div className={erpPanelHeaderClassName}>
-            <h2 className={erpPanelTitleClassName}>Basic information</h2>
+        {/* Section 1: Organizational & Employment Profile */}
+        <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
+          <div className="flex items-center gap-2.5 border-b border-slate-100 bg-slate-50/70 px-5 py-3.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100/80">
+              <Building2 className="h-4 w-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-slate-900">Organizational & Employment Profile</h2>
+              <p className="text-[11px] text-slate-500">Core identity, company assignment, department, and work status.</p>
+            </div>
           </div>
-          <div className={`${erpPanelBodyClassName} grid gap-4 sm:grid-cols-2`}>
+          <div className="p-5 sm:p-6 grid gap-4 sm:grid-cols-2">
             <div>
               <label htmlFor="employee-full-name" className={erpFormLabelClassName}>
                 Full name <span className="text-rose-600">*</span>
@@ -278,9 +314,9 @@ export default function EmployeeForm({ initialValues, employeeId, title }: Emplo
                 id="employee-code"
                 type="text"
                 value={values.employeeCode}
-                onChange={(e) => set("employeeCode", e.target.value)}
-                placeholder="Optional"
-                className={`${erpFormInputClassName} mt-1`}
+                onChange={(e) => set("employeeCode", e.target.value.toUpperCase())}
+                placeholder="e.g. EMP-00102"
+                className={`${erpFormInputClassName} mt-1 font-mono`}
               />
             </div>
 
@@ -300,7 +336,7 @@ export default function EmployeeForm({ initialValues, employeeId, title }: Emplo
                 className={`${erpFormInputClassName} mt-1 ${errors.companyId ? inputErrorClass : ""}`}
               >
                 <option key="company-empty" value="">
-                  {loadingCompanies ? "Loading…" : "Select company"}
+                  {loadingCompanies ? "Loading companies…" : "Select company"}
                 </option>
                 {companies.map((c) => (
                   <option key={`company-${c.id}`} value={c.id}>
@@ -309,14 +345,11 @@ export default function EmployeeForm({ initialValues, employeeId, title }: Emplo
                 ))}
               </select>
               {errors.companyId ? <p className="mt-1 text-xs text-rose-600">{errors.companyId}</p> : null}
-              {!loadingCompanies && companies.length === 0 ? (
-                <p className="mt-1 text-xs text-slate-500">No companies available.</p>
-              ) : null}
             </div>
 
             <div>
               <label htmlFor="employee-project" className={erpFormLabelClassName}>
-                Project
+                Project assignment
               </label>
               <select
                 id="employee-project"
@@ -329,14 +362,53 @@ export default function EmployeeForm({ initialValues, employeeId, title }: Emplo
                   {!values.companyId
                     ? "Select a company first"
                     : loadingProjects
-                      ? "Loading…"
-                      : "No project (optional)"}
+                      ? "Loading projects…"
+                      : "No project assigned (General)"}
                 </option>
                 {projects.map((p) => (
                   <option key={`project-${p.id}`} value={p.id}>
                     {p.name}
                   </option>
                 ))}
+              </select>
+            </div>
+
+            <div>
+              <label className={erpFormLabelClassName}>Department</label>
+              <select
+                className={`${erpFormInputClassName} mt-1 disabled:bg-slate-50 disabled:text-slate-400`}
+                value={values.departmentId}
+                onChange={(e) => set("departmentId", e.target.value)}
+                disabled={!values.companyId}
+              >
+                <option key="dept-empty" value="">Select department</option>
+                {departments.map((d) => (
+                  <option key={`dept-${d.id}`} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className={erpFormLabelClassName}>Designation / Role</label>
+              <select
+                className={`${erpFormInputClassName} mt-1 disabled:bg-slate-50 disabled:text-slate-400`}
+                value={values.designationId}
+                onChange={(e) => set("designationId", e.target.value)}
+                disabled={!values.companyId}
+              >
+                <option key="desig-empty" value="">Select designation</option>
+                {designations.map((d) => (
+                  <option key={`desig-${d.id}`} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className={erpFormLabelClassName}>Employment type</label>
+              <select className={`${erpFormInputClassName} mt-1`} value={values.employmentType} onChange={(e) => set("employmentType", e.target.value)}>
+                <option key="emp-permanent" value="Permanent">Permanent / Full-Time</option>
+                <option key="emp-contract" value="Contract">Contract / Consultant</option>
+                <option key="emp-intern" value="Intern">Intern / Trainee</option>
               </select>
             </div>
 
@@ -352,7 +424,7 @@ export default function EmployeeForm({ initialValues, employeeId, title }: Emplo
               >
                 {STATUS_OPTIONS.map((s) => (
                   <option key={s} value={s}>
-                    {s}
+                    {s === "Active" ? "Active (Operational)" : s === "OnLeave" ? "On Leave" : s}
                   </option>
                 ))}
               </select>
@@ -360,22 +432,25 @@ export default function EmployeeForm({ initialValues, employeeId, title }: Emplo
           </div>
         </section>
 
-        <section className={erpPanelClassName}>
-          <div className={erpPanelHeaderClassName}>
-            <h2 className={erpPanelTitleClassName}>Job, contact and statutory</h2>
+        {/* Section 2: Contact & Personal Details */}
+        <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
+          <div className="flex items-center gap-2.5 border-b border-slate-100 bg-slate-50/70 px-5 py-3.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100/80">
+              <User className="h-4 w-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-slate-900">Personal & Contact Information</h2>
+              <p className="text-[11px] text-slate-500">Corporate communication channels and personal demographic data.</p>
+            </div>
           </div>
-          <div className={`${erpPanelBodyClassName} grid gap-4 sm:grid-cols-2`}>
+          <div className="p-5 sm:p-6 grid gap-4 sm:grid-cols-2">
             <div>
-              <label className={erpFormLabelClassName}>Work email</label>
-              <input className={`${erpFormInputClassName} mt-1`} value={values.workEmail} onChange={(e) => set("workEmail", e.target.value)} />
+              <label className={erpFormLabelClassName}>Corporate work email</label>
+              <input type="email" placeholder="name@company.com" className={`${erpFormInputClassName} mt-1`} value={values.workEmail} onChange={(e) => set("workEmail", e.target.value)} />
             </div>
             <div>
-              <label className={erpFormLabelClassName}>Phone</label>
-              <input className={`${erpFormInputClassName} mt-1`} value={values.phone} onChange={(e) => set("phone", e.target.value)} />
-            </div>
-            <div>
-              <label className={erpFormLabelClassName}>Date of joining</label>
-              <input type="date" className={`${erpFormInputClassName} mt-1`} value={values.dateOfJoining} onChange={(e) => set("dateOfJoining", e.target.value)} />
+              <label className={erpFormLabelClassName}>Contact phone number</label>
+              <input type="tel" placeholder="+91 98765 43210" className={`${erpFormInputClassName} mt-1`} value={values.phone} onChange={(e) => set("phone", e.target.value)} />
             </div>
             <div>
               <label className={erpFormLabelClassName}>Date of birth</label>
@@ -384,87 +459,110 @@ export default function EmployeeForm({ initialValues, employeeId, title }: Emplo
             <div>
               <label className={erpFormLabelClassName}>Gender</label>
               <select className={`${erpFormInputClassName} mt-1`} value={values.gender} onChange={(e) => set("gender", e.target.value)}>
-                <option key="gender-empty" value="">Select</option>
+                <option key="gender-empty" value="">Select gender</option>
                 <option key="gender-female" value="Female">Female</option>
                 <option key="gender-male" value="Male">Male</option>
                 <option key="gender-other" value="Other">Other</option>
               </select>
             </div>
             <div>
-              <label className={erpFormLabelClassName}>Employment type</label>
-              <select className={`${erpFormInputClassName} mt-1`} value={values.employmentType} onChange={(e) => set("employmentType", e.target.value)}>
-                <option key="emp-permanent" value="Permanent">Permanent</option>
-                <option key="emp-contract" value="Contract">Contract</option>
-                <option key="emp-intern" value="Intern">Intern</option>
-              </select>
+              <label className={erpFormLabelClassName}>City / Location</label>
+              <input className={`${erpFormInputClassName} mt-1`} value={values.city} onChange={(e) => set("city", e.target.value)} placeholder="e.g. Bengaluru" />
             </div>
             <div>
-              <label className={erpFormLabelClassName}>Department</label>
-              <select className={`${erpFormInputClassName} mt-1`} value={values.departmentId} onChange={(e) => set("departmentId", e.target.value)}>
-                <option key="dept-empty" value="">Select department</option>
-                {departments.map((d) => (
-                  <option key={`dept-${d.id}`} value={d.id}>{d.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className={erpFormLabelClassName}>Designation</label>
-              <select className={`${erpFormInputClassName} mt-1`} value={values.designationId} onChange={(e) => set("designationId", e.target.value)}>
-                <option key="desig-empty" value="">Select designation</option>
-                {designations.map((d) => (
-                  <option key={`desig-${d.id}`} value={d.id}>{d.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className={erpFormLabelClassName}>PAN</label>
-              <input className={`${erpFormInputClassName} mt-1`} value={values.pan} onChange={(e) => set("pan", e.target.value)} />
-            </div>
-            <div>
-              <label className={erpFormLabelClassName}>UAN</label>
-              <input className={`${erpFormInputClassName} mt-1`} value={values.uan} onChange={(e) => set("uan", e.target.value)} />
-            </div>
-            <div>
-              <label className={erpFormLabelClassName}>Aadhaar</label>
-              <input className={`${erpFormInputClassName} mt-1`} value={values.aadhaar} onChange={(e) => set("aadhaar", e.target.value)} />
-            </div>
-            <div>
-              <label className={erpFormLabelClassName}>ESI number</label>
-              <input className={`${erpFormInputClassName} mt-1`} value={values.esiNumber} onChange={(e) => set("esiNumber", e.target.value)} />
-            </div>
-            <div>
-              <label className={erpFormLabelClassName}>Monthly CTC</label>
-              <input type="number" className={`${erpFormInputClassName} mt-1`} value={values.monthlyCtc} onChange={(e) => set("monthlyCtc", e.target.value)} />
-            </div>
-            <div>
-              <label className={erpFormLabelClassName}>Basic salary</label>
-              <input type="number" className={`${erpFormInputClassName} mt-1`} value={values.basicSalary} onChange={(e) => set("basicSalary", e.target.value)} />
-            </div>
-            <div>
-              <label className={erpFormLabelClassName}>Bank name</label>
-              <input className={`${erpFormInputClassName} mt-1`} value={values.bankName} onChange={(e) => set("bankName", e.target.value)} />
-            </div>
-            <div>
-              <label className={erpFormLabelClassName}>IFSC</label>
-              <input className={`${erpFormInputClassName} mt-1`} value={values.bankIfsc} onChange={(e) => set("bankIfsc", e.target.value)} />
-            </div>
-            <div>
-              <label className={erpFormLabelClassName}>Account number</label>
-              <input className={`${erpFormInputClassName} mt-1`} value={values.bankAccountNumber} onChange={(e) => set("bankAccountNumber", e.target.value)} />
-            </div>
-            <div>
-              <label className={erpFormLabelClassName}>State (PT / GST)</label>
-              <input className={`${erpFormInputClassName} mt-1`} value={values.state} onChange={(e) => set("state", e.target.value)} placeholder="KA" />
+              <label className={erpFormLabelClassName}>State (PT / Tax Circle)</label>
+              <input className={`${erpFormInputClassName} mt-1`} value={values.state} onChange={(e) => set("state", e.target.value.toUpperCase())} placeholder="e.g. Karnataka (KA)" />
             </div>
           </div>
         </section>
 
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-4">
-          <button type="submit" disabled={saving} className={erpButtonClassName.primary}>
-            {saving ? "Saving…" : isEdit ? "Save changes" : "Create employee"}
-          </button>
+        {/* Section 3: Statutory & Joining Details */}
+        <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
+          <div className="flex items-center gap-2.5 border-b border-slate-100 bg-slate-50/70 px-5 py-3.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-50 text-violet-600 border border-violet-100/80">
+              <Briefcase className="h-4 w-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-slate-900">Statutory & Compliance Registrations</h2>
+              <p className="text-[11px] text-slate-500">MCA, EPFO, ESIC, and Income Tax statutory identifiers.</p>
+            </div>
+          </div>
+          <div className="p-5 sm:p-6 grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className={erpFormLabelClassName}>Official date of joining</label>
+              <input type="date" className={`${erpFormInputClassName} mt-1`} value={values.dateOfJoining} onChange={(e) => set("dateOfJoining", e.target.value)} />
+            </div>
+            <div>
+              <label className={erpFormLabelClassName}>Permanent Account Number (PAN)</label>
+              <input className={`${erpFormInputClassName} mt-1 font-mono uppercase`} placeholder="ABCDE1234F" value={values.pan} onChange={(e) => set("pan", e.target.value.toUpperCase())} />
+            </div>
+            <div>
+              <label className={erpFormLabelClassName}>Aadhaar number</label>
+              <input className={`${erpFormInputClassName} mt-1 font-mono`} placeholder="12-digit Aadhaar" value={values.aadhaar} onChange={(e) => set("aadhaar", e.target.value)} />
+            </div>
+            <div>
+              <label className={erpFormLabelClassName}>Universal Account Number (UAN / PF)</label>
+              <input className={`${erpFormInputClassName} mt-1 font-mono`} placeholder="12-digit UAN" value={values.uan} onChange={(e) => set("uan", e.target.value)} />
+            </div>
+            <div className="sm:col-span-2">
+              <label className={erpFormLabelClassName}>ESI insurance number</label>
+              <input className={`${erpFormInputClassName} mt-1 font-mono`} placeholder="17-digit IP Number" value={values.esiNumber} onChange={(e) => set("esiNumber", e.target.value)} />
+            </div>
+          </div>
+        </section>
+
+        {/* Section 4: Compensation & Banking */}
+        <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
+          <div className="flex items-center gap-2.5 border-b border-slate-100 bg-slate-50/70 px-5 py-3.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50 text-amber-600 border border-amber-100/80">
+              <CreditCard className="h-4 w-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-slate-900">Payroll & Banking Master</h2>
+              <p className="text-[11px] text-slate-500">Direct salary disbursement details and monthly compensation.</p>
+            </div>
+          </div>
+          <div className="p-5 sm:p-6 grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className={erpFormLabelClassName}>Monthly CTC (₹)</label>
+              <input type="number" min={0} placeholder="0" className={`${erpFormInputClassName} mt-1 font-mono`} value={values.monthlyCtc} onChange={(e) => set("monthlyCtc", e.target.value)} />
+            </div>
+            <div>
+              <label className={erpFormLabelClassName}>Basic salary (₹)</label>
+              <input type="number" min={0} placeholder="0" className={`${erpFormInputClassName} mt-1 font-mono`} value={values.basicSalary} onChange={(e) => set("basicSalary", e.target.value)} />
+            </div>
+            <div>
+              <label className={erpFormLabelClassName}>Bank name</label>
+              <input className={`${erpFormInputClassName} mt-1`} placeholder="e.g. HDFC Bank" value={values.bankName} onChange={(e) => set("bankName", e.target.value)} />
+            </div>
+            <div>
+              <label className={erpFormLabelClassName}>Bank IFSC code</label>
+              <input className={`${erpFormInputClassName} mt-1 font-mono uppercase`} placeholder="HDFC0001234" value={values.bankIfsc} onChange={(e) => set("bankIfsc", e.target.value.toUpperCase())} />
+            </div>
+            <div className="sm:col-span-2">
+              <label className={erpFormLabelClassName}>Disbursement account number</label>
+              <input className={`${erpFormInputClassName} mt-1 font-mono`} placeholder="Account Number" value={values.bankAccountNumber} onChange={(e) => set("bankAccountNumber", e.target.value)} />
+            </div>
+          </div>
+        </section>
+
+        {/* Section 5: Custom Fields */}
+        <section>
+          <DynamicCustomFieldsForm
+            entityName="Employee"
+            recordId={employeeId}
+            valueMap={customValues}
+            onChange={(fieldKey, val) => setCustomValues((prev) => ({ ...prev, [fieldKey]: val }))}
+          />
+        </section>
+
+        {/* Action Buttons Toolbar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <button type="button" onClick={() => router.back()} disabled={saving} className={erpButtonClassName.secondary}>
             Cancel
+          </button>
+          <button type="submit" disabled={saving} className={erpButtonClassName.primary}>
+            {saving ? "Saving…" : isEdit ? "Save changes" : "Create employee"}
           </button>
         </div>
       </form>

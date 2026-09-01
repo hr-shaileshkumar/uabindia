@@ -80,9 +80,21 @@ namespace UabIndia.Api.Modules.Platform.Controllers
         }
 
         [HttpGet("catalog")]
-        [Authorize(Policy = "Module:licensing")]
+        [Authorize(Policy = "Module:platform")]
         public async Task<IActionResult> GetCatalog()
         {
+            var tenantId = _tenantAccessor.GetTenantId();
+
+            var subscriptionRows = await _db.TenantModules
+                .AsNoTracking()
+                .Where(tm => tm.TenantId == tenantId && !tm.IsDeleted)
+                .Select(tm => new { tm.ModuleKey, tm.IsEnabled })
+                .ToListAsync();
+
+            var subscriptions = subscriptionRows
+                .GroupBy(tm => tm.ModuleKey, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First().IsEnabled, StringComparer.OrdinalIgnoreCase);
+
             var data = await _db.Modules
                 .AsNoTracking()
                 .Where(m => m.IsEnabled)
@@ -90,17 +102,32 @@ namespace UabIndia.Api.Modules.Platform.Controllers
                 {
                     key = m.ModuleKey,
                     name = m.Name,
-                    isEnabled = m.IsEnabled,
-                    version = m.Version
+                    displayName = string.IsNullOrWhiteSpace(m.DisplayName) ? m.Name : m.DisplayName,
+                    description = m.Description,
+                    basePath = m.BasePath,
+                    version = m.Version,
+                    sortOrder = m.SortOrder
                 })
-                .OrderBy(m => m.key)
+                .OrderBy(m => m.sortOrder)
+                .ThenBy(m => m.key)
                 .ToListAsync();
 
-            return Ok(new { modules = data });
+            var modules = data.Select(m => new
+            {
+                m.key,
+                m.name,
+                m.displayName,
+                m.description,
+                m.basePath,
+                m.version,
+                isEnabled = subscriptions.TryGetValue(m.key, out var enabled) && enabled
+            }).ToList();
+
+            return Ok(new { modules });
         }
 
         [HttpGet("subscriptions")]
-        [Authorize(Policy = "Module:licensing")]
+        [Authorize(Policy = "Module:platform")]
         public async Task<IActionResult> GetSubscriptions()
         {
             var tenantId = _tenantAccessor.GetTenantId();
@@ -120,7 +147,7 @@ namespace UabIndia.Api.Modules.Platform.Controllers
         }
 
         [HttpPost("subscriptions")]
-        [Authorize(Policy = "Module:licensing")]
+        [Authorize(Policy = "Module:platform")]
         public async Task<IActionResult> UpsertSubscriptions([FromBody] UpdateTenantModulesDto dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);

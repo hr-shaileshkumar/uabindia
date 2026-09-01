@@ -17,11 +17,13 @@ namespace UabIndia.Api.Modules.Inventory.Controllers
     {
         private readonly ApplicationDbContext _db;
         private readonly ITenantAccessor _tenantAccessor;
+        private readonly IDocumentNumberService _numbers;
 
-        public ItemsController(ApplicationDbContext db, ITenantAccessor tenantAccessor)
+        public ItemsController(ApplicationDbContext db, ITenantAccessor tenantAccessor, IDocumentNumberService numbers)
         {
             _db = db;
             _tenantAccessor = tenantAccessor;
+            _numbers = numbers;
         }
 
         [HttpGet]
@@ -59,7 +61,9 @@ namespace UabIndia.Api.Modules.Inventory.Controllers
             var tenantId = _tenantAccessor.GetTenantId();
             var item = new Item
             {
-                ItemCode = dto.ItemCode,
+                ItemCode = string.IsNullOrWhiteSpace(dto.ItemCode)
+                    ? await _numbers.NextAsync("Item", "ITM-", 5)
+                    : dto.ItemCode.Trim(),
                 ItemName = dto.ItemName,
                 ItemType = dto.ItemType ?? "Stockable",
                 Category = dto.Category,

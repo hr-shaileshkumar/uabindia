@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -7,8 +7,9 @@ import { platformApi } from "@/services/modules";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { notifySuccess } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
-import { Eye, Shield, Activity, FileText, UserCheck, AlertTriangle } from "lucide-react";
+import { Shield, FileText, UserCheck, AlertTriangle } from "lucide-react";
 import { PlatformGlobalPageShell, KpiMetricItem } from "@/components/platform/PlatformGlobalPageShell";
+import { ErpRowActions } from "@/components/workspace/page-kit";
 
 interface AuditRow {
   id: string;
@@ -168,6 +169,53 @@ export default function AuditLogsPage() {
         pageSize={pageSize}
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
+        listKey="platform-audit-logs"
+        listRows={filteredLogs}
+        getRowId={(row) => row.id}
+        emptyMessage={
+          error
+            ? error
+            : "No audit records found matching your filter criteria."
+        }
+        listColumns={[
+          { key: "entityName", label: "Target Entity", dataType: "string" },
+          { key: "action", label: "Action Type", dataType: "string" },
+          { key: "entityId", label: "Entity Record ID", dataType: "string" },
+          { key: "performedBy", label: "Performed By", dataType: "string" },
+          { key: "ip", label: "Source IP", dataType: "string" },
+          { key: "performedAt", label: "Timestamp", dataType: "date" },
+          { key: "actions", label: "Actions", locked: true },
+        ]}
+        renderListRow={(log) => (
+          <>
+            <td className="erp-td">
+              <span className="font-semibold text-xs text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                <Shield className="h-3.5 w-3.5 text-slate-600" />
+                {log.entityName}
+              </span>
+            </td>
+            <td className="erp-td">
+              <span className={`erp-chip ${
+                log.action.includes("DELETE") || log.action.includes("REMOVE")
+                  ? "erp-chip-danger"
+                  : log.action.includes("CREATE")
+                  ? "erp-chip-success"
+                  : "erp-chip-info"
+              }`}>
+                {log.action}
+              </span>
+            </td>
+            <td className="erp-td font-mono text-xs text-slate-500">{log.entityId || "-"}</td>
+            <td className="erp-td text-xs text-slate-700 dark:text-slate-300 font-medium">{log.performedBy || "-"}</td>
+            <td className="erp-td font-mono text-xs text-slate-500">{log.ip || "-"}</td>
+            <td className="erp-td text-xs text-slate-500">{new Date(log.performedAt).toLocaleString()}</td>
+            <td className="erp-td">
+              <ErpRowActions
+                onView={{ label: "Inspect payload", onClick: () => setSelectedLog(log) }}
+              />
+            </td>
+          </>
+        )}
         isInspectorOpen={!!selectedLog}
         onInspectorClose={() => setSelectedLog(null)}
         inspectorTitle={`Audit Event: ${selectedLog?.entityName} (${selectedLog?.action})`}
@@ -209,64 +257,7 @@ export default function AuditLogsPage() {
             </div>
           )
         }
-      >
-        {/* Table View */}
-        <div className="erp-table-wrap rounded-none border-0 shadow-none">
-          <table className="erp-table">
-            <thead className="erp-thead">
-              <tr>
-                <th className="erp-th">Target Entity</th>
-                <th className="erp-th">Action Type</th>
-                <th className="erp-th">Entity Record ID</th>
-                <th className="erp-th">Performed By</th>
-                <th className="erp-th">Source IP</th>
-                <th className="erp-th">Timestamp</th>
-                <th className="erp-th text-right">Inspect Payload</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredLogs.map((log) => (
-                <tr key={log.id} className="erp-tr hover:bg-slate-50/80 dark:hover:bg-slate-900/50 transition-colors">
-                  <td className="erp-td">
-                    <span className="font-semibold text-xs text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                      <Shield className="h-3.5 w-3.5 text-slate-600" />
-                      {log.entityName}
-                    </span>
-                  </td>
-                  <td className="erp-td">
-                    <span className={`erp-chip ${
-                      log.action.includes("DELETE") || log.action.includes("REMOVE")
-                        ? "erp-chip-danger"
-                        : log.action.includes("CREATE")
-                        ? "erp-chip-success"
-                        : "erp-chip-info"
-                    }`}>
-                      {log.action}
-                    </span>
-                  </td>
-                  <td className="erp-td font-mono text-xs text-slate-500">{log.entityId || "-"}</td>
-                  <td className="erp-td text-xs text-slate-700 dark:text-slate-300 font-medium">{log.performedBy || "-"}</td>
-                  <td className="erp-td font-mono text-xs text-slate-500">{log.ip || "-"}</td>
-                  <td className="erp-td text-xs text-slate-500">{new Date(log.performedAt).toLocaleString()}</td>
-                  <td className="erp-td text-right">
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => setSelectedLog(log)}>
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-
-              {!loading && filteredLogs.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="erp-td py-12 text-center text-sm text-slate-500">
-                    No audit records found matching your filter criteria.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </PlatformGlobalPageShell>
+      />
     </ProtectedRoute>
   );
 }

@@ -94,7 +94,18 @@ export const TenantConfigProvider = ({ children }: { children: React.ReactNode }
   }, [user]);
 
   useEffect(() => {
-    refresh();
+    void refresh();
+  }, [refresh]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleTenantChanged = () => {
+      void refresh();
+    };
+
+    window.addEventListener("erp:tenant-changed", handleTenantChanged);
+    return () => window.removeEventListener("erp:tenant-changed", handleTenantChanged);
   }, [refresh]);
 
   const value = useMemo(

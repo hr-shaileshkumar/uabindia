@@ -1,16 +1,19 @@
-"use client";
+﻿"use client";
 
 import React, { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
+import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
 import {
   ErpCreateButton,
   ErpDrawerFooter,
   ErpRefreshButton,
+  ErpRowActions,
   ErpSearchFilter,
-} from "@/components/erp/erp-page-kit";
+} from "@/components/workspace/page-kit";
+import { useErpListView } from "@/components/workspace/list-view";
 import { SideDrawer } from "@/components/ui/side-drawer";
+import { erpButtonClassName, erpTableRowHoverClassName, erpTableTdClassName } from "@/components/workspace/styles";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { hrmsApi } from "@/services/modules";
 import { notifyError, notifySuccess } from "@/lib/notifications";
@@ -22,6 +25,7 @@ type LifecycleTask = {
   status: string;
   category?: string;
   dueDate?: string;
+  employeeName?: string;
 };
 
 type EmployeeOpt = { id: string; fullName?: string; employeeCode?: string };
@@ -48,7 +52,9 @@ export default function LifecycleTasksPage({ kind, title, queryKey }: LifecycleT
     dueDate: "",
   });
 
-  const { data, isLoading, isError, error, refetch } = useQuery({
+  const listKey = `hrms-lifecycle-${kind.toLowerCase()}`;
+
+  const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ["hrms", queryKey],
     queryFn: async () => {
       const res = await hrmsApi.lifecycle.tasks(kind);
@@ -108,13 +114,24 @@ export default function LifecycleTasksPage({ kind, title, queryKey }: LifecycleT
   const tasks = useMemo(() => data?.tasks ?? [], [data?.tasks]);
   const employees = useMemo(
     () => (data?.employees?.length ? data.employees : employeesQuery.data) ?? [],
-    [data?.employees, employeesQuery.data]
+    [data?.employees, employeesQuery.data],
   );
   const nameOf = (id: string) => employees.find((e) => e.id === id)?.fullName ?? id;
-  const filtered = tasks.filter((t) => {
-    const q = search.toLowerCase();
-    return !q || t.title.toLowerCase().includes(q) || nameOf(t.employeeId).toLowerCase().includes(q);
-  });
+
+  const rows = useMemo(
+    () =>
+      tasks
+        .filter((t) => {
+          const q = search.toLowerCase();
+          return !q || t.title.toLowerCase().includes(q) || nameOf(t.employeeId).toLowerCase().includes(q);
+        })
+        .map((task) => ({
+          ...task,
+          employeeName: nameOf(task.employeeId),
+          dueLabel: task.dueDate ? new Date(task.dueDate).toLocaleDateString("en-IN") : "—",
+        })),
+    [tasks, search, employees],
+  );
 
   const stats = useMemo(
     () => [
@@ -126,8 +143,56 @@ export default function LifecycleTasksPage({ kind, title, queryKey }: LifecycleT
         tone: kind === "Onboarding" ? ("info" as const) : ("danger" as const),
       },
     ],
-    [tasks, kind]
+    [tasks, kind],
   );
+
+  const list = useErpListView({
+    listKey,
+    rows,
+    columns: [
+      { key: "employeeName", label: "Employee" },
+      { key: "title", label: "Task" },
+      { key: "dueLabel", label: "Due" },
+      { key: "status", label: "Status" },
+      { key: "actions", label: "Actions", className: "text-right", locked: true },
+    ],
+    getRowId: (row) => row.id,
+    loading: isLoading,
+    emptyMessage: `No ${kind.toLowerCase()} tasks yet. Create a checklist item to assign work.`,
+    onCreate: () => setDrawerOpen(true),
+    createLabel: "New task",
+    onRefresh: () => void refetch(),
+    extraFilters: (
+      <ErpSearchFilter value={search} onChange={setSearch} placeholder="Filter task or employee…" />
+    ),
+    renderRow: (row) => (
+      <tr key={row.id} className={erpTableRowHoverClassName}>
+        <td className={`${erpTableTdClassName} text-xs font-medium`}>{row.employeeName}</td>
+        <td className={`${erpTableTdClassName} text-xs`}>{row.title}</td>
+        <td className={`${erpTableTdClassName} text-xs text-slate-500`}>{row.dueLabel}</td>
+        <td className={erpTableTdClassName}>
+          <span className={row.status === "Completed" ? "erp-chip erp-chip-success" : "erp-chip erp-chip-warning"}>
+            {row.status}
+          </span>
+        </td>
+        <td className={`${erpTableTdClassName} text-right`}>
+          <ErpRowActions
+            extra={
+              row.status !== "Completed" ? (
+                <button
+                  type="button"
+                  className={`${erpButtonClassName.secondary} h-8 px-2 text-xs`}
+                  onClick={() => complete.mutate(row.id)}
+                >
+                  Complete
+                </button>
+              ) : null
+            }
+          />
+        </td>
+      </tr>
+    ),
+  });
 
   return (
     <StandardPageLayout
@@ -136,72 +201,18 @@ export default function LifecycleTasksPage({ kind, title, queryKey }: LifecycleT
       meta={<CrudHeaderStats items={stats} />}
       actions={
         <>
-          <ErpRefreshButton onClick={() => void refetch()} loading={isLoading} />
+          <ErpRefreshButton onClick={() => void refetch()} loading={isLoading || isFetching} />
+          {list.headerTools}
           <ErpCreateButton label="New task" onClick={() => setDrawerOpen(true)} />
         </>
       }
-      filters={<ErpSearchFilter value={search} onChange={setSearch} placeholder="Filter task or employee…" />}
+      filters={list.filterBar}
     >
       {isError ? (
         <div className="erp-alert-error">{getApiErrorMessage(error, `Failed to load ${kind.toLowerCase()} tasks.`)}</div>
       ) : null}
 
-      <CrudCard>
-        <div className="erp-table-wrap">
-          <table className="erp-table table-auto">
-            <thead className="erp-thead">
-              <tr>
-                <th className="erp-th">Employee</th>
-                <th className="erp-th">Task</th>
-                <th className="erp-th">Due</th>
-                <th className="erp-th">Status</th>
-                <th className="erp-th text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr>
-                  <td colSpan={5} className="erp-td py-8 text-center text-xs text-slate-500">
-                    Loading…
-                  </td>
-                </tr>
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="erp-td py-8 text-center text-xs text-slate-500">
-                    No {kind.toLowerCase()} tasks yet. Create a checklist item to assign work.
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((row) => (
-                  <tr key={row.id} className="erp-tr">
-                    <td className="erp-td text-xs font-medium">{nameOf(row.employeeId)}</td>
-                    <td className="erp-td text-xs">{row.title}</td>
-                    <td className="erp-td text-xs text-slate-500">
-                      {row.dueDate ? new Date(row.dueDate).toLocaleDateString("en-IN") : "—"}
-                    </td>
-                    <td className="erp-td">
-                      <span className={row.status === "Completed" ? "erp-chip erp-chip-success" : "erp-chip erp-chip-warning"}>
-                        {row.status}
-                      </span>
-                    </td>
-                    <td className="erp-td text-right">
-                      {row.status !== "Completed" ? (
-                        <button
-                          type="button"
-                          className="erp-action-btn erp-action-btn-secondary text-xs"
-                          onClick={() => complete.mutate(row.id)}
-                        >
-                          Complete
-                        </button>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </CrudCard>
+      <CrudCard>{list.table}</CrudCard>
 
       <SideDrawer
         open={drawerOpen}

@@ -1,9 +1,10 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { useNavigationStore } from "@/store/navigationStore";
+import { cn } from "@/lib/utils";
 
 interface SideDrawerProps {
   open: boolean;
@@ -18,15 +19,27 @@ interface SideDrawerProps {
 
 export const ERP_WORKSPACE_CONTENT_ID = "erp-workspace-content";
 
+const widthClasses: Record<NonNullable<SideDrawerProps["width"]>, string> = {
+  sm: "max-w-md",
+  md: "max-w-lg",
+  lg: "max-w-2xl",
+  xl: "max-w-3xl",
+  "2xl": "max-w-4xl",
+  full: "max-w-full",
+};
+
 export function SideDrawer({
   open,
   onClose,
   title,
+  subtitle,
   children,
   footer,
+  width = "lg",
+  side = "right",
 }: SideDrawerProps) {
   const [mounted, setMounted] = useState(false);
-  const isSidebarCollapsed = useNavigationStore((state) => state.isSidebarCollapsed);
+  const _isSidebarCollapsed = useNavigationStore((state) => state.isSidebarCollapsed);
 
   useEffect(() => {
     setMounted(true);
@@ -51,55 +64,70 @@ export function SideDrawer({
       delete host.dataset.erpFormOpen;
     }
     return () => {
-      delete host.dataset.erpFormOpen;
+      delete host?.dataset.erpFormOpen;
     };
   }, [open, mounted]);
 
   if (!open || !mounted) return null;
 
-  const host = document.getElementById(ERP_WORKSPACE_CONTENT_ID);
+  const maxWClass = widthClasses[width] || "max-w-2xl";
 
   const panel = (
     <div
       role="dialog"
       aria-modal="true"
       aria-label={title}
-      className="flex h-full min-h-0 flex-col bg-slate-50 p-3 sm:p-4"
+      className={cn(
+        "fixed inset-0 z-[100] flex",
+        side === "left" ? "justify-start" : "justify-end"
+      )}
     >
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-4 py-2.5">
-          <h2 className="truncate text-lg font-semibold text-slate-900">{title}</h2>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+        onClick={onClose}
+      />
+
+      {/* Slide-over Drawer Panel */}
+      <div
+        className={cn(
+          "relative z-10 flex h-full w-full flex-col bg-white shadow-2xl border-l border-slate-200 dark:border-slate-800 dark:bg-slate-900",
+          side === "left" ? "animate-in slide-in-from-left duration-250 ease-out" : "animate-in slide-in-from-right duration-250 ease-out",
+          maxWClass
+        )}
+      >
+        {/* Drawer Header */}
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-slate-50/90 px-5 py-4 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-950/90">
+          <div className="min-w-0 flex-1 pr-3">
+            <h2 className="truncate text-base font-bold text-slate-900 dark:text-white">{title}</h2>
+            {subtitle ? (
+              <p className="mt-0.5 text-xs text-slate-500 leading-normal line-clamp-1 dark:text-slate-400">{subtitle}</p>
+            ) : null}
+          </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-200/70 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-100 cursor-pointer"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">{children}</div>
-        {footer ? <div className="shrink-0 border-t border-slate-200 px-4 py-3">{footer}</div> : null}
+
+        {/* Drawer Scrollable Body */}
+        <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6 scrollbar-thin dark:bg-slate-900">{children}</div>
+
+        {/* Drawer Sticky Footer */}
+        {footer ? (
+          <div className="shrink-0 border-t border-slate-200 bg-slate-50/95 px-5 py-3.5 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-950/90">
+            {footer}
+          </div>
+        ) : null}
       </div>
     </div>
   );
 
-  if (host) {
-    return createPortal(
-      <div className="absolute inset-0 z-20" data-erp-form-page="true">
-        {panel}
-      </div>,
-      host,
-    );
-  }
-
-  const sidebarWidth = isSidebarCollapsed
-    ? "lg:left-[var(--erp-sidebar-collapsed-width)]"
-    : "lg:left-[var(--erp-sidebar-width)]";
-
-  return (
-    <div className={`fixed inset-x-0 bottom-0 top-[var(--erp-topbar-height)] z-20 ${sidebarWidth}`}>
-      {panel}
-    </div>
-  );
+  return typeof document !== "undefined" ? createPortal(panel, document.body) : null;
 }
+
+export default SideDrawer;

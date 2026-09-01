@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -14,6 +14,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import { CrudHeaderStats } from "@/components/workspace/crud-workspace";
 import {
   erpActionCardClassName,
   erpActionCardIconClassName,
@@ -28,7 +29,7 @@ import {
   erpStatCardLabelClassName,
   erpStatCardValueClassName,
   erpStatusBadgeTone,
-} from "@/components/erp/erpStyles";
+} from "@/components/workspace/styles";
 import { ROUTES } from "@/constants/routes";
 import { financeApi } from "@/services/modules";
 import { notifyError } from "@/lib/notifications";
@@ -132,24 +133,21 @@ export default function FinanceDashboardPage() {
     <StandardPageLayout
       title="Finance"
       subtitle="Account balances, payments, and financial module navigation."
-      eyebrow="ERP"
+      eyebrow="ERP / Finance"
       icon="bank"
       meta={
-        !loading ? (
-          <>
-            <span className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
-              {balances.length} accounts
-            </span>
-            <span className={erpStatusBadgeTone.info}>{payments.length} payments</span>
-            {pendingPayments > 0 ? (
-              <span className={erpStatusBadgeTone.warning}>{pendingPayments} pending</span>
-            ) : null}
-          </>
-        ) : null
+        <CrudHeaderStats
+          items={[
+            { label: "Accounts", value: loading ? "…" : balances.length, helper: "ledger" },
+            { label: "Payments", value: loading ? "…" : payments.length, tone: "info" },
+            { label: "Pending", value: loading ? "…" : pendingPayments, tone: pendingPayments > 0 ? "warning" : "positive" },
+            { label: "Net Position", value: loading ? "…" : formatCurrency(netPosition), tone: "info" },
+          ]}
+        />
       }
     >
       {error ? (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
+        <div className="erp-alert-error">{error}</div>
       ) : null}
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">

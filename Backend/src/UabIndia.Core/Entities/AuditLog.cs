@@ -14,5 +14,7 @@ namespace UabIndia.Core.Entities
         public Guid? PerformedBy { get; set; }
         public string? Ip { get; set; }
         public DateTime PerformedAt { get; set; } = DateTime.UtcNow;
+        public string? PrevHash { get; set; }
+        public string? Hash { get; set; }
     }
 }

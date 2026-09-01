@@ -16,6 +16,8 @@ using UabIndia.Api.Modules.Platform.Controllers;
 using UabIndia.Core.Entities;
 using UabIndia.Core.Services;
 using UabIndia.Infrastructure.Data;
+using UabIndia.Infrastructure.Repositories;
+using UabIndia.Infrastructure.Services;
 using UabIndia.Tests.TestUtilities;
 using Xunit;
 
@@ -141,7 +143,9 @@ namespace UabIndia.Tests
             });
 
             var resolver = new RoleMappingResolver(configuration);
-            var controller = new EmployeesController(db, tenantAccessor, new PasswordHasher<User>(), resolver);
+            var numbers = new DocumentNumberService(db, tenantAccessor);
+            var employeeService = new EmployeeService(db, new AssetRepository(db));
+            var controller = new EmployeesController(db, tenantAccessor, new PasswordHasher<User>(), resolver, numbers, employeeService, new TestEncryptionService());
 
             var dto = new CreateEmployeeDto
             {

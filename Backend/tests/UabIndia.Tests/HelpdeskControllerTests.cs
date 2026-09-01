@@ -10,6 +10,7 @@ using UabIndia.Api.Models;
 using UabIndia.Api.Modules.Platform.Controllers;
 using UabIndia.Core.Entities;
 using UabIndia.Infrastructure.Data;
+using UabIndia.Infrastructure.Services;
 using UabIndia.Tests.TestUtilities;
 using Xunit;
 
@@ -104,7 +105,7 @@ namespace UabIndia.Tests
 
         private static HelpdeskController CreateController(ApplicationDbContext db, TestTenantAccessor tenantAccessor, Guid userId, string role)
         {
-            return new HelpdeskController(db, tenantAccessor)
+            return new HelpdeskController(db, tenantAccessor, new DocumentNumberService(db, tenantAccessor))
             {
                 ControllerContext = new ControllerContext
                 {

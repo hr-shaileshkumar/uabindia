@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { TenantWizard, buildTenantUpdatePayload } from "@/features/companies/TenantWizard";
+import { TenantWizard, buildTenantUpdatePayload } from "@/features/tenants/components/TenantWizard";
 import { platformApi } from "@/services/modules";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
-import type { TenantDto, TenantFormValues } from "@/features/companies/types";
-import { buildTenantFormFromDto, getErrorMessage, parseTenant } from "@/features/companies/tenant-utils";
+import type { TenantDto, TenantFormValues } from "@/features/tenants/types";
+import { buildTenantFormFromDto, getErrorMessage, parseTenant } from "@/features/tenants/utils/tenant-utils";
 
 export default function EditTenantPage() {
   const params = useParams();
@@ -24,14 +24,39 @@ export default function EditTenantPage() {
 
     const load = async () => {
       setLoading(true);
+      setError(null);
       try {
-        const res = await platformApi.admin.tenants();
-        const row = Array.isArray(res.data?.tenants)
-          ? (res.data.tenants as Record<string, unknown>[]).map(parseTenant).find((item) => item.id === tenantId)
-          : undefined;
+        let row: TenantDto | undefined;
+
+        try {
+          const directRes = await platformApi.admin.getTenantById(tenantId);
+          if (directRes.data && (directRes.data.id || directRes.data.name)) {
+            row = parseTenant(directRes.data as Record<string, unknown>);
+          }
+        } catch {
+          // fallback to list
+        }
 
         if (!row) {
-          throw new Error("Tenant not found.");
+          const superRes = await platformApi.superadmin.tenants(1, 100);
+          const list = superRes.data?.data || superRes.data?.tenants || (Array.isArray(superRes.data) ? superRes.data : []);
+          const found = list.find((item: Record<string, unknown>) => String(item.id || item.tenantId) === tenantId);
+          if (found) {
+            row = parseTenant(found);
+          }
+        }
+
+        if (!row) {
+          const adminRes = await platformApi.admin.tenants();
+          const list = adminRes.data?.data || adminRes.data?.tenants || (Array.isArray(adminRes.data) ? adminRes.data : []);
+          const found = list.find((item: Record<string, unknown>) => String(item.id || item.tenantId) === tenantId);
+          if (found) {
+            row = parseTenant(found);
+          }
+        }
+
+        if (!row) {
+          throw new Error("Tenant organization not found.");
         }
 
         const baseForm = buildTenantFormFromDto(row);
@@ -51,7 +76,7 @@ export default function EditTenantPage() {
         setTenant(row);
         setInitialValues(baseForm);
       } catch (err) {
-        const message = getErrorMessage(err, "Failed to load tenant.");
+        const message = getErrorMessage(err, "Failed to load tenant organization.");
         setError(message);
         notifyError(message);
       } finally {

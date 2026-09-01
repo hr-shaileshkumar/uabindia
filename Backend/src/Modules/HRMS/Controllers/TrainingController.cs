@@ -15,7 +15,7 @@ using UabIndia.Infrastructure.Data;
 namespace UabIndia.Api.Modules.HRMS.Controllers
 {
     /// <summary>
-    /// API controller for Training & Development operations.
+    /// API controller for Training &amp; Development operations.
     /// Handles courses, enrollments, assessments, certificates, and training requests.
     /// </summary>
     [Authorize]

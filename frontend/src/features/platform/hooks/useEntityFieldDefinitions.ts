@@ -28,12 +28,18 @@ export const useEntityFieldMutations = () => {
     onSuccess: invalidate,
   });
 
+  const updateDefinition = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: Parameters<typeof appApi.entityFields.updateDefinition>[1] }) =>
+      appApi.entityFields.updateDefinition(id, payload),
+    onSuccess: invalidate,
+  });
+
   const deleteDefinition = useMutation({
     mutationFn: (id: string) => appApi.entityFields.deleteDefinition(id),
     onSuccess: invalidate,
   });
 
-  return { createDefinition, deleteDefinition };
+  return { createDefinition, updateDefinition, deleteDefinition };
 };
 
 export const mapEntityFieldDefinition = (field: EntityFieldDefinitionRecord) => ({
@@ -41,7 +47,9 @@ export const mapEntityFieldDefinition = (field: EntityFieldDefinitionRecord) => 
   entityName: field.entityName,
   fieldName: field.fieldLabel || field.fieldKey,
   fieldKey: field.fieldKey,
+  fieldLabel: field.fieldLabel,
   dataType: normalizeFieldType(field.fieldType),
+  fieldType: field.fieldType,
   isRequired: field.isRequired,
   isSearchable: field.isActive,
   section: field.section ?? "General",

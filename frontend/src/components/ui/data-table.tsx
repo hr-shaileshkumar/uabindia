@@ -14,11 +14,12 @@ import {
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Button } from "@/components/ui/button";
-import { Inbox, ChevronDown, ChevronUp, Filter, Search } from "lucide-react";
+import { Inbox, ChevronDown, ChevronUp, Filter, Search, Rows3, Download, FileText, FileSpreadsheet, Printer } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,7 @@ export interface DataTableProps<TData> {
   data: TData[];
   enableSorting?: boolean;
   enableFiltering?: boolean;
+  enableExport?: boolean;
   striped?: boolean;
   isLoading?: boolean;
   skeletonRows?: number;
@@ -46,6 +48,7 @@ export function DataTable<TData>({
   data,
   enableSorting = true,
   enableFiltering = true,
+  enableExport = true,
   striped = false,
   isLoading = false,
   skeletonRows = 5,
@@ -54,6 +57,7 @@ export function DataTable<TData>({
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = React.useState("");
+  const [density, setDensity] = React.useState<"compact" | "normal">("normal");
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
   const table = useReactTable({
@@ -80,7 +84,7 @@ export function DataTable<TData>({
   const rowVirtualizer = useVirtualizer({
     count: isLoading ? 0 : rows.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => 44,
+    estimateSize: () => (density === "compact" ? 36 : 46),
     overscan: 12,
   });
   const virtualRows = rowVirtualizer.getVirtualItems();
@@ -88,35 +92,70 @@ export function DataTable<TData>({
   const paddingBottom =
     virtualRows.length > 0 ? rowVirtualizer.getTotalSize() - virtualRows[virtualRows.length - 1]!.end : 0;
 
+  const handleExportCsv = () => {
+    if (!data.length) return;
+    const visibleCols = table.getVisibleFlatColumns().filter((col) => col.id !== "actions" && col.id !== "select");
+    const headers = visibleCols.map((c) => (typeof c.columnDef.header === "string" ? c.columnDef.header : c.id));
+    const rowsCsv = table.getFilteredRowModel().rows.map((row) =>
+      visibleCols.map((c) => {
+        const val = row.getValue(c.id);
+        return `"${String(val ?? "").replace(/"/g, '""')}"`;
+      }).join(","),
+    );
+    const csvContent = [headers.join(","), ...rowsCsv].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `${title ? title.toLowerCase().replace(/\s+/g, "_") : "export"}_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
-    <Card className={cn("border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-sm", className)}>
+    <Card className={cn("border border-slate-200/90 bg-white shadow-xs rounded-2xl overflow-hidden dark:border-slate-800 dark:bg-slate-900", className)}>
       {(title || description || actions || enableFiltering) && (
-        <CardHeader className="border-b border-[var(--border-subtle)] pb-4">
+        <CardHeader className="border-b border-slate-100 p-4 dark:border-slate-800 dark:bg-slate-950/30">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              {title && <CardTitle className="text-base font-semibold text-[var(--text-main)]">{title}</CardTitle>}
-              {description && <CardDescription className="text-xs text-[var(--text-muted)] mt-1">{description}</CardDescription>}
+              {title && <CardTitle className="text-base font-bold text-slate-900 dark:text-white">{title}</CardTitle>}
+              {description && <CardDescription className="text-xs text-slate-500 mt-0.5 dark:text-slate-400">{description}</CardDescription>}
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {enableFiltering && (
                 <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[var(--text-muted)]" />
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                   <Input
-                    placeholder="Search all records..."
+                    placeholder="Search records…"
                     value={globalFilter ?? ""}
                     onChange={(e) => setGlobalFilter(e.target.value)}
-                    className="pl-9 h-9 w-48 sm:w-64 text-xs bg-[var(--bg-app)] border-[var(--border-subtle)] text-[var(--text-main)] focus-visible:ring-[var(--primary)]"
+                    className="pl-8.5 h-8 w-44 sm:w-60 text-xs bg-slate-50/70 border-slate-200 text-slate-900 rounded-lg focus-visible:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
                   />
                 </div>
               )}
+
+              {/* Density Toggle */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg text-xs gap-1.5 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800"
+                onClick={() => setDensity((d) => (d === "compact" ? "normal" : "compact"))}
+                title={density === "compact" ? "Switch to comfortable view" : "Switch to compact view"}
+              >
+                <Rows3 className="h-3.5 w-3.5 text-slate-400" />
+                <span className="hidden sm:inline">{density === "compact" ? "Compact" : "Comfortable"}</span>
+              </Button>
+
+              {/* Columns Customizer */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-9 border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-surface-hover)]">
-                    <Filter className="mr-1.5 h-3.5 w-3.5" />
+                  <Button variant="outline" size="sm" className="h-8 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg text-xs gap-1.5 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800">
+                    <Filter className="h-3.5 w-3.5 text-slate-400" />
                     Columns
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-[var(--bg-surface)] border-[var(--border-subtle)] text-[var(--text-main)]">
+                <DropdownMenuContent align="end" className="bg-white border-slate-200 shadow-xl rounded-xl p-1 w-48 dark:bg-slate-900 dark:border-slate-800">
                   {table
                     .getAllColumns()
                     .filter((column) => column.getCanHide())
@@ -124,7 +163,7 @@ export function DataTable<TData>({
                       return (
                         <DropdownMenuCheckboxItem
                           key={column.id}
-                          className="capitalize text-xs"
+                          className="capitalize text-xs rounded-lg"
                           checked={column.getIsVisible()}
                           onCheckedChange={(value) => column.toggleVisibility(!!value)}
                         >
@@ -134,28 +173,54 @@ export function DataTable<TData>({
                     })}
                 </DropdownMenuContent>
               </DropdownMenu>
+
+              {/* Export Dropdown */}
+              {enableExport && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-8 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg text-xs gap-1.5 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800">
+                      <Download className="h-3.5 w-3.5 text-slate-400" />
+                      Export
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-white border-slate-200 shadow-xl rounded-xl p-1 w-44 dark:bg-slate-900 dark:border-slate-800">
+                    <DropdownMenuItem onClick={handleExportCsv} className="text-xs gap-2 rounded-lg cursor-pointer">
+                      <FileText className="h-3.5 w-3.5 text-emerald-600" />
+                      Export CSV
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => window.print()} className="text-xs gap-2 rounded-lg cursor-pointer">
+                      <Printer className="h-3.5 w-3.5 text-blue-600" />
+                      Print View
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+
               {actions}
             </div>
           </div>
         </CardHeader>
       )}
       <CardContent className="p-0">
-        <div ref={scrollRef} className="relative overflow-auto max-h-[600px] border-b border-[var(--border-subtle)]">
+        <div ref={scrollRef} className="relative overflow-auto max-h-[600px] scrollbar-thin">
           <table className="w-full text-left text-xs border-collapse">
-            <thead className="sticky top-0 z-10 bg-[var(--bg-surface)] border-b border-[var(--border-subtle)] shadow-xs">
+            <thead className="sticky top-0 z-10 bg-slate-50/90 backdrop-blur-xs border-b border-slate-200 shadow-2xs dark:bg-slate-950/90 dark:border-slate-800">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {
                     return (
                       <th
                         key={header.id}
-                        className="px-4 py-3 font-semibold text-[var(--text-muted)] uppercase tracking-wider bg-[var(--bg-muted)]/50 select-none whitespace-nowrap"
+                        className={cn(
+                          "px-4 font-bold text-slate-500 uppercase tracking-wider select-none whitespace-nowrap dark:text-slate-400",
+                          density === "compact" ? "py-2 text-[11px]" : "py-3 text-[11px]",
+                        )}
                       >
                         {header.isPlaceholder ? null : (
                           <div
                             className={cn(
                               "flex items-center gap-1.5",
-                              enableSorting && header.column.getCanSort() ? "cursor-pointer hover:text-[var(--text-main)] transition-colors" : ""
+                              enableSorting && header.column.getCanSort() ? "cursor-pointer hover:text-slate-900 dark:hover:text-white transition-colors" : "",
                             )}
                             onClick={() => enableSorting && header.column.getCanSort() && header.column.toggleSorting()}
                           >
@@ -163,11 +228,11 @@ export function DataTable<TData>({
                             {enableSorting && header.column.getCanSort() && (
                               <span>
                                 {header.column.getIsSorted() === "asc" ? (
-                                  <ChevronUp className="h-3.5 w-3.5 text-[var(--primary)]" />
+                                  <ChevronUp className="h-3.5 w-3.5 text-blue-600" />
                                 ) : header.column.getIsSorted() === "desc" ? (
-                                  <ChevronDown className="h-3.5 w-3.5 text-[var(--primary)]" />
+                                  <ChevronDown className="h-3.5 w-3.5 text-blue-600" />
                                 ) : (
-                                  <ChevronDown className="h-3.5 w-3.5 text-[var(--text-muted)] opacity-30" />
+                                  <ChevronDown className="h-3.5 w-3.5 text-slate-300 opacity-40 dark:text-slate-600" />
                                 )}
                               </span>
                             )}
@@ -179,24 +244,24 @@ export function DataTable<TData>({
                 </tr>
               ))}
             </thead>
-            <tbody className="divide-y divide-[var(--border-subtle)] bg-[var(--bg-surface)]">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {isLoading ? (
-                Array.from({ length: skeletonRows }).map((_, idx) => (
-                  <tr key={`skeleton-row-${idx}`}>
-                    {columns.map((_, colIdx) => (
-                      <td key={`skeleton-col-${colIdx}`} className="px-4 py-3">
-                        <Skeleton className="h-4 w-full bg-[var(--border-subtle)]" />
-                      </td>
-                    ))}
+                Array.from({ length: skeletonRows }).map((_, index) => (
+                  <tr key={index} className="h-10">
+                    <td colSpan={columns.length} className="px-4 py-2">
+                      <Skeleton className="h-5 w-full rounded bg-slate-100 dark:bg-slate-800" />
+                    </td>
                   </tr>
                 ))
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={columns.length} className="px-4 py-12 text-center">
+                  <td colSpan={columns.length} className="py-12 text-center">
                     <div className="flex flex-col items-center justify-center gap-2">
-                      <Inbox className="h-8 w-8 text-[var(--text-muted)] opacity-60" />
-                      <p className="text-sm font-medium text-[var(--text-main)]">No records found</p>
-                      <p className="text-xs text-[var(--text-muted)]">Try adjusting your filters or search terms.</p>
+                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-400 dark:bg-slate-800">
+                        <Inbox className="h-4.5 w-4.5" />
+                      </span>
+                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">No records found</p>
+                      <p className="text-xs text-slate-500">Try adjusting your filters or search query.</p>
                     </div>
                   </td>
                 </tr>
@@ -215,12 +280,18 @@ export function DataTable<TData>({
                         key={row.id}
                         data-index={virtualRow.index}
                         className={cn(
-                          "transition-colors hover:bg-[var(--bg-surface-hover)]",
-                          striped && virtualRow.index % 2 === 1 ? "bg-[var(--bg-app)]/50" : ""
+                          "transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/40",
+                          striped && virtualRow.index % 2 === 1 ? "bg-slate-50/40 dark:bg-slate-900/40" : "",
                         )}
                       >
                         {row.getVisibleCells().map((cell) => (
-                          <td key={cell.id} className="px-4 py-3 align-middle text-[var(--text-main)] whitespace-nowrap">
+                          <td
+                            key={cell.id}
+                            className={cn(
+                              "px-4 align-middle text-slate-700 whitespace-nowrap dark:text-slate-300 tabular-nums",
+                              density === "compact" ? "py-1.5 text-xs" : "py-3 text-xs",
+                            )}
+                          >
                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                           </td>
                         ))}
@@ -238,18 +309,19 @@ export function DataTable<TData>({
           </table>
         </div>
         {/* Pagination Bar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 gap-3 text-xs text-[var(--text-muted)] bg-[var(--bg-surface)]">
+        <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 gap-3 text-xs text-slate-500 border-t border-slate-100 bg-slate-50/40 dark:border-slate-800 dark:bg-slate-950/20">
           <div className="flex items-center gap-2">
             <span>
-              Showing Page <strong className="text-[var(--text-main)]">{table.getState().pagination.pageIndex + 1}</strong> of{" "}
-              <strong className="text-[var(--text-main)]">{table.getPageCount() || 1}</strong> ({table.getFilteredRowModel().rows.length} total items)
+              Page <strong className="text-slate-900 dark:text-white">{table.getState().pagination.pageIndex + 1}</strong> of{" "}
+              <strong className="text-slate-900 dark:text-white">{table.getPageCount() || 1}</strong> ({table.getFilteredRowModel().rows.length} total items)
             </span>
           </div>
           <div className="flex items-center gap-2">
             <select
               value={table.getState().pagination.pageSize}
               onChange={(e) => table.setPageSize(Number(e.target.value))}
-              className="h-8 px-2 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-app)] text-[var(--text-main)] text-xs focus:ring-[var(--primary)]"
+              aria-label="Rows per page"
+              className="h-8 px-2 rounded-lg border border-slate-200 bg-white text-slate-800 text-xs focus:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
             >
               {[10, 20, 30, 50, 100].map((pageSize) => (
                 <option key={pageSize} value={pageSize}>
@@ -260,7 +332,7 @@ export function DataTable<TData>({
             <Button
               variant="outline"
               size="sm"
-              className="h-8 px-3 text-xs border-[var(--border-subtle)] text-[var(--text-main)] hover:bg-[var(--bg-surface-hover)] disabled:opacity-40"
+              className="h-8 px-3 text-xs border-slate-200 text-slate-700 hover:bg-white rounded-lg disabled:opacity-40 dark:border-slate-800 dark:text-slate-300"
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
             >
@@ -269,7 +341,7 @@ export function DataTable<TData>({
             <Button
               variant="outline"
               size="sm"
-              className="h-8 px-3 text-xs border-[var(--border-subtle)] text-[var(--text-main)] hover:bg-[var(--bg-surface-hover)] disabled:opacity-40"
+              className="h-8 px-3 text-xs border-slate-200 text-slate-700 hover:bg-white rounded-lg disabled:opacity-40 dark:border-slate-800 dark:text-slate-300"
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
             >

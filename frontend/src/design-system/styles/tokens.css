@@ -13,6 +13,16 @@
   --text-muted: #64748b;
   --text-subtle: #94a3b8;
 
+  /* Surfaces & Cards */
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --accent: #f1f5f9;
+  --accent-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+
   /* Primary Brand Tokens — public sapphire */
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
@@ -54,6 +64,15 @@
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
   --text-subtle: #64748b;
+
+  --card: #0f172a;
+  --card-foreground: #f8fafc;
+  --popover: #0f172a;
+  --popover-foreground: #f8fafc;
+  --accent: #1e293b;
+  --accent-foreground: #f8fafc;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
 
   --primary: #3b82f6;
   --primary-hover: #2563eb;

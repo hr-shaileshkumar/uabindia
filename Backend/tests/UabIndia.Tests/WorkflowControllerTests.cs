@@ -98,6 +98,51 @@ namespace UabIndia.Tests
             Assert.Equal("Manager", payload.PendingApprovals[0].RoleRequired);
         }
 
+        [Fact]
+        public async Task GetApprovals_MineFalse_ReturnsRemainingSteps()
+        {
+            var tenantAccessor = new TestTenantAccessor();
+            var tenantId = Guid.NewGuid();
+            tenantAccessor.SetTenantId(tenantId);
+            await using var db = CreateContext(tenantAccessor);
+
+            var workflow = new WorkflowDefinition
+            {
+                TenantId = tenantId,
+                ModuleKey = "purchase_approval",
+                Name = "Purchase Approval",
+                Steps = new List<WorkflowStep>
+                {
+                    new() { TenantId = tenantId, StepOrder = 1, RoleRequired = "Admin", ApprovalType = "Any" },
+                    new() { TenantId = tenantId, StepOrder = 2, RoleRequired = "Manager", ApprovalType = "Any" }
+                }
+            };
+            db.WorkflowDefinitions.Add(workflow);
+            var approval = new ApprovalRequest
+            {
+                TenantId = tenantId,
+                ModuleKey = workflow.ModuleKey,
+                WorkflowDefinition = workflow,
+                WorkflowDefinitionId = workflow.Id,
+                EntityType = "PurchaseOrder",
+                EntityId = Guid.NewGuid(),
+                CurrentStep = 1,
+                Status = "InProgress",
+                RequestedBy = Guid.NewGuid()
+            };
+            db.ApprovalRequests.Add(approval);
+            await db.SaveChangesAsync();
+
+            var controller = CreateController(db, tenantAccessor, Guid.NewGuid(), "Admin");
+            var result = await controller.GetApprovals(approval.Id, mine: false);
+
+            var ok = Assert.IsType<OkObjectResult>(result);
+            var payload = Assert.IsType<WorkflowApprovalsResponseDto>(ok.Value);
+            Assert.Equal(2, payload.PendingApprovals.Count);
+            Assert.True(payload.PendingApprovals[0].IsCurrentStep);
+            Assert.False(payload.PendingApprovals[1].IsCurrentStep);
+        }
+
         private static ApplicationDbContext CreateContext(TestTenantAccessor tenantAccessor)
         {
             var options = new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -109,7 +154,12 @@ namespace UabIndia.Tests
 
         private static WorkflowController CreateController(ApplicationDbContext db, TestTenantAccessor tenantAccessor, Guid userId, string role)
         {
-            var controller = new WorkflowController(new WorkflowService(), tenantAccessor, db)
+            var controller = new WorkflowController(
+                new WorkflowService(),
+                tenantAccessor,
+                db,
+                new WorkflowDefinitionService(db, tenantAccessor),
+                new WorkflowApprovalQueryService(db, tenantAccessor))
             {
                 ControllerContext = new ControllerContext
                 {

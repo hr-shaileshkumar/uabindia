@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { appApi } from "@/services/modules/app";
 import type { CommunicationTemplateRecord, CommunicationTemplatesResponse } from "@/types";
 
@@ -28,17 +28,22 @@ export const useSmsTemplates = (page = 1, limit = 50) =>
     staleTime: 30_000,
   });
 
-export const mapCommunicationTemplate = (template: CommunicationTemplateRecord) => ({
-  id: template.id,
-  key: template.triggerEvent || template.name,
-  channel: template.templateKind?.toLowerCase().includes("sms")
-    ? ("SMS" as const)
-    : ("Email" as const),
-  subject: template.subject || template.name,
-  language: template.language || "en-US",
-  isActive: template.status?.toLowerCase() !== "draft",
-  name: template.name,
-});
+export const mapCommunicationTemplate = (template: CommunicationTemplateRecord) => {
+  const record = template as unknown as Record<string, unknown>;
+  return {
+    id: template.id,
+    key: template.triggerEvent || template.name,
+    channel: (template.templateKind?.toLowerCase().includes("sms")
+      ? "SMS"
+      : "Email") as "SMS" | "Email",
+    subject: template.subject || template.name,
+    body: (record.body as string) || "",
+    triggerEvent: template.triggerEvent || "",
+    language: template.language || "en-US",
+    isActive: template.status?.toLowerCase() !== "draft",
+    name: template.name,
+  };
+};
 
 export const useNotificationTemplates = (page = 1, limit = 50) => {
   const email = useEmailTemplates(page, limit);
@@ -59,4 +64,55 @@ export const useNotificationTemplates = (page = 1, limit = 50) => {
     },
     total: (email.data?.total ?? 0) + (sms.data?.total ?? 0),
   };
+};
+
+export const useTemplateMutations = () => {
+  const queryClient = useQueryClient();
+
+  const createTemplate = useMutation({
+    mutationFn: async ({
+      kind,
+      name,
+      subject,
+      body,
+      triggerEvent,
+      language,
+      status,
+    }: {
+      kind: "Email" | "SMS";
+      name: string;
+      subject?: string;
+      body: string;
+      triggerEvent?: string;
+      language?: string;
+      status?: string;
+    }) => {
+      const payload = { name, subject, body, triggerEvent, language, status: status || "Published" };
+      if (kind === "Email") {
+        return appApi.communication.emailTemplates.create(payload);
+      } else {
+        return appApi.communication.smsTemplates.create(payload);
+      }
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["platform", "email-templates"] });
+      void queryClient.invalidateQueries({ queryKey: ["platform", "sms-templates"] });
+    },
+  });
+
+  const deleteTemplate = useMutation({
+    mutationFn: async ({ kind, id }: { kind: "Email" | "SMS"; id: string }) => {
+      if (kind === "Email") {
+        return appApi.communication.emailTemplates.delete(id);
+      } else {
+        return appApi.communication.smsTemplates.delete(id);
+      }
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["platform", "email-templates"] });
+      void queryClient.invalidateQueries({ queryKey: ["platform", "sms-templates"] });
+    },
+  });
+
+  return { createTemplate, deleteTemplate };
 };

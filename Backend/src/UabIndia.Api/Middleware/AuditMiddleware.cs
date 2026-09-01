@@ -113,8 +113,15 @@ namespace UabIndia.Api.Middleware
                 }
 
                 request.EnableBuffering();
-                var buffer = new byte[Convert.ToInt32(request.ContentLength ?? 0)];
-                await request.Body.ReadAsync(buffer, 0, buffer.Length);
+                var length = Convert.ToInt32(request.ContentLength ?? 0);
+                if (length <= 0)
+                {
+                    request.Body.Position = 0;
+                    return string.Empty;
+                }
+
+                var buffer = new byte[length];
+                await request.Body.ReadExactlyAsync(buffer.AsMemory(0, buffer.Length));
                 var bodyText = Encoding.UTF8.GetString(buffer);
                 request.Body.Position = 0; // Reset for next middleware
                 return bodyText;
@@ -182,6 +189,11 @@ namespace UabIndia.Api.Middleware
                     PerformedAt = DateTime.UtcNow,
                     Ip = context.Connection.RemoteIpAddress?.ToString()
                 };
+
+                if (context.Items.TryGetValue("CompanyId", out var companyObj) && companyObj is Guid companyId)
+                    auditLog.CompanyId = companyId;
+                if (context.Items.TryGetValue("ProjectId", out var projectObj) && projectObj is Guid projectId)
+                    auditLog.ProjectId = projectId;
 
                 db.AuditLogs.Add(auditLog);
                 await db.SaveChangesAsync();

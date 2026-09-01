@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
-using System.Text.Json;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using UabIndia.Application.Interfaces;
 using UabIndia.Infrastructure.Data;
@@ -11,8 +11,7 @@ using UabIndia.Infrastructure.Data;
 namespace UabIndia.Api.Modules.Platform.Controllers
 {
     /// <summary>
-    /// GDPR Compliance APIs for data export and deletion (Right to be Forgotten)
-    /// Implements GDPR Articles 15 (Right of Access) and 17 (Right to Erasure)
+    /// DPDP Act 2023 and GDPR privacy APIs for data export and deletion.
     /// </summary>
     [ApiController]
     [Route("api/v1/[controller]")]
@@ -48,14 +47,20 @@ namespace UabIndia.Api.Modules.Platform.Controllers
             if (user == null)
                 return NotFound(new { message = "User not found or does not belong to this tenant" });
 
+            var employee = await _db.Employees
+                .AsNoTracking()
+                .FirstOrDefaultAsync(e => e.UserId == request.UserId && e.TenantId == tenantId && !e.IsDeleted);
+
             var exportData = new
             {
                 ExportDate = DateTime.UtcNow,
+                Law = "DPDP Act 2023 (Digital Personal Data Protection) and GDPR where applicable",
                 UserId = user.Id,
                 TenantId = user.TenantId,
                 PersonalInformation = new
                 {
                     user.Email,
+                    user.FullName,
                     user.IsActive,
                     user.CreatedAt,
                     user.UpdatedAt
@@ -65,15 +70,54 @@ namespace UabIndia.Api.Modules.Platform.Controllers
                     .Where(ur => ur.UserId == request.UserId && ur.TenantId == tenantId && !ur.IsDeleted)
                     .Join(_db.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { r.Name, r.Description })
                     .ToListAsync(),
-                EmployeeRecords = await _db.Employees
-                    .AsNoTracking()
-                    .Where(e => e.CreatedBy == request.UserId && e.TenantId == tenantId && !e.IsDeleted)
-                    .Select(e => new { e.Id, e.FullName, e.EmployeeCode, e.Status, e.CreatedAt })
-                    .ToListAsync(),
+                EmployeeRecords = employee == null ? null : new
+                {
+                    employee.Id,
+                    employee.FullName,
+                    employee.EmployeeCode,
+                    employee.Status,
+                    employee.WorkEmail,
+                    employee.Phone,
+                    employee.DateOfBirth,
+                    employee.City,
+                    employee.State,
+                    employee.DateOfJoining,
+                    employee.ExitDate,
+                    employee.Pan,
+                    AadhaarMasked = string.IsNullOrWhiteSpace(employee.Aadhaar) || employee.Aadhaar.Length < 4
+                        ? employee.Aadhaar
+                        : new string('X', employee.Aadhaar.Length - 4) + employee.Aadhaar[^4..],
+                    employee.Uan,
+                    employee.PfNumber,
+                    employee.EsiNumber,
+                    employee.BankIfsc,
+                    BankAccountMasked = string.IsNullOrWhiteSpace(employee.BankAccountNumber) || employee.BankAccountNumber.Length < 4
+                        ? employee.BankAccountNumber
+                        : "XXXX" + employee.BankAccountNumber[^4..]
+                },
                 LeaveRequests = await _db.LeaveRequests
                     .AsNoTracking()
-                    .Where(lr => lr.EmployeeId == request.UserId && lr.TenantId == tenantId && !lr.IsDeleted)
+                    .Where(lr => employee != null && lr.EmployeeId == employee.Id && lr.TenantId == tenantId && !lr.IsDeleted)
                     .Select(lr => new { lr.Id, lr.FromDate, lr.ToDate, lr.Days, lr.Status, lr.Reason })
+                    .ToListAsync(),
+                Attendance = employee == null ? null : await _db.AttendanceRecords
+                    .AsNoTracking()
+                    .Where(a => a.EmployeeId == employee.Id && a.TenantId == tenantId && !a.IsDeleted)
+                    .OrderByDescending(a => a.Timestamp)
+                    .Take(200)
+                    .Select(a => new { a.PunchType, a.Timestamp, a.Source })
+                    .ToListAsync(),
+                Payslips = employee == null ? null : await _db.Payslips
+                    .AsNoTracking()
+                    .Where(p => p.EmployeeId == employee.Id && !p.IsDeleted)
+                    .OrderByDescending(p => p.Year).ThenByDescending(p => p.Month)
+                    .Take(36)
+                    .Select(p => new { p.Month, p.Year, p.Gross, p.Net, p.TotalDeductions })
+                    .ToListAsync(),
+                ExpenseClaims = employee == null ? null : await _db.ExpenseClaims
+                    .AsNoTracking()
+                    .Where(e => e.EmployeeId == employee.Id && e.TenantId == tenantId && !e.IsDeleted)
+                    .Select(e => new { e.ClaimNumber, e.Title, e.Amount, e.ExpenseDate, e.Status })
                     .ToListAsync(),
                 AuditLogs = await _db.AuditLogs
                     .AsNoTracking()
@@ -96,6 +140,15 @@ namespace UabIndia.Api.Modules.Platform.Controllers
                 format = "JSON",
                 dataPackage = exportData
             });
+        }
+
+        [HttpPost("export-me")]
+        public async Task<IActionResult> ExportMyData()
+        {
+            var userId = GetCurrentUserId();
+            if (userId == Guid.Empty)
+                return Unauthorized(new { message = "Sign in to export your data." });
+            return await ExportUserData(new ExportDataRequest { UserId = userId });
         }
 
         /// <summary>
@@ -128,11 +181,36 @@ namespace UabIndia.Api.Modules.Platform.Controllers
             // Strategy: Soft delete + Anonymization
             var deletedEntities = 0;
 
-            // 1. Soft delete user record
             user.IsDeleted = true;
-            user.Email = $"deleted-{user.Id}@anonymized.local"; // Anonymize email
+            user.IsActive = false;
+            user.Email = $"deleted-{user.Id}@anonymized.local";
+            user.FullName = "Deleted User";
             user.UpdatedAt = DateTime.UtcNow;
             deletedEntities++;
+
+            var employee = await _db.Employees
+                .FirstOrDefaultAsync(e => e.UserId == request.UserId && e.TenantId == tenantId && !e.IsDeleted);
+            if (employee != null)
+            {
+                employee.FullName = "Deleted User";
+                employee.WorkEmail = $"deleted-{employee.Id}@anonymized.local";
+                employee.PersonalEmail = null;
+                employee.Phone = null;
+                employee.AlternatePhone = null;
+                employee.Address = null;
+                employee.Pan = null;
+                employee.Aadhaar = null;
+                employee.Uan = null;
+                employee.PfNumber = null;
+                employee.EsiNumber = null;
+                employee.BankAccountHolder = null;
+                employee.BankAccountNumber = null;
+                employee.BankIfsc = null;
+                employee.BankName = null;
+                employee.Status = "Inactive";
+                employee.UpdatedAt = DateTime.UtcNow;
+                deletedEntities++;
+            }
 
             // 2. Soft delete user roles
             var userRoles = await _db.UserRoles
@@ -181,7 +259,7 @@ namespace UabIndia.Api.Modules.Platform.Controllers
                 deletedEntities,
                 deletionDate = DateTime.UtcNow,
                 reason = request.Reason,
-                compliance = "GDPR Article 17 - Right to Erasure",
+                compliance = "DPDP Act 2023 / GDPR Article 17 - Right to Erasure",
                 note = "User data has been anonymized and soft-deleted. Audit trail retained for compliance."
             });
         }
@@ -206,15 +284,23 @@ namespace UabIndia.Api.Modules.Platform.Controllers
                 },
                 userRights = new[]
                 {
-                    "Right to Access (GDPR Article 15) - Export your data",
-                    "Right to Rectification (GDPR Article 16) - Correct inaccurate data",
-                    "Right to Erasure (GDPR Article 17) - Delete your data",
-                    "Right to Data Portability (GDPR Article 20) - Receive data in structured format"
+                    "Right to Access (DPDP Act 2023 / GDPR Article 15) - Export your data",
+                    "Right to Correction (DPDP Act 2023 / GDPR Article 16)",
+                    "Right to Erasure (DPDP Act 2023 / GDPR Article 17)",
+                    "Right to Data Portability (GDPR Article 20)"
                 },
                 dataProcessingPurpose = "Human Resource Management, Payroll, and Attendance Tracking",
                 dataController = "UabIndia HRMS",
                 contactEmail = "privacy@uabindia.com"
             });
+        }
+
+        private Guid GetCurrentUserId()
+        {
+            var raw = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("sub")
+                ?? User.FindFirstValue("userId");
+            return Guid.TryParse(raw, out var id) ? id : Guid.Empty;
         }
 
         public class ExportDataRequest

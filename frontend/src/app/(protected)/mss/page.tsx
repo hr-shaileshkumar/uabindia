@@ -1,13 +1,13 @@
-"use client";
+﻿"use client";
 
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import ErpHeaderSummary from "@/components/layout/ErpHeaderSummary";
-import { ErpApproveRejectButtons, ErpRefreshButton, ErpSearchFilter } from "@/components/erp/erp-page-kit";
-import { CrudCard } from "@/components/erp/crud-workspace";
-import { erpButtonClassName } from "@/components/erp/erpStyles";
+import HeaderSummary from "@/components/layout/HeaderSummary";
+import { ErpApproveRejectButtons, ErpRefreshButton, ErpSearchFilter } from "@/components/workspace/page-kit";
+import { CrudCard } from "@/components/workspace/crud-workspace";
+import { erpButtonClassName } from "@/components/workspace/styles";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { appApi, hrmsApi } from "@/services/modules";
@@ -74,9 +74,11 @@ export default function MssPage() {
   return (
     <StandardPageLayout
       title="Manager Self-Service"
+      subtitle="Approve or reject leave requests and workflow approvals from your team."
+      eyebrow="People / My Team"
       icon="users"
       meta={
-        <ErpHeaderSummary
+        <HeaderSummary
           items={[
             { label: "Team Size", value: data?.stats?.activeEmployees ?? 0, tone: "default" },
             {

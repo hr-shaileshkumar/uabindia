@@ -1,10 +1,10 @@
-import { useForm, SubmitHandler, useWatch } from "react-hook-form";
+﻿import { useForm, SubmitHandler, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { tenantSchema, TenantFormValues } from "../../validations/tenant.schema";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { erpButtonClassName } from "@/components/erp/erpStyles";
+import { erpButtonClassName } from "@/components/workspace/styles";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCreateTenant } from "../../hooks/useTenants";
 import { useToast } from "@/hooks/use-toast";

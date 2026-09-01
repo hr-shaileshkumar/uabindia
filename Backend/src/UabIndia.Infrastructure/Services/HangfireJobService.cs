@@ -127,11 +127,29 @@ namespace UabIndia.Infrastructure.Services
             {
                 _logger.LogInformation("Processing pending notifications at {DateTime}", DateTime.UtcNow);
 
-                var pendingCount = await _db.NotificationMessages
+                var pending = await _db.NotificationMessages
+                    .Where(n => !n.IsDeleted && n.Status == "Pending" && n.Channel == "InApp")
+                    .OrderBy(n => n.CreatedAt)
+                    .Take(200)
+                    .ToListAsync();
+
+                foreach (var n in pending)
+                {
+                    n.Status = "Sent";
+                    n.SentAt ??= DateTime.UtcNow;
+                }
+
+                if (pending.Count > 0)
+                    await _db.SaveChangesAsync();
+
+                var unreadCount = await _db.NotificationMessages
                     .Where(n => !n.IsRead && !n.IsDeleted && n.CreatedAt > DateTime.UtcNow.AddDays(-7))
                     .CountAsync();
 
-                _logger.LogInformation("Found {Count} unread notifications at {DateTime}", pendingCount, DateTime.UtcNow);
+                _logger.LogInformation(
+                    "Notification dispatch: stamped {Pending} pending InApp; {Unread} unread in last 7 days",
+                    pending.Count,
+                    unreadCount);
             }
             catch (Exception ex)
             {

@@ -1,16 +1,16 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useCallback } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
-import ErpHeaderSummary from "@/components/layout/ErpHeaderSummary";
+import HeaderSummary from "@/components/layout/HeaderSummary";
 import { SideDrawer } from "@/components/ui/side-drawer";
-import { ListCreateButton, ListSearchInput } from "@/components/erp/list-toolbar";
+import { ListCreateButton, ListSearchInput } from "@/components/workspace/list-toolbar";
 import {
   erpButtonClassName,
   erpFormInputClassName,
   erpFormLabelClassName,
-} from "@/components/erp/erpStyles";
+} from "@/components/workspace/styles";
 import { appApi } from "@/services/modules";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
@@ -144,7 +144,7 @@ export default function CommunicationEmailTemplatesPage() {
         actions={<ListCreateButton label="New template" onClick={openCreate} />}
         filters={<ListSearchInput value={search} onChange={setSearch} placeholder="Search name, subject, event…" />}
         headerStats={
-          <ErpHeaderSummary
+          <HeaderSummary
             items={[
               { label: "Templates", value: records.length },
               { label: "Active", value: records.filter((r) => r.status === "Active").length, tone: "success" },

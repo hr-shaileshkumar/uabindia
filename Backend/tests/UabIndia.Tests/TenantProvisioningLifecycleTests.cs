@@ -127,11 +127,12 @@ namespace UabIndia.Tests
 
             var adminUsers = await db.Users
                 .IgnoreQueryFilters()
-                .Where(u => u.TenantId == tenantId && !u.IsDeleted && u.IsSystemAdmin)
+                .Where(u => u.TenantId == tenantId && !u.IsDeleted && u.Email == "admin@tenant.local")
                 .ToListAsync();
 
             Assert.Single(adminUsers);
             Assert.Equal("admin@tenant.local", adminUsers[0].Email);
+            Assert.False(adminUsers[0].IsSystemAdmin);
 
             var mappedRoleNames = await db.UserRoles
                 .IgnoreQueryFilters()
@@ -182,10 +183,11 @@ namespace UabIndia.Tests
 
             var adminUsers = await db.Users
                 .IgnoreQueryFilters()
-                .Where(u => u.TenantId == tenantId && !u.IsDeleted && u.IsSystemAdmin)
+                .Where(u => u.TenantId == tenantId && !u.IsDeleted && u.Email == "admin@repair.local")
                 .ToListAsync();
 
             Assert.Single(adminUsers);
+            Assert.False(adminUsers[0].IsSystemAdmin);
 
             var activeMappings = await db.UserRoles
                 .IgnoreQueryFilters()

@@ -5,6 +5,8 @@ namespace UabIndia.Core.Entities
 {
     public class JournalEntry : BaseEntity
     {
+        public Guid? CompanyId { get; set; }
+        public Guid? ProjectId { get; set; }
         public string JournalNumber { get; set; } = string.Empty;
         public DateTime EntryDate { get; set; }
         public string EntryType { get; set; } = string.Empty; // Opening, Regular, Closing, Adjusting

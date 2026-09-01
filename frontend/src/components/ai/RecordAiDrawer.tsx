@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
 import { SideDrawer } from "@/components/ui/side-drawer";
-import { erpButtonClassName, erpFormInputClassName, erpFormLabelClassName } from "@/components/erp/erpStyles";
+import { erpButtonClassName, erpFormInputClassName, erpFormLabelClassName } from "@/components/workspace/styles";
 import { aiApi } from "@/services/modules";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { notifyError } from "@/lib/notifications";

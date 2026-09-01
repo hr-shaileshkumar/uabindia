@@ -1,13 +1,13 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ExternalLink, Plug, RefreshCw } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
-import { ErpRefreshButton, ErpSearchFilter } from "@/components/erp/erp-page-kit";
-import { useErpListView } from "@/components/erp/erp-list-view";
-import { erpButtonClassName } from "@/components/erp/erpStyles";
+import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
+import { ErpRefreshButton, ErpSearchFilter } from "@/components/workspace/page-kit";
+import { useErpListView } from "@/components/workspace/list-view";
+import { erpButtonClassName } from "@/components/workspace/styles";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { mapIntegration, useIntegrationMutations, useIntegrations } from "@/features/platform/hooks/useIntegrations";
@@ -138,6 +138,8 @@ export default function IntegrationsAppsPage() {
   return (
     <StandardPageLayout
       title="Connected Apps"
+      subtitle="Configure external SaaS connectors, third-party syncs, and webhooks."
+      eyebrow="Integrations / Ecosystem"
       icon="apps"
       meta={
         <CrudHeaderStats

@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { ERPFormGrid, ERPFormField } from "@/components/ui/erp-form-grid";
+import { ERPFormGrid, ERPFormField } from "@/components/ui/form-grid";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,7 +13,7 @@ import {
   erpPanelBodyClassName,
   erpPanelHeaderClassName,
   erpPanelTitleClassName,
-} from "@/components/erp/erpStyles";
+} from "@/components/workspace/styles";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { platformApi } from "@/services/modules/platform";
 import { Save, UserPlus } from "lucide-react";

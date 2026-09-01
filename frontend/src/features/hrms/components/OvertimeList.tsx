@@ -1,18 +1,14 @@
 ﻿"use client";
 
 import { useMemo, useState } from "react";
-import { Check, Search, X } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
-import { EmptyState } from "@/components/erp/empty-state";
-import { StatusBadge } from "@/components/erp/status-badge";
-import {
-  erpButtonClassName,
-  erpFormInputClassName,
-  erpFormLabelClassName,
-  erpPanelClassName,
-} from "@/components/erp/erpStyles";
+import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
+import { ErpApproveRejectButtons, ErpRefreshButton, ErpRowActions } from "@/components/workspace/page-kit";
+import { useErpListView } from "@/components/workspace/list-view";
+import { ListSearchInput, ListStatusFilter } from "@/components/workspace/list-toolbar";
+import { StatusBadge } from "@/components/workspace/status-badge";
+import { erpTableRowHoverClassName, erpTableTdClassName } from "@/components/workspace/styles";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { hrmsApi } from "@/services/modules";
 import type { OvertimeRequest } from "@/types";
@@ -73,7 +69,7 @@ export function OvertimeList() {
   const [statusFilter, setStatusFilter] = useState("");
   const queryClient = useQueryClient();
 
-  const { data: raw, isLoading, isError, error, refetch } = useQuery({
+  const { data: raw, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ["hrms", "overtime-requests"],
     queryFn: async () => {
       const { data } = await hrmsApi.hrms.overtime.requests.list({ take: 100 });
@@ -84,13 +80,17 @@ export function OvertimeList() {
 
   const requests = useMemo(() => parseOvertimeRequests(raw).map(mapOvertimeRequest), [raw]);
 
-  const filtered = requests.filter((r) => {
-    const matchesSearch =
-      (r.employeeName || "").toLowerCase().includes(search.toLowerCase()) ||
-      r.reason?.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = !statusFilter || r.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filtered = useMemo(
+    () =>
+      requests.filter((r) => {
+        const matchesSearch =
+          (r.employeeName || "").toLowerCase().includes(search.toLowerCase()) ||
+          r.reason?.toLowerCase().includes(search.toLowerCase());
+        const matchesStatus = !statusFilter || r.status === statusFilter;
+        return matchesSearch && matchesStatus;
+      }),
+    [requests, search, statusFilter],
+  );
 
   const handleAction = async (id: string, newStatus: "Approved" | "Rejected") => {
     try {
@@ -104,11 +104,66 @@ export function OvertimeList() {
     }
   };
 
+  const list = useErpListView({
+    listKey: "hrms-overtime",
+    rows: filtered,
+    columns: [
+      { key: "employeeName", label: "Employee" },
+      { key: "date", label: "Date" },
+      { key: "hours", label: "Hours" },
+      { key: "reason", label: "Reason" },
+      { key: "status", label: "Status" },
+      { key: "actions", label: "Actions", className: "text-right", locked: true },
+    ],
+    getRowId: (req) => req.id,
+    loading: isLoading,
+    emptyMessage: "Overtime requests will appear here once employees submit extra hours through the HRMS API.",
+    onRefresh: () => void refetch(),
+    extraFilters: (
+      <>
+        <ListSearchInput value={search} onChange={setSearch} placeholder="Search employee or reason…" />
+        <ListStatusFilter
+          value={statusFilter}
+          onChange={setStatusFilter}
+          options={[
+            { label: "All statuses", value: "" },
+            { label: "Pending", value: "Pending" },
+            { label: "Approved", value: "Approved" },
+            { label: "Rejected", value: "Rejected" },
+          ]}
+        />
+      </>
+    ),
+    renderRow: (req) => (
+      <tr key={req.id} className={erpTableRowHoverClassName}>
+        <td className={`${erpTableTdClassName} font-semibold text-slate-900`}>{req.employeeName}</td>
+        <td className={erpTableTdClassName}>{req.date}</td>
+        <td className={erpTableTdClassName}>{req.hours} hrs</td>
+        <td className={`${erpTableTdClassName} text-xs italic text-slate-600`}>{req.reason ? `"${req.reason}"` : "—"}</td>
+        <td className={erpTableTdClassName}>
+          <StatusBadge tone={overtimeStatusTone(req.status)}>{req.status}</StatusBadge>
+        </td>
+        <td className={`${erpTableTdClassName} text-right`}>
+          <ErpRowActions
+            extra={
+              req.status === "Pending" ? (
+                <ErpApproveRejectButtons
+                  onApprove={() => void handleAction(req.id, "Approved")}
+                  onReject={() => void handleAction(req.id, "Rejected")}
+                />
+              ) : null
+            }
+          />
+        </td>
+      </tr>
+    ),
+  });
+
   return (
     <StandardPageLayout
       title="Overtime Requests"
       subtitle="Review, approve, and track extra hours logged by team members."
-      eyebrow="HRMS"
+      eyebrow="HRMS / Overtime"
       icon="clock"
       meta={
         <CrudHeaderStats
@@ -120,92 +175,18 @@ export function OvertimeList() {
         />
       }
       actions={
-        <button type="button" onClick={() => void refetch()} className={erpButtonClassName.secondary}>
-          Refresh
-        </button>
+        <>
+          <ErpRefreshButton onClick={() => void refetch()} loading={isLoading || isFetching} />
+          {list.headerTools}
+        </>
       }
-      filters={
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="relative min-w-[16rem] flex-1 max-w-md">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search employee or reason…"
-              className={`${erpFormInputClassName} pl-9`}
-            />
-          </div>
-          <div>
-            <label htmlFor="overtime-status" className={erpFormLabelClassName}>
-              Status
-            </label>
-            <select
-              id="overtime-status"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className={`${erpFormInputClassName} mt-1 min-w-[10rem]`}
-            >
-              <option value="">All</option>
-              <option value="Pending">Pending</option>
-              <option value="Approved">Approved</option>
-              <option value="Rejected">Rejected</option>
-            </select>
-          </div>
-        </div>
-      }
+      filters={list.filterBar}
     >
-      {isError && (
+      {isError ? (
         <div className="erp-alert-error text-sm">{getApiErrorMessage(error, "Failed to load overtime requests.")}</div>
-      )}
+      ) : null}
 
-      <CrudCard title="Overtime queue" description="Live overtime requests from the HRMS API.">
-        {isLoading ? (
-          <div className="erp-loading">Loading requests…</div>
-        ) : filtered.length === 0 ? (
-          <EmptyState
-            title="No overtime requests found"
-            description="Overtime requests will appear here once employees submit extra hours through the HRMS API."
-            ctaLabel="Refresh list"
-            onClick={() => void refetch()}
-          />
-        ) : (
-          <div className="space-y-3">
-            {filtered.map((req) => (
-              <article key={req.id} className={`${erpPanelClassName} flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between`}>
-                <div className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-semibold text-slate-900">{req.employeeName}</span>
-                    <StatusBadge tone={overtimeStatusTone(req.status)}>{req.status}</StatusBadge>
-                  </div>
-                  <p className="text-xs text-slate-500">
-                    Date: {req.date} · Hours: <span className="font-semibold text-slate-800">{req.hours} hrs</span>
-                  </p>
-                  {req.reason ? <p className="text-xs italic text-slate-600">&ldquo;{req.reason}&rdquo;</p> : null}
-                </div>
-                {req.status === "Pending" && (
-                  <div className="flex shrink-0 items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => void handleAction(req.id, "Approved")}
-                      className={`${erpButtonClassName.secondary} h-8 gap-1 px-2 text-xs text-emerald-700`}
-                    >
-                      <Check className="h-3.5 w-3.5" /> Approve
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleAction(req.id, "Rejected")}
-                      className={`${erpButtonClassName.secondary} h-8 gap-1 px-2 text-xs text-rose-700`}
-                    >
-                      <X className="h-3.5 w-3.5" /> Reject
-                    </button>
-                  </div>
-                )}
-              </article>
-            ))}
-          </div>
-        )}
-      </CrudCard>
+      <CrudCard>{list.table}</CrudCard>
     </StandardPageLayout>
   );
 }

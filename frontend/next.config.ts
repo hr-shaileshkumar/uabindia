@@ -22,6 +22,7 @@ const nextConfig: NextConfig = {
     root: frontendRoot,
   },
   allowedDevOrigins: ["127.0.0.1", "localhost"],
+  devIndicators: false,
   generateBuildId: () => process.env.NEXT_BUILD_ID || "dev",
   typescript: {
     ignoreBuildErrors: false,
@@ -33,8 +34,18 @@ const nextConfig: NextConfig = {
       }
     : {}),
   experimental: {
-    optimizePackageImports: ["lucide-react", "recharts", "framer-motion"],
-    turbopackFileSystemCacheForDev: false,
+    optimizePackageImports: [
+      "lucide-react",
+      "recharts",
+      "framer-motion",
+      "@radix-ui/react-dialog",
+      "@radix-ui/react-dropdown-menu",
+      "@radix-ui/react-select",
+      "@radix-ui/react-toast",
+      "@tanstack/react-table",
+      "@tanstack/react-query",
+    ],
+    turbopackFileSystemCacheForDev: true,
   },
   images: {
     unoptimized: true,
@@ -68,6 +79,10 @@ const nextConfig: NextConfig = {
       {
         source: "/api/:path*",
         destination: `${apiOrigin}/api/:path*`,
+      },
+      {
+        source: "/hubs/:path*",
+        destination: `${apiOrigin}/hubs/:path*`,
       },
     ];
   },

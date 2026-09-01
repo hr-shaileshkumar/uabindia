@@ -1,4 +1,4 @@
-import VendorsManager from "@/features/erp/components/VendorsManager";
+import VendorsManager from "@/features/procurement/components/VendorsManager";
 
 export default function ProcurementPage() {
   return <VendorsManager />;

@@ -11,6 +11,7 @@ using UabIndia.Api.Models;
 using UabIndia.Application.Interfaces;
 using UabIndia.Core.Authorization;
 using UabIndia.Core.Entities;
+using UabIndia.Core.Services;
 using UabIndia.Infrastructure.Data;
 
 namespace UabIndia.Api.Modules.Platform.Controllers
@@ -24,12 +25,18 @@ namespace UabIndia.Api.Modules.Platform.Controllers
         private readonly ApplicationDbContext _db;
         private readonly ITenantAccessor _tenantAccessor;
         private readonly IPasswordHasher<User> _hasher;
+        private readonly IEncryptionService _encryption;
 
-        public UsersController(ApplicationDbContext db, ITenantAccessor tenantAccessor, IPasswordHasher<User> hasher)
+        public UsersController(
+            ApplicationDbContext db,
+            ITenantAccessor tenantAccessor,
+            IPasswordHasher<User> hasher,
+            IEncryptionService encryption)
         {
             _db = db;
             _tenantAccessor = tenantAccessor;
             _hasher = hasher;
+            _encryption = encryption;
         }
 
         private bool IsSuperAdmin()
@@ -154,13 +161,17 @@ namespace UabIndia.Api.Modules.Platform.Controllers
                 }
             }
 
+            var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
+            var emailHash = _encryption.ComputeHash(normalizedEmail);
+
             var exists = await _db.Users.IgnoreQueryFilters()
-                .AnyAsync(u => u.TenantId == tenantId && u.Email == dto.Email && !u.IsDeleted);
+                .AnyAsync(u => u.TenantId == tenantId && u.EmailHash == emailHash && !u.IsDeleted);
             if (exists) return BadRequest(new { message = "User already exists." });
 
             var user = new User
             {
-                Email = dto.Email,
+                Email = normalizedEmail,
+                EmailHash = emailHash,
                 FullName = dto.FullName,
                 IsActive = dto.IsActive,
                 TenantId = tenantId

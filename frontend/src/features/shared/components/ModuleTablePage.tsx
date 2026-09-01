@@ -1,12 +1,12 @@
-"use client";
+﻿"use client";
 
 import type { ReactNode } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudCard } from "@/components/erp/crud-workspace";
-import { ListSearchInput } from "@/components/erp/list-toolbar";
-import { ErpCreateButton, ErpRefreshButton } from "@/components/erp/erp-page-kit";
-import { useErpListView } from "@/components/erp/erp-list-view";
-import type { ErpListBulkAction, ErpListColumn } from "@/lib/erp/list-view";
+import { CrudCard } from "@/components/workspace/crud-workspace";
+import { ListSearchInput } from "@/components/workspace/list-toolbar";
+import { ErpCreateButton, ErpRefreshButton } from "@/components/workspace/page-kit";
+import { useErpListView } from "@/components/workspace/list-view";
+import type { ErpListBulkAction, ErpListColumn } from "@/lib/workspace/list-view";
 
 export type ModuleTableColumn = {
   label: string;

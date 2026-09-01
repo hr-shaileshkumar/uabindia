@@ -64,9 +64,9 @@ namespace UabIndia.Api.Middleware
                     },
                     Title = title,
                     Status = statusCode,
-                    Detail = exposeDetail ? ex.Message : "An unexpected error occurred.",
+                    Detail = exposeDetail ? (FindSqlException(ex)?.Message ?? ex.Message) : "An unexpected error occurred.",
                     Instance = context.Request.Path,
-                    Message = title,
+                    Message = exposeDetail ? (FindSqlException(ex)?.Message ?? ex.Message) : title,
                     Code = code,
                     TraceId = traceId,
                     CorrelationId = correlationId
@@ -76,6 +76,12 @@ namespace UabIndia.Api.Middleware
 
         private static (int StatusCode, string Title, string Code) MapException(System.Exception ex)
         {
+            var sql = FindSqlException(ex);
+            if (sql != null && sql.Number is 207 or 208 or 2714)
+            {
+                return (StatusCodes.Status500InternalServerError, sql.Message, "schema_error");
+            }
+
             return ex switch
             {
                 ArgumentNullException => (StatusCodes.Status400BadRequest, "The request was invalid.", "bad_request"),
@@ -85,6 +91,17 @@ namespace UabIndia.Api.Middleware
                 InvalidOperationException => (StatusCodes.Status409Conflict, "The request could not be completed due to a conflict.", "conflict"),
                 _ => (StatusCodes.Status500InternalServerError, "An unhandled server error occurred.", "server_error")
             };
+        }
+
+        private static Microsoft.Data.SqlClient.SqlException? FindSqlException(System.Exception ex)
+        {
+            for (var current = ex; current != null; current = current.InnerException!)
+            {
+                if (current is Microsoft.Data.SqlClient.SqlException sql)
+                    return sql;
+            }
+
+            return null;
         }
     }
 }

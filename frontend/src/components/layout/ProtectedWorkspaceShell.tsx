@@ -4,19 +4,22 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
-import { GlobalSearchCommand } from "@/components/erp/global-search-command";
+import { GlobalSearchCommand } from "@/components/workspace/global-search-command";
+import { KeyboardShortcutsHandler } from "@/components/layout/KeyboardShortcutsHandler";
+import { AiCopilotDrawer } from "@/components/ai/AiCopilotDrawer";
 import { useAuth } from "@/context/AuthContext";
 import { useOrgContext } from "@/context/OrgContext";
 import { usePermissions } from "@/context/PermissionContext";
 import { useUiSchema } from "@/context/UiSchemaContext";
 import { useNavigationStore } from "@/store/navigationStore";
-import { normalizeRole } from "@/lib/erp/access";
-import { buildWorkspaceModules, buildFallbackWorkspaceModules, findWorkspaceModuleByPath } from "@/lib/erp/navigation";
-import { getPortalTheme } from "@/lib/erp/portals";
-import { getSchemaRouteRule } from "@/lib/erp/route-access";
-import { canonicalizeProtectedPath, OWNER_PATH_PREFIXES, matchesAnyPrefix } from "@/lib/erp/route-config";
+import { normalizeRole } from "@/lib/workspace/access";
+import { buildWorkspaceModules, buildFallbackWorkspaceModules, findWorkspaceModuleByPath } from "@/lib/workspace/navigation";
+import { getPortalTheme } from "@/lib/workspace/portals";
+import { getSchemaRouteRule } from "@/lib/workspace/route-access";
+import { canonicalizeProtectedPath, OWNER_PATH_PREFIXES, matchesAnyPrefix } from "@/lib/workspace/route-config";
 import { withPublicAudience } from "@/lib/public-audience";
 import { publicApi } from "@/services/modules";
+import { cn } from "@/lib/utils";
 
 const ACCESS_NOT_CONFIGURED_REASON = "access-not-configured";
 const ACCESS_DENIED_REASON = "access-denied";
@@ -27,28 +30,128 @@ const isShellExemptPath = (pathname: string) =>
   pathname === "/context" || pathname === "/not-authorized";
 
 function ProtectedShellLoading() {
+  const [loadStage, setLoadStage] = useState<"initial" | "connecting" | "slow">("initial");
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setLoadStage("connecting"), 3000);
+    const t2 = setTimeout(() => setLoadStage("slow"), 8000);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, []);
+
   return (
-    <div className="erp-app-canvas flex min-h-[100dvh]" role="status" aria-live="polite">
+    <div className="erp-app-canvas relative flex min-h-[100dvh] flex-col overflow-hidden bg-slate-50/50" role="status" aria-live="polite">
       <span className="sr-only">Loading your workspace</span>
-      <aside className="hidden w-[var(--erp-sidebar-width)] shrink-0 border-r border-slate-200 bg-white lg:block" aria-hidden="true">
-        <div className="h-[var(--erp-topbar-height)] border-b border-slate-200" />
-        <div className="space-y-2 p-3">
-          {Array.from({ length: 8 }, (_, index) => (
-            <div key={index} className="h-9 animate-pulse rounded-lg bg-slate-100" />
-          ))}
-        </div>
-      </aside>
-      <div className="min-w-0 flex-1">
-        <div className="h-[var(--erp-topbar-height)] border-b border-slate-200 bg-white" />
-        <main className="mx-auto w-full max-w-[var(--erp-content-max)] space-y-5 p-[var(--erp-page-gutter)]" aria-hidden="true">
-          <div className="h-24 animate-pulse rounded-xl border border-slate-200 bg-white" />
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {Array.from({ length: 4 }, (_, index) => (
-              <div key={index} className="h-24 animate-pulse rounded-xl border border-slate-200 bg-white" />
+
+      {/* Top indeterminate loading indicator bar */}
+      <div className="fixed top-0 left-0 right-0 z-50 h-0.5 bg-slate-200/50 overflow-hidden">
+        <div className="h-full w-full bg-gradient-to-r from-sky-500 via-indigo-500 to-sky-500 animate-[loading-progress_1.6s_ease-in-out_infinite]" />
+      </div>
+
+      <div className="flex flex-1 min-h-0">
+        {/* Sidebar Skeleton */}
+        <aside className="hidden w-[var(--erp-sidebar-width,260px)] shrink-0 border-r border-slate-200 bg-white lg:flex lg:flex-col" aria-hidden="true">
+          <div className="h-[var(--erp-topbar-height,56px)] border-b border-slate-200 flex items-center px-4 gap-3">
+            <div className="h-7 w-7 animate-pulse rounded-lg bg-slate-200" />
+            <div className="h-4 w-28 animate-pulse rounded bg-slate-200" />
+          </div>
+          <div className="space-y-1.5 p-3 flex-1">
+            <div className="h-3 w-16 mb-2 ml-2 rounded bg-slate-100" />
+            {Array.from({ length: 7 }, (_, index) => (
+              <div key={index} className="h-9 animate-pulse rounded-lg bg-slate-50 flex items-center gap-3 px-3">
+                <div className="h-4 w-4 rounded bg-slate-200 shrink-0" />
+                <div className="h-3.5 rounded bg-slate-200" style={{ width: `${55 + (index % 4) * 12}%` }} />
+              </div>
             ))}
           </div>
-          <div className="h-72 animate-pulse rounded-xl border border-slate-200 bg-white" />
-        </main>
+        </aside>
+
+        {/* Content Skeleton */}
+        <div className="min-w-0 flex-1 flex flex-col">
+          {/* Header Placeholder */}
+          <div className="h-[var(--erp-topbar-height,56px)] border-b border-slate-200 bg-white flex items-center justify-between px-4 sm:px-6">
+            <div className="flex items-center gap-3">
+              <div className="h-5 w-28 animate-pulse rounded bg-slate-100" />
+              <div className="h-4 w-3 animate-pulse rounded bg-slate-100" />
+              <div className="h-5 w-24 animate-pulse rounded bg-slate-100" />
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-44 animate-pulse rounded-lg bg-slate-100 hidden sm:block" />
+              <div className="h-8 w-8 animate-pulse rounded-full bg-slate-100" />
+            </div>
+          </div>
+
+          <main className="relative mx-auto w-full max-w-[var(--erp-content-max,1400px)] flex-1 space-y-5 p-4 sm:p-6" aria-hidden="true">
+            {/* Header Card Skeleton */}
+            <div className="h-20 animate-pulse rounded-xl border border-slate-200 bg-white p-5 flex flex-col justify-center gap-2">
+              <div className="h-5 w-48 rounded bg-slate-100" />
+              <div className="h-3.5 w-80 max-w-full rounded bg-slate-100" />
+            </div>
+
+            {/* 4 Stats Cards */}
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {Array.from({ length: 4 }, (_, index) => (
+                <div key={index} className="h-20 animate-pulse rounded-xl border border-slate-200 bg-white p-4 flex flex-col justify-between">
+                  <div className="h-3.5 w-24 rounded bg-slate-100" />
+                  <div className="h-6 w-16 rounded bg-slate-100" />
+                </div>
+              ))}
+            </div>
+
+            {/* Main Content / Table Card */}
+            <div className="h-64 animate-pulse rounded-xl border border-slate-200 bg-white p-5 space-y-4">
+              <div className="h-8 w-full rounded bg-slate-50 border-b border-slate-100" />
+              <div className="space-y-3 pt-2">
+                {Array.from({ length: 4 }, (_, i) => (
+                  <div key={i} className="h-7 w-full rounded bg-slate-50" />
+                ))}
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+
+      {/* Center Floating Status Badge */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-auto">
+        {loadStage === "initial" && (
+          <div className="flex items-center gap-2.5 rounded-full border border-slate-200/90 bg-white/95 px-4 py-2 text-xs font-medium text-slate-700 shadow-lg shadow-slate-900/5 backdrop-blur-sm">
+            <span className="h-2 w-2 rounded-full bg-sky-500 animate-ping" />
+            <span>Loading workspace...</span>
+          </div>
+        )}
+
+        {loadStage === "connecting" && (
+          <div className="flex items-center gap-2.5 rounded-full border border-amber-200 bg-amber-50/95 px-4 py-2 text-xs font-medium text-amber-900 shadow-lg shadow-amber-900/5 backdrop-blur-sm">
+            <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+            <span>Connecting to backend services...</span>
+          </div>
+        )}
+
+        {loadStage === "slow" && (
+          <div className="flex flex-col sm:flex-row items-center gap-3 rounded-2xl border border-amber-300 bg-white/95 p-3 sm:px-4 sm:py-2.5 text-xs text-slate-700 shadow-xl shadow-slate-900/10 backdrop-blur-sm max-w-[90vw]">
+            <div className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-amber-500 shrink-0" />
+              <span>Backend is taking longer than usual to respond.</span>
+            </div>
+            <div className="flex items-center gap-2 mt-1 sm:mt-0">
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="rounded-lg bg-slate-900 px-3 py-1 text-[11px] font-semibold text-white hover:bg-slate-800 transition cursor-pointer"
+              >
+                Reload
+              </button>
+              <a
+                href="/login"
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-50 transition"
+              >
+                Login
+              </a>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -76,8 +179,13 @@ export function ProtectedWorkspaceShell({ children }: { children: ReactNode }) {
   } = useUiSchema();
   const { companyId, projectId, financialYearKey } = useOrgContext();
   const router = useRouter();
-  const pathname = usePathname();
+  const pathname = usePathname() || "";
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   const isSearchOpen = useNavigationStore(state => state.isSearchOpen);
   const setSearchOpen = useNavigationStore(state => state.setSearchOpen);
@@ -290,7 +398,7 @@ export function ProtectedWorkspaceShell({ children }: { children: ReactNode }) {
   };
 
 
-  if (loading || permissionsLoading || schemaLoading || !user || (permissionFetchFailed && !isSuperAdmin)) {
+  if (!mounted || loading || permissionsLoading || schemaLoading || !user || (permissionFetchFailed && !isSuperAdmin)) {
     return <ProtectedShellLoading />;
   }
 
@@ -301,17 +409,19 @@ export function ProtectedWorkspaceShell({ children }: { children: ReactNode }) {
   const workspaceScopeKey = `${companyId ?? ""}|${projectId ?? ""}|${financialYearKey ?? ""}`;
 
   return (
-    <div className={`relative flex h-[100dvh] min-h-[100dvh] bg-background text-foreground flex-col overflow-hidden ${portal.shellClassName}`}>
+    <div className={cn("relative flex h-[100dvh] min-h-[100dvh] bg-background text-foreground flex-col overflow-hidden", portal.shellClassName)}>
       <Header onMenuClick={handleShellMenuClick} />
-      <div className="flex flex-1 min-h-0 overflow-hidden bg-canvas">
+      <div className="flex flex-1 min-h-0 overflow-hidden bg-slate-50/60 dark:bg-slate-950">
         <Sidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
-        <main id="erp-workspace-content" className="relative isolate min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
-          <div className="mx-auto w-full max-w-[var(--erp-content-max)]">
+        <main id="erp-workspace-content" className="relative isolate min-h-0 flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6 scrollbar-thin">
+          <div className="mx-auto w-full max-w-[1600px]">
             <div key={workspaceScopeKey}>{children}</div>
           </div>
         </main>
       </div>
       <GlobalSearchCommand open={isSearchOpen} onOpenChange={setSearchOpen} />
+      <KeyboardShortcutsHandler />
+      <AiCopilotDrawer />
     </div>
   );
 }

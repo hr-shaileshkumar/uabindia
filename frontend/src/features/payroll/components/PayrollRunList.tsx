@@ -1,18 +1,30 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Play, Search, Sparkles } from "lucide-react";
+import { CheckCircle2, Sparkles } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
-import { StatusBadge } from "@/components/erp/status-badge";
-import { EmptyState } from "@/components/erp/empty-state";
-import { erpButtonClassName, erpFormInputClassName } from "@/components/erp/erpStyles";
+import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
+import { ErpCreateButton, ErpRefreshButton, ErpRowActions } from "@/components/workspace/page-kit";
+import { useErpListView } from "@/components/workspace/list-view";
+import { ListSearchInput } from "@/components/workspace/list-toolbar";
+import { StatusBadge } from "@/components/workspace/status-badge";
+import {
+  erpButtonClassName,
+  erpTableRowHoverClassName,
+  erpTableTdClassName,
+} from "@/components/workspace/styles";
 import { RecordAiDrawer } from "@/components/ai/RecordAiDrawer";
+import { PayrollExecutionWizard } from "./PayrollExecutionWizard";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { payrollApi } from "@/services/modules";
 import type { PayrollRunSummary } from "@/types";
+
+type PayrollRunRow = PayrollRunSummary & {
+  runDateLabel?: string;
+  companyLabel?: string;
+};
 
 const formatShortDate = (value?: string) => {
   if (!value) return "—";
@@ -31,9 +43,10 @@ const runStatusTone = (status?: string | null) => {
 export function PayrollRunList() {
   const [search, setSearch] = useState("");
   const [aiRunId, setAiRunId] = useState<string | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: runs = [], isLoading, isError, error, refetch } = useQuery({
+  const { data: runs = [], isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ["payroll", "runs"],
     queryFn: async () => {
       const { data } = await payrollApi.runs.list();
@@ -75,18 +88,110 @@ export function PayrollRunList() {
     onError: (err) => notifyError(getApiErrorMessage(err, "Failed to complete payroll run."), "Payroll"),
   });
 
-  const filtered = useMemo(() => {
+  const rows = useMemo<PayrollRunRow[]>(() => {
     const q = search.toLowerCase();
-    if (!q) return runs;
-    return runs.filter((run) =>
-      `${run.id} ${run.status ?? ""} ${run.runDate} ${run.companyId ?? ""}`.toLowerCase().includes(q),
-    );
+    return runs
+      .filter((run) =>
+        !q || `${run.id} ${run.status ?? ""} ${run.runDate} ${run.companyId ?? ""}`.toLowerCase().includes(q),
+      )
+      .map((run) => ({
+        ...run,
+        runDateLabel: formatShortDate(run.runDate),
+        companyLabel: run.companyId ? String(run.companyId) : "Tenant-wide run",
+      }));
   }, [runs, search]);
 
   const approvedCount = runs.filter((r) => {
     const s = (r.status ?? "").toLowerCase();
     return s === "approved" || s === "completed" || s === "paid";
   }).length;
+
+  const handleDownloadBankFile = async (runId: string) => {
+    try {
+      const response = await payrollApi.runs.bankFile(runId);
+      const blob = new Blob([response.data], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `salary-neft-${runId.slice(0, 8)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      notifyError(getApiErrorMessage(err, "Failed to download bank file."), "Payroll");
+    }
+  };
+
+  const list = useErpListView({
+    listKey: "payroll-runs",
+    rows,
+    columns: [
+      { key: "runDateLabel", label: "Run date" },
+      { key: "status", label: "Status" },
+      { key: "id", label: "Run ID" },
+      { key: "companyLabel", label: "Company" },
+      { key: "actions", label: "Actions", className: "text-right", locked: true },
+    ],
+    getRowId: (run) => run.id,
+    loading: isLoading,
+    emptyMessage: "Create a draft run, then complete it to generate payslips.",
+    onCreate: () => createMutation.mutate(),
+    createLabel: "Process New Run",
+    onRefresh: () => void refetch(),
+    extraFilters: (
+      <ListSearchInput value={search} onChange={setSearch} placeholder="Search runs by date, status, or ID…" />
+    ),
+    renderRow: (run) => {
+      const isDraft = (run.status ?? "Draft").toLowerCase() === "draft";
+      return (
+        <tr key={run.id} className={erpTableRowHoverClassName}>
+          <td className={`${erpTableTdClassName} font-semibold text-slate-900`}>{run.runDateLabel}</td>
+          <td className={erpTableTdClassName}>
+            <StatusBadge tone={runStatusTone(run.status)}>{run.status?.trim() || "Draft"}</StatusBadge>
+          </td>
+          <td className={`${erpTableTdClassName} text-xs text-slate-500`}>{run.id.slice(0, 8)}…</td>
+          <td className={erpTableTdClassName}>{run.companyLabel}</td>
+          <td className={`${erpTableTdClassName} text-right`}>
+            <ErpRowActions
+              extra={
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    title="Ask AI"
+                    className={`${erpButtonClassName.secondary} h-8 gap-1.5 px-2 text-xs`}
+                    onClick={() => setAiRunId(run.id)}
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    AI
+                  </button>
+                  {isDraft ? (
+                    <button
+                      type="button"
+                      title="Complete run"
+                      className={`${erpButtonClassName.primary} h-8 gap-1.5 px-2 text-xs`}
+                      disabled={completeMutation.isPending}
+                      onClick={() => completeMutation.mutate(run.id)}
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Complete
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      title="Download NEFT file"
+                      className={`${erpButtonClassName.secondary} h-8 px-2 text-xs`}
+                      onClick={() => void handleDownloadBankFile(run.id)}
+                    >
+                      NEFT
+                    </button>
+                  )}
+                </div>
+              }
+            />
+          </td>
+        </tr>
+      );
+    },
+  });
 
   return (
     <StandardPageLayout
@@ -104,120 +209,36 @@ export function PayrollRunList() {
         />
       }
       actions={
-        <button
-          type="button"
-          className={`${erpButtonClassName.primary} gap-1.5`}
-          disabled={createMutation.isPending}
-          onClick={() => createMutation.mutate()}
-        >
-          <Play className="h-4 w-4" />
-          {createMutation.isPending ? "Creating…" : "Process New Run"}
-        </button>
-      }
-      filters={
-        <div className="relative max-w-md">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search runs by date, status, or ID…"
-            className={`${erpFormInputClassName} pl-9`}
-          />
-        </div>
-      }
-    >
-      {isError && (
-        <div className="erp-alert-error text-sm">{getApiErrorMessage(error, "Failed to load payroll runs.")}</div>
-      )}
-
-      <CrudCard
-        title="Payroll run history"
-        description="Completing a draft run auto-generates payslips for active employees."
-        actions={
-          <button type="button" onClick={() => void refetch()} className={erpButtonClassName.secondary}>
-            Refresh
+        <>
+          <ErpRefreshButton onClick={() => void refetch()} loading={isLoading || isFetching} />
+          {list.headerTools}
+          <button
+            type="button"
+            onClick={() => setWizardOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-indigo-500"
+          >
+            <Sparkles className="h-4 w-4" />
+            Launch 10-Step Payroll Wizard
           </button>
-        }
-      >
-        {isLoading ? (
-          <div className="erp-loading">Loading payroll runs…</div>
-        ) : filtered.length === 0 ? (
-          <EmptyState
-            title="No payroll runs found"
-            description="Create a draft run, then complete it to generate payslips."
-            ctaLabel="Process New Run"
-            onClick={() => createMutation.mutate()}
-          />
-        ) : (
-          <div className="space-y-3">
-            {filtered.map((run) => {
-              const isDraft = (run.status ?? "Draft").toLowerCase() === "draft";
-              return (
-                <div
-                  key={run.id}
-                  className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 transition hover:border-slate-300 md:flex-row md:items-center md:justify-between"
-                >
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-sm font-semibold text-slate-900">
-                        Payroll Run — {formatShortDate(run.runDate)}
-                      </h3>
-                      <StatusBadge tone={runStatusTone(run.status)}>{run.status?.trim() || "Draft"}</StatusBadge>
-                    </div>
-                    <p className="text-xs text-slate-500">
-                      Run ID: {run.id.slice(0, 8)}…
-                      {run.companyId ? ` • Company: ${run.companyId}` : " • Tenant-wide run"}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <button
-                      type="button"
-                      className={`${erpButtonClassName.secondary} h-8 gap-1.5 px-3 text-xs`}
-                      onClick={() => setAiRunId(run.id)}
-                    >
-                      <Sparkles className="h-3.5 w-3.5" />
-                      Ask AI
-                    </button>
-                    {isDraft ? (
-                      <button
-                        type="button"
-                        className={`${erpButtonClassName.primary} h-8 gap-1.5 px-3 text-xs`}
-                        disabled={completeMutation.isPending}
-                        onClick={() => completeMutation.mutate(run.id)}
-                      >
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        Complete & generate payslips
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        className={`${erpButtonClassName.secondary} h-8 gap-1.5 px-3 text-xs`}
-                        onClick={async () => {
-                          try {
-                            const response = await payrollApi.runs.bankFile(run.id);
-                            const blob = new Blob([response.data], { type: "text/csv" });
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement("a");
-                            a.href = url;
-                            a.download = `salary-neft-${run.id.slice(0, 8)}.csv`;
-                            a.click();
-                            URL.revokeObjectURL(url);
-                          } catch (err) {
-                            notifyError(getApiErrorMessage(err, "Failed to download bank file."), "Payroll");
-                          }
-                        }}
-                      >
-                        Download NEFT file
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </CrudCard>
+        </>
+      }
+      filters={list.filterBar}
+    >
+      {isError ? (
+        <div className="erp-alert-error text-sm">{getApiErrorMessage(error, "Failed to load payroll runs.")}</div>
+      ) : null}
+
+      <CrudCard>{list.table}</CrudCard>
+
+      {wizardOpen && (
+        <PayrollExecutionWizard
+          onClose={() => setWizardOpen(false)}
+          onComplete={() => {
+            void queryClient.invalidateQueries({ queryKey: ["payroll", "runs"] });
+            void refetch();
+          }}
+        />
+      )}
 
       <RecordAiDrawer
         open={Boolean(aiRunId)}

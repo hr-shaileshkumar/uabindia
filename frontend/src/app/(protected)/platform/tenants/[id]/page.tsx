@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { useTenant } from "@/features/tenants/hooks/useTenants";
@@ -14,7 +14,7 @@ import { TenantActivity } from "@/features/tenants/components/feed/TenantActivit
 import { TenantEditDrawer } from "@/features/tenants/components/dialogs/TenantEditDrawer";
 import { Users, Building2, Package, Activity, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { erpButtonClassName } from "@/components/erp/erpStyles";
+import { erpButtonClassName } from "@/components/workspace/styles";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function TenantProfilePage({ params }: { params: Promise<{ id: string }> }) {

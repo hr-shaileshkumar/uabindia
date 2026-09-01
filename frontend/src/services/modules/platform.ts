@@ -26,6 +26,8 @@ export const platformApi = {
   admin: {
     tenants: (includeDeleted?: boolean) =>
       apiClient.get(`/tenants${includeDeleted ? "?includeDeleted=true" : ""}`, { headers: { "X-Silent-Error": "1" } }),
+    getTenantById: (id: string) =>
+      apiClient.get(`/tenants/${id}`),
     createTenant: (data: {
       tenantProvisionRequestId?: string;
       name: string;
@@ -124,6 +126,8 @@ export const platformApi = {
       apiClient.post("/permissions", data),
     deletePermission: (id: string) => apiClient.delete(`/permissions/${id}`),
     featureFlags: () => apiClient.get("/settings/feature-flags"),
+    upsertFeatureFlag: (data: { featureKey: string; isEnabled: boolean }) =>
+      apiClient.post("/settings/feature-flags", data),
     tenantConfig: {
       get: () => apiClient.get("/settings/tenant-config"),
       update: (data: ApiPayload) => apiClient.put("/settings/tenant-config", data),

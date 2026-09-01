@@ -65,6 +65,9 @@ namespace UabIndia.Api.Services
             new("privacy", "Privacy", "/privacy", "privacy", true, "footer"),
             new("terms", "Terms", "/terms", "terms", true, "footer"),
             new("login", "Login", "/login", "login", true, "footer"),
+            new("forgot-password", "Forgot Password", "/forgot-password", "forgot-password", true),
+            new("reset-password", "Reset Password", "/reset-password", "reset-password", true),
+            new("register", "Request Access", "/register", "register", true),
         };
 
         private static readonly PublicRouteDefinition[] TenantRoutes =

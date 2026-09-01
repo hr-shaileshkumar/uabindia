@@ -8,7 +8,6 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using UabIndia.Application.Interfaces;
 using UabIndia.Application.Models;
-using UabIndia.Core.Authorization;
 using UabIndia.Core.Entities;
 using UabIndia.Infrastructure.Data;
 
@@ -22,71 +21,70 @@ namespace UabIndia.Api.Modules.Workflow.Controllers
         private readonly IWorkflowService _workflowService;
         private readonly ITenantAccessor _tenantAccessor;
         private readonly ApplicationDbContext _db;
+        private readonly IWorkflowDefinitionService _definitions;
+        private readonly IWorkflowApprovalQueryService _approvals;
 
-        public WorkflowController(IWorkflowService workflowService, ITenantAccessor tenantAccessor, ApplicationDbContext db)
+        public WorkflowController(
+            IWorkflowService workflowService,
+            ITenantAccessor tenantAccessor,
+            ApplicationDbContext db,
+            IWorkflowDefinitionService definitions,
+            IWorkflowApprovalQueryService approvals)
         {
             _workflowService = workflowService;
             _tenantAccessor = tenantAccessor;
             _db = db;
+            _definitions = definitions;
+            _approvals = approvals;
         }
 
         [HttpPost("definitions")]
         [Authorize(Policy = "AdminOnly")]
         public async Task<IActionResult> CreateDefinition([FromBody] CreateWorkflowDefinitionDto request)
         {
-            if (request == null || string.IsNullOrWhiteSpace(request.Key) || string.IsNullOrWhiteSpace(request.Name))
-            {
+            if (request == null)
                 return BadRequest(new { message = "Workflow key and name are required." });
-            }
 
-            if (request.Steps == null || request.Steps.Count == 0)
+            try
             {
-                return BadRequest(new { message = "At least one workflow step is required." });
+                var workflow = await _definitions.CreateAsync(new CreateWorkflowDefinitionCommand(
+                    request.Key,
+                    request.Name,
+                    request.IsActive,
+                    (request.Steps ?? new List<CreateWorkflowDefinitionStepDto>()).Select(step => new CreateWorkflowStepCommand(
+                        step.StepOrder,
+                        step.RoleRequired,
+                        step.ApprovalType,
+                        step.EscalationDays)).ToList()));
+                return CreatedAtAction(nameof(GetDefinition), new { key = workflow.ModuleKey }, MapDefinition(workflow));
             }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase))
+            {
+                return Conflict(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
 
+        [HttpGet("definitions")]
+        public async Task<IActionResult> ListDefinitions()
+        {
             var tenantId = _tenantAccessor.GetTenantId();
             if (tenantId == Guid.Empty)
             {
                 return BadRequest(new { message = "Tenant context missing" });
             }
 
-            var definitionKey = request.Key.Trim().ToLowerInvariant();
-            var exists = await _db.WorkflowDefinitions
-                .AnyAsync(w => w.ModuleKey == definitionKey);
-            if (exists)
-            {
-                return Conflict(new { message = $"Workflow definition '{definitionKey}' already exists." });
-            }
+            var workflows = await _db.WorkflowDefinitions
+                .Include(w => w.Steps)
+                .AsNoTracking()
+                .Where(w => w.TenantId == tenantId)
+                .OrderBy(w => w.Name)
+                .ToListAsync();
 
-            var workflow = new WorkflowDefinition
-            {
-                TenantId = tenantId,
-                ModuleKey = definitionKey,
-                Name = request.Name.Trim(),
-                IsActive = request.IsActive,
-                Steps = request.Steps
-                    .OrderBy(step => step.StepOrder ?? int.MaxValue)
-                    .ThenBy(step => step.RoleRequired)
-                    .Select((step, index) => new WorkflowStep
-                    {
-                        TenantId = tenantId,
-                        StepOrder = step.StepOrder ?? index + 1,
-                        RoleRequired = step.RoleRequired?.Trim() ?? string.Empty,
-                        ApprovalType = string.IsNullOrWhiteSpace(step.ApprovalType) ? "Any" : step.ApprovalType.Trim(),
-                        EscalationDays = step.EscalationDays,
-                    })
-                    .ToList()
-            };
-
-            if (workflow.Steps.Any(step => string.IsNullOrWhiteSpace(step.RoleRequired)))
-            {
-                return BadRequest(new { message = "Every workflow step must include RoleRequired." });
-            }
-
-            _db.WorkflowDefinitions.Add(workflow);
-            await _db.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetDefinition), new { key = workflow.ModuleKey }, MapDefinition(workflow));
+            return Ok(new { definitions = workflows.Select(MapDefinition).ToList() });
         }
 
         [HttpGet("definitions/{key}")]
@@ -202,53 +200,30 @@ namespace UabIndia.Api.Modules.Workflow.Controllers
         [HttpGet("instances/{id}/approvals")]
         public async Task<IActionResult> GetApprovals(Guid id, [FromQuery] bool mine = true)
         {
-            var approval = await _db.ApprovalRequests
-                .Include(a => a.WorkflowDefinition)
-                .ThenInclude(w => w.Steps)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(a => a.Id == id);
-
-            if (approval == null)
+            try
+            {
+                var pending = await _approvals.GetPendingAsync(id, GetRoleClaims(), mine);
+                return Ok(new WorkflowApprovalsResponseDto
+                {
+                    InstanceId = pending.InstanceId,
+                    DefinitionKey = pending.DefinitionKey,
+                    Status = pending.Status,
+                    CurrentStepOrder = pending.CurrentStepOrder,
+                    PendingApprovals = pending.PendingApprovals.Select(step => new WorkflowApprovalStepDto
+                    {
+                        StepOrder = step.StepOrder,
+                        RoleRequired = step.RoleRequired,
+                        ApprovalType = step.ApprovalType ?? string.Empty,
+                        EscalationDays = step.EscalationDays,
+                        CanCurrentUserAct = step.CanCurrentUserAct,
+                        IsCurrentStep = step.IsCurrentStep
+                    }).ToList()
+                });
+            }
+            catch (KeyNotFoundException)
             {
                 return NotFound(new { message = "Approval instance not found." });
             }
-
-            var roleClaims = GetRoleClaims();
-            var orderedSteps = approval.WorkflowDefinition.Steps
-                .OrderBy(step => step.StepOrder)
-                .ToList();
-            var currentStep = orderedSteps.FirstOrDefault(step => step.StepOrder == approval.CurrentStep);
-
-            var pendingSteps = orderedSteps
-                .Where(step => step.StepOrder >= approval.CurrentStep && !IsTerminalStatus(approval.Status))
-                .Select(step => new WorkflowApprovalStepDto
-                {
-                    StepOrder = step.StepOrder,
-                    RoleRequired = step.RoleRequired,
-                    ApprovalType = step.ApprovalType,
-                    EscalationDays = step.EscalationDays,
-                    CanCurrentUserAct = RoleCatalog.IsAdminLike(roleClaims) || RoleCatalog.Parse(step.RoleRequired) == RoleCatalog.Parse(roleClaims.FirstOrDefault()),
-                    IsCurrentStep = currentStep?.Id == step.Id
-                })
-                .ToList();
-
-            if (mine)
-            {
-                pendingSteps = pendingSteps
-                    .Where(step => step.CanCurrentUserAct && step.IsCurrentStep)
-                    .ToList();
-            }
-
-            var response = new WorkflowApprovalsResponseDto
-            {
-                InstanceId = approval.Id,
-                DefinitionKey = approval.ModuleKey,
-                Status = approval.Status,
-                CurrentStepOrder = approval.CurrentStep,
-                PendingApprovals = pendingSteps
-            };
-
-            return Ok(response);
         }
 
         private Guid GetUserId()
@@ -269,13 +244,6 @@ namespace UabIndia.Api.Modules.Workflow.Controllers
                 .Where(value => !string.IsNullOrWhiteSpace(value))
                 .ToList()
                 ?? new List<string>();
-        }
-
-        private static bool IsTerminalStatus(string? status)
-        {
-            return string.Equals(status, "Approved", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(status, "Rejected", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(status, "Completed", StringComparison.OrdinalIgnoreCase);
         }
 
         private static WorkflowDefinitionResponseDto MapDefinition(WorkflowDefinition workflow)

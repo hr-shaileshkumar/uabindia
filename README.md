@@ -24,7 +24,7 @@ All architectural designs, database schemas, RBAC security matrices, UI layout b
 ERP System/
  ├── ERP_ARCHITECTURE_GUIDE.md  # Master Architecture & Production Blueprint
  ├── frontend/                  # Next.js 16 + React 19 + Tailwind CSS + TanStack Table
- ├── Backend/                   # ASP.NET Core 8 API / Entity Framework Core
+ ├── Backend/                   # ASP.NET Core 10 API / Entity Framework Core
  └── package.json               # Root scripts
 ```
 

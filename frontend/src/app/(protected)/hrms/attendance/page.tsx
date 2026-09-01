@@ -21,7 +21,7 @@ type AttendanceRecord = {
 
 export default function AttendancePage() {
   const searchParams = useSearchParams();
-  const employeeId = searchParams.get("employeeId")?.trim() || undefined;
+  const employeeId = searchParams?.get("employeeId")?.trim() || undefined;
 
   const fetchAttendance = useCallback(async (): Promise<AttendanceRecord[]> => {
     const response = await hrmsApi.hrms.attendance.list(1, 50, employeeId ? { employeeId } : undefined);

@@ -1,11 +1,11 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
+import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
 import { SideDrawer } from "@/components/ui/side-drawer";
-import { ErpCreateButton, ErpDrawerFooter, ErpRefreshButton } from "@/components/erp/erp-page-kit";
-import { useErpListView } from "@/components/erp/erp-list-view";
+import { ErpCreateButton, ErpDrawerFooter, ErpRefreshButton } from "@/components/workspace/page-kit";
+import { useErpListView } from "@/components/workspace/list-view";
 import { procurementApi } from "@/services/modules";
 import { notifyError } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
@@ -23,7 +23,8 @@ import {
   payloadLines,
   useDocumentMasters,
   withBillDiscount,
-} from "@/components/erp/erp-document-kit";
+} from "@/components/workspace/document-kit";
+import { DocumentLifecycleTimeline } from "@/components/workspace/DocumentLifecycleTimeline";
 
 type BillRow = {
   id: string;
@@ -266,7 +267,10 @@ export default function VendorBillsPage() {
     >
       {error ? <div className="erp-alert-error">{error}</div> : null}
 
-      <CrudCard>{list.table}</CrudCard>
+      <div className="space-y-6">
+        <DocumentLifecycleTimeline currentStage="BILL" />
+        <CrudCard>{list.table}</CrudCard>
+      </div>
 
       <SideDrawer
         open={showForm}

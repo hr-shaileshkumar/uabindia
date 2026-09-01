@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using UabIndia.Api.Models;
@@ -22,11 +22,19 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
     {
         private readonly ApplicationDbContext _db;
         private readonly ITenantAccessor _tenantAccessor;
+        private readonly IWorkflowService _workflow;
+        private readonly ILeaveRequestService _leaveRequests;
 
-        public LeaveController(ApplicationDbContext db, ITenantAccessor tenantAccessor)
+        public LeaveController(
+            ApplicationDbContext db,
+            ITenantAccessor tenantAccessor,
+            IWorkflowService workflow,
+            ILeaveRequestService leaveRequests)
         {
             _db = db;
             _tenantAccessor = tenantAccessor;
+            _workflow = workflow;
+            _leaveRequests = leaveRequests;
         }
 
         // Leave Types
@@ -254,6 +262,16 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             return Ok(await MapLeaveRequestsAsync(requests, tenantId));
         }
 
+        [HttpGet("balances/me")]
+        public async Task<IActionResult> GetMyBalances()
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var employeeId = await ResolveCurrentEmployeeIdAsync(tenantId);
+            if (employeeId == null || employeeId == Guid.Empty)
+                return NotFound(new { message = "No employee record linked to this user." });
+            return await GetBalances(employeeId);
+        }
+
         [HttpGet("balances")]
         public async Task<IActionResult> GetBalances([FromQuery] Guid? employeeId)
         {
@@ -364,39 +382,87 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             _db.LeaveRequests.Add(request);
             await _db.SaveChangesAsync();
 
+            try
+            {
+                var userIdClaim = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value
+                    ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var initiatedBy = Guid.TryParse(userIdClaim, out var uid) ? uid : Guid.Empty;
+                await _workflow.StartInstanceAsync(new UabIndia.Application.Models.StartInstanceRequestDto
+                {
+                    DefinitionKey = "leave_approval",
+                    BusinessKey = request.Id.ToString(),
+                    TenantId = tenantId,
+                    Variables = new Dictionary<string, object> { ["entityType"] = "LeaveRequest" }
+                }, initiatedBy);
+            }
+            catch
+            {
+                // Leave still created if workflow definition is missing
+            }
+
             return Ok(await MapLeaveRequestAsync(request, tenantId));
         }
 
-        [Authorize(Policy = "AdminOnly")]
+        [Authorize(Roles = "SuperAdmin,Admin,HR Manager,Manager")]
         [HttpPost("requests/{id:guid}/approve")]
         [PolicyCheck("leave", "approve")]
         public async Task<IActionResult> ApproveRequest(Guid id)
         {
-            var tenantId = _tenantAccessor.GetTenantId();
-            var req = await _db.LeaveRequests.FirstOrDefaultAsync(r => r.Id == id && r.TenantId == tenantId);
-            if (req == null) return NotFound();
-
-            req.Status = "Approved";
-            req.ApprovedAt = DateTime.UtcNow;
-            await _db.SaveChangesAsync();
-
-            return Ok(await MapLeaveRequestAsync(req, tenantId));
+            try
+            {
+                var tenantId = _tenantAccessor.GetTenantId();
+                var req = await _leaveRequests.ApproveAsync(id, await ResolveCurrentEmployeeIdAsync(tenantId), ResolveCurrentUserId());
+                return Ok(await MapLeaveRequestAsync(req, tenantId));
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
-        [Authorize(Policy = "AdminOnly")]
+        [Authorize(Roles = "SuperAdmin,Admin,HR Manager,Manager")]
         [HttpPost("requests/{id:guid}/reject")]
         [PolicyCheck("leave", "reject")]
         public async Task<IActionResult> RejectRequest(Guid id)
         {
-            var tenantId = _tenantAccessor.GetTenantId();
-            var req = await _db.LeaveRequests.FirstOrDefaultAsync(r => r.Id == id && r.TenantId == tenantId);
-            if (req == null) return NotFound();
+            try
+            {
+                var tenantId = _tenantAccessor.GetTenantId();
+                var req = await _leaveRequests.RejectAsync(id, await ResolveCurrentEmployeeIdAsync(tenantId), ResolveCurrentUserId());
+                return Ok(await MapLeaveRequestAsync(req, tenantId));
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
 
-            req.Status = "Rejected";
-            req.ApprovedAt = DateTime.UtcNow;
-            await _db.SaveChangesAsync();
+        private Guid ResolveCurrentUserId()
+        {
+            var userIdClaim = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value
+                ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            return Guid.TryParse(userIdClaim, out var uid) ? uid : Guid.Empty;
+        }
 
-            return Ok(await MapLeaveRequestAsync(req, tenantId));
+        private async Task<Guid?> ResolveCurrentEmployeeIdAsync(Guid tenantId)
+        {
+            var userIdClaim = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value
+                ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdClaim, out var userId)) return null;
+
+            var employeeId = await _db.Employees.AsNoTracking()
+                .Where(e => e.TenantId == tenantId && e.UserId == userId && !e.IsDeleted)
+                .Select(e => (Guid?)e.Id)
+                .FirstOrDefaultAsync();
+            return employeeId;
         }
 
         // Leave Allocations

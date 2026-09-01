@@ -1,3 +1,14 @@
+export type TenantStatus = "active" | "inactive" | "suspended" | "trial";
+export type PlanName = "Basic" | "Premium" | "Enterprise";
+
+export interface TenantSummary {
+  id: string;
+  name: string;
+  subdomain: string;
+  isActive: boolean;
+  subscriptionPlan?: string;
+}
+
 export interface Tenant {
   id: string;
   name: string;
@@ -5,7 +16,7 @@ export interface Tenant {
   customDomain?: string | null;
   adminEmail: string;
   adminName: string;
-  status: "active" | "inactive" | "suspended" | "trial";
+  status: TenantStatus;
   subscriptionPlan: string;
   provisionStatus: string;
   selectedModules: string[];
@@ -30,6 +41,85 @@ export interface Tenant {
   isDeleted: boolean;
   createdAt: string;
   updatedAt?: string | null;
+}
+
+export interface TenantDto extends TenantSummary {
+  isDeleted?: boolean;
+  status: TenantStatus;
+  provisionStatus: string;
+  subscriptionPlan: PlanName;
+  selectedModules: string[];
+  adminEmail: string;
+  adminName: string;
+  adminRole: string;
+  adminCreated: boolean;
+  passwordResetPending: boolean;
+  lastRepairAt?: string;
+  createdAt: string;
+  usersCount: number;
+  lastActivityAt?: string;
+  contactNumber?: string;
+  timezone: string;
+  currency: string;
+  language: string;
+  address?: string;
+  state?: string;
+  district?: string;
+  pincode?: string;
+  gstNumber?: string;
+  panNumber?: string;
+  logoUrl?: string;
+  billingStartDate?: string;
+  billingEndDate?: string;
+  trialExpiryDate?: string;
+  employeeLimit?: number;
+  storageLimitGb?: number;
+  smsCredits?: number;
+  whatsAppIntegrationEnabled: boolean;
+  smtpHost?: string;
+  smtpPort?: number;
+  smtpUsername?: string;
+  smtpFromEmail?: string;
+  customDomain?: string;
+  whiteLabelEnabled: boolean;
+}
+
+export interface TenantFormValues {
+  name: string;
+  subdomain: string;
+  status: TenantStatus;
+  subscriptionPlan: PlanName;
+  contactPersonName: string;
+  contactPersonEmail: string;
+  adminName: string;
+  adminEmail: string;
+  adminRole: "Admin" | "SuperAdmin";
+  adminPassword: string;
+  sendInviteLink: boolean;
+  selectedModules: string[];
+  contactNumber: string;
+  address: string;
+  state: string;
+  district: string;
+  pincode: string;
+  logoUrl: string;
+  billingStartDate: string;
+  billingEndDate: string;
+  trialExpiryDate: string;
+  employeeLimit: string;
+  storageLimitGb: string;
+  smsCredits: string;
+  timezone: string;
+  currency: string;
+  language: string;
+  whatsAppIntegrationEnabled: boolean;
+  smtpHost: string;
+  smtpPort: string;
+  smtpUsername: string;
+  smtpPassword: string;
+  smtpFromEmail: string;
+  customDomain: string;
+  whiteLabelEnabled: boolean;
 }
 
 export interface PaginatedTenants {

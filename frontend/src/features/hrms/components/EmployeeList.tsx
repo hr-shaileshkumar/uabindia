@@ -4,22 +4,24 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { TableActionMenu, type ActionMenuItem } from "@/components/table/TableActionMenu";
-import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
-import { ErpCreateButton, ErpRefreshButton, ErpRowActions } from "@/components/erp/erp-page-kit";
-import { useErpListView } from "@/components/erp/erp-list-view";
-import { UniversalDeleteDialog } from "@/components/erp/templates/UniversalDeleteDialog";
+import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
+import { ErpCreateButton, ErpRefreshButton, ErpRowActions } from "@/components/workspace/page-kit";
+import { useErpListView } from "@/components/workspace/list-view";
+import { UniversalDeleteDialog } from "@/components/workspace/templates/UniversalDeleteDialog";
 import {
   erpButtonClassName,
   erpFormInputClassName,
   erpStatusBadgeTone,
   erpTableRowHoverClassName,
   erpTableTdClassName,
-} from "@/components/erp/erpStyles";
+} from "@/components/workspace/styles";
 import { hrmsApi } from "@/services/modules";
 import { ROUTES } from "@/constants/routes";
 import { PERMISSIONS } from "@/constants/permissions";
 import { usePermissions } from "@/context/PermissionContext";
 import { RecordAiDrawer } from "@/components/ai/RecordAiDrawer";
+import { getApiErrorMessage } from "@/lib/api-errors";
+import { notifyError, notifySuccess } from "@/lib/notifications";
 import type { Employee } from "@/types";
 
 export type { Employee };
@@ -77,7 +79,7 @@ export default function EmployeeList() {
       setEmployees(list);
       setTotal(raw?.total ?? list.length);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load employees");
+      setError(getApiErrorMessage(err, "Failed to load employees"));
     } finally {
       setLoading(false);
     }
@@ -102,11 +104,16 @@ export default function EmployeeList() {
     try {
       setDeletingId(id);
       await hrmsApi.hrms.employees.delete(id);
+      setEmployees((prev) => prev.filter((item) => item.id !== id));
+      setTotal((t) => Math.max(0, t - 1));
       setConfirmDeleteId(null);
       setConfirmDeleteIds((current) => current.filter((item) => item !== id));
+      notifySuccess("Employee deleted successfully.");
       void fetchEmployees();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete employee");
+      const msg = getApiErrorMessage(err, "Failed to delete employee.");
+      setError(msg);
+      notifyError(msg, "HRMS");
     } finally {
       setDeletingId(null);
     }
@@ -186,17 +193,39 @@ export default function EmployeeList() {
     listKey: "employees",
     rows: employees,
     columns: [
-      { key: "fullName", label: "Name" },
-      { key: "employeeCode", label: "Code" },
+      { key: "fullName", label: "Employee & Email" },
+      { key: "employeeCode", label: "Emp Code" },
+      { key: "departmentName", label: "Department" },
+      { key: "designationName", label: "Designation" },
+      { key: "phone", label: "Contact" },
       { key: "status", label: "Status" },
       { key: "actions", label: "Actions", className: "text-right", locked: true },
     ],
     getRowId: (employee) => employee.id,
     loading,
-    emptyMessage: "No employees found.",
+    emptyMessage: "No employees found. Add your first employee to get started.",
     onCreate: canCreateEmployee ? () => router.push(`${ROUTES.EMPLOYEES}/new`) : undefined,
-    createLabel: "New employee",
-    onRefresh: () => void fetchEmployees(),
+    importColumns: [
+      { key: "fullName", label: "Full Name", required: true, sample: "Rahul Sharma" },
+      { key: "employeeCode", label: "Employee Code", required: true, sample: "EMP-1001" },
+      { key: "workEmail", label: "Work Email", required: true, sample: "rahul.sharma@company.com" },
+      { key: "phone", label: "Contact Phone", sample: "+91 9876543210" },
+      { key: "departmentName", label: "Department", sample: "Engineering" },
+      { key: "designationName", label: "Designation", sample: "Senior Software Engineer" },
+    ],
+    onBulkImport: async (rows) => {
+      for (const row of rows) {
+        await hrmsApi.hrms.employees.create({
+          fullName: String(row.fullName || ""),
+          employeeCode: String(row.employeeCode || ""),
+          workEmail: String(row.workEmail || ""),
+          phone: row.phone ? String(row.phone) : undefined,
+          status: "Active",
+        });
+      }
+      notifySuccess(`Imported ${rows.length} employee record(s) successfully.`);
+      await fetchEmployees();
+    },
     onBulkDelete: canDeleteEmployee
       ? (rows) => {
           if (rows.length === 1 && rows[0]) setConfirmDeleteId(rows[0].id);
@@ -204,14 +233,14 @@ export default function EmployeeList() {
         }
       : undefined,
     extraFilters: (
-      <form onSubmit={handleSearchSubmit} className="flex flex-wrap items-end gap-2">
+      <form onSubmit={handleSearchSubmit} className="flex flex-wrap items-center gap-2">
         <input
           id="employee-search"
           type="search"
-          placeholder="Name or code…"
+          placeholder="Search by name, code, email…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className={`${erpFormInputClassName} min-w-48`}
+          className="erp-input h-8 w-52 sm:w-64"
         />
         <select
           id="employee-status"
@@ -220,7 +249,7 @@ export default function EmployeeList() {
             setStatusFilter(e.target.value);
             setPage(1);
           }}
-          className={erpFormInputClassName}
+          className="erp-select h-8 w-36"
         >
           <option value="">All statuses</option>
           <option value="Active">Active</option>
@@ -233,32 +262,69 @@ export default function EmployeeList() {
         </button>
       </form>
     ),
-    renderRow: (employee) => (
-      <tr key={employee.id} className={erpTableRowHoverClassName}>
-        <td className={`${erpTableTdClassName} font-medium text-slate-900`}>{employee.fullName || "—"}</td>
-        <td className={erpTableTdClassName}>{employee.employeeCode || "—"}</td>
-        <td className={erpTableTdClassName}>
-          <span className={statusTone(employee.status)}>{employee.status || "Unknown"}</span>
-        </td>
-        <td className={`${erpTableTdClassName} text-right`}>
-          <ErpRowActions
-            onView={{
-              label: "View",
-              onClick: () => router.push(`${ROUTES.EMPLOYEES}/${employee.id}`),
-            }}
-            onEdit={
-              canEditEmployee
-                ? { label: "Edit", onClick: () => router.push(`${ROUTES.EMPLOYEES}/${employee.id}`) }
-                : undefined
-            }
-            onDelete={
-              canDeleteEmployee ? { label: "Delete", onClick: () => setConfirmDeleteId(employee.id) } : undefined
-            }
-            extra={<TableActionMenu items={getEmployeeActions(employee)} label="More" />}
-          />
-        </td>
-      </tr>
-    ),
+    renderRow: (employee) => {
+      const initials = (employee.fullName || "E")
+        .split(" ")
+        .map((p) => p[0])
+        .filter(Boolean)
+        .slice(0, 2)
+        .join("")
+        .toUpperCase();
+
+      return (
+        <tr key={employee.id} className={erpTableRowHoverClassName}>
+          <td className={erpTableTdClassName}>
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-xs font-bold text-white shadow-sm">
+                {initials}
+              </div>
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-slate-900 truncate">{employee.fullName || "—"}</div>
+                {employee.email && (
+                  <div className="text-xs text-slate-500 truncate">{employee.email}</div>
+                )}
+              </div>
+            </div>
+          </td>
+          <td className={`${erpTableTdClassName} font-mono text-xs text-slate-600`}>
+            {employee.employeeCode || "—"}
+          </td>
+          <td className={erpTableTdClassName}>
+            {employee.departmentName ? (
+              <span className="erp-chip erp-chip-info text-xs">{employee.departmentName}</span>
+            ) : (
+              <span className="text-xs text-slate-400">—</span>
+            )}
+          </td>
+          <td className={`${erpTableTdClassName} text-xs text-slate-700 font-medium`}>
+            {employee.designationName || "—"}
+          </td>
+          <td className={`${erpTableTdClassName} text-xs text-slate-600`}>
+            {employee.phone || "—"}
+          </td>
+          <td className={erpTableTdClassName}>
+            <span className={statusTone(employee.status)}>{employee.status || "Unknown"}</span>
+          </td>
+          <td className={`${erpTableTdClassName} text-right`}>
+            <ErpRowActions
+              onView={{
+                label: "View",
+                onClick: () => router.push(`${ROUTES.EMPLOYEES}/${employee.id}`),
+              }}
+              onEdit={
+                canEditEmployee
+                  ? { label: "Edit", onClick: () => router.push(`${ROUTES.EMPLOYEES}/${employee.id}`) }
+                  : undefined
+              }
+              onDelete={
+                canDeleteEmployee ? { label: "Delete", onClick: () => setConfirmDeleteId(employee.id) } : undefined
+              }
+              extra={<TableActionMenu items={getEmployeeActions(employee)} label="More" />}
+            />
+          </td>
+        </tr>
+      );
+    },
   });
 
   return (
@@ -272,8 +338,8 @@ export default function EmployeeList() {
           }
         }}
         title={pendingDeleteCount > 1 ? `Delete ${pendingDeleteCount} employees` : "Delete employee"}
-        entityName={pendingDeleteCount > 1 ? `${pendingDeleteCount} employees` : "this employee"}
-        description="This permanently removes the selected employee record. Confirm that the employee is no longer required by dependent HR workflows."
+        entityName={pendingDeleteCount === 1 ? (employees.find((e) => e.id === confirmDeleteId)?.fullName || "this employee") : `${pendingDeleteCount} employees`}
+        description={pendingDeleteCount === 1 ? `Are you sure you want to delete employee "${employees.find((e) => e.id === confirmDeleteId)?.fullName || "this employee"}"? This will permanently remove the record from the active employee directory.` : `Are you sure you want to delete ${pendingDeleteCount} selected employees?`}
         isHardDelete
         loading={Boolean(deletingId)}
         onConfirm={async () => {
@@ -281,11 +347,14 @@ export default function EmployeeList() {
             await handleDelete(id);
           }
           setConfirmDeleteIds([]);
+          setConfirmDeleteId(null);
         }}
       />
 
       <StandardPageLayout
         title="Employees"
+        subtitle="Employee directory, master records, employment history, and headcount overview."
+        eyebrow="HRMS / People"
         icon="users"
         meta={
           <CrudHeaderStats
@@ -335,11 +404,22 @@ export default function EmployeeList() {
           ) : null
         }
       >
-        {error ? (
-          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
-        ) : null}
+        <div className="space-y-4">
+          {error ? (
+            <div className="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-700">
+              <span>{error}</span>
+              <button
+                type="button"
+                onClick={() => void fetchEmployees()}
+                className="font-bold text-rose-800 underline hover:text-rose-900 cursor-pointer"
+              >
+                Retry
+              </button>
+            </div>
+          ) : null}
 
-        <CrudCard>{list.table}</CrudCard>
+          <CrudCard>{list.table}</CrudCard>
+        </div>
       </StandardPageLayout>
 
       <RecordAiDrawer

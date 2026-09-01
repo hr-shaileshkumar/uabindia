@@ -69,6 +69,7 @@ namespace UabIndia.Api.Modules.Notifications.Controllers
                     IsRead = n.IsRead,
                     SentAt = n.SentAt,
                     ReadAt = n.ReadAt,
+                    CreatedAt = n.CreatedAt,
                     MetadataJson = n.MetadataJson
                 })
                 .ToListAsync();
@@ -84,9 +85,39 @@ namespace UabIndia.Api.Modules.Notifications.Controllers
             if (userId == Guid.Empty) return Unauthorized();
 
             var count = await _db.NotificationMessages
+                .AsNoTracking()
                 .CountAsync(n => n.TenantId == tenantId && n.RecipientUserId == userId && !n.IsRead);
 
             return Ok(new { unread = count });
+        }
+
+        [HttpPost("me/read-all")]
+        public async Task<IActionResult> MarkAllRead()
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var userId = GetUserId();
+            if (userId == Guid.Empty) return Unauthorized();
+
+            var unread = await _db.NotificationMessages
+                .Where(n => n.TenantId == tenantId && n.RecipientUserId == userId && !n.IsRead)
+                .ToListAsync();
+
+            var now = DateTime.UtcNow;
+            foreach (var entity in unread)
+            {
+                entity.IsRead = true;
+                entity.ReadAt = now;
+                if (entity.Status == "Pending")
+                {
+                    entity.Status = "Sent";
+                    entity.SentAt ??= now;
+                }
+            }
+
+            if (unread.Count > 0)
+                await _db.SaveChangesAsync();
+
+            return Ok(new { success = true, marked = unread.Count });
         }
 
         [HttpPost]

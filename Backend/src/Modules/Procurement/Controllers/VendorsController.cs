@@ -18,11 +18,13 @@ namespace UabIndia.Api.Modules.Procurement.Controllers
     {
         private readonly ApplicationDbContext _db;
         private readonly ITenantAccessor _tenantAccessor;
+        private readonly IDocumentNumberService _numbers;
 
-        public VendorsController(ApplicationDbContext db, ITenantAccessor tenantAccessor)
+        public VendorsController(ApplicationDbContext db, ITenantAccessor tenantAccessor, IDocumentNumberService numbers)
         {
             _db = db;
             _tenantAccessor = tenantAccessor;
+            _numbers = numbers;
         }
 
         [HttpGet]
@@ -60,7 +62,9 @@ namespace UabIndia.Api.Modules.Procurement.Controllers
             var tenantId = _tenantAccessor.GetTenantId();
             var vendor = new Vendor
             {
-                VendorCode = dto.VendorCode,
+                VendorCode = string.IsNullOrWhiteSpace(dto.VendorCode)
+                    ? await _numbers.NextAsync("Vendor", "VEN-", 5)
+                    : dto.VendorCode.Trim(),
                 VendorName = dto.VendorName,
                 VendorType = dto.VendorType ?? "Supplier",
                 CompanyName = dto.CompanyName,

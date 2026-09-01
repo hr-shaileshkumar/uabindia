@@ -59,6 +59,8 @@ namespace UabIndia.Core.Entities
     /// </summary>
     public class FixedAsset : BaseEntity
     {
+        public Guid? CompanyId { get; set; }
+        public Guid? ProjectId { get; set; }
         public string AssetCode { get; set; } = string.Empty; // Unique asset code
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;

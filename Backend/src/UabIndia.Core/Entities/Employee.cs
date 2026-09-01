@@ -12,5 +12,60 @@ namespace UabIndia.Core.Entities
         public Guid? ReportingManagerId { get; set; }
         public Guid? UserId { get; set; }
         public string? Status { get; set; }
+
+        public string? WorkEmail { get; set; }
+        public string? PersonalEmail { get; set; }
+        public string? Phone { get; set; }
+        public string? AlternatePhone { get; set; }
+        public DateTime? DateOfBirth { get; set; }
+        public string? Gender { get; set; }
+        public string? MaritalStatus { get; set; }
+        public string? Nationality { get; set; } = "Global";
+        public string? Address { get; set; }
+        public string? City { get; set; }
+        public string? State { get; set; }
+        public string? PostalCode { get; set; }
+        public string? CountryCode { get; set; } = "IND";
+
+        public DateTime? DateOfJoining { get; set; }
+        public DateTime? ConfirmationDate { get; set; }
+        public DateTime? ProbationEndDate { get; set; }
+        public DateTime? ExitDate { get; set; }
+        public string? EmploymentType { get; set; } = "Permanent";
+        public string? WorkLocation { get; set; }
+
+        public Guid? DepartmentId { get; set; }
+        public Guid? DesignationId { get; set; }
+        public Guid? BranchId { get; set; }
+        public Guid? CostCenterId { get; set; }
+
+        // Universal Global Compliance & Identification Fields
+        public string? TaxIdentificationNumber { get; set; }
+        public string? NationalIdNumber { get; set; }
+        public string? SocialSecurityNumber { get; set; }
+        public string? BankRoutingCode { get; set; }
+        public string? BankIban { get; set; }
+        public string? BankSwiftCode { get; set; }
+        public string? CountrySpecificDataJson { get; set; } = "{}";
+
+        // Regional Backwards Compatibility Mappings
+        public string? Pan { get; set; }
+        public string? Aadhaar { get; set; }
+        public string? Uan { get; set; }
+        public string? EsiNumber { get; set; }
+        public string? PfNumber { get; set; }
+
+        public string? BankName { get; set; }
+        public string? BankAccountHolder { get; set; }
+        public string? BankAccountNumber { get; set; }
+        public string? BankIfsc { get; set; }
+
+        public Guid? PayrollStructureId { get; set; }
+        public decimal MonthlyCtc { get; set; }
+        public decimal BasicSalary { get; set; }
+
+        public string? ProbationStatus { get; set; }
+        public decimal? ProbationScore { get; set; }
+        public string? ProbationComments { get; set; }
     }
 }

@@ -1,11 +1,12 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
-import { ErpRefreshButton, ErpSearchFilter, ErpRowActions } from "@/components/erp/erp-page-kit";
+import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
+import { ErpRefreshButton, ErpRowActions, ErpSearchFilter } from "@/components/workspace/page-kit";
+import { useErpListView } from "@/components/workspace/list-view";
 import { SideDrawer } from "@/components/ui/side-drawer";
-import { erpButtonClassName } from "@/components/erp/erpStyles";
+import { erpButtonClassName, erpTableRowHoverClassName, erpTableTdClassName } from "@/components/workspace/styles";
 import { appApi } from "@/services/modules";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { notifyError, notifySuccess } from "@/lib/notifications";
@@ -91,9 +92,64 @@ export default function NotificationsInboxPage() {
     }
   };
 
+  const list = useErpListView({
+    listKey: "notifications-inbox",
+    rows: filtered,
+    columns: [
+      { key: "title", label: "Notification" },
+      { key: "channel", label: "Channel" },
+      { key: "isRead", label: "Status", dataType: "boolean" },
+      { key: "createdAt", label: "Received", dataType: "date" },
+      { key: "actions", label: "Actions", className: "text-right", locked: true },
+    ],
+    getRowId: (row) => row.id,
+    loading,
+    emptyMessage: "No notifications yet.",
+    onRefresh: () => void load(),
+    extraFilters: (
+      <>
+        <ErpSearchFilter value={search} onChange={setSearch} placeholder="Search title or message…" />
+        <label className="flex items-center gap-2 pb-2 text-xs text-slate-600">
+          <input
+            type="checkbox"
+            checked={unreadOnly}
+            onChange={(e) => setUnreadOnly(e.target.checked)}
+            className="rounded border-slate-300"
+          />
+          Unread only
+        </label>
+      </>
+    ),
+    renderRow: (row) => (
+      <tr key={row.id} className={`${erpTableRowHoverClassName} ${row.isRead ? "" : "bg-sky-50/40"}`}>
+        <td className={erpTableTdClassName}>
+          <div className={`erp-row-title ${row.isRead ? "" : "font-semibold"}`}>{row.title}</div>
+          <div className="line-clamp-1 text-xs text-slate-500">{row.message}</div>
+        </td>
+        <td className={`${erpTableTdClassName} text-xs`}>{row.channel || row.type || "InApp"}</td>
+        <td className={erpTableTdClassName}>
+          <span className={row.isRead ? "erp-chip" : "erp-chip erp-chip-warning"}>{row.isRead ? "Read" : "Unread"}</span>
+        </td>
+        <td className={`${erpTableTdClassName} text-xs text-slate-500`}>
+          {row.createdAt ? new Date(row.createdAt).toLocaleString("en-IN") : "—"}
+        </td>
+        <td className={`${erpTableTdClassName} text-right`}>
+          <ErpRowActions
+            onView={{
+              label: "View",
+              onClick: () => void markRead(row),
+            }}
+          />
+        </td>
+      </tr>
+    ),
+  });
+
   return (
     <StandardPageLayout
       title="Notifications"
+      subtitle="System alerts, approval updates, reminders, and activity notifications."
+      eyebrow="Operations / Inbox"
       icon="bell"
       meta={
         <CrudHeaderStats
@@ -106,6 +162,7 @@ export default function NotificationsInboxPage() {
       actions={
         <>
           <ErpRefreshButton onClick={() => void load()} loading={loading} />
+          {list.headerTools}
           <button
             type="button"
             disabled={busy || unreadCount === 0}
@@ -116,79 +173,11 @@ export default function NotificationsInboxPage() {
           </button>
         </>
       }
-      filters={
-        <div className="flex flex-wrap items-end gap-3">
-          <ErpSearchFilter value={search} onChange={setSearch} placeholder="Search title or message…" />
-          <label className="flex items-center gap-2 pb-2 text-xs text-slate-600">
-            <input
-              type="checkbox"
-              checked={unreadOnly}
-              onChange={(e) => setUnreadOnly(e.target.checked)}
-              className="rounded border-slate-300"
-            />
-            Unread only
-          </label>
-        </div>
-      }
+      filters={list.filterBar}
     >
       {error ? <div className="erp-alert-error">{error}</div> : null}
 
-      <CrudCard>
-        <div className="erp-table-wrap">
-          <table className="erp-table table-auto">
-            <thead className="erp-thead">
-              <tr>
-                <th className="erp-th">Notification</th>
-                <th className="erp-th">Channel</th>
-                <th className="erp-th">Status</th>
-                <th className="erp-th">Received</th>
-                <th className="erp-th text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={5} className="erp-td py-8 text-center text-xs text-slate-500">
-                    Loading…
-                  </td>
-                </tr>
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="erp-td py-8 text-center text-xs text-slate-500">
-                    No notifications yet.
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((row) => (
-                  <tr key={row.id} className={`erp-tr ${row.isRead ? "" : "bg-sky-50/40"}`}>
-                    <td className="erp-td">
-                      <div className={`erp-row-title ${row.isRead ? "" : "font-semibold"}`}>{row.title}</div>
-                      <div className="line-clamp-1 text-xs text-slate-500">{row.message}</div>
-                    </td>
-                    <td className="erp-td text-xs">{row.channel || row.type || "InApp"}</td>
-                    <td className="erp-td">
-                      <span className={row.isRead ? "erp-chip" : "erp-chip erp-chip-warning"}>
-                        {row.isRead ? "Read" : "Unread"}
-                      </span>
-                    </td>
-                    <td className="erp-td text-xs text-slate-500">
-                      {row.createdAt ? new Date(row.createdAt).toLocaleString("en-IN") : "—"}
-                    </td>
-                    <td className="erp-td">
-                      <ErpRowActions
-                        onView={{
-                          label: "View",
-                          onClick: () => void markRead(row),
-                        }}
-                      />
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </CrudCard>
+      <CrudCard>{list.table}</CrudCard>
 
       <SideDrawer
         open={Boolean(selected)}

@@ -47,7 +47,7 @@ export default function ResetPasswordPage() {
 function ResetPasswordForm({ audience }: { audience: PublicAudience }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialToken = useMemo(() => searchParams.get("token") ?? "", [searchParams]);
+  const initialToken = useMemo(() => searchParams?.get("token") ?? "", [searchParams]);
   const [token, setToken] = useState(initialToken);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");

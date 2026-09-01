@@ -8,6 +8,7 @@ import {
   Moon,
   PanelLeftClose,
   PanelLeftOpen,
+  RefreshCw,
   Search,
   Settings,
   Shield,
@@ -15,36 +16,134 @@ import {
   UserRound,
   Users,
   ChevronRight,
+  Plus,
+  UserPlus,
+  ShoppingCart,
+  Package,
+  Receipt,
+  CreditCard,
+  FilePlus2,
+  Building2,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
-import { useOrgContext } from "@/context/OrgContext";
 import { useNavigationStore } from "@/store/navigationStore";
 import { useUiSchema } from "@/context/UiSchemaContext";
 import {
   buildWorkspaceModules,
   findWorkspaceModuleByPath,
   findWorkspacePageByPath,
-} from "@/lib/erp/navigation";
+} from "@/lib/workspace/navigation";
 import { OrgContextSwitcher } from "@/components/layout/OrgContextSwitcher";
-import { WorkspaceBrand } from "@/components/layout/WorkspaceBrand";
+import { TenantSubdomainSwitcher } from "@/components/layout/TenantSubdomainSwitcher";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/constants/routes";
-import { appApi } from "@/services/modules";
+import { useSignalRNotifications } from "@/context/SignalRNotificationContext";
+import { CurrencySwitcher } from "@/components/workspace/CurrencySwitcher";
+import { SecurityMfaModal } from "@/features/platform/components/SecurityMfaModal";
 
 type HeaderProps = {
   onMenuClick?: () => void;
 };
 
-type NotificationRow = {
-  id: string;
-  title: string;
-  message: string;
-  isRead: boolean;
-  createdAt?: string;
-};
+function GlobalQuickCreateDropdown() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useClickOutside(ref, () => setOpen(false));
+
+  const quickActions = [
+    { label: "New Employee", path: "/hrms/employees", icon: UserPlus, group: "HRMS & People", badge: "HR" },
+    { label: "Apply Leave", path: "/leave-requests", icon: FilePlus2, group: "HRMS & People", badge: "ESS" },
+    { label: "New Customer", path: "/customers", icon: Users, group: "Sales & CRM", badge: "CRM" },
+    { label: "New Item / SKU", path: "/items", icon: Package, group: "Inventory & WMS", badge: "Catalog" },
+    { label: "New Vendor", path: "/vendors", icon: Building2, group: "Procurement", badge: "Supply" },
+    { label: "Purchase Request", path: "/purchase-requests", icon: ShoppingCart, group: "Procurement", badge: "PR" },
+    { label: "Expense Claim", path: "/expenses", icon: Receipt, group: "Finance", badge: "Claim" },
+    { label: "Journal Entry", path: "/finance/journal", icon: CreditCard, group: "Finance", badge: "GL" },
+  ];
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex h-8 items-center gap-1.5 rounded-lg bg-blue-600 px-2.5 text-xs font-semibold text-white shadow-xs transition-all hover:bg-blue-700 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+        title="Quick Create Record"
+      >
+        <Plus className="h-4 w-4" />
+        <span className="hidden sm:inline">New</span>
+      </button>
+
+      <AnimatePresence>
+        {open ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -4 }}
+            transition={{ duration: 0.14 }}
+            className="absolute right-0 top-full z-50 mt-1.5 w-72 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-800 dark:bg-slate-900"
+          >
+            <div className="border-b border-slate-100 px-2.5 pb-2 pt-1 text-xs font-bold text-slate-800 dark:border-slate-800 dark:text-slate-100">
+              <span>Quick Create Record</span>
+            </div>
+            <div className="mt-1 grid gap-1 max-h-80 overflow-y-auto p-1 scrollbar-thin">
+              {quickActions.map((action) => {
+                const IconComponent = action.icon;
+                return (
+                  <Link
+                    key={action.path}
+                    href={action.path}
+                    onClick={() => setOpen(false)}
+                    className="flex items-center justify-between rounded-xl px-2.5 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-blue-600 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
+                        <IconComponent className="h-3.5 w-3.5" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-900 dark:text-white">{action.label}</p>
+                        <p className="text-[10px] text-slate-400">{action.group}</p>
+                      </div>
+                    </div>
+                    <span className="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
+                      {action.badge}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function GlobalRefreshButton() {
+  const [refreshing, setRefreshing] = useState(false);
+  const router = useRouter();
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    router.refresh();
+    setTimeout(() => setRefreshing(false), 700);
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleRefresh}
+      disabled={refreshing}
+      title="Refresh workspace data"
+      aria-label="Refresh workspace"
+      className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-900 active:scale-95 disabled:opacity-50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+    >
+      <RefreshCw className={cn("h-3.5 w-3.5 transition-transform", refreshing && "animate-spin text-blue-600 dark:text-blue-400")} />
+    </button>
+  );
+}
 
 function useClickOutside(ref: React.RefObject<HTMLElement | null>, onClose: () => void) {
   useEffect(() => {
@@ -57,7 +156,7 @@ function useClickOutside(ref: React.RefObject<HTMLElement | null>, onClose: () =
 }
 
 function ActiveBreadcrumb() {
-  const pathname = usePathname();
+  const pathname = usePathname() || "";
   const { navigation: schemaNav, enabledModules } = useUiSchema();
   const modules = buildWorkspaceModules(schemaNav.modules, enabledModules);
   const page = findWorkspacePageByPath(modules, pathname);
@@ -65,84 +164,55 @@ function ActiveBreadcrumb() {
 
   if (pathname === ROUTES.DASHBOARD) {
     return (
-      <nav aria-label="Breadcrumb" className="hidden min-w-0 items-center gap-1.5 text-xs font-medium md:flex">
-        <span className="truncate text-slate-900">Dashboard</span>
+      <nav aria-label="Breadcrumb" className="hidden min-w-0 items-center gap-1.5 text-xs font-semibold text-slate-900 dark:text-slate-100 sm:flex">
+        <span>Dashboard</span>
       </nav>
     );
   }
 
-  const crumb = page?.item.name
+  const rawCrumb = page?.item.name
     ?? pathname.split("/").filter(Boolean).at(-1)?.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 
-  if (!crumb) return null;
+  if (!rawCrumb) return null;
 
   return (
-    <nav aria-label="Breadcrumb" className="hidden min-w-0 items-center gap-1.5 text-xs font-medium text-slate-500 md:flex">
-      {matched ? (
+    <nav aria-label="Breadcrumb" className="hidden min-w-0 items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 sm:flex">
+      <Link href={ROUTES.DASHBOARD} className="text-slate-400 hover:text-slate-700 transition-colors dark:text-slate-400 dark:hover:text-slate-200">
+        Home
+      </Link>
+      <ChevronRight className="h-3 w-3 shrink-0 text-slate-300 dark:text-slate-600" />
+      {matched && matched.homeHref !== pathname ? (
         <>
-          <Link href={matched.homeHref || ROUTES.DASHBOARD} className="max-w-[8rem] truncate hover:text-slate-800">
+          <Link href={matched.homeHref || ROUTES.DASHBOARD} className="max-w-[8rem] truncate hover:text-slate-800 transition-colors dark:hover:text-slate-200">
             {matched.label}
           </Link>
-          <ChevronRight className="h-3 w-3 shrink-0 text-slate-300" />
+          <ChevronRight className="h-3 w-3 shrink-0 text-slate-300 dark:text-slate-600" />
         </>
       ) : null}
-      <span className="max-w-[12rem] truncate text-slate-900">{crumb}</span>
+      <span className="max-w-[14rem] truncate font-semibold text-slate-900 dark:text-slate-100">{rawCrumb}</span>
     </nav>
   );
 }
 
 function NotificationBell() {
-  const { user, loading } = useAuth();
-  const { companyId, projectId, financialYearKey } = useOrgContext();
+  const {
+    notifications,
+    unreadCount,
+    connectionState,
+    markAsRead,
+    markAllAsRead,
+    refreshNotifications,
+  } = useSignalRNotifications();
   const [open, setOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [items, setItems] = useState<NotificationRow[]>([]);
+  const [filter, setFilter] = useState<"all" | "unread" | "approvals">("all");
   const ref = useRef<HTMLDivElement>(null);
   useClickOutside(ref, () => setOpen(false));
 
-  const load = async () => {
-    try {
-      const [unreadResult, listResult] = await Promise.allSettled([
-        appApi.notifications.unreadCount({ suppressGlobalError: true }),
-        appApi.notifications.listMine({ take: 8 }, { suppressGlobalError: true }),
-      ]);
-
-      if (unreadResult.status === "fulfilled") {
-        const value = unreadResult.value.data as { unread?: number } | number;
-        setUnreadCount(typeof value === "number" ? value : Number(value?.unread ?? 0));
-      }
-
-      if (listResult.status === "fulfilled") {
-        const payload = listResult.value.data as { items?: NotificationRow[] } | NotificationRow[];
-        const rows = Array.isArray(payload) ? payload : Array.isArray(payload?.items) ? payload.items : [];
-        setItems(
-          rows.map((row) => ({
-            id: row.id,
-            title: row.title || "Notification",
-            message: row.message || "",
-            isRead: Boolean(row.isRead),
-            createdAt: row.createdAt,
-          })),
-        );
-      }
-    } catch {
-      setUnreadCount(0);
-    }
-  };
-
-  useEffect(() => {
-    if (loading || !user) {
-      setUnreadCount(0);
-      setItems([]);
-      return;
-    }
-
-    void load();
-    const intervalId = window.setInterval(() => {
-      if (document.visibilityState === "visible") void load();
-    }, 60_000);
-    return () => window.clearInterval(intervalId);
-  }, [loading, user, companyId, projectId, financialYearKey]);
+  const filteredItems = notifications.filter((item) => {
+    if (filter === "unread") return !item.isRead;
+    if (filter === "approvals") return item.type?.toLowerCase().includes("approval") || item.type?.toLowerCase().includes("workflow");
+    return true;
+  });
 
   return (
     <div ref={ref} className="relative">
@@ -150,15 +220,15 @@ function NotificationBell() {
         type="button"
         onClick={() => {
           setOpen((value) => !value);
-          if (!open && user) void load();
+          if (!open) void refreshNotifications();
         }}
-        className="relative flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
-        aria-label="Notifications"
+        className="relative flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+        aria-label="Real-time Notifications"
         aria-expanded={open}
       >
         <Bell className="h-4 w-4" />
         {unreadCount > 0 ? (
-          <span className="absolute -right-0.5 -top-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[9px] font-bold text-white">
+          <span className="absolute -right-0.5 -top-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[9px] font-bold text-white shadow-xs">
             {Math.min(unreadCount, 99)}
           </span>
         ) : null}
@@ -171,40 +241,115 @@ function NotificationBell() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.97 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 top-full z-50 mt-2 w-[min(22rem,92vw)] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg"
+            className="absolute right-0 top-full z-50 mt-2 w-[min(24rem,94vw)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900"
           >
-            <div className="flex items-center justify-between border-b border-slate-100 px-3 py-2">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Notifications</p>
-              <Link
-                href={ROUTES.NOTIFICATIONS}
-                onClick={() => setOpen(false)}
-                className="text-[11px] font-semibold text-blue-600 hover:underline"
-              >
-                View all
-              </Link>
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-bold text-slate-900 dark:text-white">Live Notifications</p>
+                <span
+                  title={connectionState === "connected" ? "Real-time Connected" : "Connecting..."}
+                  className={`inline-block h-2 w-2 rounded-full ${
+                    connectionState === "connected"
+                      ? "bg-emerald-500 shadow-xs"
+                      : "bg-amber-400 animate-pulse"
+                  }`}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                {unreadCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => void markAllAsRead()}
+                    className="text-[11px] font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400"
+                  >
+                    Mark all read
+                  </button>
+                )}
+                <Link
+                  href={ROUTES.NOTIFICATIONS}
+                  onClick={() => setOpen(false)}
+                  className="text-[11px] font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-slate-200"
+                >
+                  View all
+                </Link>
+              </div>
             </div>
-            <div className="max-h-80 overflow-y-auto">
-              {items.length === 0 ? (
-                <p className="px-4 py-8 text-center text-xs text-slate-500">No notifications yet.</p>
+
+            {/* Category Filter Pills */}
+            <div className="flex gap-1 border-b border-slate-100 bg-slate-50/60 p-1.5 text-[11px] font-semibold dark:border-slate-800 dark:bg-slate-950/40">
+              <button
+                type="button"
+                onClick={() => setFilter("all")}
+                className={`rounded-lg px-2.5 py-1 ${
+                  filter === "all"
+                    ? "bg-white text-blue-600 shadow-2xs font-bold dark:bg-slate-800 dark:text-blue-400"
+                    : "text-slate-500 hover:text-slate-900 dark:text-slate-400"
+                }`}
+              >
+                All ({notifications.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilter("unread")}
+                className={`rounded-lg px-2.5 py-1 ${
+                  filter === "unread"
+                    ? "bg-white text-blue-600 shadow-2xs font-bold dark:bg-slate-800 dark:text-blue-400"
+                    : "text-slate-500 hover:text-slate-900 dark:text-slate-400"
+                }`}
+              >
+                Unread ({unreadCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilter("approvals")}
+                className={`rounded-lg px-2.5 py-1 ${
+                  filter === "approvals"
+                    ? "bg-white text-blue-600 shadow-2xs font-bold dark:bg-slate-800 dark:text-blue-400"
+                    : "text-slate-500 hover:text-slate-900 dark:text-slate-400"
+                }`}
+              >
+                Approvals
+              </button>
+            </div>
+
+            {/* List */}
+            <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+              {filteredItems.length === 0 ? (
+                <p className="px-4 py-8 text-center text-xs text-slate-500">No notifications in this filter.</p>
               ) : (
-                items.map((item) => (
+                filteredItems.map((item) => (
                   <button
                     key={item.id}
                     type="button"
                     onClick={() => {
-                      void appApi.notifications.markRead(item.id, { suppressGlobalError: true });
-                      setItems((current) => current.map((row) => (row.id === item.id ? { ...row, isRead: true } : row)));
-                      setUnreadCount((count) => Math.max(0, count - (item.isRead ? 0 : 1)));
+                      void markAsRead(item.id);
                     }}
                     className={cn(
-                      "flex w-full flex-col gap-0.5 border-b border-slate-50 px-3 py-2.5 text-left last:border-0",
-                      item.isRead ? "hover:bg-slate-50" : "bg-blue-50/40 hover:bg-blue-50/70",
+                      "flex w-full flex-col gap-1 px-4 py-3 text-left transition-colors",
+                      item.isRead
+                        ? "hover:bg-slate-50/70 dark:hover:bg-slate-800/40"
+                        : "bg-blue-50/40 hover:bg-blue-50/70 dark:bg-blue-950/20 dark:hover:bg-blue-950/40",
                     )}
                   >
-                    <span className="truncate text-xs font-semibold text-slate-900">{item.title}</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate text-xs font-bold text-slate-900 dark:text-white">
+                        {item.title}
+                      </span>
+                      {!item.isRead && (
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-600" />
+                      )}
+                    </div>
                     {item.message ? (
-                      <span className="line-clamp-2 text-[11px] leading-4 text-slate-500">{item.message}</span>
+                      <span className="line-clamp-2 text-[11px] leading-relaxed text-slate-600 dark:text-slate-400">
+                        {item.message}
+                      </span>
                     ) : null}
+                    {item.createdAt && (
+                      <span className="font-mono text-[9px] text-slate-400">
+                        {new Date(item.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    )}
                   </button>
                 ))
               )}
@@ -222,6 +367,7 @@ function ProfileDropdown() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
+  const [mfaOpen, setMfaOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useClickOutside(ref, () => setOpen(false));
 
@@ -245,13 +391,13 @@ function ProfileDropdown() {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="flex items-center gap-2 rounded-md p-0.5 text-sm transition hover:bg-slate-100"
+        className="flex items-center gap-2 rounded-lg p-1 text-sm transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
         aria-label="Open user menu"
       >
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-[11px] font-semibold text-white">
+        <div className="flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-full bg-slate-900 dark:bg-blue-600 text-[11px] font-bold text-white shadow-2xs">
           {initials}
         </div>
-        <span className="hidden max-w-[110px] truncate text-xs font-semibold text-slate-800 xl:block">
+        <span className="hidden max-w-[110px] truncate text-xs font-semibold text-slate-800 dark:text-slate-200 xl:block">
           {user?.fullName || user?.email || "User"}
         </span>
       </button>
@@ -263,71 +409,76 @@ function ProfileDropdown() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.97 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg"
+            className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900"
           >
-            <div className="border-b border-slate-100 px-4 py-3">
-              <p className="truncate text-xs font-semibold text-slate-900">{user?.fullName || "User"}</p>
-              <p className="truncate text-[11px] text-slate-500">{user?.email}</p>
+            <div className="border-b border-slate-100 px-4 py-3 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-950/40">
+              <p className="truncate text-xs font-bold text-slate-900 dark:text-white">{user?.fullName || "User"}</p>
+              <p className="truncate text-[11px] text-slate-500 font-mono">{user?.email}</p>
             </div>
             <div className="py-1">
               <Link
                 href={ROUTES.ADMINISTRATION_PROFILE}
                 onClick={() => setOpen(false)}
-                className="flex items-center gap-3 px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                className="flex items-center gap-3 px-4 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 <UserRound className="h-3.5 w-3.5 text-slate-500" />
-                My profile
+                <span>My Profile</span>
               </Link>
               <Link
                 href={ROUTES.ESS_HOME}
                 onClick={() => setOpen(false)}
-                className="flex items-center gap-3 px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                className="flex items-center gap-3 px-4 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 <Users className="h-3.5 w-3.5 text-slate-500" />
-                Self-service
+                <span>Self-Service (ESS)</span>
               </Link>
-              <Link
-                href={ROUTES.SECURITY_HOME}
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-3 px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  setMfaOpen(true);
+                }}
+                className="flex w-full items-center gap-3 px-4 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
               >
-                <Shield className="h-3.5 w-3.5 text-slate-500" />
-                Security
-              </Link>
+                <Shield className="h-3.5 w-3.5 text-blue-600" />
+                <span>2FA & SSO Security</span>
+              </button>
               <Link
                 href={ROUTES.PLATFORM_SETTINGS}
                 onClick={() => setOpen(false)}
-                className="flex items-center gap-3 px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                className="flex items-center gap-3 px-4 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
               >
-                <Settings className="h-3.5 w-3.5 text-slate-500" />
-                Workspace settings
+                <Settings className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
+                <span>Workspace Settings</span>
               </Link>
             </div>
             {mounted ? (
-              <div className="border-t border-slate-100 py-1">
+              <div className="border-t border-slate-100 py-1 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                  className="flex w-full items-center gap-3 px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                  className="flex w-full items-center gap-3 px-4 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
                 >
                   {theme === "dark" ? <Sun className="h-3.5 w-3.5 text-amber-500" /> : <Moon className="h-3.5 w-3.5 text-slate-500" />}
-                  {theme === "dark" ? "Light mode" : "Dark mode"}
+                  <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
                 </button>
               </div>
             ) : null}
-            <div className="border-t border-slate-100 py-1">
+            <div className="border-t border-slate-100 py-1 dark:border-slate-800">
               <button
                 type="button"
                 onClick={handleLogout}
-                className="flex w-full items-center gap-3 px-4 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"
+                className="flex w-full items-center gap-3 px-4 py-2 text-xs font-semibold text-rose-600 transition-colors hover:bg-rose-50 dark:hover:bg-rose-950/30"
               >
                 <LogOut className="h-3.5 w-3.5" />
-                Sign out
+                <span>Sign Out</span>
               </button>
             </div>
           </motion.div>
         ) : null}
       </AnimatePresence>
+
+      <SecurityMfaModal open={mfaOpen} onOpenChange={setMfaOpen} />
     </div>
   );
 }
@@ -340,52 +491,62 @@ export function Header({ onMenuClick }: HeaderProps) {
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 flex shrink-0 items-center gap-x-3 overflow-visible border-b border-slate-200 bg-white/95 backdrop-blur",
-        "h-[var(--erp-topbar-height)] px-3 sm:px-4",
+        "sticky top-0 z-40 flex shrink-0 items-center justify-between gap-x-3 overflow-visible border-b border-slate-200/90 bg-white/95 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95",
+        "h-14 px-3 sm:px-4 lg:px-5",
       )}
     >
-      <div className="flex shrink-0 items-center gap-x-2">
-        <WorkspaceBrand />
+      {/* Left: Sidebar Toggle & Breadcrumb */}
+      <div className="flex shrink-0 items-center gap-x-2.5 min-w-0">
         <button
           type="button"
           onClick={onMenuClick ?? toggleSidebar}
           aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
         >
           {isSidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
         </button>
+
+        <div className="hidden h-4 w-px bg-slate-200 dark:bg-slate-800 sm:block" aria-hidden="true" />
+        <ActiveBreadcrumb />
       </div>
 
-      <div className="hidden h-4 w-px bg-slate-200 sm:block" aria-hidden="true" />
-      <ActiveBreadcrumb />
+      {/* Center: Command Palette Search */}
+      <div className="flex flex-1 justify-center max-w-md mx-2">
+        <button
+          type="button"
+          onClick={() => setSearchOpen(true)}
+          className="hidden h-8 w-full max-w-sm items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/80 px-3 text-xs text-slate-500 transition-all hover:border-slate-300 hover:bg-white hover:shadow-2xs focus:outline-none dark:border-slate-800 dark:bg-slate-800/60 dark:text-slate-400 dark:hover:border-slate-700 dark:hover:bg-slate-800 md:flex"
+        >
+          <Search className="h-3.5 w-3.5 shrink-0 text-slate-400 dark:text-slate-500" />
+          <span className="truncate">Search modules, records & actions…</span>
+          <kbd className="ml-auto inline-flex items-center rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-400 font-mono dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
+            Ctrl K
+          </kbd>
+        </button>
 
-      <button
-        type="button"
-        onClick={() => setSearchOpen(true)}
-        className="ml-auto hidden h-8 min-w-[10rem] max-w-[18rem] flex-1 items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs text-slate-500 transition hover:border-slate-300 hover:bg-white focus:outline-none xl:flex"
-      >
-        <Search className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-        <span className="truncate">Search modules and records…</span>
-        <span className="ml-auto flex shrink-0 items-center rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-400">
-          Ctrl K
-        </span>
-      </button>
+        <button
+          type="button"
+          onClick={() => setSearchOpen(true)}
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 md:hidden"
+          aria-label="Search"
+        >
+          <Search className="h-4 w-4" />
+        </button>
+      </div>
 
-      <button
-        type="button"
-        onClick={() => setSearchOpen(true)}
-        className="ml-auto flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100 xl:hidden"
-        aria-label="Search"
-      >
-        <Search className="h-4 w-4" />
-      </button>
-
-      <div className="flex shrink-0 items-center gap-2">
+      {/* Right Utility Cluster */}
+      <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+        <GlobalQuickCreateDropdown />
+        <CurrencySwitcher />
+        <TenantSubdomainSwitcher />
         <OrgContextSwitcher />
+        <GlobalRefreshButton />
         <NotificationBell />
-        <div className="mx-0.5 h-4 w-px bg-slate-200" aria-hidden="true" />
+        <div className="mx-0.5 h-4 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block" aria-hidden="true" />
         <ProfileDropdown />
       </div>
     </header>
   );
 }
+
+export default Header;

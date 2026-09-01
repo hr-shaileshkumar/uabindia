@@ -1,10 +1,11 @@
-"use client";
+﻿"use client";
 
-import React, { useMemo, useState } from "react";
-import { HardDrive, RotateCcw, Trash2, ShieldAlert, Layers } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useMemo, useState } from "react";
+import { HardDrive, RotateCcw, ShieldAlert, Layers } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { PlatformGlobalPageShell, KpiMetricItem } from "@/components/platform/PlatformGlobalPageShell";
+import { ErpRowActions } from "@/components/workspace/page-kit";
+import { erpButtonClassName } from "@/components/workspace/styles";
 import { notifySuccess, notifyError } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { mapRecycleBinLog, useRecycleBin, useRecycleBinMutations } from "@/features/platform/hooks/useRecycleBin";
@@ -88,80 +89,58 @@ export default function RecycleBinPage() {
       }}
       onRefresh={() => void refetch()}
       isLoading={isLoading}
-    >
-      {isError && (
-        <p className="px-4 py-3 text-xs text-rose-600 border-b border-[var(--border-subtle)]">
-          {getApiErrorMessage(error, "Failed to load recycle bin. SuperAdmin access is required.")}
-        </p>
+      listKey="platform-recycle-bin"
+      listRows={filteredItems}
+      getRowId={(row) => row.id}
+      emptyMessage={
+        isError
+          ? getApiErrorMessage(error, "Failed to load recycle bin. SuperAdmin access is required.")
+          : "Recycle bin is clear. No soft-deleted records."
+      }
+      listColumns={[
+        { key: "entityType", label: "Entity Type", dataType: "string" },
+        { key: "displayName", label: "Record Display Name / Key", dataType: "string" },
+        { key: "deletedBy", label: "Deleted By", dataType: "string" },
+        { key: "deletedAt", label: "Deletion Date", dataType: "date" },
+        { key: "retentionDaysLeft", label: "Retention Left", dataType: "number" },
+        { key: "actions", label: "Actions", locked: true },
+      ]}
+      renderListRow={(row) => (
+        <>
+          <td className="erp-td">
+            <Badge variant="outline" className="text-xs font-normal">
+              {row.entityType}
+            </Badge>
+          </td>
+          <td className="erp-td font-semibold text-xs">{row.displayName}</td>
+          <td className="erp-td font-mono text-xs text-muted-foreground">{row.deletedBy || "System"}</td>
+          <td className="erp-td text-xs text-muted-foreground">{row.deletedAt}</td>
+          <td className="erp-td">
+            <span className="erp-chip erp-chip-warning font-mono">{row.retentionDaysLeft} Days</span>
+          </td>
+          <td className="erp-td">
+            <ErpRowActions
+              extra={
+                <button
+                  type="button"
+                  title="Restore"
+                  disabled={restore.isPending || !row.entityId}
+                  onClick={() => void handleRestore(row)}
+                  className={`${erpButtonClassName.secondary} h-8 px-2 text-xs text-emerald-600`}
+                >
+                  <RotateCcw className="h-3.5 w-3.5 mr-1 inline" />
+                  Restore
+                </button>
+              }
+              onDelete={{
+                label: "Permanently delete",
+                disabled: hardDelete.isPending || !row.entityId,
+                onClick: () => void handleHardDelete(row),
+              }}
+            />
+          </td>
+        </>
       )}
-      <div className="erp-table-wrap rounded-none border-0 shadow-none">
-        <table className="erp-table">
-          <thead className="erp-thead">
-            <tr>
-              <th className="erp-th">Entity Type</th>
-              <th className="erp-th">Record Display Name / Key</th>
-              <th className="erp-th">Deleted By</th>
-              <th className="erp-th">Deletion Date</th>
-              <th className="erp-th">Retention Left</th>
-              <th className="erp-th text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr>
-                <td colSpan={6} className="erp-td text-center text-xs text-muted-foreground py-8">
-                  Loading recycle bin…
-                </td>
-              </tr>
-            ) : filteredItems.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="erp-td py-12 text-center text-xs text-muted-foreground">
-                  Recycle bin is clear. No soft-deleted records.
-                </td>
-              </tr>
-            ) : (
-              filteredItems.map((row) => (
-                <tr key={row.id} className="erp-tr hover:bg-[var(--bg-muted)]/60 transition-colors">
-                  <td className="erp-td">
-                    <Badge variant="outline" className="text-xs font-normal">
-                      {row.entityType}
-                    </Badge>
-                  </td>
-                  <td className="erp-td font-semibold text-xs">{row.displayName}</td>
-                  <td className="erp-td font-mono text-xs text-muted-foreground">{row.deletedBy || "System"}</td>
-                  <td className="erp-td text-xs text-muted-foreground">{row.deletedAt}</td>
-                  <td className="erp-td">
-                    <span className="erp-chip erp-chip-warning font-mono">{row.retentionDaysLeft} Days</span>
-                  </td>
-                  <td className="erp-td text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 text-xs text-emerald-600"
-                        disabled={restore.isPending || !row.entityId}
-                        onClick={() => void handleRestore(row)}
-                      >
-                        <RotateCcw className="h-3.5 w-3.5 mr-1" />
-                        Restore
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-rose-600"
-                        disabled={hardDelete.isPending || !row.entityId}
-                        onClick={() => void handleHardDelete(row)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </PlatformGlobalPageShell>
+    />
   );
 }

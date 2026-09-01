@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
-import { CrudHeaderStats } from "@/components/erp/crud-workspace";
-import { ListSearchInput } from "@/components/erp/list-toolbar";
+import { CrudHeaderStats } from "@/components/workspace/crud-workspace";
+import { ListSearchInput } from "@/components/workspace/list-toolbar";
 import { appApi } from "@/services/modules";
 import { getApiErrorMessage } from "@/lib/api-errors";
 

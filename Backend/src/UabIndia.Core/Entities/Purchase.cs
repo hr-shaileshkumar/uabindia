@@ -6,6 +6,8 @@ namespace UabIndia.Core.Entities
     // Purchase Orders
     public class PurchaseOrder : BaseEntity
     {
+        public Guid? CompanyId { get; set; }
+        public Guid? ProjectId { get; set; }
         public string PONumber { get; set; } = string.Empty;
         public DateTime PODate { get; set; }
         public Guid VendorId { get; set; }
@@ -31,8 +33,8 @@ namespace UabIndia.Core.Entities
     {
         public Guid PurchaseOrderId { get; set; }
         public PurchaseOrder PurchaseOrder { get; set; } = null!;
-        public Guid ItemId { get; set; }
-        public Item Item { get; set; } = null!;
+        public Guid? ItemId { get; set; }
+        public Item? Item { get; set; }
         public string? Description { get; set; }
         public decimal Quantity { get; set; }
         public decimal UnitPrice { get; set; }
@@ -48,6 +50,8 @@ namespace UabIndia.Core.Entities
     // Purchase Invoice
     public class PurchaseInvoice : BaseEntity
     {
+        public Guid? CompanyId { get; set; }
+        public Guid? ProjectId { get; set; }
         public string InvoiceNumber { get; set; } = string.Empty;
         public DateTime InvoiceDate { get; set; }
         public Guid VendorId { get; set; }
@@ -74,8 +78,8 @@ namespace UabIndia.Core.Entities
     {
         public Guid PurchaseInvoiceId { get; set; }
         public PurchaseInvoice PurchaseInvoice { get; set; } = null!;
-        public Guid ItemId { get; set; }
-        public Item Item { get; set; } = null!;
+        public Guid? ItemId { get; set; }
+        public Item? Item { get; set; }
         public string? Description { get; set; }
         public decimal Quantity { get; set; }
         public decimal UnitPrice { get; set; }

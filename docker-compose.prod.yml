@@ -1,0 +1,123 @@
+version: '3.8'
+
+services:
+  # ==============================================================================
+  # SQL Server 2022 Database Engine
+  # ==============================================================================
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: uabindia_sqlserver
+    restart: always
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=UabIndia_SecureProd2026!
+      - MSSQL_PID=Standard
+    volumes:
+      - mssql_data:/var/opt/mssql
+    ports:
+      - "1433:1433"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'UabIndia_SecureProd2026!' -C -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - uabindia_internal
+
+  # ==============================================================================
+  # Redis 7 In-Memory Cache & Session Store
+  # ==============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: uabindia_redis
+    restart: always
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "Redis_SecureAuth2026!"]
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "Redis_SecureAuth2026!", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - uabindia_internal
+
+  # ==============================================================================
+  # Backend API (.NET 10 Web API)
+  # ==============================================================================
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    container_name: uabindia_backend
+    restart: always
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=UabIndia_Enterprise;User Id=sa;Password=UabIndia_SecureProd2026!;TrustServerCertificate=True;MultipleActiveResultSets=True;Encrypt=False;
+      - Redis__ConnectionString=redis:6379,password=Redis_SecureAuth2026!
+      - Jwt__Secret=UabIndia_Super_Secret_Enterprise_Jwt_Key_2026_Global_Production_Min_64_Chars!
+      - Jwt__Issuer=UabIndia_Api
+      - Jwt__Audience=UabIndia_Client
+      - Jwt__AccessTokenMinutes=15
+      - Jwt__RefreshTokenDays=30
+    ports:
+      - "5000:5000"
+    networks:
+      - uabindia_internal
+
+  # ==============================================================================
+  # Frontend Web App (Next.js 15 Standalone)
+  # ==============================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: uabindia_frontend
+    restart: always
+    depends_on:
+      - backend
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://backend:5000/api/v1
+      - NEXT_PUBLIC_WS_URL=http://backend:5000/hubs/notifications
+    ports:
+      - "3000:3000"
+    networks:
+      - uabindia_internal
+
+  # ==============================================================================
+  # Nginx Reverse Proxy & Load Balancer
+  # ==============================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: uabindia_nginx
+    restart: always
+    depends_on:
+      - backend
+      - frontend
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - uabindia_internal
+
+volumes:
+  mssql_data:
+    name: uabindia_mssql_data
+  redis_data:
+    name: uabindia_redis_data
+
+networks:
+  uabindia_internal:
+    name: uabindia_internal_network
+    driver: bridge

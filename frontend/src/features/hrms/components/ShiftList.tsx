@@ -1,18 +1,19 @@
 ﻿"use client";
 
 import { useMemo, useState } from "react";
-import { Edit2, Moon, Plus, Sun } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
-import { EmptyState } from "@/components/erp/empty-state";
-import { StatusBadge } from "@/components/erp/status-badge";
+import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
+import { ErpCreateButton, ErpDrawerFooter, ErpRefreshButton, ErpRowActions } from "@/components/workspace/page-kit";
+import { useErpListView } from "@/components/workspace/list-view";
+import { StatusBadge } from "@/components/workspace/status-badge";
 import {
-  erpButtonClassName,
   erpFormInputClassName,
   erpFormLabelClassName,
-  erpPanelClassName,
-} from "@/components/erp/erpStyles";
+  erpTableRowHoverClassName,
+  erpTableTdClassName,
+} from "@/components/workspace/styles";
 import { SideDrawer } from "@/components/ui/side-drawer";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import apiClient from "@/services/apiClient";
@@ -25,6 +26,8 @@ export interface ShiftItem {
   breakDuration: number;
   isNightShift: boolean;
   isActive: boolean;
+  shiftType?: string;
+  statusLabel?: string;
 }
 
 type ShiftRecord = {
@@ -56,6 +59,8 @@ const mapShift = (record: ShiftRecord): ShiftItem => ({
   breakDuration: record.breakDurationMinutes ?? record.breakDuration ?? 0,
   isNightShift: Boolean(record.isNightShift),
   isActive: record.isActive ?? true,
+  shiftType: record.isNightShift ? "Night" : "Day",
+  statusLabel: record.isActive ?? true ? "Active" : "Inactive",
 });
 
 export function ShiftList() {
@@ -69,7 +74,7 @@ export function ShiftList() {
     isNightShift: false,
   });
 
-  const { data: raw, isLoading, isError, error, refetch } = useQuery({
+  const { data: raw, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ["hrms", "shifts"],
     queryFn: async () => {
       const { data } = await apiClient.get("/shifts/shifts");
@@ -98,11 +103,59 @@ export function ShiftList() {
     setDrawerOpen(true);
   };
 
+  const list = useErpListView({
+    listKey: "hrms-shifts",
+    rows: shifts,
+    columns: [
+      { key: "name", label: "Shift" },
+      { key: "startTime", label: "Start" },
+      { key: "endTime", label: "End" },
+      { key: "breakDuration", label: "Break (mins)" },
+      { key: "shiftType", label: "Type" },
+      { key: "statusLabel", label: "Status" },
+      { key: "actions", label: "Actions", className: "text-right", locked: true },
+    ],
+    getRowId: (shift) => shift.id,
+    loading: isLoading,
+    emptyMessage: "Work shifts will appear here once defined through the shifts API.",
+    onCreate: () => handleOpenDrawer(),
+    createLabel: "Add Shift",
+    onRefresh: () => void refetch(),
+    renderRow: (shift) => (
+      <tr key={shift.id} className={erpTableRowHoverClassName}>
+        <td className={`${erpTableTdClassName} font-semibold text-slate-900`}>
+          <div className="flex items-center gap-2">
+            {shift.isNightShift ? (
+              <Moon className="h-4 w-4 shrink-0 text-slate-500" />
+            ) : (
+              <Sun className="h-4 w-4 shrink-0 text-amber-500" />
+            )}
+            {shift.name}
+          </div>
+        </td>
+        <td className={erpTableTdClassName}>{shift.startTime}</td>
+        <td className={erpTableTdClassName}>{shift.endTime}</td>
+        <td className={erpTableTdClassName}>{shift.breakDuration}</td>
+        <td className={erpTableTdClassName}>
+          <StatusBadge tone={shift.isNightShift ? "info" : "neutral"}>{shift.shiftType}</StatusBadge>
+        </td>
+        <td className={erpTableTdClassName}>
+          <StatusBadge tone={shift.isActive ? "positive" : "neutral"}>{shift.statusLabel}</StatusBadge>
+        </td>
+        <td className={`${erpTableTdClassName} text-right`}>
+          <ErpRowActions
+            onEdit={{ label: "Edit shift", onClick: () => handleOpenDrawer(shift), disabled: true }}
+          />
+        </td>
+      </tr>
+    ),
+  });
+
   return (
     <StandardPageLayout
       title="Shift & Roster Management"
       subtitle="Configure work shifts, timings, break durations, and night rosters."
-      eyebrow="HRMS"
+      eyebrow="HRMS / Shifts"
       icon="clock"
       meta={
         <CrudHeaderStats
@@ -115,71 +168,18 @@ export function ShiftList() {
       }
       actions={
         <>
-          <button type="button" onClick={() => handleOpenDrawer()} className={`${erpButtonClassName.primary} gap-1.5`} disabled>
-            <Plus className="h-4 w-4" />
-            Add Shift
-          </button>
-          <button type="button" onClick={() => void refetch()} className={erpButtonClassName.secondary}>
-            Refresh
-          </button>
+          <ErpRefreshButton onClick={() => void refetch()} loading={isLoading || isFetching} />
+          {list.headerTools}
+          <ErpCreateButton label="Add Shift" onClick={() => handleOpenDrawer()} disabled />
         </>
       }
+      filters={list.filterBar}
     >
-      {isError && (
+      {isError ? (
         <div className="erp-alert-error text-sm">{getApiErrorMessage(error, "Failed to load shifts.")}</div>
-      )}
+      ) : null}
 
-      <CrudCard title="Shift definitions" description="Live shift roster from the HRMS shifts API.">
-        {isLoading ? (
-          <div className="erp-loading">Loading shifts…</div>
-        ) : shifts.length === 0 ? (
-          <EmptyState
-            title="No shifts configured"
-            description="Work shifts will appear here once defined through the shifts API."
-            ctaLabel="Refresh list"
-            onClick={() => void refetch()}
-          />
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {shifts.map((shift) => (
-              <article key={shift.id} className={`${erpPanelClassName} p-4`}>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    {shift.isNightShift ? (
-                      <Moon className="h-5 w-5 shrink-0 text-slate-500" />
-                    ) : (
-                      <Sun className="h-5 w-5 shrink-0 text-amber-500" />
-                    )}
-                    <div>
-                      <p className="text-base font-semibold text-slate-900">{shift.name}</p>
-                      <p className="text-xs text-slate-500">
-                        {shift.startTime} – {shift.endTime}
-                      </p>
-                    </div>
-                  </div>
-                  <StatusBadge tone={shift.isNightShift ? "info" : "neutral"}>
-                    {shift.isNightShift ? "Night" : "Day"}
-                  </StatusBadge>
-                </div>
-                <div className="mt-3 flex items-center justify-between text-sm">
-                  <span className="text-slate-500">Break duration</span>
-                  <span className="font-medium text-slate-800">{shift.breakDuration} mins</span>
-                </div>
-                <div className="mt-3 flex justify-end border-t border-slate-100 pt-3">
-                  <button
-                    type="button"
-                    onClick={() => handleOpenDrawer(shift)}
-                    className={`${erpButtonClassName.ghost} h-8 gap-1 px-2 text-xs`}
-                    disabled
-                  >
-                    <Edit2 className="h-3.5 w-3.5" /> Edit
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </CrudCard>
+      <CrudCard>{list.table}</CrudCard>
 
       <SideDrawer
         open={drawerOpen}
@@ -187,14 +187,12 @@ export function ShiftList() {
         title={editingShift ? "Edit Shift" : "Create Shift"}
         subtitle="Shift creation will persist once the shifts write API is wired from this form."
         footer={
-          <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => setDrawerOpen(false)} className={erpButtonClassName.secondary}>
-              Cancel
-            </button>
-            <button type="button" onClick={() => setDrawerOpen(false)} className={erpButtonClassName.primary} disabled>
-              Save Shift
-            </button>
-          </div>
+          <ErpDrawerFooter
+            onCancel={() => setDrawerOpen(false)}
+            onSave={() => setDrawerOpen(false)}
+            saveLabel="Save Shift"
+            disabled
+          />
         }
       >
         <div className="space-y-4">

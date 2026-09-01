@@ -1,320 +1,246 @@
-"use client";
+﻿"use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Flag, ToggleLeft, ToggleRight, Zap, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { platformApi } from "@/services/modules";
-import { Button } from "@/components/ui/button";
+import { PlatformGlobalPageShell, type KpiMetricItem } from "@/components/platform/PlatformGlobalPageShell";
+import { ErpDrawerFooter } from "@/components/workspace/page-kit";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Shield, ToggleLeft, Activity, SlidersHorizontal, CheckCircle2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
-import { PlatformGlobalPageShell, KpiMetricItem } from "@/components/platform/PlatformGlobalPageShell";
-import { erpButtonClassName } from "@/components/erp/erpStyles";
+import { getApiErrorMessage } from "@/lib/api-errors";
+import { notifyError, notifySuccess } from "@/lib/notifications";
 
-interface FlagRow {
+type FlagRow = {
   id: string;
   featureKey: string;
   description?: string;
-  environment?: "Production" | "Staging" | "Development";
-  category?: string;
   isEnabled: boolean;
-  updatedAt?: string;
+};
+
+const FLAG_CATEGORIES = [
+  { prefix: "ENABLE_", label: "Feature Enable", tone: "success" },
+  { prefix: "DISABLE_", label: "Feature Disable", tone: "danger" },
+  { prefix: "BETA_", label: "Beta Feature", tone: "warning" },
+  { prefix: "ADMIN_", label: "Admin Only", tone: "info" },
+];
+
+function getFlagCategory(key: string) {
+  const match = FLAG_CATEGORIES.find((c) => key.startsWith(c.prefix));
+  return match ?? { prefix: "", label: "General", tone: "neutral" };
 }
 
 export default function FeatureFlagsPage() {
   const [flags, setFlags] = useState<FlagRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [envFilter, setEnvFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const { toast } = useToast();
-
-  // Form State
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [togglingKey, setTogglingKey] = useState<string | null>(null);
   const [newKey, setNewKey] = useState("");
-  const [newDesc, setNewDesc] = useState("");
-  const [newEnv, setNewEnv] = useState<"Production" | "Staging" | "Development">("Production");
-  const [newCategory, setNewCategory] = useState("General");
+  const [newDescription, setNewDescription] = useState("");
+  const [newEnabled, setNewEnabled] = useState(true);
 
-  const loadFlags = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await platformApi.admin.featureFlags();
-      const apiFlags = Array.isArray(res.data) ? res.data : [];
-      setFlags(
-        apiFlags.map((f: { id?: string; featureKey: string; isEnabled: boolean; description?: string }) => ({
-          id: f.id || f.featureKey,
-          featureKey: f.featureKey,
-          description: f.description || "System capability toggle flag",
-          environment: "Production" as const,
-          category: "Platform",
-          isEnabled: f.isEnabled,
-          updatedAt: new Date().toISOString().split("T")[0],
-        }))
-      );
+      const data = res.data as { flags?: FlagRow[] } | FlagRow[];
+      setFlags(Array.isArray(data) ? data : (data?.flags ?? []));
     } catch {
       setFlags([]);
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    loadFlags();
   }, []);
 
-  const handleToggle = (id: string) => {
-    setFlags((prev) =>
-      prev.map((flag) => {
-        if (flag.id === id) {
-          const nextState = !flag.isEnabled;
-          toast({
-            title: `Flag Updated`,
-            description: `${flag.featureKey} is now ${nextState ? "Enabled" : "Disabled"}.`,
-          });
-          return { ...flag, isEnabled: nextState, updatedAt: new Date().toISOString().split("T")[0] };
-        }
-        return flag;
-      })
-    );
-  };
+  useEffect(() => { void load(); }, [load]);
 
-  const handleCreateFlag = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newKey.trim()) return;
-
-    const formattedKey = newKey.toUpperCase().replace(/\s+/g, "_");
-    const newFlag: FlagRow = {
-      id: String(Date.now()),
-      featureKey: formattedKey,
-      description: newDesc || "Custom system feature flag",
-      environment: newEnv,
-      category: newCategory,
-      isEnabled: true,
-      updatedAt: new Date().toISOString().split("T")[0],
-    };
-
-    setFlags((prev) => [newFlag, ...prev]);
-    setIsDrawerOpen(false);
-    setNewKey("");
-    setNewDesc("");
-    toast({
-      title: "Feature Flag Created",
-      description: `${formattedKey} created successfully.`,
-    });
-  };
-
-  const filteredFlags = useMemo(() => {
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
     return flags.filter((f) => {
-      const matchesSearch =
-        f.featureKey.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (f.description && f.description.toLowerCase().includes(searchQuery.toLowerCase()));
-      const matchesEnv = envFilter === "all" || f.environment === envFilter;
-      const matchesStatus =
-        statusFilter === "all" ||
+      const matchesSearch = !q || f.featureKey.toLowerCase().includes(q) || (f.description ?? "").toLowerCase().includes(q);
+      const matchesStatus = statusFilter === "all" ||
         (statusFilter === "enabled" && f.isEnabled) ||
         (statusFilter === "disabled" && !f.isEnabled);
-      return matchesSearch && matchesEnv && matchesStatus;
+      return matchesSearch && matchesStatus;
     });
-  }, [flags, searchQuery, envFilter, statusFilter]);
+  }, [flags, search, statusFilter]);
 
-  const kpiMetrics: KpiMetricItem[] = [
-    { label: "Total System Flags", value: flags.length, tone: "info", icon: <SlidersHorizontal className="h-3.5 w-3.5" />, subtext: "Configured" },
-    { label: "Active Rollouts", value: flags.filter((f) => f.isEnabled).length, tone: "positive", icon: <CheckCircle2 className="h-3.5 w-3.5" />, subtext: "Enabled" },
-    { label: "Disabled Features", value: flags.filter((f) => !f.isEnabled).length, tone: "warning", icon: <ToggleLeft className="h-3.5 w-3.5" />, subtext: "OFF" },
-    {
-      label: "Rollout Rate",
-      value: `${flags.length > 0 ? Math.round((flags.filter((f) => f.isEnabled).length / flags.length) * 100) : 0}%`,
-      tone: "info",
-      icon: <Activity className="h-3.5 w-3.5" />,
-      subtext: "Global"
-    },
+  const persist = async (key: string, enabled: boolean) => {
+    await platformApi.admin.upsertFeatureFlag({ featureKey: key, isEnabled: enabled });
+  };
+
+  const handleToggle = async (flag: FlagRow) => {
+    setTogglingKey(flag.featureKey);
+    try {
+      await persist(flag.featureKey, !flag.isEnabled);
+      notifySuccess(`${flag.featureKey} ${flag.isEnabled ? "disabled" : "enabled"}.`);
+      await load();
+    } catch (err) {
+      notifyError(getApiErrorMessage(err, "Failed to toggle flag."));
+    } finally {
+      setTogglingKey(null);
+    }
+  };
+
+  const handleCreate = async () => {
+    const key = newKey.trim().toUpperCase().replace(/\s+/g, "_");
+    if (!key) { notifyError("Feature key is required."); return; }
+    try {
+      setSaving(true);
+      await persist(key, newEnabled);
+      notifySuccess(`Flag ${key} created.`);
+      setDrawerOpen(false);
+      setNewKey(""); setNewDescription(""); setNewEnabled(true);
+      await load();
+    } catch (err) {
+      notifyError(getApiErrorMessage(err, "Failed to create flag."));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const kpis: KpiMetricItem[] = [
+    { label: "Total Flags", value: flags.length, tone: "info", icon: <Flag className="h-3.5 w-3.5" />, subtext: "Feature toggles" },
+    { label: "Enabled", value: flags.filter((f) => f.isEnabled).length, tone: "positive", icon: <CheckCircle2 className="h-3.5 w-3.5" />, subtext: "Live features" },
+    { label: "Disabled", value: flags.filter((f) => !f.isEnabled).length, tone: "warning", icon: <AlertTriangle className="h-3.5 w-3.5" />, subtext: "Turned off" },
+    { label: "Beta Flags", value: flags.filter((f) => f.featureKey.startsWith("BETA_")).length, tone: "neutral", icon: <Zap className="h-3.5 w-3.5" />, subtext: "Preview features" },
   ];
 
   return (
     <PlatformGlobalPageShell
-      title="Feature Flags & Capability Controls"
-      subtitle="Real-time capability switches, module toggles, and environment rollout control across tenants."
-      categoryTag="Platform Capability Governance"
-      kpiMetrics={kpiMetrics}
-      searchPlaceholder="Filter feature keys, descriptions, or categories..."
-      searchValue={searchQuery}
-      onSearchChange={setSearchQuery}
+      title="Feature Flags & Toggles"
+      subtitle="Control feature rollout, A/B testing, and tenant-level capability switches without code deployments."
+      categoryTag="Platform Configuration"
+      icon="sliders"
+      kpiMetrics={kpis}
+      searchValue={search}
+      onSearchChange={setSearch}
+      searchPlaceholder="Search flag key or description…"
       filterOptions={[
         {
-          key: "env",
-          label: "All Environments",
-          value: envFilter,
-          onChange: setEnvFilter,
-          options: [
-            { label: "All Environments", value: "all" },
-            { label: "Production", value: "Production" },
-            { label: "Staging", value: "Staging" },
-            { label: "Development", value: "Development" },
-          ]
+          key: "status", label: "All Flags", value: statusFilter, onChange: setStatusFilter,
+          options: [{ label: "All Flags", value: "all" }, { label: "Enabled Only", value: "enabled" }, { label: "Disabled Only", value: "disabled" }],
         },
-        {
-          key: "status",
-          label: "All Statuses",
-          value: statusFilter,
-          onChange: setStatusFilter,
-          options: [
-            { label: "All Statuses", value: "all" },
-            { label: "Enabled", value: "enabled" },
-            { label: "Disabled", value: "disabled" },
-          ]
-        }
       ]}
-      onClearFilters={() => {
-        setSearchQuery("");
-        setEnvFilter("all");
-        setStatusFilter("all");
-      }}
-      primaryActionLabel="New Feature Flag"
-      onPrimaryAction={() => setIsDrawerOpen(true)}
-      primaryActionIcon={<Plus className="h-4 w-4 mr-1.5" />}
-      onRefresh={loadFlags}
+      onClearFilters={() => { setSearch(""); setStatusFilter("all"); }}
+      primaryActionLabel="New Flag"
+      onPrimaryAction={() => setDrawerOpen(true)}
+      onRefresh={() => void load()}
       isLoading={loading}
-      isInspectorOpen={isDrawerOpen}
-      onInspectorClose={() => setIsDrawerOpen(false)}
-      inspectorTitle="Provision New Feature Flag"
-      inspectorSubTitle="Add a real-time capability switch for environment rollout control."
+      listKey="platform-feature-flags"
+      listRows={filtered}
+      getRowId={(row) => row.id}
+      emptyMessage="No feature flags found. Create a flag to control feature availability."
+      listColumns={[
+        { key: "featureKey", label: "Feature Key", dataType: "string" },
+        { key: "category", label: "Category" },
+        { key: "description", label: "Description", dataType: "string" },
+        { key: "toggle", label: "Enabled" },
+        { key: "actions", label: "Quick Toggle", locked: true },
+      ]}
+      renderListRow={(flag) => {
+        const cat = getFlagCategory(flag.featureKey);
+        return (
+          <>
+            <td className="erp-td">
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                  <Flag className="h-3.5 w-3.5" />
+                </div>
+                <span className="font-mono text-xs font-semibold text-slate-900">{flag.featureKey}</span>
+              </div>
+            </td>
+            <td className="erp-td">
+              <span className={`erp-chip ${
+                cat.tone === "success" ? "erp-chip-success" :
+                cat.tone === "danger" ? "erp-chip-danger" :
+                cat.tone === "warning" ? "erp-chip-warning" :
+                cat.tone === "info" ? "erp-chip-info" : "erp-chip-neutral"
+              }`}>{cat.label}</span>
+            </td>
+            <td className="erp-td text-xs text-slate-500">{flag.description || "—"}</td>
+            <td className="erp-td">
+              <Switch
+                checked={flag.isEnabled}
+                disabled={togglingKey === flag.featureKey}
+                onCheckedChange={() => void handleToggle(flag)}
+              />
+            </td>
+            <td className="erp-td">
+              <button
+                type="button"
+                onClick={() => void handleToggle(flag)}
+                disabled={togglingKey === flag.featureKey}
+                className={`inline-flex h-7 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-colors disabled:opacity-50 ${
+                  flag.isEnabled
+                    ? "border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100"
+                    : "border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                }`}
+              >
+                {flag.isEnabled ? <ToggleLeft className="h-3.5 w-3.5" /> : <ToggleRight className="h-3.5 w-3.5" />}
+                {flag.isEnabled ? "Disable" : "Enable"}
+              </button>
+            </td>
+          </>
+        );
+      }}
+      isInspectorOpen={drawerOpen}
+      onInspectorClose={() => setDrawerOpen(false)}
+      inspectorTitle="Create Feature Flag"
+      inspectorSubTitle="Define a new feature toggle key"
       inspectorContent={
-        <form onSubmit={handleCreateFlag} className="space-y-4 text-xs">
-          <div className="space-y-2">
-            <Label htmlFor="key" className="text-xs">Feature Key</Label>
-            <Input
-              id="key"
-              placeholder="ENABLE_NEW_FEATURE"
-              value={newKey}
-              onChange={(e) => setNewKey(e.target.value)}
-              className="h-9 text-xs"
-              required
+        <div className="space-y-4">
+          <div>
+            <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">Flag Definition</h3>
+            <div className="erp-form-grid">
+              <div className="erp-field md:col-span-2">
+                <label className="erp-label">Feature Key *</label>
+                <input
+                  className="erp-input font-mono"
+                  value={newKey}
+                  onChange={(e) => setNewKey(e.target.value)}
+                  placeholder="ENABLE_ADVANCED_REPORTS"
+                />
+                <p className="mt-1 text-[11px] text-slate-400">
+                  Use UPPERCASE_SNAKE_CASE. Prefix: ENABLE_, DISABLE_, BETA_, ADMIN_
+                </p>
+              </div>
+              <div className="erp-field md:col-span-2">
+                <label className="erp-label">Description</label>
+                <input
+                  className="erp-input"
+                  value={newDescription}
+                  onChange={(e) => setNewDescription(e.target.value)}
+                  placeholder="Brief description of what this flag controls"
+                />
+              </div>
+            </div>
+          </div>
+          <div>
+            <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">Initial State</h3>
+            <label className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 cursor-pointer hover:bg-slate-50">
+              <Switch checked={newEnabled} onCheckedChange={setNewEnabled} />
+              <div>
+                <p className="text-xs font-semibold text-slate-900">{newEnabled ? "Enabled on creation" : "Disabled on creation"}</p>
+                <p className="text-xs text-slate-500">You can toggle this at any time after creation</p>
+              </div>
+            </label>
+          </div>
+          <div className="rounded-xl border border-amber-100 bg-amber-50 p-3">
+            <p className="text-xs font-semibold text-amber-800 mb-1">⚠ Deployment Impact</p>
+            <p className="text-xs text-amber-700">Feature flags take effect immediately for all tenant users. Test changes in staging before enabling globally.</p>
+          </div>
+          <div className="border-t border-slate-100 pt-4">
+            <ErpDrawerFooter
+              onCancel={() => setDrawerOpen(false)}
+              onSave={() => void handleCreate()}
+              saving={saving}
+              saveLabel="Create Flag"
             />
-            <p className="text-[11px] text-muted-foreground">Key will be formatted as UPPERCASE automatically.</p>
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="desc" className="text-xs">Description</Label>
-            <Input
-              id="desc"
-              placeholder="Controls access to the new module dashboard"
-              value={newDesc}
-              onChange={(e) => setNewDesc(e.target.value)}
-              className="h-9 text-xs"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-xs">Category</Label>
-            <Select value={newCategory} onValueChange={setNewCategory}>
-              <SelectTrigger className="h-9 text-xs">
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Platform">Platform</SelectItem>
-                <SelectItem value="Finance">Finance</SelectItem>
-                <SelectItem value="HRMS">HRMS</SelectItem>
-                <SelectItem value="Inventory">Inventory</SelectItem>
-                <SelectItem value="Communication">Communication</SelectItem>
-                <SelectItem value="Reports">Reports</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-xs">Target Environment</Label>
-            <Select value={newEnv} onValueChange={(v) => setNewEnv(v as "Production" | "Staging" | "Development")}>
-              <SelectTrigger className="h-9 text-xs">
-                <SelectValue placeholder="Environment" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Production">Production</SelectItem>
-                <SelectItem value="Staging">Staging</SelectItem>
-                <SelectItem value="Development">Development</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-6">
-            <Button type="button" variant="outline" size="sm" onClick={() => setIsDrawerOpen(false)}>
-              Cancel
-            </Button>
-            <button type="submit" className={erpButtonClassName.primary}>
-              Create Flag
-            </button>
-          </div>
-        </form>
+        </div>
       }
-    >
-      {/* High Density Table */}
-      <div className="erp-table-wrap rounded-none border-0 shadow-none">
-        <table className="erp-table">
-          <thead className="erp-thead">
-            <tr>
-              <th className="erp-th">Feature Key & Description</th>
-              <th className="erp-th">Category</th>
-              <th className="erp-th">Target Environment</th>
-              <th className="erp-th">Last Modified</th>
-              <th className="erp-th text-right">Switch State</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredFlags.map((flag) => (
-              <tr key={flag.id} className="erp-tr hover:bg-slate-50/80 dark:hover:bg-slate-900/50 transition-colors">
-                <td className="erp-td">
-                  <div className="flex items-center gap-2.5">
-                    <Shield className="h-4 w-4 text-slate-600 shrink-0" />
-                    <div>
-                      <span className="font-mono font-bold text-xs text-slate-900 dark:text-slate-100">
-                        {flag.featureKey}
-                      </span>
-                      <div className="text-xs text-slate-500 mt-0.5">{flag.description}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="erp-td">
-                  <Badge variant="outline" className="text-xs font-normal">
-                    {flag.category || "General"}
-                  </Badge>
-                </td>
-                <td className="erp-td">
-                  <span
-                    className={`erp-chip ${
-                      flag.environment === "Production"
-                        ? "erp-chip-success"
-                        : flag.environment === "Staging"
-                        ? "erp-chip-warning"
-                        : "erp-chip-neutral"
-                    }`}
-                  >
-                    {flag.environment || "Production"}
-                  </span>
-                </td>
-                <td className="erp-td text-xs text-slate-500">{flag.updatedAt || "Recent"}</td>
-                <td className="erp-td text-right">
-                  <div className="flex items-center justify-end gap-3">
-                    <span className={`text-xs font-semibold font-mono ${flag.isEnabled ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`}>
-                      {flag.isEnabled ? "ON" : "OFF"}
-                    </span>
-                    <Switch checked={flag.isEnabled} onCheckedChange={() => handleToggle(flag.id)} />
-                  </div>
-                </td>
-              </tr>
-            ))}
-
-            {!loading && filteredFlags.length === 0 && (
-              <tr>
-                <td colSpan={5} className="erp-td py-12 text-center text-slate-500">
-                  No matching feature flags found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </PlatformGlobalPageShell>
+    />
   );
 }

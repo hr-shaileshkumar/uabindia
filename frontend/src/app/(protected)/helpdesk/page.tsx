@@ -1,15 +1,15 @@
-"use client";
+﻿"use client";
 
 import { useMemo } from "react";
 import Link from "next/link";
 import { BookOpen, LifeBuoy, Ticket } from "lucide-react";
-import { ModuleWorkspaceHub } from "@/components/erp/module-workspace-hub";
+import { ModuleWorkspaceHub } from "@/components/workspace/module-workspace-hub";
 import {
   erpPanelBodyClassName,
   erpPanelClassName,
   erpPanelHeaderClassName,
   erpPanelTitleClassName,
-} from "@/components/erp/erpStyles";
+} from "@/components/workspace/styles";
 import { ROUTES } from "@/constants/routes";
 import { mapHelpdeskTicket, useHelpdeskTickets } from "@/features/platform/hooks/useHelpdeskTickets";
 import { getApiErrorMessage } from "@/lib/api-errors";

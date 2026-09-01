@@ -1,4 +1,4 @@
-import { ModuleHubPage } from "@/components/erp/module-hub-page";
+﻿import { ModuleHubPage } from "@/components/workspace/module-hub-page";
 
 export default function IntegrationsOverviewPage() {
   return <ModuleHubPage moduleKey="integrations" />;

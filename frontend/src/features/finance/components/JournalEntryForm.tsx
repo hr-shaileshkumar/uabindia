@@ -1,10 +1,11 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import { AlertCircle, CheckCircle2, FileText, Trash2 } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { SideDrawer } from "@/components/ui/side-drawer";
-import { ErpCreateButton, ErpDrawerFooter } from "@/components/erp/erp-page-kit";
+import { ErpCreateButton, ErpDrawerFooter } from "@/components/workspace/page-kit";
+import { JournalBalanceIndicator } from "@/components/workspace/journal-balance-indicator";
 import {
   erpButtonClassName,
   erpFormInputClassName,
@@ -18,11 +19,13 @@ import {
   erpTableTdClassName,
   erpTableThClassName,
   erpTableWrapClassName,
-} from "@/components/erp/erpStyles";
+} from "@/components/workspace/styles";
 import { financeApi } from "@/services/modules";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
-import { useDocumentMasters } from "@/components/erp/erp-document-kit";
+import { useDocumentMasters } from "@/components/workspace/document-kit";
+import { formatCurrency } from "@/lib/formatters";
+import { useLocalization } from "@/context/LocalizationContext";
 
 export interface JournalLine {
   id: string;
@@ -51,8 +54,6 @@ const emptyLine = (): JournalLine => ({
   memo: "",
 });
 
-const formatCurrency = (value: number) => `₹${value.toLocaleString("en-IN")}`;
-
 const statusTone = (status: string) => {
   switch (status) {
     case "Posted":
@@ -65,6 +66,7 @@ const statusTone = (status: string) => {
 };
 
 export function JournalEntryForm() {
+  const { activeCountry } = useLocalization();
   const { accounts } = useDocumentMasters();
   const [entries, setEntries] = useState<JournalEntrySummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -167,7 +169,7 @@ export function JournalEntryForm() {
     <StandardPageLayout
       title="Journal Entries"
       subtitle="Record double-entry transactions and review posted journal history."
-      eyebrow="Finance"
+      eyebrow="Finance / Journal Entries"
       icon="file"
       meta={
         !loading ? (
@@ -308,6 +310,8 @@ export function JournalEntryForm() {
               />
             </div>
           </div>
+
+          <JournalBalanceIndicator totalDebit={totalDebit} totalCredit={totalCredit} />
 
           <div className="overflow-x-auto rounded-xl border border-slate-200">
             <table className="min-w-full divide-y divide-slate-200 text-sm">

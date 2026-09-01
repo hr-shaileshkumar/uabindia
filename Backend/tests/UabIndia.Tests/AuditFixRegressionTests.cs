@@ -13,6 +13,7 @@ using UabIndia.Api.Services;
 using UabIndia.Core.Authorization;
 using UabIndia.Core.Entities;
 using UabIndia.Infrastructure.Data;
+using UabIndia.Infrastructure.Services;
 using UabIndia.Tests.TestUtilities;
 using Xunit;
 
@@ -98,7 +99,7 @@ namespace UabIndia.Tests
                 await dbB.SaveChangesAsync();
             }
 
-            var controller = new CustomersController(db, tenantAccessor);
+            var controller = new CustomersController(db, tenantAccessor, new DocumentNumberService(db, tenantAccessor));
             var result = await controller.GetAll(page: 1, limit: 10);
             var ok = Assert.IsType<OkObjectResult>(result);
             var json = JsonSerializer.Serialize(ok.Value);
@@ -177,7 +178,7 @@ namespace UabIndia.Tests
             });
             await db.SaveChangesAsync();
 
-            var controller = new HelpdeskController(db, tenantAccessor);
+            var controller = new HelpdeskController(db, tenantAccessor, new DocumentNumberService(db, tenantAccessor));
             var result = await controller.ListTickets();
             var ok = Assert.IsType<OkObjectResult>(result);
             var json = JsonSerializer.Serialize(ok.Value);

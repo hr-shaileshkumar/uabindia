@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using UabIndia.Api.Models;
 using UabIndia.Api.Authorization;
 using UabIndia.Application.Interfaces;
-using UabIndia.Core.Entities;
 using UabIndia.Infrastructure.Data;
 
 namespace UabIndia.Api.Modules.Workflow.Controllers
@@ -19,11 +18,13 @@ namespace UabIndia.Api.Modules.Workflow.Controllers
     {
         private readonly ApplicationDbContext _db;
         private readonly ITenantAccessor _tenantAccessor;
+        private readonly IApprovalRequestService _approvals;
 
-        public ApprovalsController(ApplicationDbContext db, ITenantAccessor tenantAccessor)
+        public ApprovalsController(ApplicationDbContext db, ITenantAccessor tenantAccessor, IApprovalRequestService approvals)
         {
             _db = db;
             _tenantAccessor = tenantAccessor;
+            _approvals = approvals;
         }
 
         [HttpGet]
@@ -62,79 +63,62 @@ namespace UabIndia.Api.Modules.Workflow.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var tenantId = _tenantAccessor.GetTenantId();
-            var workflow = await _db.WorkflowDefinitions
-                .Include(w => w.Steps)
-                .FirstOrDefaultAsync(w => w.ModuleKey == dto.ModuleKey && w.TenantId == tenantId && w.IsActive);
-
-            if (workflow == null) return BadRequest(new { message = "No active workflow configured for module." });
-
             var userId = GetUserId();
             if (userId == Guid.Empty) return Unauthorized();
 
-            var request = new ApprovalRequest
+            try
             {
-                TenantId = tenantId,
-                ModuleKey = dto.ModuleKey,
-                EntityType = dto.EntityType,
-                EntityId = dto.EntityId,
-                WorkflowDefinitionId = workflow.Id,
-                CurrentStep = 1,
-                Status = "Pending",
-                RequestedBy = userId,
-                RequestedAt = DateTime.UtcNow,
-                Comments = dto.Comments
-            };
-
-            _db.ApprovalRequests.Add(request);
-            await _db.SaveChangesAsync();
-            return Ok();
+                await _approvals.CreateAsync(dto.ModuleKey, dto.EntityType, dto.EntityId, dto.Comments, userId);
+                return Ok();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPost("{id}/approve")]
         [PolicyCheck("approval", "approve")]
         public async Task<IActionResult> Approve(Guid id, [FromBody] ApprovalActionDto dto)
         {
-            var tenantId = _tenantAccessor.GetTenantId();
-            var request = await _db.ApprovalRequests
-                .FirstOrDefaultAsync(r => r.Id == id && r.TenantId == tenantId);
-
-            if (request == null) return NotFound();
-            if (request.Status != "Pending") return BadRequest(new { message = "Request is not pending." });
-
             var userId = GetUserId();
             if (userId == Guid.Empty) return Unauthorized();
 
-            request.Status = "Approved";
-            request.ApprovedBy = userId;
-            request.ApprovedAt = DateTime.UtcNow;
-            request.Comments = dto?.Comments ?? request.Comments;
-
-            await _db.SaveChangesAsync();
-            return Ok();
+            try
+            {
+                await _approvals.ApproveAsync(id, userId, dto?.Comments);
+                return Ok();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPost("{id}/reject")]
         [PolicyCheck("approval", "reject")]
         public async Task<IActionResult> Reject(Guid id, [FromBody] ApprovalActionDto dto)
         {
-            var tenantId = _tenantAccessor.GetTenantId();
-            var request = await _db.ApprovalRequests
-                .FirstOrDefaultAsync(r => r.Id == id && r.TenantId == tenantId);
-
-            if (request == null) return NotFound();
-            if (request.Status != "Pending") return BadRequest(new { message = "Request is not pending." });
-
             var userId = GetUserId();
             if (userId == Guid.Empty) return Unauthorized();
 
-            request.Status = "Rejected";
-            request.RejectedBy = userId;
-            request.RejectedAt = DateTime.UtcNow;
-            request.Comments = dto?.Comments ?? request.Comments;
-
-            await _db.SaveChangesAsync();
-            return Ok();
+            try
+            {
+                await _approvals.RejectAsync(id, userId, dto?.Comments);
+                return Ok();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         private Guid GetUserId()

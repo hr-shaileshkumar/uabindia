@@ -1,11 +1,14 @@
-using Microsoft.EntityFrameworkCore;
-using UabIndia.Core.Entities;
-using UabIndia.Application.Interfaces;
-using UabIndia.Core.Services;
+using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using UabIndia.Application.Interfaces;
+using UabIndia.Core.Entities;
+using UabIndia.Core.Services;
 
 namespace UabIndia.Infrastructure.Data
 {
@@ -32,6 +35,11 @@ namespace UabIndia.Infrastructure.Data
         public DbSet<Tenant> Tenants { get; set; }
         public DbSet<Company> Companies { get; set; }
         public DbSet<Project> Projects { get; set; }
+        public DbSet<Department> Departments { get; set; }
+        public DbSet<Designation> Designations { get; set; }
+        public DbSet<Branch> Branches { get; set; }
+        public DbSet<CostCenter> CostCenters { get; set; }
+        public DbSet<BusinessUnit> BusinessUnits { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<Role> Roles { get; set; }
         public DbSet<UserRole> UserRoles { get; set; }
@@ -50,7 +58,17 @@ namespace UabIndia.Infrastructure.Data
         public DbSet<PayrollStructure> PayrollStructures { get; set; }
         public DbSet<PayrollComponent> PayrollComponents { get; set; }
         public DbSet<PayrollRun> PayrollRuns { get; set; }
+        public DbSet<PayrollFinalSettlement> PayrollFinalSettlements { get; set; }
+        public DbSet<PayrollLoan> PayrollLoans { get; set; }
+        public DbSet<PayrollBonus> PayrollBonuses { get; set; }
+        public DbSet<PayrollArrear> PayrollArrears { get; set; }
         public DbSet<Payslip> Payslips { get; set; }
+        public DbSet<PayslipLine> PayslipLines { get; set; }
+        public DbSet<EmployeeSalaryAssignment> EmployeeSalaryAssignments { get; set; }
+        public DbSet<PurchaseRequest> PurchaseRequests { get; set; }
+        public DbSet<HrLifecycleTask> HrLifecycleTasks { get; set; }
+        public DbSet<SalesReturn> SalesReturns { get; set; }
+        public DbSet<AccountingPeriod> AccountingPeriods { get; set; }
         public DbSet<FeatureFlag> FeatureFlags { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
@@ -67,6 +85,24 @@ namespace UabIndia.Infrastructure.Data
         public DbSet<HelpdeskTicket> HelpdeskTickets { get; set; }
         public DbSet<HelpdeskEscalation> HelpdeskEscalations { get; set; }
         public DbSet<HelpdeskFaqArticle> HelpdeskFaqArticles { get; set; }
+        public DbSet<TravelRequest> TravelRequests { get; set; }
+        public DbSet<AiAgent> AiAgents { get; set; }
+        public DbSet<ProjectTask> ProjectTasks { get; set; }
+        public DbSet<TimesheetEntry> TimesheetEntries { get; set; }
+        public DbSet<IntegrationConnector> IntegrationConnectors { get; set; }
+        public DbSet<IntegrationSyncLog> IntegrationSyncLogs { get; set; }
+        public DbSet<IntegrationApiKey> IntegrationApiKeys { get; set; }
+        public DbSet<SecurityPolicy> SecurityPolicies { get; set; }
+        public DbSet<SsoIdentityProvider> SsoIdentityProviders { get; set; }
+        public DbSet<IpAccessRule> IpAccessRules { get; set; }
+        public DbSet<MfaEnrollment> MfaEnrollments { get; set; }
+        public DbSet<CustomReport> CustomReports { get; set; }
+        public DbSet<LicenseInvoice> LicenseInvoices { get; set; }
+        public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
+        public DbSet<TenantSubscription> TenantSubscriptions { get; set; }
+        public DbSet<TenantWebhook> TenantWebhooks { get; set; }
+        public DbSet<OutboxMessage> OutboxMessages { get; set; }
+        public DbSet<WebhookDeliveryLog> WebhookDeliveryLogs { get; set; }
 
         // Workflow & Approvals
         public DbSet<WorkflowDefinition> WorkflowDefinitions { get; set; }
@@ -78,15 +114,20 @@ namespace UabIndia.Infrastructure.Data
         public DbSet<JournalEntry> JournalEntries { get; set; }
         public DbSet<JournalEntryLine> JournalEntryLines { get; set; }
         public DbSet<Payment> Payments { get; set; }
+        public DbSet<ExpenseClaim> ExpenseClaims { get; set; }
+        public DbSet<BankReconciliation> BankReconciliations { get; set; }
 
         // Sales & CRM
         public DbSet<Customer> Customers { get; set; }
+        public DbSet<CrmLead> CrmLeads { get; set; }
         public DbSet<SalesQuotation> SalesQuotations { get; set; }
         public DbSet<SalesQuotationItem> SalesQuotationItems { get; set; }
         public DbSet<SalesOrder> SalesOrders { get; set; }
         public DbSet<SalesOrderItem> SalesOrderItems { get; set; }
         public DbSet<SalesInvoice> SalesInvoices { get; set; }
         public DbSet<SalesInvoiceItem> SalesInvoiceItems { get; set; }
+        public DbSet<DiscountScheme> DiscountSchemes { get; set; }
+        public DbSet<DiscountSchemeLine> DiscountSchemeLines { get; set; }
 
         // Purchase & Procurement
         public DbSet<Vendor> Vendors { get; set; }
@@ -94,6 +135,7 @@ namespace UabIndia.Infrastructure.Data
         public DbSet<PurchaseOrderItem> PurchaseOrderItems { get; set; }
         public DbSet<PurchaseInvoice> PurchaseInvoices { get; set; }
         public DbSet<PurchaseInvoiceItem> PurchaseInvoiceItems { get; set; }
+        public DbSet<GoodsReceiptNote> GoodsReceiptNotes { get; set; }
 
         // Inventory Management
         public DbSet<Item> Items { get; set; }
@@ -199,7 +241,28 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<Tenant>().ToTable("Tenants");
             modelBuilder.Entity<Company>().ToTable("Companies");
             modelBuilder.Entity<Project>().ToTable("Projects");
+            modelBuilder.Entity<Department>().ToTable("Departments");
+            modelBuilder.Entity<Designation>().ToTable("Designations");
+            modelBuilder.Entity<Branch>().ToTable("Branches");
+            modelBuilder.Entity<CostCenter>().ToTable("CostCenters");
+            modelBuilder.Entity<BusinessUnit>().ToTable("BusinessUnits");
             modelBuilder.Entity<User>().ToTable("Users");
+
+            foreach (var orgType in new[] { typeof(Department), typeof(Designation), typeof(Branch), typeof(CostCenter), typeof(BusinessUnit) })
+            {
+                modelBuilder.Entity(orgType).HasIndex("TenantId", "CompanyId", "Code").IsUnique();
+            }
+
+            modelBuilder.Entity<Department>()
+                .HasOne<Company>().WithMany().HasForeignKey(d => d.CompanyId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Designation>()
+                .HasOne<Company>().WithMany().HasForeignKey(d => d.CompanyId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Branch>()
+                .HasOne<Company>().WithMany().HasForeignKey(d => d.CompanyId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<CostCenter>()
+                .HasOne<Company>().WithMany().HasForeignKey(d => d.CompanyId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<BusinessUnit>()
+                .HasOne<Company>().WithMany().HasForeignKey(d => d.CompanyId).OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<Role>().ToTable("Roles");
             modelBuilder.Entity<UserRole>().ToTable("UserRoles");
             modelBuilder.Entity<Employee>().ToTable("Employees");
@@ -215,6 +278,10 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<PayrollStructure>().ToTable("PayrollStructures");
             modelBuilder.Entity<PayrollComponent>().ToTable("PayrollComponents");
             modelBuilder.Entity<PayrollRun>().ToTable("PayrollRuns");
+            modelBuilder.Entity<PayrollFinalSettlement>().ToTable("PayrollFinalSettlements");
+            modelBuilder.Entity<PayrollLoan>().ToTable("PayrollLoans");
+            modelBuilder.Entity<PayrollBonus>().ToTable("PayrollBonuses");
+            modelBuilder.Entity<PayrollArrear>().ToTable("PayrollArrears");
             modelBuilder.Entity<Payslip>().ToTable("Payslips");
             modelBuilder.Entity<FeatureFlag>().ToTable("FeatureFlags");
             modelBuilder.Entity<RefreshToken>().ToTable("RefreshTokens");
@@ -231,6 +298,19 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<HelpdeskTicket>().ToTable("HelpdeskTickets");
             modelBuilder.Entity<HelpdeskEscalation>().ToTable("HelpdeskEscalations");
             modelBuilder.Entity<HelpdeskFaqArticle>().ToTable("HelpdeskFaqArticles");
+            modelBuilder.Entity<TravelRequest>().ToTable("TravelRequests");
+            modelBuilder.Entity<AiAgent>().ToTable("AiAgents");
+            modelBuilder.Entity<ProjectTask>().ToTable("ProjectTasks");
+            modelBuilder.Entity<TimesheetEntry>().ToTable("TimesheetEntries");
+            modelBuilder.Entity<IntegrationConnector>().ToTable("IntegrationConnectors");
+            modelBuilder.Entity<IntegrationSyncLog>().ToTable("IntegrationSyncLogs");
+            modelBuilder.Entity<IntegrationApiKey>().ToTable("IntegrationApiKeys");
+            modelBuilder.Entity<SecurityPolicy>().ToTable("SecurityPolicies");
+            modelBuilder.Entity<SsoIdentityProvider>().ToTable("SsoIdentityProviders");
+            modelBuilder.Entity<IpAccessRule>().ToTable("IpAccessRules");
+            modelBuilder.Entity<MfaEnrollment>().ToTable("MfaEnrollments");
+            modelBuilder.Entity<CustomReport>().ToTable("CustomReports");
+            modelBuilder.Entity<LicenseInvoice>().ToTable("LicenseInvoices");
             modelBuilder.Entity<BusinessIdSequence>().ToTable("BusinessIdSequences");
 
             // Performance Management
@@ -299,6 +379,16 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<Vendor>().Property(v => v.BankAccountNumber).HasConversion(encryptedString);
             modelBuilder.Entity<Vendor>().Property(v => v.IFSCCode).HasConversion(encryptedString);
 
+            modelBuilder.Entity<Employee>().Property(e => e.WorkEmail).HasConversion(encryptedString);
+            modelBuilder.Entity<Employee>().Property(e => e.PersonalEmail).HasConversion(encryptedString);
+            modelBuilder.Entity<Employee>().Property(e => e.Phone).HasConversion(encryptedString);
+            modelBuilder.Entity<Employee>().Property(e => e.AlternatePhone).HasConversion(encryptedString);
+            modelBuilder.Entity<Employee>().Property(e => e.Address).HasConversion(encryptedString);
+            modelBuilder.Entity<Employee>().Property(e => e.Pan).HasConversion(encryptedString);
+            modelBuilder.Entity<Employee>().Property(e => e.Aadhaar).HasConversion(encryptedString);
+            modelBuilder.Entity<Employee>().Property(e => e.BankAccountNumber).HasConversion(encryptedString);
+            modelBuilder.Entity<Employee>().Property(e => e.BankIfsc).HasConversion(encryptedString);
+
             modelBuilder.Entity<Warehouse>().Property(w => w.Address).HasConversion(encryptedString);
             modelBuilder.Entity<Warehouse>().Property(w => w.PhoneNumber).HasConversion(encryptedString);
             modelBuilder.Entity<Warehouse>().Property(w => w.Email).HasConversion(encryptedString);
@@ -319,15 +409,51 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<JournalEntry>().ToTable("JournalEntries");
             modelBuilder.Entity<JournalEntryLine>().ToTable("JournalEntryLines");
             modelBuilder.Entity<Payment>().ToTable("Payments");
+            modelBuilder.Entity<ExpenseClaim>().ToTable("ExpenseClaims");
+            modelBuilder.Entity<BankReconciliation>().ToTable("BankReconciliations");
 
             // Sales & CRM
             modelBuilder.Entity<Customer>().ToTable("Customers");
+            modelBuilder.Entity<CrmLead>().ToTable("CrmLeads");
             modelBuilder.Entity<SalesQuotation>().ToTable("SalesQuotations");
             modelBuilder.Entity<SalesQuotationItem>().ToTable("SalesQuotationItems");
             modelBuilder.Entity<SalesOrder>().ToTable("SalesOrders");
             modelBuilder.Entity<SalesOrderItem>().ToTable("SalesOrderItems");
             modelBuilder.Entity<SalesInvoice>().ToTable("SalesInvoices");
             modelBuilder.Entity<SalesInvoiceItem>().ToTable("SalesInvoiceItems");
+            modelBuilder.Entity<SalesQuotationItem>()
+                .HasOne(e => e.Item)
+                .WithMany()
+                .HasForeignKey(e => e.ItemId)
+                .IsRequired(false);
+            modelBuilder.Entity<SalesOrderItem>()
+                .HasOne(e => e.Item)
+                .WithMany()
+                .HasForeignKey(e => e.ItemId)
+                .IsRequired(false);
+            modelBuilder.Entity<SalesInvoiceItem>()
+                .HasOne(e => e.Item)
+                .WithMany()
+                .HasForeignKey(e => e.ItemId)
+                .IsRequired(false);
+            modelBuilder.Entity<DiscountScheme>().ToTable("DiscountSchemes");
+            modelBuilder.Entity<DiscountSchemeLine>().ToTable("DiscountSchemeLines");
+            modelBuilder.Entity<DiscountSchemeLine>()
+                .HasOne(e => e.DiscountScheme)
+                .WithMany(e => e.Lines)
+                .HasForeignKey(e => e.DiscountSchemeId)
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<DiscountSchemeLine>()
+                .HasOne(e => e.Item)
+                .WithMany()
+                .HasForeignKey(e => e.ItemId)
+                .IsRequired(false);
+            modelBuilder.Entity<SalesReturn>().ToTable("SalesReturns");
+            modelBuilder.Entity<PayslipLine>().ToTable("PayslipLines");
+            modelBuilder.Entity<EmployeeSalaryAssignment>().ToTable("EmployeeSalaryAssignments");
+            modelBuilder.Entity<PurchaseRequest>().ToTable("PurchaseRequests");
+            modelBuilder.Entity<HrLifecycleTask>().ToTable("HrLifecycleTasks");
+            modelBuilder.Entity<AccountingPeriod>().ToTable("AccountingPeriods");
 
             // Purchase & Procurement
             modelBuilder.Entity<Vendor>().ToTable("Vendors");
@@ -335,6 +461,17 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<PurchaseOrderItem>().ToTable("PurchaseOrderItems");
             modelBuilder.Entity<PurchaseInvoice>().ToTable("PurchaseInvoices");
             modelBuilder.Entity<PurchaseInvoiceItem>().ToTable("PurchaseInvoiceItems");
+            modelBuilder.Entity<PurchaseOrderItem>()
+                .HasOne(e => e.Item)
+                .WithMany()
+                .HasForeignKey(e => e.ItemId)
+                .IsRequired(false);
+            modelBuilder.Entity<PurchaseInvoiceItem>()
+                .HasOne(e => e.Item)
+                .WithMany()
+                .HasForeignKey(e => e.ItemId)
+                .IsRequired(false);
+            modelBuilder.Entity<GoodsReceiptNote>().ToTable("GoodsReceiptNotes");
 
             // Inventory Management
             modelBuilder.Entity<Item>().ToTable("Items");
@@ -401,25 +538,60 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<Module>().HasKey(m => m.ModuleKey);
             modelBuilder.Entity<Module>().Property(m => m.ModuleKey).HasMaxLength(64);
 
+            modelBuilder.Entity<SalesInvoice>().Property(e => e.InvoiceNumber).HasMaxLength(64);
+            modelBuilder.Entity<PurchaseInvoice>().Property(e => e.InvoiceNumber).HasMaxLength(64);
+            modelBuilder.Entity<PurchaseOrder>().Property(e => e.PONumber).HasMaxLength(64);
+            modelBuilder.Entity<SalesOrder>().Property(e => e.SONumber).HasMaxLength(64);
+            modelBuilder.Entity<SalesQuotation>().Property(e => e.QuotationNumber).HasMaxLength(64);
+            modelBuilder.Entity<Payment>().Property(e => e.PaymentNumber).HasMaxLength(64);
+            modelBuilder.Entity<JournalEntry>().Property(e => e.JournalNumber).HasMaxLength(64);
+            modelBuilder.Entity<ExpenseClaim>().Property(e => e.ClaimNumber).HasMaxLength(64);
+            modelBuilder.Entity<GoodsReceiptNote>().Property(e => e.GrnNumber).HasMaxLength(64);
+            modelBuilder.Entity<StockMovement>().Property(e => e.MovementNumber).HasMaxLength(64);
+            modelBuilder.Entity<CrmLead>().Property(e => e.LeadCode).HasMaxLength(64);
+            modelBuilder.Entity<TravelRequest>().Property(e => e.RequestNumber).HasMaxLength(64);
+            modelBuilder.Entity<ProjectTask>().Property(e => e.TaskCode).HasMaxLength(64);
+            modelBuilder.Entity<Vendor>().Property(e => e.VendorCode).HasMaxLength(64);
+            modelBuilder.Entity<Item>().Property(e => e.ItemCode).HasMaxLength(64);
+            modelBuilder.Entity<Warehouse>().Property(e => e.WarehouseCode).HasMaxLength(64);
+
             modelBuilder.Entity<TenantModule>().HasIndex(t => new { t.TenantId, t.ModuleKey }).IsUnique();
 
             // Apply global query filter for multi-tenant + soft delete
             modelBuilder.Entity<Tenant>().HasQueryFilter(e => _tenantAccessor.IncludeDeleted() || !e.IsDeleted);
             modelBuilder.Entity<Company>().HasQueryFilter(e => (_tenantAccessor.IncludeDeleted() || !e.IsDeleted) && (_tenantAccessor.IncludeAllTenants() || e.TenantId == _tenantAccessor.GetTenantId()));
-            modelBuilder.Entity<Project>().HasQueryFilter(e => (_tenantAccessor.IncludeDeleted() || !e.IsDeleted) && (_tenantAccessor.IncludeAllTenants() || e.TenantId == _tenantAccessor.GetTenantId()));
+            modelBuilder.Entity<Project>().HasQueryFilter(e => (_tenantAccessor.IncludeDeleted() || !e.IsDeleted) && (_tenantAccessor.IncludeAllTenants() || e.TenantId == _tenantAccessor.GetTenantId()) && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()));
+            modelBuilder.Entity<Department>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()));
+            modelBuilder.Entity<Designation>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()));
+            modelBuilder.Entity<Branch>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()));
+            modelBuilder.Entity<CostCenter>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()));
+            modelBuilder.Entity<BusinessUnit>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()));
             modelBuilder.Entity<User>().HasQueryFilter(e => (_tenantAccessor.IncludeDeleted() || !e.IsDeleted) && (_tenantAccessor.IncludeAllTenants() || e.TenantId == _tenantAccessor.GetTenantId()));
             modelBuilder.Entity<Role>().HasQueryFilter(e => (_tenantAccessor.IncludeDeleted() || !e.IsDeleted) && (_tenantAccessor.IncludeAllTenants() || e.TenantId == _tenantAccessor.GetTenantId()));
             modelBuilder.Entity<UserRole>().HasQueryFilter(e => (_tenantAccessor.IncludeDeleted() || !e.IsDeleted) && (_tenantAccessor.IncludeAllTenants() || e.TenantId == _tenantAccessor.GetTenantId()));
             modelBuilder.Entity<ContactSubmission>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<EntityFieldDefinition>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<EntityFieldValue>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
-            modelBuilder.Entity<DocumentRecord>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
-            modelBuilder.Entity<NotificationMessage>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<DocumentRecord>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == null || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
+            modelBuilder.Entity<NotificationMessage>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == null || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()));
+            modelBuilder.Entity<HelpdeskTicket>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == null || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
             modelBuilder.Entity<CommunicationTemplate>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
-            modelBuilder.Entity<HelpdeskTicket>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<HelpdeskEscalation>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<HelpdeskFaqArticle>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
-            modelBuilder.Entity<Employee>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<TravelRequest>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<AiAgent>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<ProjectTask>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<TimesheetEntry>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<IntegrationConnector>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<IntegrationSyncLog>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<IntegrationApiKey>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<SecurityPolicy>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<SsoIdentityProvider>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<IpAccessRule>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<MfaEnrollment>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<CustomReport>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<LicenseInvoice>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<Employee>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
             modelBuilder.Entity<AttendanceRecord>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<AttendanceCorrection>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<LeaveType>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
@@ -431,8 +603,18 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<Holiday>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<PayrollStructure>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<PayrollComponent>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
-            modelBuilder.Entity<PayrollRun>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<PayrollRun>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == null || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()));
+            modelBuilder.Entity<PayrollFinalSettlement>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<PayrollLoan>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<PayrollBonus>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<PayrollArrear>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<Payslip>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<PayslipLine>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<EmployeeSalaryAssignment>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<PurchaseRequest>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
+            modelBuilder.Entity<HrLifecycleTask>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<SalesReturn>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
+            modelBuilder.Entity<AccountingPeriod>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<FeatureFlag>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<RefreshToken>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<AuditLog>().HasQueryFilter(e => (_tenantAccessor.IncludeDeleted() || !e.IsDeleted) && (_tenantAccessor.IncludeAllTenants() || e.TenantId == _tenantAccessor.GetTenantId()));
@@ -445,34 +627,40 @@ namespace UabIndia.Infrastructure.Data
 
             // Finance & Accounting Query Filters
             modelBuilder.Entity<ChartOfAccount>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
-            modelBuilder.Entity<JournalEntry>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<JournalEntry>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
             modelBuilder.Entity<JournalEntryLine>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
-            modelBuilder.Entity<Payment>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<Payment>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
+            modelBuilder.Entity<ExpenseClaim>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
+            modelBuilder.Entity<BankReconciliation>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()));
 
             // Sales & CRM Query Filters
-            modelBuilder.Entity<Customer>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
-            modelBuilder.Entity<SalesQuotation>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<Customer>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
+            modelBuilder.Entity<CrmLead>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
+            modelBuilder.Entity<SalesQuotation>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
             modelBuilder.Entity<SalesQuotationItem>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
-            modelBuilder.Entity<SalesOrder>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<SalesOrder>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
             modelBuilder.Entity<SalesOrderItem>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
-            modelBuilder.Entity<SalesInvoice>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<SalesInvoice>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
             modelBuilder.Entity<SalesInvoiceItem>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<DiscountScheme>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
+            modelBuilder.Entity<DiscountSchemeLine>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
 
             // Purchase & Procurement Query Filters
-            modelBuilder.Entity<Vendor>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
-            modelBuilder.Entity<PurchaseOrder>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<Vendor>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
+            modelBuilder.Entity<PurchaseOrder>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
             modelBuilder.Entity<PurchaseOrderItem>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
-            modelBuilder.Entity<PurchaseInvoice>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<PurchaseInvoice>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
             modelBuilder.Entity<PurchaseInvoiceItem>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<GoodsReceiptNote>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
 
             // Inventory Management Query Filters
-            modelBuilder.Entity<Item>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
-            modelBuilder.Entity<Warehouse>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
-            modelBuilder.Entity<StockMovement>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
-            modelBuilder.Entity<StockBalance>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<Item>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
+            modelBuilder.Entity<Warehouse>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
+            modelBuilder.Entity<StockMovement>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
+            modelBuilder.Entity<StockBalance>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()));
 
             // Asset Management Query Filters (consolidated — no duplicates)
-            modelBuilder.Entity<FixedAsset>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<FixedAsset>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
             modelBuilder.Entity<AssetAllocation>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<AssetDepreciation>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<AssetMaintenance>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
@@ -520,11 +708,15 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<AttendanceRecord>().Property(a => a.Latitude).HasPrecision(10,7);
             modelBuilder.Entity<AttendanceRecord>().Property(a => a.Longitude).HasPrecision(10,7);
 
+            modelBuilder.Entity<User>().Property(u => u.EmailHash).HasMaxLength(64);
+            modelBuilder.Entity<User>().HasIndex(u => new { u.TenantId, u.EmailHash });
             modelBuilder.Entity<User>().HasIndex(u => new { u.TenantId, u.Email }).IsUnique();
             modelBuilder.Entity<Customer>().HasIndex(c => c.TenantId);
             modelBuilder.Entity<Customer>().HasIndex(c => new { c.TenantId, c.CustomerCode }).IsUnique().HasFilter("[IsDeleted] = 0");
             modelBuilder.Entity<TenantConfig>().HasIndex(c => c.CustomDomain).HasFilter("[CustomDomain] IS NOT NULL AND [IsDeleted] = 0");
             modelBuilder.Entity<Employee>().HasIndex(e => new { e.TenantId, e.CompanyId });
+            modelBuilder.Entity<Employee>().HasIndex(e => new { e.TenantId, e.EmployeeCode }).IsUnique().HasFilter("[IsDeleted] = 0 AND [EmployeeCode] IS NOT NULL AND [EmployeeCode] <> ''");
+            modelBuilder.Entity<PayslipLine>().HasOne(l => l.Payslip).WithMany(p => p.Lines).HasForeignKey(l => l.PayslipId).OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<AttendanceRecord>().HasIndex(a => new { a.TenantId, a.EmployeeId, a.Timestamp });
             modelBuilder.Entity<HelpdeskTicket>().HasIndex(t => new { t.TenantId, t.TicketNumber }).IsUnique();
             modelBuilder.Entity<HelpdeskEscalation>().HasIndex(e => new { e.TenantId, e.HelpdeskTicketId, e.EscalatedAt });
@@ -545,22 +737,8 @@ namespace UabIndia.Infrastructure.Data
         {
             var now = System.DateTime.UtcNow;
             var tenantId = _tenantAccessor.GetTenantId();
-
-            foreach (var entry in ChangeTracker.Entries<BaseEntity>())
-            {
-                if (entry.State == EntityState.Added)
-                {
-                    entry.Entity.TenantId = tenantId;
-                    entry.Entity.CreatedAt = now;
-                }
-                else if (entry.State == EntityState.Modified)
-                {
-                    entry.Entity.UpdatedAt = now;
-                }
-            }
-
+            ApplyBaseEntityStamps(now, tenantId);
             AddAuditLogs(tenantId, now);
-
             return base.SaveChanges();
         }
 
@@ -568,36 +746,79 @@ namespace UabIndia.Infrastructure.Data
         {
             var now = System.DateTime.UtcNow;
             var tenantId = _tenantAccessor.GetTenantId();
+            ApplyBaseEntityStamps(now, tenantId);
+            AddAuditLogs(tenantId, now);
+            return await base.SaveChangesAsync(cancellationToken);
+        }
 
+        private void ApplyBaseEntityStamps(System.DateTime now, System.Guid tenantId)
+        {
             foreach (var entry in ChangeTracker.Entries<BaseEntity>())
             {
                 if (entry.State == EntityState.Added)
                 {
-                    entry.Entity.TenantId = tenantId;
+                    // Respect explicit TenantId if already set (e.g. provisioning/seeding/cross-tenant jobs);
+                    // otherwise stamp from current request context.
+                    if (entry.Entity.TenantId == System.Guid.Empty && tenantId != System.Guid.Empty)
+                    {
+                        entry.Entity.TenantId = tenantId;
+                    }
+
                     entry.Entity.CreatedAt = now;
+                    ApplyOrgScopeStamps(entry);
                 }
                 else if (entry.State == EntityState.Modified)
                 {
                     entry.Entity.UpdatedAt = now;
                 }
+
+                if (entry.Entity is User user && !string.IsNullOrWhiteSpace(user.Email))
+                {
+                    if (entry.State == EntityState.Added || entry.State == EntityState.Modified || string.IsNullOrWhiteSpace(user.EmailHash))
+                    {
+                        user.EmailHash = _encryptionService.ComputeHash(user.Email);
+                    }
+                }
             }
-
-            AddAuditLogs(tenantId, now);
-
-            return await base.SaveChangesAsync(cancellationToken);
         }
 
-        private void AddAuditLogs(System.Guid tenantId, System.DateTime now)
+        private void ApplyOrgScopeStamps(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry)
         {
-            // HTTP POST/PUT/DELETE audit is captured by AuditMiddleware; skip entity-level
-            // duplicates for API requests while keeping audit for background/offline work.
-            if (_requestContext?.IsHttpRequest == true)
+            var companyId = _tenantAccessor.GetCompanyId();
+            var projectId = _tenantAccessor.GetProjectId();
+            var companyProp = entry.Metadata.FindProperty("CompanyId");
+            if (companyProp != null && companyId.HasValue)
             {
-                return;
+                var current = entry.Property("CompanyId").CurrentValue;
+                var empty = current == null || current is System.Guid guid && guid == System.Guid.Empty;
+                if (empty)
+                {
+                    entry.Property("CompanyId").CurrentValue = companyProp.ClrType == typeof(System.Guid)
+                        ? companyId.Value
+                        : companyId;
+                }
             }
 
+            var projectProp = entry.Metadata.FindProperty("ProjectId");
+            if (projectProp != null && projectId.HasValue)
+            {
+                var current = entry.Property("ProjectId").CurrentValue;
+                if (current == null)
+                {
+                    entry.Property("ProjectId").CurrentValue = projectId.Value;
+                }
+            }
+        }
+
+        private static readonly HashSet<string> SensitivePropertyNames = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "PasswordHash", "SecurityStamp", "ConcurrencyStamp", "SecretKey", "EncryptionKey", "ApiKey", "Token", "Salt", "NormalizedEmail", "NormalizedUserName"
+        };
+
+        private void AddAuditLogs(Guid tenantId, DateTime now)
+        {
             var entries = ChangeTracker.Entries<BaseEntity>()
-                .Where(e => e.Entity is not AuditLog)
+                .Where(e => e.Entity is not AuditLog && e.Entity is not OutboxMessage)
                 .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified || e.State == EntityState.Deleted)
                 .ToList();
 
@@ -605,14 +826,88 @@ namespace UabIndia.Infrastructure.Data
 
             foreach (var entry in entries)
             {
+                var targetTenantId = tenantId != Guid.Empty ? tenantId : entry.Entity.TenantId;
+
+                Guid? entityCompanyId = null;
+                if (entry.Entity is BaseOrgEntity orgEntity)
+                {
+                    entityCompanyId = orgEntity.CompanyId;
+                }
+                else
+                {
+                    var companyProp = entry.Metadata.FindProperty("CompanyId");
+                    if (companyProp != null)
+                    {
+                        var val = entry.Property("CompanyId").CurrentValue;
+                        if (val is Guid g && g != Guid.Empty) entityCompanyId = g;
+                    }
+                }
+
+                Guid? entityProjectId = null;
+                var projectProp = entry.Metadata.FindProperty("ProjectId");
+                if (projectProp != null)
+                {
+                    var val = entry.Property("ProjectId").CurrentValue;
+                    if (val is Guid g && g != Guid.Empty) entityProjectId = g;
+                }
+
                 var audit = new AuditLog
                 {
-                    TenantId = tenantId,
+                    TenantId = targetTenantId,
+                    CompanyId = entityCompanyId,
+                    ProjectId = entityProjectId,
                     EntityName = entry.Entity.GetType().Name,
                     EntityId = entry.Entity.Id,
                     Action = entry.State.ToString(),
+                    PerformedBy = entry.Entity.CreatedBy,
                     PerformedAt = now
                 };
+
+                if (entry.State == EntityState.Added)
+                {
+                    var newValues = new Dictionary<string, object?>();
+                    foreach (var prop in entry.Properties)
+                    {
+                        if (prop.Metadata.IsPrimaryKey() || SensitivePropertyNames.Contains(prop.Metadata.Name)) continue;
+                        if (prop.CurrentValue != null)
+                        {
+                            newValues[prop.Metadata.Name] = prop.CurrentValue;
+                        }
+                    }
+                    audit.NewValue = JsonSerializer.Serialize(newValues);
+                }
+                else if (entry.State == EntityState.Modified)
+                {
+                    var oldValues = new Dictionary<string, object?>();
+                    var newValues = new Dictionary<string, object?>();
+
+                    foreach (var prop in entry.Properties)
+                    {
+                        if (!prop.IsModified || SensitivePropertyNames.Contains(prop.Metadata.Name)) continue;
+
+                        oldValues[prop.Metadata.Name] = prop.OriginalValue;
+                        newValues[prop.Metadata.Name] = prop.CurrentValue;
+                    }
+
+                    if (oldValues.Count > 0)
+                    {
+                        audit.OldValue = JsonSerializer.Serialize(oldValues);
+                        audit.NewValue = JsonSerializer.Serialize(newValues);
+                    }
+                }
+                else if (entry.State == EntityState.Deleted)
+                {
+                    var oldValues = new Dictionary<string, object?>();
+                    foreach (var prop in entry.Properties)
+                    {
+                        if (SensitivePropertyNames.Contains(prop.Metadata.Name)) continue;
+                        if (prop.OriginalValue != null)
+                        {
+                            oldValues[prop.Metadata.Name] = prop.OriginalValue;
+                        }
+                    }
+                    audit.OldValue = JsonSerializer.Serialize(oldValues);
+                }
 
                 AuditLogs.Add(audit);
             }

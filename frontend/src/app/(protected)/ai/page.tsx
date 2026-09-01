@@ -1,11 +1,11 @@
-"use client";
+﻿"use client";
 
 import React, { useRef, useState } from "react";
 import { Bot, Eraser, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudHeaderStats } from "@/components/erp/crud-workspace";
-import { erpButtonClassName } from "@/components/erp/erpStyles";
+import { CrudHeaderStats } from "@/components/workspace/crud-workspace";
+import { erpButtonClassName } from "@/components/workspace/styles";
 import { aiApi } from "@/services/modules";
 import { getApiErrorMessage } from "@/lib/api-errors";
 
@@ -79,6 +79,8 @@ export default function AiCopilotPage() {
   return (
     <StandardPageLayout
       title="AI Copilot"
+      subtitle="Interact with your enterprise assistant for cross-module queries, summaries, and action automation."
+      eyebrow="Platform / Intelligence"
       icon="grid"
       meta={<CrudHeaderStats items={stats} />}
       actions={

@@ -6,6 +6,8 @@ namespace UabIndia.Core.Entities
     // Inventory Items/Products
     public class Item : BaseEntity
     {
+        public Guid? CompanyId { get; set; }
+        public Guid? ProjectId { get; set; }
         public string ItemCode { get; set; } = string.Empty;
         public string ItemName { get; set; } = string.Empty;
         public string ItemType { get; set; } = "Stockable"; // Stockable, Service, Consumable
@@ -34,6 +36,8 @@ namespace UabIndia.Core.Entities
     // Warehouses
     public class Warehouse : BaseEntity
     {
+        public Guid? CompanyId { get; set; }
+        public Guid? ProjectId { get; set; }
         public string WarehouseCode { get; set; } = string.Empty;
         public string WarehouseName { get; set; } = string.Empty;
         public string? Address { get; set; }
@@ -51,6 +55,8 @@ namespace UabIndia.Core.Entities
     // Stock Movement/Transactions
     public class StockMovement : BaseEntity
     {
+        public Guid? CompanyId { get; set; }
+        public Guid? ProjectId { get; set; }
         public string MovementNumber { get; set; } = string.Empty;
         public DateTime MovementDate { get; set; }
         public string MovementType { get; set; } = string.Empty; // In, Out, Transfer, Adjustment
@@ -72,6 +78,7 @@ namespace UabIndia.Core.Entities
     // Stock Balance (Current stock per item per warehouse)
     public class StockBalance : BaseEntity
     {
+        public Guid? CompanyId { get; set; }
         public Guid ItemId { get; set; }
         public Item Item { get; set; } = null!;
         public Guid WarehouseId { get; set; }

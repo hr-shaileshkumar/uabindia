@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -10,7 +10,7 @@ import {
   BUSINESS_PATH_PREFIXES,
   OWNER_PATH_PREFIXES,
   matchesAnyPrefix,
-} from "@/lib/erp/route-config";
+} from "@/lib/workspace/route-config";
 
 export type AuthUser = User & {
   id?: string;
@@ -91,24 +91,36 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Hydrate user from sessionStorage synchronously on first load for instant rendering
+  const [user, setUser] = useState<AuthUser | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const cached = window.sessionStorage.getItem("erp.auth.user");
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [loading, setLoading] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    try {
+      const cached = window.sessionStorage.getItem("erp.auth.user");
+      return !cached;
+    } catch {
+      return true;
+    }
+  });
+
   const pathname = usePathname();
   const currentPath = pathname || "/";
-  const requiresAuthBootstrap =
-    !matchesAnyPrefix(currentPath, AUTH_PATH_PREFIXES) &&
-    matchesAnyPrefix(currentPath, AUTH_CONTEXT_REQUIRED_PREFIXES);
-
-  useLayoutEffect(() => {
-    if (requiresAuthBootstrap) {
-      setLoading(true);
-    }
-  }, [requiresAuthBootstrap]);
+  const isAuthRoute = matchesAnyPrefix(currentPath, AUTH_PATH_PREFIXES);
+  const requiresAuthBootstrap = !isAuthRoute && matchesAnyPrefix(currentPath, AUTH_CONTEXT_REQUIRED_PREFIXES);
 
   useEffect(() => {
     let isActive = true;
 
     const load = async () => {
+      // If public auth page, mark loading false immediately
       if (!requiresAuthBootstrap) {
         if (isActive) {
           setLoading(false);
@@ -116,17 +128,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
-      if (isActive) {
-        setLoading(true);
-      }
-
       try {
         const res = await apiClient.get("/auth/me");
         if (!isActive) return;
-        setUser(normalizeAuthUser(res.data));
+        const normalized = normalizeAuthUser(res.data);
+        setUser(normalized);
+        if (normalized && typeof window !== "undefined") {
+          try {
+            window.sessionStorage.setItem("erp.auth.user", JSON.stringify(normalized));
+          } catch {
+            // ignore storage quota errors
+          }
+        }
       } catch {
         if (!isActive) return;
         setUser(null);
+        if (typeof window !== "undefined") {
+          window.sessionStorage.removeItem("erp.auth.user");
+        }
       } finally {
         if (isActive) {
           setLoading(false);
@@ -139,7 +158,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       isActive = false;
     };
-  }, [requiresAuthBootstrap, pathname]);
+  }, [requiresAuthBootstrap]);
 
   const refreshUser = async () => {
     try {

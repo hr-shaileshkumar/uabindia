@@ -1,13 +1,13 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
+import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
 import {
   ErpEmptyState,
   ErpRefreshButton,
   ErpRowActions,
   ErpSearchFilter,
-} from "@/components/erp/erp-page-kit";
+} from "@/components/workspace/page-kit";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { SideDrawer } from "@/components/ui/side-drawer";
 import { getApiErrorMessage } from "@/lib/api-errors";
@@ -78,6 +78,8 @@ export default function AssessmentsPage() {
   return (
     <StandardPageLayout
       title="Assessments"
+      subtitle="Evaluate employee performance tests, quiz results, pass criteria, and competency benchmarks."
+      eyebrow="HRMS / Learning"
       icon="award"
       meta={
         <CrudHeaderStats

@@ -2,6 +2,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using UabIndia.Application.Interfaces;
+using UabIndia.Core.Services;
 
 namespace UabIndia.Api.Modules.Platform.Controllers
 {
@@ -10,6 +13,20 @@ namespace UabIndia.Api.Modules.Platform.Controllers
     [Authorize]
     public class SystemController : ControllerBase
     {
+        private readonly IPlatformMetrics? _metrics;
+        private readonly IIndianEnterpriseDemoSeeder? _demoSeeder;
+        private readonly ITenantAccessor? _tenantAccessor;
+
+        public SystemController(
+            IPlatformMetrics? metrics = null,
+            IIndianEnterpriseDemoSeeder? demoSeeder = null,
+            ITenantAccessor? tenantAccessor = null)
+        {
+            _metrics = metrics;
+            _demoSeeder = demoSeeder;
+            _tenantAccessor = tenantAccessor;
+        }
+
         [HttpGet("financial-years")]
         public IActionResult GetFinancialYears()
         {
@@ -34,6 +51,36 @@ namespace UabIndia.Api.Modules.Platform.Controllers
             }
 
             return Ok(years);
+        }
+
+        [HttpGet("metrics/summary")]
+        public IActionResult GetMetricsSummary()
+        {
+            if (_metrics == null)
+            {
+                return Ok(new PlatformMetricsSummary());
+            }
+
+            return Ok(_metrics.GetSummary());
+        }
+
+        [HttpPost("seed-demo-data")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> SeedDemoData()
+        {
+            if (_demoSeeder == null || _tenantAccessor == null)
+            {
+                return BadRequest(new { success = false, message = "Demo seeder service unavailable." });
+            }
+
+            var tenantId = _tenantAccessor.GetTenantId();
+            if (tenantId == Guid.Empty)
+            {
+                return BadRequest(new { success = false, message = "Valid tenant context required." });
+            }
+
+            var result = await _demoSeeder.SeedDemoTenantAsync(tenantId);
+            return Ok(result);
         }
     }
 }

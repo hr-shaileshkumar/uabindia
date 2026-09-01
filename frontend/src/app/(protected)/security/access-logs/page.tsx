@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
-import { useErpListView } from "@/components/erp/erp-list-view";
+import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
+import { useErpListView } from "@/components/workspace/list-view";
 import { platformApi } from "@/services/modules";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { ROUTES } from "@/constants/routes";
@@ -80,7 +80,9 @@ export default function AccessLogsPage() {
 
   return (
     <StandardPageLayout
-      title="Access logs"
+      title="Access Logs & Audit Trail"
+      subtitle="Inspect tenant authentication attempts, IP addresses, timestamps, and security events."
+      eyebrow="Security / Governance"
       icon="file"
       meta={
         <CrudHeaderStats

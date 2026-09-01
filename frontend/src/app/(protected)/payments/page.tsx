@@ -1,13 +1,13 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { financeApi, procurementApi, salesApi } from "@/services/modules";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
+import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
 import { SideDrawer } from "@/components/ui/side-drawer";
-import { ErpCreateButton, ErpDrawerFooter, ErpRefreshButton } from "@/components/erp/erp-page-kit";
-import { useErpListView } from "@/components/erp/erp-list-view";
-import { ErpMasterSelect, asRows, formatInr, useDocumentMasters } from "@/components/erp/erp-document-kit";
+import { ErpCreateButton, ErpDrawerFooter, ErpRefreshButton } from "@/components/workspace/page-kit";
+import { useErpListView } from "@/components/workspace/list-view";
+import { ErpMasterSelect, asRows, formatInr, useDocumentMasters } from "@/components/workspace/document-kit";
 
 type PaymentRow = {
   id: string;

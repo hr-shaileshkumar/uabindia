@@ -61,7 +61,9 @@ namespace UabIndia.Infrastructure.Services
             {
                 TenantId = request.TenantId,
                 ModuleKey = request.DefinitionKey,
-                EntityType = string.Empty,
+                EntityType = request.Variables != null && request.Variables.TryGetValue("entityType", out var et)
+                    ? et?.ToString() ?? string.Empty
+                    : string.Empty,
                 EntityId = entityId,
                 WorkflowDefinitionId = workflow.Id,
                 CurrentStep = 1,

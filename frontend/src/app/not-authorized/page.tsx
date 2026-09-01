@@ -28,7 +28,7 @@ const messages: Record<string, { title: string; body: string; note: string }> = 
 
 export default function NotAuthorizedPage() {
   const searchParams = useSearchParams();
-  const reason = searchParams.get("reason") || "access-denied";
+  const reason = searchParams?.get("reason") || "access-denied";
   const message = messages[reason] || messages["access-denied"];
 
   return (

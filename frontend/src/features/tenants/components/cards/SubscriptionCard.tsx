@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CreditCard, CheckCircle2, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { erpButtonClassName } from "@/components/erp/erpStyles";
+import { erpButtonClassName } from "@/components/workspace/styles";
 
 interface SubscriptionCardProps {
   planName: string;

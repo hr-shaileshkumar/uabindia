@@ -1,6 +1,6 @@
-# ERP SaaS Platform Design Token System
+# Modular SaaS Platform Design Token System
 
-This document outlines the centralized design token system, CSS variable dictionary, semantic color tokens, component primitives, and layout standards for the UABIndia ERP SaaS Platform.
+This document outlines the centralized design token system, CSS variable dictionary, semantic color tokens, component primitives, and layout standards for the UABIndia Modular SaaS Platform.
 
 ---
 
@@ -52,26 +52,33 @@ Enterprise data-dense layouts require consistent radii, spacing, and elevation.
 
 ## 3. UI Primitive Component Standards
 
-Authenticated pages use these current primitives:
+Authenticated pages use these standard primitives:
 
 1. **`DataTable`** (`@/components/ui/data-table.tsx`): Sticky header, pagination, search, column sorting, and skeleton loaders.
-2. **KPI chips** (`erpStatCardClassName` in `@/components/erp/erpStyles.ts`): Metric cards for hub pages — title, value, and helper text.
-3. **`StatusBadge`** (`@/components/erp/status-badge.tsx` or `@/components/ui/status-badge.tsx`): Status pills for Active, Pending, Failed, Draft, Completed, and similar states.
-4. **`ERPFormGrid`** (`@/components/ui/erp-form-grid.tsx`): Responsive 2-column or 3-column form layout.
+2. **KPI Header Summary** (`@/components/layout/HeaderSummary.tsx`): Top summary metrics for hub and list pages.
+3. **`StatusBadge`** (`@/components/workspace/status-badge.tsx`): Status pills for Active, Pending, Failed, Draft, Completed, and custom domain states.
+4. **`FormGrid` & `FormField`** (`@/components/ui/form-grid.tsx`): Responsive 1-column to 4-column structured form layout.
+5. **`TabBar` & `TabPanel`** (`@/components/workspace/tab-bar.tsx`): Shared tab strip for multi-register pages.
 
 ---
 
 ## 4. App Shell & Page Structure
 
-The authenticated chrome lives in `frontend/src/app/(protected)/layout.tsx`: sidebar (`Sidebar`) + topbar (`Header`) + Ctrl+K search (`GlobalSearchCommand`).
+The authenticated chrome is a **server** `frontend/src/app/(protected)/layout.tsx` wrapping client `ProtectedWorkspaceShell`: sidebar (`Sidebar`) + topbar (`Header`) + Ctrl+K search (`GlobalSearchCommand`).
 
-Page content uses `StandardPageLayout`:
+Page content:
+
+- **Domain module lists:** `StandardPageLayout` + `@/components/workspace/page-kit` (`CreateButton`, `RefreshButton`, `RowActions`) + `useListView`.
+- **Control plane** (`/platform`, `/superadmin`): `PlatformGlobalPageShell` (wraps `StandardPageLayout`).
+- **Templates:** `UniversalCreateEditForm`, `UniversalDeleteDialog`, `UniversalEmptyState`, `UniversalPageHeader` under `@/components/workspace/templates/`.
+
+Example:
 
 ```tsx
 <StandardPageLayout
   title="Vendor Management"
   icon="building"
-  actions={<ErpCreateButton label="New" onClick={openCreate} />}
+  actions={<CreateButton label="New Vendor" onClick={openCreate} />}
 >
   {/* Table or hub content */}
 </StandardPageLayout>

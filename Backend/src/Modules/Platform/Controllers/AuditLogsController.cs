@@ -90,6 +90,43 @@ namespace UabIndia.Api.Modules.Platform.Controllers
             return Ok(new { logs = data, total, page, limit });
         }
 
+        [HttpGet("entity/{entityName}/{entityId:guid}")]
+        public async Task<IActionResult> GetEntityAuditTimeline(
+            [FromRoute] string entityName,
+            [FromRoute] Guid entityId,
+            [FromQuery] int limit = 100)
+        {
+            if (string.IsNullOrWhiteSpace(entityName) || entityId == Guid.Empty)
+                return BadRequest(new { message = "Valid entityName and entityId are required." });
+
+            var query = _db.AuditLogs
+                .AsNoTracking()
+                .Where(a => a.EntityId == entityId && a.EntityName != null &&
+                            (a.EntityName == entityName || a.EntityName == entityName + "s" || a.EntityName.StartsWith(entityName)))
+                .OrderByDescending(a => a.PerformedAt)
+                .Take(Math.Clamp(limit, 1, 500));
+
+            var logs = await query
+                .Select(a => new
+                {
+                    id = a.Id,
+                    tenantId = a.TenantId,
+                    companyId = a.CompanyId,
+                    projectId = a.ProjectId,
+                    entityName = a.EntityName,
+                    entityId = a.EntityId,
+                    action = a.Action,
+                    oldValue = a.OldValue,
+                    newValue = a.NewValue,
+                    performedBy = a.PerformedBy,
+                    performedAt = a.PerformedAt,
+                    ip = a.Ip
+                })
+                .ToListAsync();
+
+            return Ok(new { entityName, entityId, count = logs.Count, logs });
+        }
+
         [HttpGet("deleted")]
         public async Task<IActionResult> ListDeleted(
             [FromQuery] int page = 1,

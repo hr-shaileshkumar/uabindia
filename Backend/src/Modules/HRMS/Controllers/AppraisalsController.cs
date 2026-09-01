@@ -23,17 +23,23 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
         private readonly ApplicationDbContext _db;
         private readonly ITenantAccessor _tenantAccessor;
         private readonly ICacheService _cache;
+        private readonly IAppraisalCycleService _cycles;
+        private readonly IAppraisalAssessmentService _assessments;
 
         public AppraisalsController(
             IAppraisalRepository appraisalRepo,
             ApplicationDbContext db,
             ITenantAccessor tenantAccessor,
-            ICacheService cache)
+            ICacheService cache,
+            IAppraisalCycleService cycles,
+            IAppraisalAssessmentService assessments)
         {
             _appraisalRepo = appraisalRepo;
             _db = db;
             _tenantAccessor = tenantAccessor;
             _cache = cache;
+            _cycles = cycles;
+            _assessments = assessments;
         }
 
         #region Appraisal Cycle Management
@@ -235,28 +241,13 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
 
             try
             {
-                var cycle = await _appraisalRepo.GetAppraisalCycleByIdAsync(id, tenantId);
-                if (cycle == null)
-                    return NotFound(new { message = "Appraisal cycle not found" });
-
-                // Deactivate existing active cycle
-                var activeCycle = await _appraisalRepo.GetActiveAppraisalCycleAsync(tenantId);
-                if (activeCycle != null)
-                {
-                    activeCycle.IsActive = false;
-                    await _appraisalRepo.UpdateAppraisalCycleAsync(activeCycle);
-                }
-
-                // Activate new cycle
-                cycle.IsActive = true;
-                cycle.Status = AppraisalCycleStatus.Active;
-                await _appraisalRepo.UpdateAppraisalCycleAsync(cycle);
-
-                // Create appraisals for all active employees
-                await CreateAppriasalsForAllEmployees(cycle);
+                var cycle = await _cycles.ActivateAsync(id);
                 await InvalidateCycleCache(tenantId);
-
                 return Ok(new { message = "Appraisal cycle activated successfully", cycle = MapCycleToDto(cycle) });
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Appraisal cycle not found" });
             }
             catch (Exception ex)
             {
@@ -459,7 +450,6 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var tenantId = _tenantAccessor.GetTenantId();
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             if (!Guid.TryParse(userId, out var userGuid))
@@ -467,48 +457,26 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
 
             try
             {
-                var appraisal = await _appraisalRepo.GetAppraisalByIdAsync(id, tenantId);
-                if (appraisal == null)
-                    return NotFound(new { message = "Appraisal not found" });
-
-                // Verify user is the employee
-                if (appraisal.EmployeeId != userGuid)
-                    return Forbid("You can only assess your own appraisal");
-
-                // Verify deadline not passed
-                var cycle = await _appraisalRepo.GetAppraisalCycleByIdAsync(appraisal.AppraisalCycleId, tenantId);
-                if (cycle != null && DateTime.UtcNow > cycle.SelfAssessmentDeadline)
-                    return BadRequest(new { message = "Self-assessment deadline has passed" });
-
-                // Update self assessment
-                appraisal.SelfAssessmentScore = dto.SelfAssessmentScore;
-                appraisal.SelfAssessmentComments = dto.SelfAssessmentComments;
-                appraisal.SelfAssessmentSubmittedAt = DateTime.UtcNow;
-                appraisal.Status = AppraisalStatus.SelfSubmitted;
-
-                // Clear existing self-ratings and add new ones
-                var existingRatings = await _appraisalRepo.GetRatingsByAppraisalAsync(id);
-                foreach (var rating in existingRatings)
-                {
-                    await _db.AppraisalRatings.Where(r => r.Id == rating.Id).ExecuteDeleteAsync();
-                }
-
-                foreach (var ratingDto in dto.Ratings)
-                {
-                    var rating = new AppraisalRating
-                    {
-                        AppraisalId = id,
-                        CompetencyId = ratingDto.CompetencyId,
-                        SelfScore = ratingDto.SelfScore,
-                        Comments = ratingDto.Comments,
-                        TenantId = tenantId
-                    };
-                    await _appraisalRepo.CreateRatingAsync(rating);
-                }
-
-                await _appraisalRepo.UpdateAppraisalAsync(appraisal);
+                var appraisal = await _assessments.SubmitSelfAssessmentAsync(
+                    id,
+                    userGuid,
+                    dto.SelfAssessmentScore,
+                    dto.SelfAssessmentComments,
+                    MapRatingCommands(dto.Ratings));
 
                 return Ok(new { message = "Self-assessment submitted successfully", appraisal = MapAppraisalToDto(appraisal) });
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Appraisal not found" });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -525,7 +493,6 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var tenantId = _tenantAccessor.GetTenantId();
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             if (!Guid.TryParse(userId, out var userGuid))
@@ -533,60 +500,26 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
 
             try
             {
-                var appraisal = await _appraisalRepo.GetAppraisalByIdAsync(id, tenantId);
-                if (appraisal == null)
-                    return NotFound(new { message = "Appraisal not found" });
-
-                // Verify user is the manager
-                if (appraisal.ManagerId != userGuid)
-                    return Forbid("You can only assess appraisals for your direct reports");
-
-                // Verify deadline not passed
-                var cycle = await _appraisalRepo.GetAppraisalCycleByIdAsync(appraisal.AppraisalCycleId, tenantId);
-                if (cycle != null && DateTime.UtcNow > cycle.ManagerAssessmentDeadline)
-                    return BadRequest(new { message = "Manager assessment deadline has passed" });
-
-                // Update manager assessment
-                appraisal.ManagerAssessmentScore = dto.ManagerAssessmentScore;
-                appraisal.ManagerAssessmentComments = dto.ManagerAssessmentComments;
-                appraisal.ManagerAssessmentSubmittedAt = DateTime.UtcNow;
-                appraisal.Status = AppraisalStatus.ManagerSubmitted;
-
-                // Add manager ratings
-                foreach (var ratingDto in dto.Ratings)
-                {
-                    var rating = await _appraisalRepo.GetRatingByIdAsync(ratingDto.CompetencyId);
-                    if (rating != null)
-                    {
-                        rating.ManagerScore = ratingDto.ManagerScore;
-                        rating.Comments = ratingDto.Comments;
-                        await _appraisalRepo.UpdateRatingAsync(rating);
-                    }
-                }
-
-                // Calculate overall rating
-                var allRatings = await _appraisalRepo.GetRatingsByAppraisalAsync(id);
-                var competencies = await _appraisalRepo.GetAllCompetenciesAsync(tenantId);
-
-                decimal overallRating = 0;
-                decimal totalWeight = 0;
-
-                foreach (var comp in competencies)
-                {
-                    var rating = allRatings.FirstOrDefault(r => r.CompetencyId == comp.Id);
-                    if (rating?.ManagerScore.HasValue == true)
-                    {
-                        overallRating += (rating.ManagerScore.Value * comp.Weight);
-                        totalWeight += comp.Weight;
-                    }
-                }
-
-                if (totalWeight > 0)
-                    appraisal.OverallRating = overallRating / totalWeight;
-
-                await _appraisalRepo.UpdateAppraisalAsync(appraisal);
+                var appraisal = await _assessments.SubmitManagerAssessmentAsync(
+                    id,
+                    userGuid,
+                    dto.ManagerAssessmentScore,
+                    dto.ManagerAssessmentComments,
+                    MapRatingCommands(dto.Ratings));
 
                 return Ok(new { message = "Manager assessment submitted successfully", appraisal = MapAppraisalToDto(appraisal) });
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Appraisal not found" });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -601,23 +534,17 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
         [Authorize(Policy = "AdminOnly")]
         public async Task<IActionResult> ApproveAppraisal(Guid id)
         {
-            var tenantId = _tenantAccessor.GetTenantId();
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            Guid.TryParse(userId, out var userGuid);
 
             try
             {
-                var appraisal = await _appraisalRepo.GetAppraisalByIdAsync(id, tenantId);
-                if (appraisal == null)
-                    return NotFound(new { message = "Appraisal not found" });
-
-                appraisal.Status = AppraisalStatus.Approved;
-                appraisal.IsFinalized = true;
-                appraisal.FinalizedAt = DateTime.UtcNow;
-                appraisal.ApprovedBy = Guid.TryParse(userId, out var userGuid) ? userGuid : (Guid?)null;
-
-                await _appraisalRepo.UpdateAppraisalAsync(appraisal);
-
+                var appraisal = await _assessments.ApproveAsync(id, userGuid);
                 return Ok(new { message = "Appraisal approved successfully", appraisal = MapAppraisalToDto(appraisal) });
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Appraisal not found" });
             }
             catch (Exception ex)
             {
@@ -632,23 +559,17 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
         [Authorize(Policy = "AdminOnly")]
         public async Task<IActionResult> RejectAppraisal(Guid id, [FromBody] Dictionary<string, string> body)
         {
-            var tenantId = _tenantAccessor.GetTenantId();
+            string? comments = null;
+            body?.TryGetValue("comments", out comments);
 
             try
             {
-                var appraisal = await _appraisalRepo.GetAppraisalByIdAsync(id, tenantId);
-                if (appraisal == null)
-                    return NotFound(new { message = "Appraisal not found" });
-
-                appraisal.Status = AppraisalStatus.Rejected;
-                string? comments = null;
-                body?.TryGetValue("comments", out comments);
-                if (!string.IsNullOrEmpty(comments))
-                    appraisal.ManagerAssessmentComments = comments;
-
-                await _appraisalRepo.UpdateAppraisalAsync(appraisal);
-
+                var appraisal = await _assessments.RejectAsync(id, comments);
                 return Ok(new { message = "Appraisal rejected successfully", appraisal = MapAppraisalToDto(appraisal) });
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Appraisal not found" });
             }
             catch (Exception ex)
             {
@@ -806,6 +727,11 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
 
         #region Helper Methods
 
+        private static IReadOnlyList<AppraisalRatingCommand> MapRatingCommands(IEnumerable<CreateAppraisalRatingDto> ratings)
+        {
+            return ratings.Select(r => new AppraisalRatingCommand(r.CompetencyId, r.SelfScore, r.ManagerScore, r.Comments)).ToList();
+        }
+
         private AppraisalCycleDto MapCycleToDto(AppraisalCycle cycle)
         {
             return new AppraisalCycleDto
@@ -888,47 +814,6 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                 {
                     await _cache.RemoveAsync($"competencies_{tenantId}_{page}_{limit}");
                 }
-            }
-        }
-
-        private async Task CreateAppriasalsForAllEmployees(AppraisalCycle cycle)
-        {
-            var employees = await _db.Employees
-                .Where(e => e.TenantId == cycle.TenantId && !e.IsDeleted)
-                .ToListAsync();
-
-            var managers = await _db.Users
-                .Where(u => u.TenantId == cycle.TenantId && !u.IsDeleted)
-                .ToListAsync();
-
-            foreach (var employee in employees)
-            {
-                // Find employee's manager
-                var manager = managers.FirstOrDefault(m => m.Id == employee.ReportingManagerId);
-                if (manager == null)
-                    continue;
-
-                if (!employee.UserId.HasValue)
-                    continue;
-
-                var employeeUserId = employee.UserId.Value;
-
-                // Check if appraisal already exists
-                var exists = await _appraisalRepo.AppraisalExistsAsync(employeeUserId, cycle.Id, cycle.TenantId);
-                if (exists)
-                    continue;
-
-                var appraisal = new PerformanceAppraisal
-                {
-                    TenantId = cycle.TenantId,
-                    EmployeeId = employeeUserId,
-                    ManagerId = manager.Id,
-                    AppraisalCycleId = cycle.Id,
-                    Status = AppraisalStatus.Pending,
-                    IsFinalized = false
-                };
-
-                await _appraisalRepo.CreateAppraisalAsync(appraisal);
             }
         }
 

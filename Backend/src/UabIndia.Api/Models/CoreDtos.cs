@@ -482,16 +482,35 @@ namespace UabIndia.Api.Models
 
     public class ApiKeyDto
     {
+        public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Prefix { get; set; } = string.Empty;
+        public string Scope { get; set; } = "read";
+        public string Status { get; set; } = "Active";
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
+        public DateTime? LastUsedAt { get; set; }
+        public string? PlaintextKey { get; set; }
+    }
+
+    public class CreateApiKeyDto
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Scope { get; set; } = "read";
     }
 
     public class IntegrationDto
     {
+        public Guid Id { get; set; }
+        public string ConnectorKey { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
-        public string Status { get; set; } = "inactive";
+        public string Provider { get; set; } = string.Empty;
+        public string Category { get; set; } = "Integration";
+        public string Status { get; set; } = "Inactive";
+        public Dictionary<string, string?>? Config { get; set; }
+        public DateTime? LastTestedAt { get; set; }
+        public DateTime? LastSyncAt { get; set; }
+        public string? LastError { get; set; }
     }
 
     public class DeviceSessionDto
@@ -510,5 +529,64 @@ namespace UabIndia.Api.Models
         public bool RequireNumber { get; set; }
         public bool RequireSpecial { get; set; }
         public int MaxAgeDays { get; set; }
+        public int MaxFailedAttempts { get; set; } = 5;
+        public int LockoutMinutes { get; set; } = 15;
+    }
+
+    public class MfaPolicyDto
+    {
+        public bool RequireMfaPlatformAdmins { get; set; }
+        public bool RequireMfaTenantAdmins { get; set; }
+        public bool AllowTotp { get; set; } = true;
+        public bool AllowSmsOtp { get; set; }
+    }
+
+    public class CreateSsoProviderDto
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Name { get; set; } = string.Empty;
+        public string Protocol { get; set; } = "OIDC";
+        public string Provider { get; set; } = "Custom";
+        public string Issuer { get; set; } = string.Empty;
+        public string ClientId { get; set; } = string.Empty;
+        public string? ClientSecret { get; set; }
+        public string? MetadataUrl { get; set; }
+        public string? RedirectUri { get; set; }
+        public string? Scopes { get; set; }
+    }
+
+    public class CreateIpAccessRuleDto
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        public string IpRange { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string Action { get; set; } = "ALLOW";
+    }
+
+    public class CreateMfaEnrollmentDto
+    {
+        public Guid? UserId { get; set; }
+        public string? UserName { get; set; }
+        public string? UserEmail { get; set; }
+        public string Method { get; set; } = "TOTP";
+    }
+
+    public class CreateCustomReportDto
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Name { get; set; } = string.Empty;
+        public string ReportType { get; set; } = "sales";
+        public string DateRange { get; set; } = "last30days";
+        public string OutputFormat { get; set; } = "pdf";
+        public string Schedule { get; set; } = "Manual";
+    }
+
+    public class CreateLicenseInvoiceDto
+    {
+        public string? InvoiceNumber { get; set; }
+        public string? Period { get; set; }
+        public string Plan { get; set; } = "Standard";
+        public decimal Amount { get; set; }
+        public string? Remarks { get; set; }
     }
 }

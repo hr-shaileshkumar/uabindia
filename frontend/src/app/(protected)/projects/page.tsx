@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudHeaderStats } from "@/components/erp/crud-workspace";
+import { CrudHeaderStats } from "@/components/workspace/crud-workspace";
 import {
   erpActionCardClassName,
   erpActionCardIconClassName,
   erpActionCardSubtitleClassName,
   erpActionCardTitleClassName,
-} from "@/components/erp/erpStyles";
+} from "@/components/workspace/styles";
 import { ROUTES } from "@/constants/routes";
 import ModuleIcon from "@/components/ModuleIcon";
 
@@ -36,7 +36,9 @@ const cards = [
 export default function ProjectsHubPage() {
   return (
     <StandardPageLayout
-      title="Projects"
+      title="Projects & Workspaces"
+      subtitle="Cross-functional project tracking, milestones, task assignments, and delivery status."
+      eyebrow="Operations / Projects"
       icon="folder"
       meta={
         <CrudHeaderStats

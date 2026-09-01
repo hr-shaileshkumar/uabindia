@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -12,13 +12,13 @@ import {
   Users,
   UserMinus,
 } from "lucide-react";
-import { ModuleWorkspaceHub } from "@/components/erp/module-workspace-hub";
+import { ModuleWorkspaceHub } from "@/components/workspace/module-workspace-hub";
 import {
   erpPanelBodyClassName,
   erpPanelClassName,
   erpPanelHeaderClassName,
   erpPanelTitleClassName,
-} from "@/components/erp/erpStyles";
+} from "@/components/workspace/styles";
 import { ROUTES } from "@/constants/routes";
 import { hrmsApi } from "@/services/modules";
 import { getApiErrorMessage } from "@/lib/api-errors";

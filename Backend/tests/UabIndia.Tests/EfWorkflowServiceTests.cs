@@ -11,26 +11,26 @@ namespace UabIndia.Tests
 {
     public class EfWorkflowServiceTests
     {
-        private static ApplicationDbContext CreateContext()
+        private static (ApplicationDbContext Db, Guid TenantId) CreateContext()
         {
             var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-                .UseInMemoryDatabase(databaseName: "ef_workflow_test_db")
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
                 .Options;
 
-            // tenant accessor + encryption service are not needed for basic tests; use test doubles
             var tenantAccessor = new TestUtilities.TestTenantAccessor();
             var encryption = new TestEncryptionService();
-            return new ApplicationDbContext(options, tenantAccessor, encryption);
+            return (new ApplicationDbContext(options, tenantAccessor, encryption), tenantAccessor.GetTenantId());
         }
 
         [Fact]
         public async Task StartAndApproveWorkflow_InstanceCreatedAndApproved()
         {
-            var db = CreateContext();
+            var (db, tenantId) = CreateContext();
 
             // Seed a workflow definition
             var wf = new UabIndia.Core.Entities.WorkflowDefinition
             {
+                TenantId = tenantId,
                 ModuleKey = "leave_approval",
                 Name = "Leave Approval",
                 IsActive = true
@@ -44,7 +44,7 @@ namespace UabIndia.Tests
             {
                 DefinitionKey = "leave_approval",
                 BusinessKey = Guid.NewGuid().ToString(),
-                TenantId = Guid.NewGuid()
+                TenantId = tenantId
             };
 
             var inst = await svc.StartInstanceAsync(start, Guid.NewGuid());

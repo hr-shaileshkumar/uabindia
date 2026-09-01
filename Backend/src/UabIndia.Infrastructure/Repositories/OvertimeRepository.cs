@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using UabIndia.Application.Interfaces;
 using UabIndia.Core.Entities;
+using UabIndia.Core.Services;
 using UabIndia.Infrastructure.Data;
 
 namespace UabIndia.Infrastructure.Repositories
@@ -93,20 +94,12 @@ namespace UabIndia.Infrastructure.Repositories
 
         public async Task<OvertimeRequest> CreateOvertimeRequestAsync(OvertimeRequest request)
         {
-            // Calculate total hours
-            var totalMinutes = (request.EndTime - request.StartTime).TotalMinutes;
-            request.TotalHours = (decimal)(totalMinutes / 60);
-            request.NetOvertimeHours = request.TotalHours - (request.BreakMinutes / 60m);
+            OvertimeHoursMath.Apply(request);
 
-            // Set initial status
             if (request.Status == OvertimeRequestStatus.Draft)
             {
-                request.Status = OvertimeRequestStatus.Draft;
-            }
-            else
-            {
-                request.Status = request.IsPreApproved 
-                    ? OvertimeRequestStatus.Approved 
+                request.Status = request.IsPreApproved
+                    ? OvertimeRequestStatus.Approved
                     : OvertimeRequestStatus.PendingApproval;
             }
 
@@ -117,10 +110,7 @@ namespace UabIndia.Infrastructure.Repositories
 
         public async Task<OvertimeRequest> UpdateOvertimeRequestAsync(OvertimeRequest request)
         {
-            // Recalculate hours if times changed
-            var totalMinutes = (request.EndTime - request.StartTime).TotalMinutes;
-            request.TotalHours = (decimal)(totalMinutes / 60);
-            request.NetOvertimeHours = request.TotalHours - (request.BreakMinutes / 60m);
+            OvertimeHoursMath.Apply(request);
 
             _context.OvertimeRequests.Update(request);
             await _context.SaveChangesAsync();

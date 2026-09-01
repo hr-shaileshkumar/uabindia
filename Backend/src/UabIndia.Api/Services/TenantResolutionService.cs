@@ -20,7 +20,10 @@ namespace UabIndia.Api.Services
 
     public sealed class TenantResolutionService
     {
-        private static readonly string[] ReservedHostLabels = { "app", "api", "www" };
+        private static readonly HashSet<string> ReservedHostLabels = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "app", "api", "www", "localhost", "127.0.0.1", "::1", "0.0.0.0"
+        };
         private readonly ApplicationDbContext _db;
         private readonly IMemoryCache _cache;
 
@@ -38,10 +41,13 @@ namespace UabIndia.Api.Services
             var normalizedHost = NormalizeHost(host);
             if (!string.IsNullOrWhiteSpace(normalizedHost))
             {
-                var customDomainMatch = await ResolveByCustomDomainAsync(normalizedHost, cancellationToken);
-                if (customDomainMatch != null)
+                if (!IsNonTenantOrLocalHost(normalizedHost))
                 {
-                    return customDomainMatch;
+                    var customDomainMatch = await ResolveByCustomDomainAsync(normalizedHost, cancellationToken);
+                    if (customDomainMatch != null)
+                    {
+                        return customDomainMatch;
+                    }
                 }
 
                 subdomain ??= ExtractSubdomain(normalizedHost);
@@ -53,6 +59,25 @@ namespace UabIndia.Api.Services
             }
 
             return await ResolveBySubdomainAsync(subdomain.Trim().ToLowerInvariant(), cancellationToken);
+        }
+
+        public static bool IsNonTenantOrLocalHost(string? host)
+        {
+            if (string.IsNullOrWhiteSpace(host)) return true;
+            var normalized = NormalizeHost(host);
+            if (ReservedHostLabels.Contains(normalized))
+            {
+                return true;
+            }
+            if (normalized.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+            if (System.Net.IPAddress.TryParse(normalized, out _))
+            {
+                return true;
+            }
+            return false;
         }
 
         public static string NormalizeHost(string? value)
@@ -112,67 +137,88 @@ namespace UabIndia.Api.Services
 
         private async Task<TenantResolutionResult?> ResolveBySubdomainAsync(string subdomain, CancellationToken cancellationToken)
         {
-            var cacheKey = $"tenant:subdomain:{subdomain}";
-            return await _cache.GetOrCreateAsync(cacheKey, async entry =>
+            if (ReservedHostLabels.Contains(subdomain))
             {
-                entry.SlidingExpiration = TimeSpan.FromMinutes(30);
+                return null;
+            }
 
-                var tenant = await _db.Tenants
-                    .IgnoreQueryFilters()
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(t => t.Subdomain == subdomain && !t.IsDeleted, cancellationToken);
+            var cacheKey = $"tenant:subdomain:{subdomain}";
+            if (_cache.TryGetValue(cacheKey, out TenantResolutionResult? cachedResult))
+            {
+                return cachedResult;
+            }
 
-                return tenant == null
-                    ? null
-                    : new TenantResolutionResult
-                    {
-                        Tenant = tenant,
-                        MatchType = "subdomain"
-                    };
+            var tenant = await _db.Tenants
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(t => t.Subdomain == subdomain && !t.IsDeleted, cancellationToken);
+
+            var result = tenant == null
+                ? null
+                : new TenantResolutionResult
+                {
+                    Tenant = tenant,
+                    MatchType = "subdomain"
+                };
+
+            _cache.Set(cacheKey, result, new MemoryCacheEntryOptions
+            {
+                SlidingExpiration = TimeSpan.FromMinutes(result != null ? 30 : 5)
             });
+
+            return result;
         }
 
         private async Task<TenantResolutionResult?> ResolveByCustomDomainAsync(string normalizedHost, CancellationToken cancellationToken)
         {
-            var cacheKey = $"tenant:host:{normalizedHost}";
-            return await _cache.GetOrCreateAsync(cacheKey, async entry =>
+            if (IsNonTenantOrLocalHost(normalizedHost))
             {
-                entry.SlidingExpiration = TimeSpan.FromMinutes(30);
+                return null;
+            }
 
-                var hostWithoutWww = StripLeadingWww(normalizedHost);
-                var hostWithWww = normalizedHost.StartsWith("www.", StringComparison.OrdinalIgnoreCase)
-                    ? normalizedHost
-                    : $"www.{normalizedHost}";
+            var cacheKey = $"tenant:host:{normalizedHost}";
+            if (_cache.TryGetValue(cacheKey, out TenantResolutionResult? cachedResult))
+            {
+                return cachedResult;
+            }
 
-                var match = await _db.TenantConfigs
-                    .IgnoreQueryFilters()
-                    .AsNoTracking()
-                    .Where(config =>
-                        !config.IsDeleted
-                        && config.CustomDomain != null
-                        && (config.CustomDomain == normalizedHost
-                            || config.CustomDomain == hostWithoutWww
-                            || config.CustomDomain == hostWithWww))
-                    .Join(
-                        _db.Tenants.IgnoreQueryFilters().AsNoTracking().Where(tenant => !tenant.IsDeleted),
-                        config => config.TenantId,
-                        tenant => tenant.Id,
-                        (config, tenant) => new { tenant, config.CustomDomain })
-                    .FirstOrDefaultAsync(cancellationToken);
+            var hostWithoutWww = StripLeadingWww(normalizedHost);
+            var hostWithWww = normalizedHost.StartsWith("www.", StringComparison.OrdinalIgnoreCase)
+                ? normalizedHost
+                : $"www.{normalizedHost}";
 
-                if (match == null)
-                {
-                    return null;
-                }
+            var match = await _db.TenantConfigs
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Where(config =>
+                    !config.IsDeleted
+                    && config.CustomDomain != null
+                    && (config.CustomDomain == normalizedHost
+                        || config.CustomDomain == hostWithoutWww
+                        || config.CustomDomain == hostWithWww))
+                .Join(
+                    _db.Tenants.IgnoreQueryFilters().AsNoTracking().Where(tenant => !tenant.IsDeleted),
+                    config => config.TenantId,
+                    tenant => tenant.Id,
+                    (config, tenant) => new { tenant, config.CustomDomain })
+                .FirstOrDefaultAsync(cancellationToken);
 
-                return new TenantResolutionResult
+            var result = match == null
+                ? null
+                : new TenantResolutionResult
                 {
                     Tenant = match.tenant,
                     MatchType = "custom-domain",
                     RequestedHost = normalizedHost,
                     CustomDomain = NormalizeHost(match.CustomDomain)
                 };
+
+            _cache.Set(cacheKey, result, new MemoryCacheEntryOptions
+            {
+                SlidingExpiration = TimeSpan.FromMinutes(result != null ? 30 : 5)
             });
+
+            return result;
         }
 
         private static string? ExtractSubdomain(string host)

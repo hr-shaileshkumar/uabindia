@@ -57,6 +57,10 @@ export type PricingPlan = {
   name: string;
   audience: string;
   price: string;
+  pricesByCurrency?: {
+    INR: { monthly: string; annual: string; amount: number };
+    USD: { monthly: string; annual: string; amount: number };
+  };
   implementation: string;
   featured?: boolean;
   summary: string;
@@ -797,43 +801,64 @@ export const marketingIndustries: MarketingIndustry[] = [
 
 export const pricingPlans: PricingPlan[] = [
   {
-    name: "Core",
-    audience: "Small businesses and focused HR rollouts",
-    price: "Custom annual pricing",
-    implementation: "Fast-start implementation",
-    summary: "Start with the people and payroll foundation required to replace spreadsheets and disconnected point tools.",
+    name: "Starter SaaS",
+    audience: "Startups, small enterprises & growing teams (up to 10 users)",
+    price: "₹2,499 / month",
+    pricesByCurrency: {
+      INR: { monthly: "₹2,499", annual: "₹23,990 / yr (Save 20%)", amount: 2499 },
+      USD: { monthly: "$29", annual: "$279 / yr (Save 20%)", amount: 29 },
+    },
+    implementation: "Instant self-service onboarding (14-day free trial)",
+    summary: "Complete financial accounting, global/Indian multi-tax compliance, inventory billing, and core HRMS in one integrated workspace.",
     points: [
-      "HRMS, attendance, leave, ESS",
-      "Payroll with approval-ready inputs",
-      "Single-company rollout path",
-      "Implementation guidance and onboarding support",
+      "10 User Seats & 10 GB Secure Cloud Storage",
+      "General Ledger, Multi-Currency Chart of Accounts & Trial Balance",
+      "Indian GST & Global VAT (UAE 5%, UK/EU 20%, US Sales Tax)",
+      "NIC Standard E-Invoicing & Digitally Signed QR",
+      "Sales Quotations, Orders & Multi-Currency Invoicing",
+      "HRMS, Attendance & Employee Self-Service (ESS)",
+      "Standard Email & Helpdesk Support",
     ],
   },
   {
-    name: "Growth",
-    audience: "Mid-sized companies expanding across functions",
-    price: "Custom annual pricing",
-    implementation: "Guided phased rollout",
+    name: "Growth Business",
+    audience: "Mid-sized businesses & scaling multi-branch companies (up to 35 users)",
+    price: "₹6,999 / month",
+    pricesByCurrency: {
+      INR: { monthly: "₹6,999", annual: "₹67,190 / yr (Save 20%)", amount: 6999 },
+      USD: { monthly: "$89", annual: "$850 / yr (Save 20%)", amount: 89 },
+    },
+    implementation: "Guided phased rollout & data migration assistance",
     featured: true,
-    summary: "Extend HR and payroll into finance, procurement, reporting, and multi-branch coordination.",
+    summary: "Extend into automated statutory/global payroll, multi-warehouse procurement, P&L / Balance Sheet BI, and developer webhooks.",
     points: [
-      "Everything in Core",
-      "Finance, procurement, inventory, help desk",
-      "Multi-branch workflows and approval matrix",
-      "Role-based dashboards and reporting",
+      "Everything in Starter + 35 User Seats & 50 GB Storage",
+      "Statutory Indian Payroll (PF/ESI/TDS) & Global Custom Deductions",
+      "Multi-Warehouse Inventory Transfers & Landed Costing",
+      "Profit & Loss (P&L), Balance Sheet & Cash Flow Reports",
+      "Developer Webhooks & HMAC-SHA256 Signed Event Dispatch",
+      "Multi-Level Approval Matrix & Role-Based Security",
+      "Priority 24/7 Phone, WhatsApp & Ticket Support",
     ],
   },
   {
-    name: "Enterprise",
-    audience: "Multi-entity organizations with governance complexity",
-    price: "Tailored commercial model",
-    implementation: "Solution-led deployment",
-    summary: "Bring departments, branches, projects, and leadership reporting into one governed platform with deeper rollout support.",
+    name: "Enterprise Cloud",
+    audience: "Multi-entity corporations, conglomerates & global enterprises",
+    price: "₹19,999 / month",
+    pricesByCurrency: {
+      INR: { monthly: "₹19,999", annual: "₹1,91,990 / yr (Save 20%)", amount: 19999 },
+      USD: { monthly: "$249", annual: "$2,390 / yr (Save 20%)", amount: 249 },
+    },
+    implementation: "Dedicated solution architects & bespoke deployment",
+    summary: "Full enterprise governance, dedicated database isolation, custom workflows, unlimited user capacity, and 99.99% uptime SLA.",
     points: [
-      "Everything in Growth",
-      "Multi-company and tenant-aware operating model",
-      "Advanced workflow, audit, and integration support",
-      "Dedicated solution planning and rollout architecture",
+      "Everything in Growth + Unlimited Seats (999+) & 500 GB Storage",
+      "Multi-Company / Multi-Tenant Consolidated Financials",
+      "Dedicated Database & Custom Subdomain Branding",
+      "Custom Workflow Engine & Dynamic Entity Custom Fields",
+      "Custom ERP Connectors (Shopify, WooCommerce, Salesforce)",
+      "99.99% Enterprise Uptime SLA & Dedicated Account Manager",
+      "On-Premise / Private Cloud Hybrid Deployment Options",
     ],
   },
 ];

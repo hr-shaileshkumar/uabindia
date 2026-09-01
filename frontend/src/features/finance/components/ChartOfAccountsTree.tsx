@@ -10,7 +10,7 @@ import {
   erpPanelHeaderClassName,
   erpPanelTitleClassName,
   erpStatusBadgeTone,
-} from "@/components/erp/erpStyles";
+} from "@/components/workspace/styles";
 import { financeApi } from "@/services/modules";
 import { notifyError } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
@@ -170,7 +170,7 @@ export function ChartOfAccountsTree() {
     <StandardPageLayout
       title="Chart of Accounts"
       subtitle="General ledger hierarchy, account types, and current balances."
-      eyebrow="Finance"
+      eyebrow="Finance / Chart of Accounts"
       icon="book"
       meta={
         !loading ? (

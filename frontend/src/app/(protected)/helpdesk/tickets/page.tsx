@@ -1,4 +1,4 @@
-import { HelpdeskQueuePage } from "@/components/erp/helpdesk-queue-page";
+﻿import { HelpdeskQueuePage } from "@/components/workspace/helpdesk-queue-page";
 
 export default function HelpdeskTicketsPage() {
   return <HelpdeskQueuePage />;

@@ -5,8 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { usePermissions } from "@/context/PermissionContext";
 import { useUiSchema } from "@/context/UiSchemaContext";
-import { getSchemaRouteRule } from "@/lib/erp/route-access";
-import { canonicalizeProtectedPath, getRoleDefaultPath } from "@/lib/erp/route-config";
+import { getSchemaRouteRule } from "@/lib/workspace/route-access";
+import { canonicalizeProtectedPath, getRoleDefaultPath } from "@/lib/workspace/route-config";
 import { GlobalLoading } from "@/components/ui/GlobalLoading";
 
 const resolveSafeNextPath = (value: string | null): string | null => {
@@ -28,7 +28,7 @@ export default function ContextSelectionPage() {
     loading: schemaLoading,
     routeRulesReady,
   } = useUiSchema();
-  const nextPath = resolveSafeNextPath(searchParams.get("next"));
+  const nextPath = resolveSafeNextPath(searchParams?.get("next") ?? null);
 
   const enabledModuleKeys = useMemo(
     () => new Set(enabledModules.map((module) => module.key.toLowerCase())),

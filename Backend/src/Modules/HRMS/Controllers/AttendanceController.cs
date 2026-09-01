@@ -56,6 +56,26 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             return Ok(new { id = record.Id, geoValidated = record.GeoValidated });
         }
 
+        [HttpPost("punch/me")]
+        public async Task<IActionResult> PunchMe([FromBody] AttendancePunchDto? dto = null)
+        {
+            var userIdRaw = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                ?? User.FindFirst("sub")?.Value;
+            if (!Guid.TryParse(userIdRaw, out var userId))
+                return Unauthorized();
+
+            var employee = await _db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.UserId == userId && !e.IsDeleted);
+            if (employee == null)
+                return BadRequest(new { message = "No employee record is linked to this login." });
+
+            dto ??= new AttendancePunchDto();
+            dto.EmployeeId = employee.Id;
+            if (string.IsNullOrWhiteSpace(dto.PunchType)) dto.PunchType = "IN";
+            if (dto.Timestamp == default) dto.Timestamp = DateTime.UtcNow;
+            dto.Source = string.IsNullOrWhiteSpace(dto.Source) ? "ESS" : dto.Source;
+            return await Punch(dto);
+        }
+
         [HttpGet]
         public async Task<IActionResult> List([FromQuery] Guid? employeeId = null, [FromQuery] int page = 1, [FromQuery] int limit = 50)
         {

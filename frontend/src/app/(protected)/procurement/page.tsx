@@ -1,12 +1,12 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Briefcase, ClipboardList, FileText, ShoppingCart, Truck, Users } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudHeaderStats } from "@/components/erp/crud-workspace";
-import { StatusBadge } from "@/components/erp/status-badge";
-import { EmptyState } from "@/components/erp/empty-state";
+import { CrudHeaderStats } from "@/components/workspace/crud-workspace";
+import { StatusBadge } from "@/components/workspace/status-badge";
+import { EmptyState } from "@/components/workspace/empty-state";
 import {
   erpActionCardClassName,
   erpActionCardIconClassName,
@@ -20,7 +20,7 @@ import {
   erpStatCardHelperClassName,
   erpStatCardLabelClassName,
   erpStatCardValueClassName,
-} from "@/components/erp/erpStyles";
+} from "@/components/workspace/styles";
 import { ROUTES } from "@/constants/routes";
 import { procurementApi } from "@/services/modules";
 import { notifyError } from "@/lib/notifications";

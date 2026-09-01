@@ -140,7 +140,7 @@ export const appApi = {
   },
   search: {
     query: (q: string, take = 20) =>
-      apiClient.get<{ results: SearchResult[] }>(`/search?q=${encodeURIComponent(q)}&take=${take}`),
+      apiClient.get<{ results: SearchResult[] }>(`/platform/search?q=${encodeURIComponent(q)}&take=${take}`),
   },
   dashboard: {
     getStats: () => apiClient.get<DashboardStats>("/hr/dashboard"),

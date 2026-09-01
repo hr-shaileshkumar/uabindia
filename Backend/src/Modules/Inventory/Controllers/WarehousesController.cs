@@ -17,11 +17,13 @@ namespace UabIndia.Api.Modules.Inventory.Controllers
     {
         private readonly ApplicationDbContext _db;
         private readonly ITenantAccessor _tenantAccessor;
+        private readonly IDocumentNumberService _numbers;
 
-        public WarehousesController(ApplicationDbContext db, ITenantAccessor tenantAccessor)
+        public WarehousesController(ApplicationDbContext db, ITenantAccessor tenantAccessor, IDocumentNumberService numbers)
         {
             _db = db;
             _tenantAccessor = tenantAccessor;
+            _numbers = numbers;
         }
 
         [HttpGet]
@@ -60,7 +62,9 @@ namespace UabIndia.Api.Modules.Inventory.Controllers
             var warehouse = new Warehouse
             {
                 TenantId = tenantId,
-                WarehouseCode = dto.WarehouseCode.Trim(),
+                WarehouseCode = string.IsNullOrWhiteSpace(dto.WarehouseCode)
+                    ? await _numbers.NextAsync("Warehouse", "WH-", 5)
+                    : dto.WarehouseCode.Trim(),
                 WarehouseName = dto.WarehouseName.Trim(),
                 Address = dto.Address,
                 City = dto.City,

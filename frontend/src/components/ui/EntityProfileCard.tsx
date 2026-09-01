@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { CrudCard } from "@/components/erp/crud-workspace";
+﻿import type { ReactNode } from "react";
+import { CrudCard } from "@/components/workspace/crud-workspace";
 
 type ProfileItem = {
   label: string;

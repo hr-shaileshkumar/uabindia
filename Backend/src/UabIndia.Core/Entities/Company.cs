@@ -8,7 +8,7 @@ namespace UabIndia.Core.Entities
         public string? LegalName { get; set; }
         public string? Code { get; set; }
         public string? RegistrationNumber { get; set; }
-        public string? TaxId { get; set; } // GST/PAN
+        public string? TaxId { get; set; } // Universal Tax ID: GSTIN/VAT/EIN/TRN
         public string? Email { get; set; }
         public string? PhoneNumber { get; set; }
         public string? WebsiteUrl { get; set; }
@@ -21,10 +21,16 @@ namespace UabIndia.Core.Entities
         public string? State { get; set; }
         public string? PostalCode { get; set; }
         public string? Country { get; set; }
+        public string CountryCode { get; set; } = "IND";
+        public string FunctionalCurrencyCode { get; set; } = "INR";
+        public Guid? ParentCompanyId { get; set; } // Multi-Company / Subsidiary Hierarchy
         public string? BankAccountNumber { get; set; }
         public string? BankName { get; set; }
         public string? BankBranch { get; set; }
-        public string? IFSCCode { get; set; }
+        public string? BankRoutingCode { get; set; } // Universal Routing Code: IFSC/Sort Code/ABA
+        public string? BankIban { get; set; }
+        public string? BankSwiftCode { get; set; }
+        public string? IFSCCode { get; set; } // Regional Backwards Compatibility
         public string? FinancialYearStart { get; set; } // Format: MM-DD
         public string? FinancialYearEnd { get; set; }   // Format: MM-DD
         public int? MaxEmployees { get; set; }

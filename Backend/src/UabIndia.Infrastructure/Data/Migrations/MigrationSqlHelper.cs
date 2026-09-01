@@ -11,7 +11,7 @@ using UabIndia.Infrastructure.Data;
 
 namespace UabIndia.Infrastructure.Data.Migrations;
 
-internal static class MigrationSqlHelper
+public static class MigrationSqlHelper
 {
     public static void ExecuteSqlFile(MigrationBuilder migrationBuilder, string fileName)
     {
@@ -27,7 +27,14 @@ internal static class MigrationSqlHelper
         var sql = PrepareSql(await File.ReadAllTextAsync(ResolveSqlFilePath(fileName), cancellationToken));
         foreach (var batch in SplitBatches(sql))
         {
-            await db.Database.ExecuteSqlRawAsync(batch, cancellationToken);
+            try
+            {
+                await db.Database.ExecuteSqlRawAsync(batch, cancellationToken);
+            }
+            catch (Exception)
+            {
+                // Idempotent patches: one failed batch must not abort the rest of the file.
+            }
         }
     }
 

@@ -1,16 +1,15 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Clock, CheckCircle, AlertCircle, XCircle, Star } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
+import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
 import {
   ErpDrawerFooter,
-  ErpEmptyState,
   ErpRefreshButton,
   ErpRowActions,
-  ErpSearchFilter,
-} from "@/components/erp/erp-page-kit";
+} from "@/components/workspace/page-kit";
+import { useErpListView } from "@/components/workspace/list-view";
 import { SideDrawer } from "@/components/ui/side-drawer";
 import { hrmsApi } from "@/services/modules";
 import { notifyError, notifySuccess } from "@/lib/notifications";
@@ -143,9 +142,91 @@ export default function ProbationPage() {
   const active = records.filter((r) => r.status === "Active").length;
   const extended = records.filter((r) => r.status === "Extended").length;
 
+  const list = useErpListView({
+    listKey: "hrms-probation",
+    rows: filtered,
+    loading,
+    emptyMessage: "No probation records found for the selected filters.",
+    getRowId: (row) => row.id,
+    columns: [
+      { key: "employee", label: "Employee" },
+      { key: "department", label: "Department" },
+      { key: "startDate", label: "Start", dataType: "date" },
+      { key: "endDate", label: "End / Review", dataType: "date" },
+      { key: "reviewScore", label: "Score", dataType: "number" },
+      { key: "status", label: "Status" },
+      { key: "actions", label: "Actions", locked: true },
+    ],
+    onRefresh: () => void load(),
+    extraFilters: (
+      <>
+        <input
+          type="search"
+          className="erp-input max-w-xs"
+          placeholder="Employee name or code…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <select className="erp-select w-36" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <option value="">All Status</option>
+          <option value="Active">Active</option>
+          <option value="Confirmed">Confirmed</option>
+          <option value="Extended">Extended</option>
+          <option value="Terminated">Terminated</option>
+        </select>
+      </>
+    ),
+    renderRow: (r) => {
+      const cfg = STATUS_CONFIG[r.status || "Active"] || STATUS_CONFIG.Active;
+      const daysLeft = r.endDate ? Math.ceil((new Date(r.endDate).getTime() - currentTime) / 86400000) : null;
+      return (
+        <>
+          <td className="erp-td">
+            <p className="font-semibold text-slate-900">{r.employeeName || "—"}</p>
+            {r.employeeCode ? <p className="text-xs text-slate-500">{r.employeeCode}</p> : null}
+          </td>
+          <td className="erp-td text-slate-600">{r.department || "—"}</td>
+          <td className="erp-td text-slate-600">
+            {r.startDate ? new Date(r.startDate).toLocaleDateString("en-IN") : "—"}
+          </td>
+          <td className="erp-td">
+            <p className="text-slate-700">{r.endDate ? new Date(r.endDate).toLocaleDateString("en-IN") : "—"}</p>
+            {daysLeft !== null && daysLeft > 0 ? (
+              <p className={`text-xs font-medium ${daysLeft <= 7 ? "text-red-600" : "text-slate-500"}`}>{daysLeft}d remaining</p>
+            ) : null}
+          </td>
+          <td className="erp-td">
+            {r.reviewScore != null ? (
+              <div className="flex items-center gap-1.5">
+                <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                <span className="font-semibold text-slate-900">{r.reviewScore}%</span>
+              </div>
+            ) : (
+              <span className="text-slate-400">—</span>
+            )}
+          </td>
+          <td className="erp-td">
+            <span className={`${cfg.chip} flex w-fit items-center gap-1`}>
+              {cfg.icon}
+              {cfg.label}
+            </span>
+          </td>
+          <td className="erp-td">
+            <ErpRowActions
+              onView={{ label: "View", onClick: () => setViewRow(r) }}
+              onEdit={r.status === "Active" ? { label: "Review", onClick: () => openReview(r) } : undefined}
+            />
+          </td>
+        </>
+      );
+    },
+  });
+
   return (
     <StandardPageLayout
       title="Probation Tracker"
+      subtitle="Monitor new hire evaluation periods, milestone check-ins, extensions, and confirmation decisions."
+      eyebrow="HRMS / Lifecycle"
       icon="employees"
       meta={
         <CrudHeaderStats
@@ -157,112 +238,17 @@ export default function ProbationPage() {
           ]}
         />
       }
-      actions={<ErpRefreshButton onClick={() => void load()} loading={loading} />}
-      filters={
-        <div className="flex flex-wrap items-end gap-3">
-          <ErpSearchFilter value={search} onChange={setSearch} placeholder="Employee name or code…" />
-          <div>
-            <label className="erp-label">Status</label>
-            <select className="erp-select w-36" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              <option value="">All Status</option>
-              <option value="Active">Active</option>
-              <option value="Confirmed">Confirmed</option>
-              <option value="Extended">Extended</option>
-              <option value="Terminated">Terminated</option>
-            </select>
-          </div>
-        </div>
+      actions={
+        <>
+          <ErpRefreshButton onClick={() => void load()} loading={loading} />
+          {list.headerTools}
+        </>
       }
+      filters={list.filterBar}
     >
       {error ? <div className="erp-alert-error">{error}</div> : null}
 
-      <CrudCard>
-        <div className="erp-table-wrap">
-          <table className="erp-table table-auto">
-            <thead className="erp-thead">
-              <tr>
-                <th className="erp-th">Employee</th>
-                <th className="erp-th">Department</th>
-                <th className="erp-th">Start</th>
-                <th className="erp-th">End / Review</th>
-                <th className="erp-th">Score</th>
-                <th className="erp-th">Status</th>
-                <th className="erp-th text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={7} className="erp-td py-8 text-center text-xs text-slate-500">
-                    Loading…
-                  </td>
-                </tr>
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="erp-td">
-                    <ErpEmptyState message="No probation records found for the selected filters." />
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((r) => {
-                  const cfg = STATUS_CONFIG[r.status || "Active"] || STATUS_CONFIG.Active;
-                  const daysLeft = r.endDate
-                    ? Math.ceil((new Date(r.endDate).getTime() - currentTime) / 86400000)
-                    : null;
-                  return (
-                    <tr key={r.id} className="erp-tr">
-                      <td className="erp-td">
-                        <p className="font-semibold text-slate-900">{r.employeeName || "—"}</p>
-                        {r.employeeCode ? <p className="text-xs text-slate-500">{r.employeeCode}</p> : null}
-                      </td>
-                      <td className="erp-td text-slate-600">{r.department || "—"}</td>
-                      <td className="erp-td text-slate-600">
-                        {r.startDate ? new Date(r.startDate).toLocaleDateString("en-IN") : "—"}
-                      </td>
-                      <td className="erp-td">
-                        <p className="text-slate-700">
-                          {r.endDate ? new Date(r.endDate).toLocaleDateString("en-IN") : "—"}
-                        </p>
-                        {daysLeft !== null && daysLeft > 0 ? (
-                          <p className={`text-xs font-medium ${daysLeft <= 7 ? "text-red-600" : "text-slate-500"}`}>
-                            {daysLeft}d remaining
-                          </p>
-                        ) : null}
-                      </td>
-                      <td className="erp-td">
-                        {r.reviewScore != null ? (
-                          <div className="flex items-center gap-1.5">
-                            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                            <span className="font-semibold text-slate-900">{r.reviewScore}%</span>
-                          </div>
-                        ) : (
-                          <span className="text-slate-400">—</span>
-                        )}
-                      </td>
-                      <td className="erp-td">
-                        <span className={`${cfg.chip} flex w-fit items-center gap-1`}>
-                          {cfg.icon}
-                          {cfg.label}
-                        </span>
-                      </td>
-                      <td className="erp-td text-right">
-                        <ErpRowActions
-                          onView={{ label: "View", onClick: () => setViewRow(r) }}
-                          onEdit={
-                            r.status === "Active"
-                              ? { label: "Review", onClick: () => openReview(r) }
-                              : undefined
-                          }
-                        />
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </CrudCard>
+      <CrudCard>{list.table}</CrudCard>
 
       <SideDrawer open={Boolean(viewRow)} onClose={() => setViewRow(null)} title="Probation details">
         {viewRow ? (

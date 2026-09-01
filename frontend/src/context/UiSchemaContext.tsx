@@ -12,7 +12,7 @@ import {
   parsePageSchema,
   parseRouteRules,
 } from "@/lib/ui-schema/parser";
-import { LEGACY_UI_SCHEMA_CACHE_KEY, resolveUiSchemaCacheKey, type UiSchemaCacheUser } from "@/lib/erp/ui-schema-cache";
+import { LEGACY_UI_SCHEMA_CACHE_KEY, resolveUiSchemaCacheKey, type UiSchemaCacheUser } from "@/lib/workspace/ui-schema-cache";
 import type {
   DashboardSchemaDto,
   NavigationSchemaDto,
@@ -161,6 +161,17 @@ export const UiSchemaProvider = ({ children }: { children: React.ReactNode }) =>
 
   useEffect(() => {
     void refresh();
+  }, [refresh]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleTenantChanged = () => {
+      void refresh();
+    };
+
+    window.addEventListener("erp:tenant-changed", handleTenantChanged);
+    return () => window.removeEventListener("erp:tenant-changed", handleTenantChanged);
   }, [refresh]);
 
   const getPageSchema = useCallback(async (pageKey: string) => {

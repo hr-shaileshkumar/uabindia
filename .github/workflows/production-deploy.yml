@@ -1,0 +1,91 @@
+name: Production CI/CD Deployment
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+concurrency:
+  group: production-deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate-and-test:
+    name: 1. Validate & Run Test Suites
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Setup .NET
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Restore & Build Backend
+        run: |
+          dotnet restore UabIndia.sln
+          dotnet build UabIndia.sln --no-restore -c Release
+
+      - name: Run Backend Tests
+        run: dotnet test UabIndia.sln --no-build -c Release --verbosity normal
+
+      # Setup Node
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci --legacy-peer-deps
+
+      - name: Validate Frontend Production Build
+        working-directory: frontend
+        run: npm run build
+
+  deploy-to-production:
+    name: 2. Deploy to Production Server
+    needs: validate-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Remote Server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        if: ${{ env.PROD_SERVER_HOST != '' }}
+        env:
+          PROD_SERVER_HOST: ${{ secrets.PROD_SERVER_HOST }}
+          PROD_SERVER_USER: ${{ secrets.PROD_SERVER_USER }}
+          PROD_SSH_PRIVATE_KEY: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+        with:
+          host: ${{ secrets.PROD_SERVER_HOST }}
+          username: ${{ secrets.PROD_SERVER_USER }}
+          key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.PROD_SSH_PORT || 22 }}
+          script: |
+            set -e
+            echo "🚀 Pulling latest code..."
+            cd /opt/uabindia || cd ~/uabindia
+            git pull origin main
+
+            echo "🐳 Rebuilding and reloading Docker containers..."
+            docker compose down --remove-orphans
+            docker compose up -d --build
+
+            echo "⏳ Verifying service health..."
+            sleep 15
+            docker compose ps
+            echo "✅ Deployment completed successfully!"

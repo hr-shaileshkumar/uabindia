@@ -16,7 +16,7 @@ type UseResolvedPublicAudienceResult = {
 
 export function useResolvedPublicAudience(): UseResolvedPublicAudienceResult {
   const searchParams = useSearchParams();
-  const requestedAudience = searchParams.get("audience");
+  const requestedAudience = searchParams?.get("audience") ?? null;
   const normalizedRequestedAudience = normalizePublicAudience(requestedAudience);
   const [detectedTenantContext, setDetectedTenantContext] = useState(false);
 

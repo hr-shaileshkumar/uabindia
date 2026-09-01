@@ -71,7 +71,7 @@ export default function PublicFooter({
       <div className={cn(publicSectionClassName, "py-10")}>
         <div className={cn("grid gap-8", platformMode ? "lg:grid-cols-[1.4fr_1fr_1fr]" : "lg:grid-cols-2")}>
           <div>
-            <img src="/logo.png" alt={brandName} className="h-6 w-auto object-contain" />
+            <img src={profile.logoUrl || "/logo.png"} alt={brandName} className="h-6 w-auto object-contain" />
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-slate-600">
               {footerContent.summary ||
                 (platformMode

@@ -19,7 +19,7 @@ import { useResolvedPublicAudience } from "@/hooks/useResolvedPublicAudience";
 import { getApiErrorMessage, isApiConnectivityError } from "@/lib/api-errors";
 import { readRememberedLogin, writeRememberedLogin } from "@/lib/auth-remember";
 import { withPublicAudience } from "@/lib/public-audience";
-import { canonicalizeProtectedPath, getDefaultAppPath } from "@/lib/erp/route-config";
+import { canonicalizeProtectedPath, getDefaultAppPath } from "@/lib/workspace/route-config";
 import { cn } from "@/lib/utils";
 import { getDeviceId } from "@/services/apiClient";
 import { authApi } from "@/services/modules";
@@ -42,7 +42,7 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { refreshUser } = useAuth();
-  const nextPath = searchParams.get("next");
+  const nextPath = searchParams?.get("next") ?? null;
   const { audience } = useResolvedPublicAudience();
   const { profile, headerContent, footerContent, allowedPaths, pageVisible, parseContent } =
     usePublicPageData("login", audience);

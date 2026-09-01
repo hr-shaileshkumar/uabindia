@@ -50,7 +50,7 @@ export const useNavigationStore = create<NavigationStore>()(
         }),
     }),
     {
-      name: "erp-navigation-storage",
+      name: "workspace-navigation-storage",
     }
   )
 );

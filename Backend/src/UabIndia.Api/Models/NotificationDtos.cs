@@ -17,6 +17,7 @@ namespace UabIndia.Api.Models
         public bool IsRead { get; set; }
         public DateTime? SentAt { get; set; }
         public DateTime? ReadAt { get; set; }
+        public DateTime CreatedAt { get; set; }
         public string? MetadataJson { get; set; }
     }
 

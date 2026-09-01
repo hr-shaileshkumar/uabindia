@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
+import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
 import { SideDrawer } from "@/components/ui/side-drawer";
-import { ListCreateButton } from "@/components/erp/list-toolbar";
-import { ErpRefreshButton } from "@/components/erp/erp-page-kit";
-import { useErpListView } from "@/components/erp/erp-list-view";
+import { ListCreateButton } from "@/components/workspace/list-toolbar";
+import { ErpRefreshButton } from "@/components/workspace/page-kit";
+import { useErpListView } from "@/components/workspace/list-view";
 import { Switch } from "@/components/ui/switch";
 import {
   erpButtonClassName,
@@ -16,7 +16,7 @@ import {
   erpPanelClassName,
   erpPanelHeaderClassName,
   erpPanelTitleClassName,
-} from "@/components/erp/erpStyles";
+} from "@/components/workspace/styles";
 import { appApi } from "@/services/modules";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
@@ -201,7 +201,9 @@ export default function MfaPage() {
 
   return (
     <StandardPageLayout
-      title="Multi-factor authentication"
+      title="Multi-Factor Authentication"
+      subtitle="Enforce and configure two-factor TOTP, SMS, and authenticator security protocols."
+      eyebrow="Security / Authentication"
       icon="shield"
       meta={
         <CrudHeaderStats

@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using UabIndia.Application.Interfaces;
-using UabIndia.Core.Entities;
 using UabIndia.Infrastructure.Data;
 
 namespace UabIndia.Api.Modules.Finance.Controllers
@@ -17,11 +16,16 @@ namespace UabIndia.Api.Modules.Finance.Controllers
     {
         private readonly ApplicationDbContext _db;
         private readonly ITenantAccessor _tenantAccessor;
+        private readonly IPaymentService _payments;
 
-        public PaymentsController(ApplicationDbContext db, ITenantAccessor tenantAccessor)
+        public PaymentsController(
+            ApplicationDbContext db,
+            ITenantAccessor tenantAccessor,
+            IPaymentService payments)
         {
             _db = db;
             _tenantAccessor = tenantAccessor;
+            _payments = payments;
         }
 
         [HttpGet]
@@ -60,39 +64,30 @@ namespace UabIndia.Api.Modules.Finance.Controllers
         [Authorize(Policy = "AdminOnly")]
         public async Task<IActionResult> Create([FromBody] CreatePaymentDto dto)
         {
-            var tenantId = _tenantAccessor.GetTenantId();
-            if (dto.Amount <= 0)
-                return BadRequest(new { message = "Amount must be positive." });
-
-            var paymentNumber = $"PAY-{DateTime.UtcNow:yyyyMMdd}-{Random.Shared.Next(10000, 99999)}";
-
-            var payment = new Payment
+            try
             {
-                TenantId = tenantId,
-                PaymentNumber = paymentNumber,
-                PaymentDate = dto.PaymentDate.Kind == DateTimeKind.Unspecified
-                    ? DateTime.SpecifyKind(dto.PaymentDate, DateTimeKind.Utc)
-                    : dto.PaymentDate.ToUniversalTime(),
-                PaymentType = string.IsNullOrWhiteSpace(dto.PaymentType) ? "Paid" : dto.PaymentType,
-                PartyType = dto.PartyType,
-                PartyId = dto.PartyId,
-                PartyName = dto.PartyName,
-                Amount = dto.Amount,
-                PaymentMode = string.IsNullOrWhiteSpace(dto.PaymentMode) ? "BankTransfer" : dto.PaymentMode,
-                ReferenceNumber = dto.ReferenceNumber,
-                ReferenceDate = dto.ReferenceDate,
-                BankName = dto.BankName,
-                InvoiceType = dto.InvoiceType,
-                InvoiceId = dto.InvoiceId,
-                InvoiceNumber = dto.InvoiceNumber,
-                Status = string.IsNullOrWhiteSpace(dto.Status) ? "Completed" : dto.Status,
-                Remarks = dto.Remarks,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            _db.Payments.Add(payment);
-            await _db.SaveChangesAsync();
-            return Ok(new { message = "Payment recorded.", payment });
+                var payment = await _payments.RecordAsync(new RecordPaymentCommand(
+                    dto.PaymentDate,
+                    dto.PaymentType,
+                    dto.PartyType,
+                    dto.PartyId,
+                    dto.PartyName,
+                    dto.Amount,
+                    dto.PaymentMode,
+                    dto.ReferenceNumber,
+                    dto.ReferenceDate,
+                    dto.BankName,
+                    dto.InvoiceType,
+                    dto.InvoiceId,
+                    dto.InvoiceNumber,
+                    dto.Status,
+                    dto.Remarks));
+                return Ok(new { message = "Payment recorded and posted to GL.", payment });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpDelete("{id:guid}")]

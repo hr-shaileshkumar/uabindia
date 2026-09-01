@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import ErpHeaderSummary from "@/components/layout/ErpHeaderSummary";
+import HeaderSummary from "@/components/layout/HeaderSummary";
 import { TenantCreateForm } from "@/features/tenants/components/forms/TenantCreateForm";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -17,7 +17,7 @@ export default function CreateTenantPage() {
       eyebrow="Platform Operations"
       icon="globe"
       meta={
-        <ErpHeaderSummary
+        <HeaderSummary
           items={[
             { label: "Step", value: "1 of 2" },
             { label: "Section", value: "Tenant Details" },

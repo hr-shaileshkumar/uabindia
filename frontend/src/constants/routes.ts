@@ -64,7 +64,8 @@ export const ROUTES = {
   REPORTS_HR: "/reports/hr",
   REPORTS_PAYROLL: "/reports/payroll",
   REPORTS_COMPLIANCE: "/reports/compliance",
-  REPORTS_ERP: "/reports/erp",
+  REPORTS_OPERATIONS: "/reports/operations",
+  REPORTS_ERP: "/reports/operations",
   REPORTS_FINANCIAL: "/reports/financial",
   REPORTS_CUSTOM: "/reports/custom",
 

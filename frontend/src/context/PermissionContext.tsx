@@ -68,29 +68,45 @@ export const inferModuleScope = (permissionKey: string) => {
 
 export const PermissionProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
-  const [state, setState] = useState<PermissionState>({
-    permissions: new Set(),
-    mode: "open",
-    loading: true,
-    fetchFailed: false,
-    capabilities: defaultCapabilities,
+  const [state, setState] = useState<PermissionState>(() => {
+    if (typeof window === "undefined") {
+      return {
+        permissions: new Set(),
+        mode: "open",
+        loading: true,
+        fetchFailed: false,
+        capabilities: defaultCapabilities,
+      };
+    }
+
+    try {
+      const raw = window.sessionStorage.getItem("erp.auth.permissions");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return {
+          permissions: new Set(Array.isArray(parsed.permissions) ? parsed.permissions.map((p: string) => normalize(p)) : []),
+          mode: parsed.mode || "open",
+          loading: false,
+          fetchFailed: false,
+          capabilities: parsed.capabilities || defaultCapabilities,
+        };
+      }
+    } catch {
+      // fallback
+    }
+
+    return {
+      permissions: new Set(),
+      mode: "open",
+      loading: true,
+      fetchFailed: false,
+      capabilities: defaultCapabilities,
+    };
   });
+
   const lastRefreshAt = useRef<number>(0);
   const userRoleSet = getNormalizedRoleSet([...(user?.roles || []), user?.role]);
   const userIsSuperAdmin = [...userRoleSet].some((role) => isSuperAdminRole(role));
-
-  useLayoutEffect(() => {
-    if (!user) {
-      setState({ permissions: new Set(), mode: "open", loading: false, fetchFailed: false, capabilities: defaultCapabilities });
-      return;
-    }
-
-    setState((prev) => ({
-      ...prev,
-      loading: true,
-      fetchFailed: false,
-    }));
-  }, [user]);
 
   const hasPermission = (keys: string[]) => {
     if (state.capabilities.isSuperAdmin || userIsSuperAdmin) return true;
@@ -131,10 +147,12 @@ export const PermissionProvider = ({ children }: { children: React.ReactNode }) 
   const refresh = useCallback(async () => {
     if (!user) {
       setState({ permissions: new Set(), mode: "open", loading: false, fetchFailed: false, capabilities: defaultCapabilities });
+      if (typeof window !== "undefined") {
+        window.sessionStorage.removeItem("erp.auth.permissions");
+      }
       return;
     }
 
-    setState((prev) => ({ ...prev, loading: true }));
     try {
       const res = await apiClient.get("/auth/permissions");
       const permissions = Array.isArray(res.data?.permissions) ? res.data.permissions : [];
@@ -145,15 +163,33 @@ export const PermissionProvider = ({ children }: { children: React.ReactNode }) 
       } as BackendCapabilities;
       lastRefreshAt.current = Date.now();
       const mode = capabilities.isSuperAdmin ? "open" : rawMode;
+      const permSet = new Set<string>(permissions.map((p: string) => normalize(p)));
+
       setState({
-        permissions: new Set(permissions.map((p: string) => normalize(p))),
+        permissions: permSet,
         mode,
         loading: false,
         fetchFailed: false,
         capabilities,
       });
+
+      if (typeof window !== "undefined") {
+        try {
+          window.sessionStorage.setItem("erp.auth.permissions", JSON.stringify({
+            permissions: Array.from(permSet),
+            mode,
+            capabilities,
+          }));
+        } catch {
+          // ignore storage quota errors
+        }
+      }
     } catch {
-      setState({ permissions: new Set(), mode: "enforced", loading: false, fetchFailed: true, capabilities: defaultCapabilities });
+      setState((prev) => ({
+        ...prev,
+        loading: false,
+        fetchFailed: prev.permissions.size === 0,
+      }));
     }
   }, [user]);
 

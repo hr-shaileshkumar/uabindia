@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
-import React, { useMemo, useState } from "react";
-import { Mail, Eye, CheckCircle2, Clock, UserCheck } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Mail, CheckCircle2, Clock, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PlatformGlobalPageShell, KpiMetricItem } from "@/components/platform/PlatformGlobalPageShell";
+import { ErpRowActions } from "@/components/workspace/page-kit";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import {
@@ -28,16 +29,18 @@ export default function ContactSubmissionsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedLead, setSelectedLead] = useState<LeadRow | null>(null);
 
-  const filteredLeads = leads.filter((l) => {
-    const q = search.toLowerCase();
-    const matchesSearch =
-      !q ||
-      l.name.toLowerCase().includes(q) ||
-      l.email.toLowerCase().includes(q) ||
-      (l.companyName && l.companyName.toLowerCase().includes(q));
-    const matchesStatus = statusFilter === "all" || l.status.toLowerCase() === statusFilter.toLowerCase();
-    return matchesSearch && matchesStatus;
-  });
+  const filteredLeads = useMemo(() => {
+    return leads.filter((l) => {
+      const q = search.toLowerCase();
+      const matchesSearch =
+        !q ||
+        l.name.toLowerCase().includes(q) ||
+        l.email.toLowerCase().includes(q) ||
+        (l.companyName && l.companyName.toLowerCase().includes(q));
+      const matchesStatus = statusFilter === "all" || l.status.toLowerCase() === statusFilter.toLowerCase();
+      return matchesSearch && matchesStatus;
+    });
+  }, [leads, search, statusFilter]);
 
   const handleMarkResolved = async (lead: LeadRow, isResolved: boolean) => {
     try {
@@ -84,6 +87,48 @@ export default function ContactSubmissionsPage() {
       }}
       onRefresh={() => void refetch()}
       isLoading={isLoading}
+      listKey="platform-contact-submissions"
+      listRows={filteredLeads}
+      getRowId={(row) => row.id}
+      emptyMessage={
+        isError
+          ? getApiErrorMessage(error, "Failed to load contact submissions.")
+          : "No contact submissions found."
+      }
+      listColumns={[
+        { key: "name", label: "Contact Name & Company", dataType: "string" },
+        { key: "email", label: "Email & Phone", dataType: "string" },
+        { key: "message", label: "Inquiry Message Excerpt", dataType: "string" },
+        { key: "createdAt", label: "Received At", dataType: "date" },
+        { key: "status", label: "Status", dataType: "string" },
+        { key: "actions", label: "Actions", locked: true },
+      ]}
+      renderListRow={(l) => (
+        <>
+          <td className="erp-td">
+            <div>
+              <span className="font-semibold text-xs">{l.name}</span>
+              <div className="text-[11px] text-muted-foreground">{l.companyName || "Independent Inquiry"}</div>
+            </div>
+          </td>
+          <td className="erp-td">
+            <div className="font-mono text-xs text-slate-900 dark:text-slate-100">{l.email}</div>
+            <div className="font-mono text-[11px] text-muted-foreground">{l.phone || "—"}</div>
+          </td>
+          <td className="erp-td text-xs text-muted-foreground max-w-xs truncate">{l.message}</td>
+          <td className="erp-td text-xs text-muted-foreground">{l.createdAt}</td>
+          <td className="erp-td">
+            <span className={l.status === "New" ? "erp-chip erp-chip-warning" : "erp-chip erp-chip-success"}>
+              {l.status}
+            </span>
+          </td>
+          <td className="erp-td">
+            <ErpRowActions
+              onView={{ label: "Inspect", onClick: () => setSelectedLead(l) }}
+            />
+          </td>
+        </>
+      )}
       isInspectorOpen={!!selectedLead}
       onInspectorClose={() => setSelectedLead(null)}
       inspectorTitle={selectedLead ? `Inbound Inquiry: ${selectedLead.name}` : "Lead Details"}
@@ -136,68 +181,6 @@ export default function ContactSubmissionsPage() {
           </div>
         )
       }
-    >
-      {isError && (
-        <p className="px-4 py-3 text-xs text-rose-600 border-b border-[var(--border-subtle)]">
-          {getApiErrorMessage(error, "Failed to load contact submissions.")}
-        </p>
-      )}
-      <div className="erp-table-wrap rounded-none border-0 shadow-none">
-        <table className="erp-table">
-          <thead className="erp-thead">
-            <tr>
-              <th className="erp-th">Contact Name & Company</th>
-              <th className="erp-th">Email & Phone</th>
-              <th className="erp-th">Inquiry Message Excerpt</th>
-              <th className="erp-th">Received At</th>
-              <th className="erp-th">Status</th>
-              <th className="erp-th text-right">Inspect</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr>
-                <td colSpan={6} className="erp-td text-center text-xs text-muted-foreground py-8">
-                  Loading submissions…
-                </td>
-              </tr>
-            ) : filteredLeads.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="erp-td text-center text-xs text-muted-foreground py-8">
-                  No contact submissions found.
-                </td>
-              </tr>
-            ) : (
-              filteredLeads.map((l) => (
-                <tr key={l.id} className="erp-tr hover:bg-[var(--bg-muted)]/60 transition-colors">
-                  <td className="erp-td">
-                    <div>
-                      <span className="font-semibold text-xs">{l.name}</span>
-                      <div className="text-[11px] text-muted-foreground">{l.companyName || "Independent Inquiry"}</div>
-                    </div>
-                  </td>
-                  <td className="erp-td">
-                    <div className="font-mono text-xs text-slate-900 dark:text-slate-100">{l.email}</div>
-                    <div className="font-mono text-[11px] text-muted-foreground">{l.phone || "—"}</div>
-                  </td>
-                  <td className="erp-td text-xs text-muted-foreground max-w-xs truncate">{l.message}</td>
-                  <td className="erp-td text-xs text-muted-foreground">{l.createdAt}</td>
-                  <td className="erp-td">
-                    <span className={l.status === "New" ? "erp-chip erp-chip-warning" : "erp-chip erp-chip-success"}>
-                      {l.status}
-                    </span>
-                  </td>
-                  <td className="erp-td text-right">
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-700 hover:text-slate-900" onClick={() => setSelectedLead(l)}>
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </PlatformGlobalPageShell>
+    />
   );
 }

@@ -1,4 +1,4 @@
-import CustomersManager from "@/features/erp/components/CustomersManager";
+import CustomersManager from "@/features/crm/components/CustomersManager";
 
 export default function CRMCustomersPage() {
   return <CustomersManager />;

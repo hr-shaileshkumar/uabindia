@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, FileText, Package, Percent, ShoppingBag, ShoppingCart, TrendingUp, Users } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import { CrudHeaderStats } from "@/components/workspace/crud-workspace";
 import {
   erpActionCardClassName,
   erpActionCardIconClassName,
@@ -18,11 +19,13 @@ import {
   erpStatCardLabelClassName,
   erpStatCardValueClassName,
   erpStatusBadgeTone,
-} from "@/components/erp/erpStyles";
+} from "@/components/workspace/styles";
 import { ROUTES } from "@/constants/routes";
 import { salesApi } from "@/services/modules";
 import { notifyError } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
+import { formatCurrency } from "@/lib/formatters";
+import { useLocalization } from "@/context/LocalizationContext";
 
 type SalesOrder = {
   id: string;
@@ -34,9 +37,6 @@ type SalesOrder = {
   status?: string;
 };
 
-const formatCurrency = (value?: number) =>
-  value != null ? `₹${value.toLocaleString("en-IN")}` : "₹0";
-
 const MODULE_LINKS = [
   { href: ROUTES.SALES_ORDERS, label: "Sales Orders", icon: ShoppingCart, desc: "Process and track customer orders" },
   { href: ROUTES.CUSTOMERS, label: "Customers", icon: Users, desc: "Customer master data" },
@@ -47,6 +47,7 @@ const MODULE_LINKS = [
 ];
 
 export default function SalesDashboardPage() {
+  const { activeCountry } = useLocalization();
   const [orders, setOrders] = useState<SalesOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -84,24 +85,21 @@ export default function SalesDashboardPage() {
     <StandardPageLayout
       title="Sales"
       subtitle="Sales order pipeline and module navigation."
-      eyebrow="ERP"
+      eyebrow="ERP / Sales"
       icon="shopping-bag"
       meta={
-        !loading ? (
-          <>
-            <span className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
-              {orders.length} orders
-            </span>
-            <span className={erpStatusBadgeTone.success}>{approvedOrders} approved</span>
-            {pendingOrders > 0 ? (
-              <span className={erpStatusBadgeTone.warning}>{pendingOrders} pending</span>
-            ) : null}
-          </>
-        ) : null
+        <CrudHeaderStats
+          items={[
+            { label: "Orders", value: loading ? "…" : orders.length, helper: "total" },
+            { label: "Pending", value: loading ? "…" : pendingOrders, tone: pendingOrders > 0 ? "warning" : "positive" },
+            { label: "Approved", value: loading ? "…" : approvedOrders, tone: "positive" },
+            { label: "Avg Value", value: loading ? "…" : (orders.length ? formatCurrency(totalValue / orders.length, activeCountry.currency) : formatCurrency(0, activeCountry.currency)), tone: "info" },
+          ]}
+        />
       }
     >
       {error ? (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
+        <div className="erp-alert-error">{error}</div>
       ) : null}
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -111,7 +109,7 @@ export default function SalesDashboardPage() {
           { label: "Approved", value: approvedOrders.toString(), icon: ShoppingCart, desc: "Ready to fulfill", href: ROUTES.SALES_ORDERS },
           {
             label: "Avg value",
-            value: orders.length ? formatCurrency(totalValue / orders.length) : "₹0",
+            value: orders.length ? formatCurrency(totalValue / orders.length, activeCountry.currency) : formatCurrency(0, activeCountry.currency),
             icon: FileText,
             desc: "Per order",
             href: ROUTES.SALES_ORDERS,
@@ -181,7 +179,7 @@ export default function SalesDashboardPage() {
                       <p className="truncate text-xs text-slate-500">{order.customerName || "Walk-in"}</p>
                     </div>
                     <div className="shrink-0 text-right">
-                      <p className="font-semibold text-slate-900">{formatCurrency(order.totalAmount)}</p>
+                      <p className="font-semibold text-slate-900">{formatCurrency(order.totalAmount, activeCountry.currency)}</p>
                       <span className={erpStatusBadgeTone.neutral}>{order.status || "Draft"}</span>
                     </div>
                   </div>

@@ -52,6 +52,7 @@ namespace UabIndia.Api.Modules.Platform.Controllers
             _encryption = encryption;
         }
 
+        [AllowAnonymous]
         [HttpPost("login")]
         [EnableRateLimiting("auth-login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest req)
@@ -98,27 +99,11 @@ namespace UabIndia.Api.Modules.Platform.Controllers
                 return BadRequest(Error("DeviceId is required.", "validation_error"));
             }
 
+            var rawEmail = req.Email!;
             var requestedTenantId = _tenantAccessor.GetTenantId();
 
-            var rawEmail = req.Email!.Trim();
-            var userQuery = _db.Users
-                .IgnoreQueryFilters()
-                .Where(u => u.Email == rawEmail && u.IsActive && !u.IsDeleted);
-
-            var requiresTenantWorkspace = false;
-            if (requestedTenantId != Guid.Empty)
-            {
-                userQuery = userQuery.Where(u => u.TenantId == requestedTenantId);
-            }
-            else
-            {
-                userQuery = userQuery.Where(u => u.IsSystemAdmin);
-                requiresTenantWorkspace = await _db.Users
-                    .IgnoreQueryFilters()
-                    .AnyAsync(u => u.Email == rawEmail && u.IsActive && !u.IsDeleted && !u.IsSystemAdmin);
-            }
-
-            var user = await userQuery.FirstOrDefaultAsync();
+            var requiresTenantWorkspace = await AuthUserLookup.RequiresTenantWorkspaceAsync(_db, rawEmail, requestedTenantId, _encryption);
+            var user = await AuthUserLookup.FindActiveUserForLoginAsync(_db, rawEmail, requestedTenantId, _encryption);
             if (user == null)
             {
                 if (requiresTenantWorkspace)
@@ -130,6 +115,16 @@ namespace UabIndia.Api.Modules.Platform.Controllers
             }
 
             var utcNow = DateTime.UtcNow;
+            var securityPolicy = await _db.SecurityPolicies
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(p => p.TenantId == user.TenantId && !p.IsDeleted);
+            var maxAttempts = securityPolicy is { MaxFailedAttempts: > 0 }
+                ? securityPolicy.MaxFailedAttempts
+                : AccountLockoutPolicy.DefaultMaxFailedAttempts;
+            var lockoutDuration = securityPolicy is { LockoutMinutes: > 0 }
+                ? TimeSpan.FromMinutes(securityPolicy.LockoutMinutes)
+                : AccountLockoutPolicy.DefaultLockoutDuration;
+
             if (AccountLockoutPolicy.IsLockedOut(user, utcNow))
             {
                 _logger.LogWarning("Login blocked for locked-out user {UserId}", user.Id);
@@ -143,8 +138,8 @@ namespace UabIndia.Api.Modules.Platform.Controllers
             {
                 AccountLockoutPolicy.RegisterFailedAttempt(
                     user,
-                    AccountLockoutPolicy.DefaultMaxFailedAttempts,
-                    AccountLockoutPolicy.DefaultLockoutDuration,
+                    maxAttempts,
+                    lockoutDuration,
                     utcNow);
                 user.UpdatedAt = utcNow;
                 await _db.SaveChangesAsync();
@@ -161,6 +156,7 @@ namespace UabIndia.Api.Modules.Platform.Controllers
             var userId = user.Id;
             // Always use the user's own tenant, not the request-context tenant
             var tenantId = user.TenantId;
+            _tenantAccessor.SetTenantId(tenantId);
             var roles = await _db.UserRoles
                 .IgnoreQueryFilters()
                 .Join(_db.Roles.IgnoreQueryFilters(), ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, ur.TenantId, r.Name })
@@ -219,6 +215,7 @@ namespace UabIndia.Api.Modules.Platform.Controllers
             return Ok(new { token });
         }
 
+        [AllowAnonymous]
         [HttpPost("refresh")]
         [EnableRateLimiting("auth-login")]
         public async Task<IActionResult> Refresh([FromBody] RefreshRequest req)
@@ -248,9 +245,19 @@ namespace UabIndia.Api.Modules.Platform.Controllers
 
             if (existing.IsRevoked)
             {
-                // possible replay: revoke all tokens for user and require re-login
+                // RFC 6819 Token Reuse Detection: immediately revoke all descendant tokens and all active sessions for this user
+                _logger.LogWarning("SecurityAlert: Refresh token reuse detected for User {UserId}, Tenant {TenantId}. Revoking entire token family.", userId, tenantId);
+                await _refreshRepo.RevokeFamilyAsync(tenantId, userId, existing.Id);
                 await _refreshRepo.RevokeAllForUserAsync(tenantId, userId);
-                return Unauthorized(Error("Refresh token has been revoked.", "invalid_refresh_token"));
+                return Unauthorized(Error("Refresh token reuse detected. All sessions invalidated for security.", "token_reuse_detected"));
+            }
+
+            if (existing.ExpiresAt <= DateTime.UtcNow)
+            {
+                existing.IsRevoked = true;
+                existing.RevokedAt = DateTime.UtcNow;
+                await _refreshRepo.UpdateRefreshTokenAsync(existing);
+                return Unauthorized(Error("Refresh token has expired.", "expired_refresh_token"));
             }
 
             // enforce device binding
@@ -263,31 +270,20 @@ namespace UabIndia.Api.Modules.Platform.Controllers
                 return Unauthorized(Error("Refresh token device mismatch.", "invalid_refresh_token"));
             }
 
-            // rotate: mark existing revoked and create new token linked to parent
+            // rotate: mark existing revoked and create new child token linked to parent atomically
             existing.IsRevoked = true;
             existing.RevokedAt = DateTime.UtcNow;
             var newRefresh = _refresh.GenerateRefreshToken();
             var newHash = _refresh.HashToken(newRefresh);
             var newExpires = DateTime.UtcNow.AddDays(30);
 
-            // save new token
             var deviceIdToUse = string.IsNullOrWhiteSpace(req.DeviceId)
                 ? (existing.DeviceId ?? "unknown")
                 : req.DeviceId;
 
-            await _refreshRepo.SaveRefreshTokenAsync(tenantId, userId, newHash, deviceIdToUse, newExpires);
-
-            // link existing -> new (update existing.ReplacedByTokenId after new saved)
-            // find the new record by hash to get its Id
-            var newRecord = await _refreshRepo.GetByHashAsync(tenantId, userId, newHash);
-            if (newRecord != null)
-            {
-                existing.ReplacedByTokenId = newRecord.Id;
-                existing.ParentTokenId = existing.ParentTokenId ?? null;
-                await _refreshRepo.UpdateRefreshTokenAsync(existing);
-                newRecord.ParentTokenId = existing.Id;
-                await _refreshRepo.UpdateRefreshTokenAsync(newRecord);
-            }
+            var newRecord = await _refreshRepo.SaveRefreshTokenWithFamilyAsync(tenantId, userId, newHash, deviceIdToUse, newExpires, existing.Id);
+            existing.ReplacedByTokenId = newRecord.Id;
+            await _refreshRepo.UpdateRefreshTokenAsync(existing);
 
             var roles = await _db.UserRoles
                 .IgnoreQueryFilters()
@@ -369,12 +365,19 @@ namespace UabIndia.Api.Modules.Platform.Controllers
                 .Select(x => x.Name)
                 .ToArrayAsync();
 
+            var employeeId = await _db.Employees.AsNoTracking()
+                .IgnoreQueryFilters()
+                .Where(e => e.UserId == user.Id && e.TenantId == user.TenantId && !e.IsDeleted)
+                .Select(e => (Guid?)e.Id)
+                .FirstOrDefaultAsync();
+
             return Ok(new
             {
                 id = user.Id,
                 email = user.Email,
                 fullName = user.FullName,
                 tenantId = user.TenantId,
+                employeeId,
                 roles
             });
         }
@@ -492,6 +495,7 @@ namespace UabIndia.Api.Modules.Platform.Controllers
             return Ok();
         }
 
+        [AllowAnonymous]
         [HttpPost("forgot-password")]
         [EnableRateLimiting("auth-forgot")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest req)
@@ -500,17 +504,13 @@ namespace UabIndia.Api.Modules.Platform.Controllers
 
             // Always return success to prevent email enumeration
             var requestedTenantId = _tenantAccessor.GetTenantId();
-            var rawEmailFp = req.Email!.Trim();
-            var userQuery = _db.Users
-                .IgnoreQueryFilters()
-                .Where(u => u.Email == rawEmailFp && u.IsActive && !u.IsDeleted);
+            var rawEmailFp = req.Email!;
+            var user = await AuthUserLookup.FindUserByEmailAsync(_db, rawEmailFp, _encryption);
 
-            if (requestedTenantId != Guid.Empty)
+            if (user != null && requestedTenantId != Guid.Empty && user.TenantId != requestedTenantId && !user.IsSystemAdmin)
             {
-                userQuery = userQuery.Where(u => u.TenantId == requestedTenantId);
+                user = null;
             }
-
-            var user = await userQuery.FirstOrDefaultAsync();
 
             if (user != null)
             {
@@ -539,6 +539,7 @@ namespace UabIndia.Api.Modules.Platform.Controllers
             return Ok(new { message = "If an account with this email exists, you will receive password reset instructions." });
         }
 
+        [AllowAnonymous]
         [HttpPost("reset-password")]
         [EnableRateLimiting("auth-reset")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest req)
@@ -558,6 +559,15 @@ namespace UabIndia.Api.Modules.Platform.Controllers
             if (user == null)
             {
                 return BadRequest(Error("Invalid or expired reset token.", "invalid_reset_token"));
+            }
+
+            var resetPolicy = await _db.SecurityPolicies
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(p => p.TenantId == user.TenantId && !p.IsDeleted);
+            var complexityError = PasswordComplexity.Validate(req.NewPassword!, resetPolicy);
+            if (complexityError != null)
+            {
+                return BadRequest(Error(complexityError, "password_policy"));
             }
 
             // Hash the new password

@@ -188,14 +188,24 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
       setState(readStoredContext());
     };
 
+    const handleTenantChanged = () => {
+      setState(readStoredContext());
+    };
+
     window.addEventListener("storage", syncFromStorage);
-    return () => window.removeEventListener("storage", syncFromStorage);
+    window.addEventListener("erp:tenant-changed", handleTenantChanged);
+    return () => {
+      window.removeEventListener("storage", syncFromStorage);
+      window.removeEventListener("erp:tenant-changed", handleTenantChanged);
+    };
   }, []);
 
   const { companyId, projectId } = state;
 
   const stateRef = useRef(state);
-  stateRef.current = state;
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   useEffect(() => {
     const validateContext = async () => {

@@ -25,19 +25,22 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
         private readonly ITenantAccessor _tenantAccessor;
         private readonly ICacheService _cache;
         private readonly IWebsiteContentService _websiteContentService;
+        private readonly IRecruitmentLifecycleService _lifecycle;
 
         public RecruitmentController(
             IRecruitmentRepository recruitmentRepo,
             ApplicationDbContext db,
             ITenantAccessor tenantAccessor,
             ICacheService cache,
-            IWebsiteContentService websiteContentService)
+            IWebsiteContentService websiteContentService,
+            IRecruitmentLifecycleService lifecycle)
         {
             _recruitmentRepo = recruitmentRepo;
             _db = db;
             _tenantAccessor = tenantAccessor;
             _cache = cache;
             _websiteContentService = websiteContentService;
+            _lifecycle = lifecycle;
         }
 
         #region Job Posting Endpoints
@@ -92,7 +95,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                     jobPosting = MapJobPostingToDto(jobPosting)
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, new { message = "Error creating job posting" });
             }
@@ -134,7 +137,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
 
                 return Ok(response);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, new { message = "Error fetching job postings" });
             }
@@ -192,7 +195,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
 
                 return Ok(response);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, new { message = "Error fetching job postings" });
             }
@@ -214,7 +217,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
 
                 return Ok(new { jobPosting = MapJobPostingToDto(jobPosting) });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, new { message = "Error fetching job posting" });
             }
@@ -269,7 +272,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
 
                 return Ok(new { message = "Job posting updated successfully", jobPosting = MapJobPostingToDto(jobPosting) });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, new { message = "Error updating job posting" });
             }
@@ -286,19 +289,15 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
 
             try
             {
-                var jobPosting = await _recruitmentRepo.GetJobPostingByIdAsync(id, tenantId);
-                if (jobPosting == null)
-                    return NotFound(new { message = "Job posting not found" });
-
-                jobPosting.Status = JobStatus.Open;
-                jobPosting.IsActive = true;
-
-                await _recruitmentRepo.UpdateJobPostingAsync(jobPosting);
+                var jobPosting = await _lifecycle.PublishAsync(id);
                 await InvalidateJobPostingCache(tenantId);
-
                 return Ok(new { message = "Job posting published successfully", jobPosting = MapJobPostingToDto(jobPosting) });
             }
-            catch (Exception ex)
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Job posting not found" });
+            }
+            catch (Exception)
             {
                 return StatusCode(500, new { message = "Error publishing job posting" });
             }
@@ -315,19 +314,15 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
 
             try
             {
-                var jobPosting = await _recruitmentRepo.GetJobPostingByIdAsync(id, tenantId);
-                if (jobPosting == null)
-                    return NotFound(new { message = "Job posting not found" });
-
-                jobPosting.Status = JobStatus.Closed;
-                jobPosting.IsActive = false;
-
-                await _recruitmentRepo.UpdateJobPostingAsync(jobPosting);
+                var jobPosting = await _lifecycle.CloseAsync(id);
                 await InvalidateJobPostingCache(tenantId);
-
                 return Ok(new { message = "Job posting closed successfully", jobPosting = MapJobPostingToDto(jobPosting) });
             }
-            catch (Exception ex)
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Job posting not found" });
+            }
+            catch (Exception)
             {
                 return StatusCode(500, new { message = "Error closing job posting" });
             }
@@ -349,7 +344,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
 
                 return Ok(new { message = "Job posting deleted successfully" });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, new { message = "Error deleting job posting" });
             }
@@ -369,66 +364,31 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var tenantId = _tenantAccessor.GetTenantId();
-
             try
             {
-                // Check if job posting exists and is active
-                var jobPosting = await _recruitmentRepo.GetJobPostingByIdAsync(dto.JobPostingId, tenantId);
-                if (jobPosting == null || !jobPosting.IsActive)
-                    return BadRequest(new { message = "Job posting is not available" });
-
-                // Check if candidate already applied
-                var existingCandidate = await _recruitmentRepo.GetCandidateByEmailAsync(dto.Email, tenantId);
-                if (existingCandidate != null)
-                {
-                    var existingApp = await _recruitmentRepo.GetApplicationByCandidateAndJobAsync(existingCandidate.Id, dto.JobPostingId, tenantId);
-                    if (existingApp != null)
-                        return BadRequest(new { message = "You have already applied for this job" });
-                }
-
-                var candidate = new Candidate
-                {
-                    TenantId = tenantId,
-                    FirstName = dto.FirstName,
-                    LastName = dto.LastName ?? string.Empty,
-                    Email = dto.Email ?? string.Empty,
-                    PhoneNumber = dto.PhoneNumber ?? string.Empty,
-                    CurrentCompany = dto.CurrentCompany ?? string.Empty,
-                    CurrentDesignation = dto.CurrentDesignation ?? string.Empty,
-                    YearsOfExperience = dto.YearsOfExperience,
-                    JobPostingId = dto.JobPostingId,
-                    CoverLetter = dto.CoverLetter ?? string.Empty,
-                    SourceOfRecruit = dto.SourceOfRecruit ?? string.Empty,
-                    Status = CandidateStatus.Applied,
-                    OverallRating = RatingLevel.Average
-                };
-
-                await _recruitmentRepo.CreateCandidateAsync(candidate);
-
-                // Create application record
-                var application = new JobApplication
-                {
-                    TenantId = tenantId,
-                    CandidateId = candidate.Id,
-                    JobPostingId = dto.JobPostingId,
-                    Status = ApplicationStatus.Applied,
-                    ScreeningRound = 1
-                };
-
-                await _recruitmentRepo.CreateApplicationAsync(application);
-
-                // Update job posting application count
-                jobPosting.ApplicationCount++;
-                await _recruitmentRepo.UpdateJobPostingAsync(jobPosting);
+                var result = await _lifecycle.ApplyAsync(new ApplyForJobCommand(
+                    dto.JobPostingId,
+                    dto.FirstName,
+                    dto.LastName,
+                    dto.Email,
+                    dto.PhoneNumber,
+                    dto.CurrentCompany,
+                    dto.CurrentDesignation,
+                    dto.YearsOfExperience,
+                    dto.CoverLetter,
+                    dto.SourceOfRecruit));
 
                 return Ok(new
                 {
                     message = "Application submitted successfully",
-                    candidate = MapCandidateToDto(candidate, jobPosting)
+                    candidate = MapCandidateToDto(result.Candidate, result.JobPosting)
                 });
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception)
             {
                 return StatusCode(500, new { message = "Error submitting application" });
             }
@@ -464,7 +424,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                     limit
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, new { message = "Error fetching candidates" });
             }
@@ -487,7 +447,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
 
                 return Ok(new { candidate = MapCandidateToDto(candidate, candidate.JobPosting) });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, new { message = "Error fetching candidate" });
             }
@@ -542,7 +502,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
 
                 return Ok(new { message = "Candidate updated successfully", candidate = MapCandidateToDto(candidate, candidate.JobPosting) });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, new { message = "Error updating candidate" });
             }
@@ -562,35 +522,18 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var tenantId = _tenantAccessor.GetTenantId();
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (dto.ScheduledDate <= DateTime.UtcNow)
-                return BadRequest(new { message = "Scheduled date must be in the future" });
+            Guid.TryParse(userId, out var userGuid);
 
             try
             {
-                var candidate = await _recruitmentRepo.GetCandidateByIdAsync(candidateId, tenantId);
-                if (candidate == null)
-                    return NotFound(new { message = "Candidate not found" });
-
-                var screening = new CandidateScreening
-                {
-                    TenantId = tenantId,
-                    CandidateId = candidateId,
-                    ScreeningType = dto.ScreeningType,
-                    ScheduledDate = dto.ScheduledDate,
-                    Status = ScreeningStatus.Scheduled,
-                    Interviewer = dto.Interviewer,
-                    InterviewedBy = Guid.TryParse(userId, out var userGuid) ? userGuid : (Guid?)null
-                };
-
-                await _recruitmentRepo.CreateScreeningAsync(screening);
-
-                // Update candidate status
-                candidate.Status = CandidateStatus.InterviewScheduled;
-                candidate.InterviewDate = dto.ScheduledDate;
-                await _recruitmentRepo.UpdateCandidateAsync(candidate);
+                var screening = await _lifecycle.ScheduleScreeningAsync(
+                    candidateId,
+                    new ScheduleScreeningCommand(
+                        dto.ScreeningType,
+                        dto.ScheduledDate,
+                        dto.Interviewer,
+                        userGuid == Guid.Empty ? null : userGuid));
 
                 return Ok(new
                 {
@@ -598,7 +541,15 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                     screening = MapScreeningToDto(screening)
                 });
             }
-            catch (Exception ex)
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Candidate not found" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception)
             {
                 return StatusCode(500, new { message = "Error scheduling screening" });
             }
@@ -614,48 +565,17 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var tenantId = _tenantAccessor.GetTenantId();
-
             try
             {
-                var screening = await _recruitmentRepo.GetScreeningByIdAsync(screeningId, tenantId);
-                if (screening == null)
-                    return NotFound(new { message = "Screening not found" });
-
-                if (!string.IsNullOrEmpty(dto.Status))
-                {
-                    if (Enum.TryParse<ScreeningStatus>(dto.Status, ignoreCase: true, out var status))
-                        screening.Status = status;
-                }
-
-                if (!string.IsNullOrEmpty(dto.TechnicalSkillsRating))
-                {
-                    if (Enum.TryParse<RatingLevel>(dto.TechnicalSkillsRating, ignoreCase: true, out var rating))
-                        screening.TechnicalSkillsRating = rating;
-                }
-
-                if (!string.IsNullOrEmpty(dto.CommunicationRating))
-                {
-                    if (Enum.TryParse<RatingLevel>(dto.CommunicationRating, ignoreCase: true, out var rating))
-                        screening.CommunicationRating = rating;
-                }
-
-                if (!string.IsNullOrEmpty(dto.CulturalFitRating))
-                {
-                    if (Enum.TryParse<RatingLevel>(dto.CulturalFitRating, ignoreCase: true, out var rating))
-                        screening.CulturalFitRating = rating;
-                }
-
-                if (dto.OverallScore.HasValue)
-                    screening.OverallScore = dto.OverallScore.Value;
-
-                if (!string.IsNullOrEmpty(dto.Comments))
-                    screening.Comments = dto.Comments;
-
-                if (screening.Status == ScreeningStatus.Completed)
-                    screening.CompletedDate = DateTime.UtcNow;
-
-                await _recruitmentRepo.UpdateScreeningAsync(screening);
+                var screening = await _lifecycle.SubmitScreeningAsync(
+                    screeningId,
+                    new SubmitScreeningCommand(
+                        TryParseEnum<ScreeningStatus>(dto.Status),
+                        TryParseEnum<RatingLevel>(dto.TechnicalSkillsRating),
+                        TryParseEnum<RatingLevel>(dto.CommunicationRating),
+                        TryParseEnum<RatingLevel>(dto.CulturalFitRating),
+                        dto.OverallScore,
+                        dto.Comments));
 
                 return Ok(new
                 {
@@ -663,7 +583,11 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                     screening = MapScreeningToDto(screening)
                 });
             }
-            catch (Exception ex)
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Screening not found" });
+            }
+            catch (Exception)
             {
                 return StatusCode(500, new { message = "Error submitting screening results" });
             }
@@ -672,6 +596,11 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
         #endregion
 
         #region Helper Methods
+
+        private static TEnum? TryParseEnum<TEnum>(string? value) where TEnum : struct, Enum
+        {
+            return Enum.TryParse(value, ignoreCase: true, out TEnum parsed) ? parsed : null;
+        }
 
         private JobPostingDto MapJobPostingToDto(JobPosting jobPosting)
         {

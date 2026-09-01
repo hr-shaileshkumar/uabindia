@@ -5,6 +5,8 @@ namespace UabIndia.Core.Entities
     // Customers
     public class Customer : BaseEntity
     {
+        public Guid? CompanyId { get; set; }
+        public Guid? ProjectId { get; set; }
         public string CustomerCode { get; set; } = string.Empty;
         public string CustomerName { get; set; } = string.Empty;
         public string CustomerType { get; set; } = "Individual"; // Individual, Company
@@ -32,6 +34,8 @@ namespace UabIndia.Core.Entities
     // Vendors/Suppliers
     public class Vendor : BaseEntity
     {
+        public Guid? CompanyId { get; set; }
+        public Guid? ProjectId { get; set; }
         public string VendorCode { get; set; } = string.Empty;
         public string VendorName { get; set; } = string.Empty;
         public string VendorType { get; set; } = "Supplier"; // Supplier, Service Provider, Contractor

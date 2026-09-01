@@ -63,5 +63,6 @@ namespace UabIndia.Infrastructure.Data
     {
         public string Encrypt(string plainText) => plainText;
         public string Decrypt(string cipherText) => cipherText;
+        public string ComputeHash(string plainText) => plainText?.Trim().ToLowerInvariant() ?? string.Empty;
     }
 }

@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
-import { CrudHeaderStats } from "@/components/erp/crud-workspace";
+import { CrudHeaderStats } from "@/components/workspace/crud-workspace";
 import { SideDrawer } from "@/components/ui/side-drawer";
-import { erpButtonClassName, erpFormInputClassName } from "@/components/erp/erpStyles";
+import { erpButtonClassName, erpFormInputClassName } from "@/components/workspace/styles";
 import { payrollApi } from "@/services/modules";
 import { getApiErrorMessage } from "@/lib/api-errors";
 

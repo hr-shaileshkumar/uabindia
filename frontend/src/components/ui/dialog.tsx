@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
+import { cn } from "@/lib/utils";
 
 export interface DialogProps {
   open: boolean;
@@ -9,6 +11,12 @@ export interface DialogProps {
 }
 
 export function Dialog({ open, onOpenChange, children }: DialogProps) {
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
   React.useEffect(() => {
     if (!open) return;
     const previousOverflow = document.body.style.overflow;
@@ -23,19 +31,25 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
     };
   }, [open, onOpenChange]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4">
+  const content = (
+    <div className="fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-4">
       <div
-        className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+        className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
         onClick={() => onOpenChange(false)}
       />
-      <div className="relative z-10 max-h-[100dvh] w-full max-w-4xl overflow-y-auto sm:max-h-[calc(100dvh-2rem)]" role="dialog" aria-modal="true">
+      <div
+        className="relative z-10 max-h-[100dvh] w-full max-w-4xl overflow-y-auto sm:max-h-[calc(100dvh-2rem)] animate-in fade-in zoom-in-95 duration-150"
+        role="dialog"
+        aria-modal="true"
+      >
         {children}
       </div>
     </div>
   );
+
+  return typeof document !== "undefined" ? createPortal(content, document.body) : null;
 }
 
 export interface DialogContentProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -45,7 +59,10 @@ export interface DialogContentProps extends React.HTMLAttributes<HTMLDivElement>
 export function DialogContent({ className = "", children, ...props }: DialogContentProps) {
   return (
     <div
-      className={`relative overflow-hidden rounded-t-xl border border-slate-200 bg-white shadow-2xl sm:rounded-xl ${className}`}
+      className={cn(
+        "relative overflow-hidden rounded-t-2xl border border-slate-200 bg-white shadow-2xl sm:rounded-2xl dark:border-slate-800 dark:bg-slate-900",
+        className,
+      )}
       onClick={(event) => event.stopPropagation()}
       {...props}
     >
@@ -60,7 +77,7 @@ export interface DialogHeaderProps extends React.HTMLAttributes<HTMLDivElement> 
 
 export function DialogHeader({ className = "", children, ...props }: DialogHeaderProps) {
   return (
-    <div className={`border-b border-slate-200 px-4 py-3.5 sm:px-5 ${className}`} {...props}>
+    <div className={cn("border-b border-slate-100 px-5 py-4 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-950/40", className)} {...props}>
       {children}
     </div>
   );
@@ -72,7 +89,7 @@ export interface DialogTitleProps extends React.HTMLAttributes<HTMLHeadingElemen
 
 export function DialogTitle({ className = "", children, ...props }: DialogTitleProps) {
   return (
-    <h2 className={`text-xl font-semibold text-slate-900 ${className}`} {...props}>
+    <h2 className={cn("text-lg font-bold text-slate-900 dark:text-white", className)} {...props}>
       {children}
     </h2>
   );
@@ -84,7 +101,7 @@ export interface DialogDescriptionProps extends React.HTMLAttributes<HTMLParagra
 
 export function DialogDescription({ className = "", children, ...props }: DialogDescriptionProps) {
   return (
-    <p className={`text-sm text-slate-600 ${className}`} {...props}>
+    <p className={cn("mt-1 text-xs text-slate-500 dark:text-slate-400", className)} {...props}>
       {children}
     </p>
   );
@@ -96,7 +113,7 @@ export interface DialogFooterProps extends React.HTMLAttributes<HTMLDivElement> 
 
 export function DialogFooter({ className = "", children, ...props }: DialogFooterProps) {
   return (
-    <div className={`border-t border-slate-200 px-4 py-3 sm:px-5 ${className}`} {...props}>
+    <div className={cn("border-t border-slate-100 px-5 py-3.5 bg-slate-50/50 flex items-center justify-end gap-2 dark:border-slate-800 dark:bg-slate-950/40", className)} {...props}>
       {children}
     </div>
   );

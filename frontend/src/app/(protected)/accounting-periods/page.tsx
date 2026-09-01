@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudHeaderStats } from "@/components/erp/crud-workspace";
-import { ErpRefreshButton } from "@/components/erp/erp-page-kit";
+import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
+import { ErpRefreshButton } from "@/components/workspace/page-kit";
+import { useErpListView } from "@/components/workspace/list-view";
 import { financeApi } from "@/services/modules";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
@@ -20,6 +21,15 @@ type PeriodRow = {
   status?: string;
   closedAt?: string;
   notes?: string;
+};
+
+type PeriodListRow = {
+  id: string;
+  label: string;
+  calendar: string;
+  status: string;
+  month: number;
+  periodYear: number;
 };
 
 export default function AccountingPeriodsPage() {
@@ -81,11 +91,63 @@ export default function AccountingPeriodsPage() {
     }
   };
 
-  const closedCount = MONTHS.filter((_, index) => {
-    const month = fiscalMonth(index);
-    const periodYear = month >= 4 ? year : year + 1;
-    return statusFor(month, periodYear) === "Closed";
-  }).length;
+  const rows = useMemo(
+    () =>
+      MONTHS.map((label, index) => {
+        const month = fiscalMonth(index);
+        const periodYear = month >= 4 ? year : year + 1;
+        const status = statusFor(month, periodYear);
+        return {
+          id: `${periodYear}-${month}`,
+          label,
+          calendar: `${periodYear}-${String(month).padStart(2, "0")}`,
+          status,
+          month,
+          periodYear,
+        } satisfies PeriodListRow;
+      }),
+    [periods, year],
+  );
+
+  const closedCount = rows.filter((row) => row.status === "Closed").length;
+
+  const list = useErpListView({
+    listKey: "accounting-periods",
+    rows,
+    columns: [
+      { key: "label", label: "Month" },
+      { key: "calendar", label: "Calendar" },
+      { key: "status", label: "Status" },
+      { key: "actions", label: "Action", locked: true, className: "text-right" },
+    ],
+    getRowId: (row) => row.id,
+    loading,
+    emptyMessage: "No accounting periods loaded for this fiscal year.",
+    onRefresh: () => void load(year),
+    renderRow: (row) => {
+      const closed = row.status === "Closed";
+      const key = row.id;
+      return (
+        <tr key={row.id} className="erp-tr">
+          <td className="erp-td font-semibold">{row.label}</td>
+          <td className="erp-td">{row.calendar}</td>
+          <td className="erp-td">
+            <span className={closed ? "erp-chip erp-chip-neutral" : "erp-chip erp-chip-success"}>{row.status}</span>
+          </td>
+          <td className="erp-td text-right">
+            <button
+              type="button"
+              className={closed ? "erp-action-btn erp-action-btn-secondary text-xs" : "erp-action-btn erp-action-btn-primary text-xs"}
+              disabled={busyKey === key}
+              onClick={() => void toggle(row.month, row.periodYear, !closed)}
+            >
+              {busyKey === key ? "Saving…" : closed ? "Reopen" : "Close"}
+            </button>
+          </td>
+        </tr>
+      );
+    },
+  });
 
   return (
     <StandardPageLayout
@@ -112,59 +174,14 @@ export default function AccountingPeriodsPage() {
             ))}
           </select>
           <ErpRefreshButton onClick={() => void load(year)} loading={loading} />
+          {list.headerTools}
         </>
       }
+      filters={list.filterBar}
     >
       {error ? <div className="erp-alert-error">{error}</div> : null}
 
-      <div className="erp-panel">
-        <div className="erp-panel-header">
-          <div>
-            <h2 className="erp-panel-title">Monthly close</h2>
-            <p className="mt-1 text-sm text-slate-500">April to March. Closed months cannot receive new journals.</p>
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="erp-table">
-            <thead className="erp-thead">
-              <tr>
-                <th className="erp-th">Month</th>
-                <th className="erp-th">Calendar</th>
-                <th className="erp-th">Status</th>
-                <th className="erp-th text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {MONTHS.map((label, index) => {
-                const month = fiscalMonth(index);
-                const periodYear = month >= 4 ? year : year + 1;
-                const status = statusFor(month, periodYear);
-                const key = `${periodYear}-${month}`;
-                const closed = status === "Closed";
-                return (
-                  <tr key={key} className="erp-tr">
-                    <td className="erp-td font-semibold">{label}</td>
-                    <td className="erp-td">{periodYear}-{String(month).padStart(2, "0")}</td>
-                    <td className="erp-td">
-                      <span className={closed ? "erp-chip erp-chip-neutral" : "erp-chip erp-chip-success"}>{status}</span>
-                    </td>
-                    <td className="erp-td text-right">
-                      <button
-                        type="button"
-                        className={closed ? "erp-action-btn erp-action-btn-secondary text-xs" : "erp-action-btn erp-action-btn-primary text-xs"}
-                        disabled={busyKey === key}
-                        onClick={() => void toggle(month, periodYear, !closed)}
-                      >
-                        {busyKey === key ? "Saving…" : closed ? "Reopen" : "Close"}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <CrudCard>{list.table}</CrudCard>
     </StandardPageLayout>
   );
 }

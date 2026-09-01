@@ -3,16 +3,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { Pencil } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudCard } from "@/components/erp/crud-workspace";
-import { StatusBadge } from "@/components/erp/status-badge";
+import { CrudCard } from "@/components/workspace/crud-workspace";
+import { StatusBadge } from "@/components/workspace/status-badge";
 import {
   erpButtonClassName,
   erpFormInputClassName,
   erpFormLabelClassName,
-} from "@/components/erp/erpStyles";
-import { ListCreateButton, ListSearchInput, ListStatusFilter } from "@/components/erp/list-toolbar";
-import { ErpRefreshButton } from "@/components/erp/erp-page-kit";
-import { useErpListView } from "@/components/erp/erp-list-view";
+} from "@/components/workspace/styles";
+import { ListCreateButton, ListSearchInput, ListStatusFilter } from "@/components/workspace/list-toolbar";
+import { ErpRefreshButton } from "@/components/workspace/page-kit";
+import { useErpListView } from "@/components/workspace/list-view";
 import { SideDrawer } from "@/components/ui/side-drawer";
 import { financeApi, orgApi } from "@/services/modules";
 import { getApiErrorMessage } from "@/lib/api-errors";
@@ -245,7 +245,7 @@ export function ExpenseList() {
     <StandardPageLayout
       title="Expense Management & Reimbursements"
       subtitle="Submit, review, and approve employee business expense reports and receipts."
-      eyebrow="Finance"
+      eyebrow="Finance / Expenses"
       icon="wallet"
       actions={
         <>

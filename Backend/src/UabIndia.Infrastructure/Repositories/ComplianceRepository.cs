@@ -23,7 +23,7 @@ namespace UabIndia.Infrastructure.Repositories
 
         private const decimal DefaultPfCeiling = 15000m;
         private const decimal DefaultEsiCeiling = 21000m;
-        private const decimal DefaultStandardDeduction = 50000m;
+        private const decimal DefaultStandardDeduction = 75000m;
 
         public ComplianceRepository(ApplicationDbContext context, ILogger<ComplianceRepository> logger)
         {
@@ -181,14 +181,14 @@ namespace UabIndia.Infrastructure.Repositories
             pf.CreatedAt = DateTime.UtcNow;
             pf.UpdatedAt = DateTime.UtcNow;
             var pfCeiling = await GetPFCeilingAsync(pf.FinancialYear > 0 ? pf.FinancialYear : DateTime.UtcNow.Year);
-            var pfWages = Math.Min(pf.BasicSalary + pf.DA, pfCeiling > 0 ? pfCeiling : DefaultPfCeiling);
-            pf.PFWages = pfWages;
-            pf.EmployeeContribution = pf.PFWages * 0.12m; // 12% EE
-            pf.EmployerContributionPF = pf.PFWages * 0.0833m; // 8.33% PF
-            pf.EmployerContributionEPS = pf.PFWages > DefaultPfCeiling ? 1250 : pf.PFWages * 0.0167m; // 1.67% or capped at 1250
-            pf.AdminCharges = pf.PFWages * 0.0033m; // 0.33%
-            pf.TotalContribution = pf.EmployeeContribution + pf.EmployerContributionPF + pf.EmployerContributionEPS;
-            pf.TotalBalance = pf.TotalContribution;
+            var calc = UabIndia.Core.Services.IndiaStatutoryCalculator.CalculatePf(pf.BasicSalary, pf.DA, pfCeiling > 0 ? pfCeiling : DefaultPfCeiling);
+            pf.PFWages = calc.PfWages;
+            pf.EmployeeContribution = calc.EmployeeContribution;
+            pf.EmployerContributionPF = calc.EmployerEpf;
+            pf.EmployerContributionEPS = calc.EmployerEps;
+            pf.AdminCharges = calc.AdminCharges;
+            pf.TotalContribution = calc.TotalPf;
+            pf.TotalBalance = calc.TotalPf;
 
             _context.ProvidentFunds.Add(pf);
             await _context.SaveChangesAsync();
@@ -199,13 +199,13 @@ namespace UabIndia.Infrastructure.Repositories
         {
             pf.UpdatedAt = DateTime.UtcNow;
             var pfCeiling = await GetPFCeilingAsync(pf.FinancialYear > 0 ? pf.FinancialYear : DateTime.UtcNow.Year);
-            var pfWages = Math.Min(pf.BasicSalary + pf.DA, pfCeiling > 0 ? pfCeiling : DefaultPfCeiling);
-            pf.PFWages = pfWages;
-            pf.EmployeeContribution = pf.PFWages * 0.12m;
-            pf.EmployerContributionPF = pf.PFWages * 0.0833m;
-            pf.EmployerContributionEPS = pf.PFWages > DefaultPfCeiling ? 1250 : pf.PFWages * 0.0167m;
-            pf.AdminCharges = pf.PFWages * 0.0033m;
-            pf.TotalContribution = pf.EmployeeContribution + pf.EmployerContributionPF + pf.EmployerContributionEPS;
+            var calc = UabIndia.Core.Services.IndiaStatutoryCalculator.CalculatePf(pf.BasicSalary, pf.DA, pfCeiling > 0 ? pfCeiling : DefaultPfCeiling);
+            pf.PFWages = calc.PfWages;
+            pf.EmployeeContribution = calc.EmployeeContribution;
+            pf.EmployerContributionPF = calc.EmployerEpf;
+            pf.EmployerContributionEPS = calc.EmployerEps;
+            pf.AdminCharges = calc.AdminCharges;
+            pf.TotalContribution = calc.TotalPf;
 
             _context.ProvidentFunds.Update(pf);
             await _context.SaveChangesAsync();
@@ -429,12 +429,12 @@ namespace UabIndia.Infrastructure.Repositories
             esi.CreatedAt = DateTime.UtcNow;
             esi.UpdatedAt = DateTime.UtcNow;
             var esiCeiling = await GetESICeilingAsync(esi.FinancialYear > 0 ? esi.FinancialYear : DateTime.UtcNow.Year);
-            var ceiling = esiCeiling > 0 ? esiCeiling : DefaultEsiCeiling;
-            esi.ESIWages = esi.MonthlySalary > ceiling ? ceiling : esi.MonthlySalary;
-            esi.EmployeeContribution = esi.ESIWages * 0.0075m; // 0.75% EE
-            esi.EmployerContribution = esi.ESIWages * 0.0325m; // 3.25% ER
-            esi.TotalContribution = esi.EmployeeContribution + esi.EmployerContribution;
-            esi.IsESIEligible = esi.MonthlySalary <= ceiling;
+            var calc = UabIndia.Core.Services.IndiaStatutoryCalculator.CalculateEsi(esi.MonthlySalary, false, esiCeiling > 0 ? esiCeiling : DefaultEsiCeiling);
+            esi.ESIWages = calc.EsiWages;
+            esi.IsESIEligible = calc.IsEligible;
+            esi.EmployeeContribution = calc.EmployeeContribution;
+            esi.EmployerContribution = calc.EmployerContribution;
+            esi.TotalContribution = calc.Total;
 
             _context.EmployeeStateInsurances.Add(esi);
             await _context.SaveChangesAsync();
@@ -445,12 +445,12 @@ namespace UabIndia.Infrastructure.Repositories
         {
             esi.UpdatedAt = DateTime.UtcNow;
             var esiCeiling = await GetESICeilingAsync(esi.FinancialYear > 0 ? esi.FinancialYear : DateTime.UtcNow.Year);
-            var ceiling = esiCeiling > 0 ? esiCeiling : DefaultEsiCeiling;
-            esi.ESIWages = esi.MonthlySalary > ceiling ? ceiling : esi.MonthlySalary;
-            esi.EmployeeContribution = esi.ESIWages * 0.0075m;
-            esi.EmployerContribution = esi.ESIWages * 0.0325m;
-            esi.TotalContribution = esi.EmployeeContribution + esi.EmployerContribution;
-            esi.IsESIEligible = esi.MonthlySalary <= ceiling;
+            var calc = UabIndia.Core.Services.IndiaStatutoryCalculator.CalculateEsi(esi.MonthlySalary, false, esiCeiling > 0 ? esiCeiling : DefaultEsiCeiling);
+            esi.ESIWages = calc.EsiWages;
+            esi.IsESIEligible = calc.IsEligible;
+            esi.EmployeeContribution = calc.EmployeeContribution;
+            esi.EmployerContribution = calc.EmployerContribution;
+            esi.TotalContribution = calc.Total;
 
             _context.EmployeeStateInsurances.Update(esi);
             await _context.SaveChangesAsync();
@@ -558,7 +558,7 @@ namespace UabIndia.Infrastructure.Repositories
             var baseTax = CalculateTaxBySlabs(taxableIncome, slabs);
 
             var rebateThreshold = string.Equals(regime, "NewRegime", StringComparison.OrdinalIgnoreCase)
-                ? 700000m
+                ? 1200000m
                 : 500000m;
 
             var rebate = taxableIncome <= rebateThreshold ? baseTax : 0m;
@@ -599,7 +599,7 @@ namespace UabIndia.Infrastructure.Repositories
             var slabs = await GetTaxSlabsAsync(incomeTax.FinancialYear, incomeTax.TaxRegime.ToString());
             var baseTax = CalculateTaxBySlabs(incomeTax.TaxableIncome, slabs);
 
-            var rebateThreshold = incomeTax.TaxRegime == TaxRegime.NewRegime ? 700000m : 500000m;
+            var rebateThreshold = incomeTax.TaxRegime == TaxRegime.NewRegime ? 1200000m : 500000m;
             incomeTax.RebateUnder87A = incomeTax.TaxableIncome <= rebateThreshold ? baseTax : 0m;
             incomeTax.TaxAfterRebate = Math.Max(0, baseTax - incomeTax.RebateUnder87A);
 
@@ -718,7 +718,7 @@ namespace UabIndia.Infrastructure.Repositories
 
             if (setting == null || string.IsNullOrWhiteSpace(setting.SettingValue))
             {
-                return 0m;
+                return UabIndia.Core.Services.IndiaStatutoryCalculator.CalculateProfessionalTax(stateCode, monthlySalary, DateTime.UtcNow.Month);
             }
 
             try

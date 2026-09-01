@@ -19,11 +19,13 @@ namespace UabIndia.Api.Modules.Platform.Controllers
     {
         private readonly ApplicationDbContext _db;
         private readonly ITenantAccessor _tenantAccessor;
+        private readonly IDocumentNumberService _numbers;
 
-        public HelpdeskController(ApplicationDbContext db, ITenantAccessor tenantAccessor)
+        public HelpdeskController(ApplicationDbContext db, ITenantAccessor tenantAccessor, IDocumentNumberService numbers)
         {
             _db = db;
             _tenantAccessor = tenantAccessor;
+            _numbers = numbers;
         }
 
         [HttpGet("tickets")]
@@ -352,8 +354,8 @@ namespace UabIndia.Api.Modules.Platform.Controllers
 
         private async Task<string> GenerateTicketNumberAsync(Guid tenantId)
         {
-            var count = await _db.HelpdeskTickets.IgnoreQueryFilters().CountAsync(t => t.TenantId == tenantId);
-            return $"TKT-{DateTime.UtcNow:yyyyMMdd}-{count + 1:0000}";
+            _ = tenantId;
+            return await _numbers.NextAsync("HelpdeskTicket", "TKT-", 5);
         }
 
         private static string NormalizeOrDefault(string? value, string fallback)

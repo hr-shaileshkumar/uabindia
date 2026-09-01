@@ -1,3 +1,4 @@
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -14,6 +15,7 @@ public static class MigrationBootstrap
 {
     private const string TenantsTable = "dbo.Tenants";
     private const string InitialCleanSchemaSql = "20260324190830_InitialCleanSchema.sql";
+    private const string ExtendedSchemaVersion = "20260826-global-v5";
 
     public static async Task EnsureInitialCleanSchemaAsync(
         ApplicationDbContext db,
@@ -34,11 +36,116 @@ public static class MigrationBootstrap
         logger.LogInformation("InitialCleanSchema SQL bootstrap completed.");
     }
 
+    public static async Task EnsureCriticalUserColumnsAsync(
+        ApplicationDbContext db,
+        ILogger? logger = null,
+        CancellationToken cancellationToken = default)
+    {
+        const string sql = @"
+IF OBJECT_ID(N'dbo.Users', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.Users', 'TwoFactorEnabled') IS NULL
+        ALTER TABLE dbo.Users ADD TwoFactorEnabled BIT NOT NULL DEFAULT 0;
+    IF COL_LENGTH('dbo.Users', 'TwoFactorSecret') IS NULL
+        ALTER TABLE dbo.Users ADD TwoFactorSecret NVARCHAR(128) NULL;
+    IF COL_LENGTH('dbo.Users', 'EmailHash') IS NULL
+        ALTER TABLE dbo.Users ADD EmailHash NVARCHAR(64) NULL;
+    IF COL_LENGTH('dbo.Users', 'CompanyId') IS NULL
+        ALTER TABLE dbo.Users ADD CompanyId UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('dbo.Users', 'ProjectId') IS NULL
+        ALTER TABLE dbo.Users ADD ProjectId UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('dbo.Users', 'PasswordResetToken') IS NULL
+        ALTER TABLE dbo.Users ADD PasswordResetToken NVARCHAR(512) NULL;
+    IF COL_LENGTH('dbo.Users', 'PasswordResetExpires') IS NULL
+        ALTER TABLE dbo.Users ADD PasswordResetExpires DATETIME2 NULL;
+    IF COL_LENGTH('dbo.Users', 'AccessFailedCount') IS NULL
+        ALTER TABLE dbo.Users ADD AccessFailedCount INT NOT NULL DEFAULT 0;
+    IF COL_LENGTH('dbo.Users', 'LockoutEnd') IS NULL
+        ALTER TABLE dbo.Users ADD LockoutEnd DATETIME2 NULL;
+    IF COL_LENGTH('dbo.Users', 'LockoutEnabled') IS NULL
+        ALTER TABLE dbo.Users ADD LockoutEnabled BIT NOT NULL DEFAULT 1;
+    IF COL_LENGTH('dbo.Users', 'BusinessId') IS NULL
+        ALTER TABLE dbo.Users ADD BusinessId NVARCHAR(100) NULL;
+END;
+
+IF OBJECT_ID(N'dbo.AuditLogs', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.AuditLogs', 'CompanyId') IS NULL
+        ALTER TABLE dbo.AuditLogs ADD CompanyId UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('dbo.AuditLogs', 'ProjectId') IS NULL
+        ALTER TABLE dbo.AuditLogs ADD ProjectId UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('dbo.AuditLogs', 'BusinessId') IS NULL
+        ALTER TABLE dbo.AuditLogs ADD BusinessId NVARCHAR(100) NULL;
+END;
+
+IF OBJECT_ID(N'dbo.ApprovalRequests', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.ApprovalRequests', 'CompanyId') IS NULL
+        ALTER TABLE dbo.ApprovalRequests ADD CompanyId UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('dbo.ApprovalRequests', 'ProjectId') IS NULL
+        ALTER TABLE dbo.ApprovalRequests ADD ProjectId UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('dbo.ApprovalRequests', 'BusinessId') IS NULL
+        ALTER TABLE dbo.ApprovalRequests ADD BusinessId NVARCHAR(100) NULL;
+END;
+
+IF OBJECT_ID(N'dbo.SalesInvoices', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.SalesInvoices', 'CompanyId') IS NULL
+        ALTER TABLE dbo.SalesInvoices ADD CompanyId UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('dbo.SalesInvoices', 'ProjectId') IS NULL
+        ALTER TABLE dbo.SalesInvoices ADD ProjectId UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('dbo.SalesInvoices', 'BusinessId') IS NULL
+        ALTER TABLE dbo.SalesInvoices ADD BusinessId NVARCHAR(100) NULL;
+END;
+
+IF OBJECT_ID(N'dbo.Customers', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.Customers', 'CompanyId') IS NULL
+        ALTER TABLE dbo.Customers ADD CompanyId UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('dbo.Customers', 'ProjectId') IS NULL
+        ALTER TABLE dbo.Customers ADD ProjectId UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('dbo.Customers', 'BusinessId') IS NULL
+        ALTER TABLE dbo.Customers ADD BusinessId NVARCHAR(100) NULL;
+END;
+
+IF OBJECT_ID(N'dbo.Vendors', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.Vendors', 'CompanyId') IS NULL
+        ALTER TABLE dbo.Vendors ADD CompanyId UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('dbo.Vendors', 'ProjectId') IS NULL
+        ALTER TABLE dbo.Vendors ADD ProjectId UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('dbo.Vendors', 'BusinessId') IS NULL
+        ALTER TABLE dbo.Vendors ADD BusinessId NVARCHAR(100) NULL;
+END;
+";
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure critical entity columns.");
+        }
+    }
+
     public static async Task EnsureExtendedSchemaAsync(
         ApplicationDbContext db,
         ILogger? logger = null,
         CancellationToken cancellationToken = default)
     {
+        await EnsureCriticalUserColumnsAsync(db, logger, cancellationToken);
+        await EnsureSubscriptionTablesAsync(db, logger, cancellationToken);
+        await EnsureOutboxMessagesTableAsync(db, logger, cancellationToken);
+        await EnsureBusinessIdColumnsAsync(db, logger, cancellationToken);
+        await EnsureOrgScopeColumnsAsync(db, logger, cancellationToken);
+
+        if (await IsExtendedSchemaCurrentAsync(db, cancellationToken))
+        {
+            await EnsurePerformanceIndexesAsync(db, logger, cancellationToken);
+            logger?.LogInformation("Extended schema already current ({Version}); skipping column bootstrap.", ExtendedSchemaVersion);
+            return;
+        }
+
         logger?.LogInformation("Ensuring multi-tenancy and extended schema columns across all database tables…");
 
         var columnAlters = new (string Table, string Column, string Ddl)[]
@@ -51,16 +158,41 @@ public static class MigrationBootstrap
             ("Users", "AccessFailedCount", "IF OBJECT_ID(N'dbo.Users', N'U') IS NOT NULL AND COL_LENGTH('dbo.Users', 'AccessFailedCount') IS NULL ALTER TABLE dbo.Users ADD AccessFailedCount INT NOT NULL DEFAULT 0"),
             ("Users", "LockoutEnd", "IF OBJECT_ID(N'dbo.Users', N'U') IS NOT NULL AND COL_LENGTH('dbo.Users', 'LockoutEnd') IS NULL ALTER TABLE dbo.Users ADD LockoutEnd DATETIME2 NULL"),
             ("Users", "LockoutEnabled", "IF OBJECT_ID(N'dbo.Users', N'U') IS NOT NULL AND COL_LENGTH('dbo.Users', 'LockoutEnabled') IS NULL ALTER TABLE dbo.Users ADD LockoutEnabled BIT NOT NULL DEFAULT 1"),
+            ("Users", "TwoFactorEnabled", "IF OBJECT_ID(N'dbo.Users', N'U') IS NOT NULL AND COL_LENGTH('dbo.Users', 'TwoFactorEnabled') IS NULL ALTER TABLE dbo.Users ADD TwoFactorEnabled BIT NOT NULL DEFAULT 0"),
+            ("Users", "TwoFactorSecret", "IF OBJECT_ID(N'dbo.Users', N'U') IS NOT NULL AND COL_LENGTH('dbo.Users', 'TwoFactorSecret') IS NULL ALTER TABLE dbo.Users ADD TwoFactorSecret NVARCHAR(128) NULL"),
+            ("Users", "EmailHash", "IF OBJECT_ID(N'dbo.Users', N'U') IS NOT NULL AND COL_LENGTH('dbo.Users', 'EmailHash') IS NULL ALTER TABLE dbo.Users ADD EmailHash NVARCHAR(64) NULL"),
 
-            // Tenants soft-delete metadata
+            // Tenants global metadata
             ("Tenants", "DeletedAt", "IF OBJECT_ID(N'dbo.Tenants', N'U') IS NOT NULL AND COL_LENGTH('dbo.Tenants', 'DeletedAt') IS NULL ALTER TABLE dbo.Tenants ADD DeletedAt DATETIME2 NULL"),
             ("Tenants", "DeletedBy", "IF OBJECT_ID(N'dbo.Tenants', N'U') IS NOT NULL AND COL_LENGTH('dbo.Tenants', 'DeletedBy') IS NULL ALTER TABLE dbo.Tenants ADD DeletedBy UNIQUEIDENTIFIER NULL"),
+            ("Tenants", "CountryCode", "IF OBJECT_ID(N'dbo.Tenants', N'U') IS NOT NULL AND COL_LENGTH('dbo.Tenants', 'CountryCode') IS NULL ALTER TABLE dbo.Tenants ADD CountryCode NVARCHAR(10) NOT NULL DEFAULT 'IND'"),
+            ("Tenants", "DefaultCurrencyCode", "IF OBJECT_ID(N'dbo.Tenants', N'U') IS NOT NULL AND COL_LENGTH('dbo.Tenants', 'DefaultCurrencyCode') IS NULL ALTER TABLE dbo.Tenants ADD DefaultCurrencyCode NVARCHAR(10) NOT NULL DEFAULT 'INR'"),
+            ("Tenants", "DefaultTimezone", "IF OBJECT_ID(N'dbo.Tenants', N'U') IS NOT NULL AND COL_LENGTH('dbo.Tenants', 'DefaultTimezone') IS NULL ALTER TABLE dbo.Tenants ADD DefaultTimezone NVARCHAR(50) NOT NULL DEFAULT 'Asia/Kolkata'"),
+            ("Tenants", "FiscalYearStartMonth", "IF OBJECT_ID(N'dbo.Tenants', N'U') IS NOT NULL AND COL_LENGTH('dbo.Tenants', 'FiscalYearStartMonth') IS NULL ALTER TABLE dbo.Tenants ADD FiscalYearStartMonth INT NOT NULL DEFAULT 4"),
+            ("Tenants", "IndustryExtensionCode", "IF OBJECT_ID(N'dbo.Tenants', N'U') IS NOT NULL AND COL_LENGTH('dbo.Tenants', 'IndustryExtensionCode') IS NULL ALTER TABLE dbo.Tenants ADD IndustryExtensionCode NVARCHAR(50) NOT NULL DEFAULT 'Generic'"),
+
+            // Companies global metadata
+            ("Companies", "CountryCode", "IF OBJECT_ID(N'dbo.Companies', N'U') IS NOT NULL AND COL_LENGTH('dbo.Companies', 'CountryCode') IS NULL ALTER TABLE dbo.Companies ADD CountryCode NVARCHAR(10) NOT NULL DEFAULT 'IND'"),
+            ("Companies", "FunctionalCurrencyCode", "IF OBJECT_ID(N'dbo.Companies', N'U') IS NOT NULL AND COL_LENGTH('dbo.Companies', 'FunctionalCurrencyCode') IS NULL ALTER TABLE dbo.Companies ADD FunctionalCurrencyCode NVARCHAR(10) NOT NULL DEFAULT 'INR'"),
+            ("Companies", "ParentCompanyId", "IF OBJECT_ID(N'dbo.Companies', N'U') IS NOT NULL AND COL_LENGTH('dbo.Companies', 'ParentCompanyId') IS NULL ALTER TABLE dbo.Companies ADD ParentCompanyId UNIQUEIDENTIFIER NULL"),
+            ("Companies", "BankRoutingCode", "IF OBJECT_ID(N'dbo.Companies', N'U') IS NOT NULL AND COL_LENGTH('dbo.Companies', 'BankRoutingCode') IS NULL ALTER TABLE dbo.Companies ADD BankRoutingCode NVARCHAR(100) NULL"),
+            ("Companies", "BankIban", "IF OBJECT_ID(N'dbo.Companies', N'U') IS NOT NULL AND COL_LENGTH('dbo.Companies', 'BankIban') IS NULL ALTER TABLE dbo.Companies ADD BankIban NVARCHAR(100) NULL"),
+            ("Companies", "BankSwiftCode", "IF OBJECT_ID(N'dbo.Companies', N'U') IS NOT NULL AND COL_LENGTH('dbo.Companies', 'BankSwiftCode') IS NULL ALTER TABLE dbo.Companies ADD BankSwiftCode NVARCHAR(50) NULL"),
+
             ("AuditLogs", "CompanyId", "IF OBJECT_ID(N'dbo.AuditLogs', N'U') IS NOT NULL AND COL_LENGTH('dbo.AuditLogs', 'CompanyId') IS NULL ALTER TABLE dbo.AuditLogs ADD CompanyId UNIQUEIDENTIFIER NULL"),
             ("AuditLogs", "ProjectId", "IF OBJECT_ID(N'dbo.AuditLogs', N'U') IS NOT NULL AND COL_LENGTH('dbo.AuditLogs', 'ProjectId') IS NULL ALTER TABLE dbo.AuditLogs ADD ProjectId UNIQUEIDENTIFIER NULL"),
 
             // Employees
             ("Employees", "CompanyId", "IF OBJECT_ID(N'dbo.Employees', N'U') IS NOT NULL AND COL_LENGTH('dbo.Employees', 'CompanyId') IS NULL ALTER TABLE dbo.Employees ADD CompanyId UNIQUEIDENTIFIER NULL"),
             ("Employees", "ProjectId", "IF OBJECT_ID(N'dbo.Employees', N'U') IS NOT NULL AND COL_LENGTH('dbo.Employees', 'ProjectId') IS NULL ALTER TABLE dbo.Employees ADD ProjectId UNIQUEIDENTIFIER NULL"),
+            ("Employees", "CountryCode", "IF OBJECT_ID(N'dbo.Employees', N'U') IS NOT NULL AND COL_LENGTH('dbo.Employees', 'CountryCode') IS NULL ALTER TABLE dbo.Employees ADD CountryCode NVARCHAR(10) NOT NULL DEFAULT 'IND'"),
+            ("Employees", "TaxIdentificationNumber", "IF OBJECT_ID(N'dbo.Employees', N'U') IS NOT NULL AND COL_LENGTH('dbo.Employees', 'TaxIdentificationNumber') IS NULL ALTER TABLE dbo.Employees ADD TaxIdentificationNumber NVARCHAR(100) NULL"),
+            ("Employees", "NationalIdNumber", "IF OBJECT_ID(N'dbo.Employees', N'U') IS NOT NULL AND COL_LENGTH('dbo.Employees', 'NationalIdNumber') IS NULL ALTER TABLE dbo.Employees ADD NationalIdNumber NVARCHAR(100) NULL"),
+            ("Employees", "SocialSecurityNumber", "IF OBJECT_ID(N'dbo.Employees', N'U') IS NOT NULL AND COL_LENGTH('dbo.Employees', 'SocialSecurityNumber') IS NULL ALTER TABLE dbo.Employees ADD SocialSecurityNumber NVARCHAR(100) NULL"),
+            ("Employees", "BankRoutingCode", "IF OBJECT_ID(N'dbo.Employees', N'U') IS NOT NULL AND COL_LENGTH('dbo.Employees', 'BankRoutingCode') IS NULL ALTER TABLE dbo.Employees ADD BankRoutingCode NVARCHAR(100) NULL"),
+            ("Employees", "BankIban", "IF OBJECT_ID(N'dbo.Employees', N'U') IS NOT NULL AND COL_LENGTH('dbo.Employees', 'BankIban') IS NULL ALTER TABLE dbo.Employees ADD BankIban NVARCHAR(100) NULL"),
+            ("Employees", "BankSwiftCode", "IF OBJECT_ID(N'dbo.Employees', N'U') IS NOT NULL AND COL_LENGTH('dbo.Employees', 'BankSwiftCode') IS NULL ALTER TABLE dbo.Employees ADD BankSwiftCode NVARCHAR(50) NULL"),
+            ("Employees", "CountrySpecificDataJson", "IF OBJECT_ID(N'dbo.Employees', N'U') IS NOT NULL AND COL_LENGTH('dbo.Employees', 'CountrySpecificDataJson') IS NULL ALTER TABLE dbo.Employees ADD CountrySpecificDataJson NVARCHAR(MAX) NOT NULL DEFAULT ''"),
 
             // Projects
             ("Projects", "CompanyId", "IF OBJECT_ID(N'dbo.Projects', N'U') IS NOT NULL AND COL_LENGTH('dbo.Projects', 'CompanyId') IS NULL ALTER TABLE dbo.Projects ADD CompanyId UNIQUEIDENTIFIER NULL"),
@@ -107,6 +239,7 @@ public static class MigrationBootstrap
             // FeatureFlags
             ("FeatureFlags", "CompanyId", "IF OBJECT_ID(N'dbo.FeatureFlags', N'U') IS NOT NULL AND COL_LENGTH('dbo.FeatureFlags', 'CompanyId') IS NULL ALTER TABLE dbo.FeatureFlags ADD CompanyId UNIQUEIDENTIFIER NULL"),
             ("FeatureFlags", "ProjectId", "IF OBJECT_ID(N'dbo.FeatureFlags', N'U') IS NOT NULL AND COL_LENGTH('dbo.FeatureFlags', 'ProjectId') IS NULL ALTER TABLE dbo.FeatureFlags ADD ProjectId UNIQUEIDENTIFIER NULL"),
+            ("FeatureFlags", "Description", "IF OBJECT_ID(N'dbo.FeatureFlags', N'U') IS NOT NULL AND COL_LENGTH('dbo.FeatureFlags', 'Description') IS NULL ALTER TABLE dbo.FeatureFlags ADD Description NVARCHAR(MAX) NULL"),
 
             // PayrollRuns
             ("PayrollRuns", "CompanyId", "IF OBJECT_ID(N'dbo.PayrollRuns', N'U') IS NOT NULL AND COL_LENGTH('dbo.PayrollRuns', 'CompanyId') IS NULL ALTER TABLE dbo.PayrollRuns ADD CompanyId UNIQUEIDENTIFIER NULL"),
@@ -122,19 +255,349 @@ public static class MigrationBootstrap
             ("OvertimeLogs", "ProjectId", "IF OBJECT_ID(N'dbo.OvertimeLogs', N'U') IS NOT NULL AND COL_LENGTH('dbo.OvertimeLogs', 'ProjectId') IS NULL ALTER TABLE dbo.OvertimeLogs ADD ProjectId UNIQUEIDENTIFIER NULL"),
         };
 
+        var batchedAlters = new StringBuilder();
         foreach (var (tbl, col, sql) in columnAlters)
         {
-            try
+            batchedAlters.AppendLine(sql).AppendLine(";");
+        }
+
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(batchedAlters.ToString(), cancellationToken);
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Batched column bootstrap failed; applying columns one by one.");
+            foreach (var (tbl, col, sql) in columnAlters)
             {
-                await db.Database.ExecuteSqlRawAsync(sql, cancellationToken);
-            }
-            catch (System.Exception ex)
-            {
-                logger?.LogWarning(ex, "Could not add column {Col} to table {Table} (may already exist).", col, tbl);
+                try
+                {
+                    await db.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+                }
+                catch (System.Exception inner)
+                {
+                    logger?.LogWarning(inner, "Could not add column {Col} to table {Table} (may already exist).", col, tbl);
+                }
             }
         }
 
         await EnsurePasswordResetIndexesAsync(db, logger, cancellationToken);
+        await EnsureBusinessIdSequencesAsync(db, logger, cancellationToken);
+        await EnsureOrganizationStructureAsync(db, logger, cancellationToken);
+        await EnsureTravelAndAiAgentsAsync(db, logger, cancellationToken);
+        await EnsureCrmLeadsAsync(db, logger, cancellationToken);
+        await EnsureExpensesAndGrnAsync(db, logger, cancellationToken);
+        await EnsureBankReconciliationsAsync(db, logger, cancellationToken);
+        await EnsureProjectTasksAndTimesheetsAsync(db, logger, cancellationToken);
+        await EnsureIntegrationConnectorsAsync(db, logger, cancellationToken);
+        await EnsureIntegrationApiKeysAsync(db, logger, cancellationToken);
+        await EnsurePayrollFinalSettlementsAsync(db, logger, cancellationToken);
+        await EnsurePayrollEmployeeFinanceAsync(db, logger, cancellationToken);
+        await EnsureSecurityControlsAsync(db, logger, cancellationToken);
+        await EnsureCustomReportsAndLicensingAsync(db, logger, cancellationToken);
+        await EnsureProductionReadyHrFinanceAsync(db, logger, cancellationToken);
+        await EnsureDocumentNumberIndexesAsync(db, logger, cancellationToken);
+        await EnsureOptionalDocumentLineItemIdsAsync(db, logger, cancellationToken);
+        await EnsureDiscountSchemesAsync(db, logger, cancellationToken);
+        await EnsureOrgScopeColumnsAsync(db, logger, cancellationToken);
+        await EnsureOrgScopeIndexesAsync(db, logger, cancellationToken);
+        await MarkExtendedSchemaCurrentAsync(db, cancellationToken);
+        logger?.LogInformation("Extended schema bootstrap complete ({Version}).", ExtendedSchemaVersion);
+    }
+
+    public static async Task<bool> IsExtendedSchemaCurrentAsync(
+        ApplicationDbContext db,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var tableExists = await db.Database
+                .SqlQueryRaw<int>(
+                    "SELECT CASE WHEN OBJECT_ID(N'dbo.__SchemaBootstrap', N'U') IS NOT NULL THEN 1 ELSE 0 END AS [Value]")
+                .SingleAsync(cancellationToken);
+            if (tableExists != 1)
+            {
+                return false;
+            }
+
+            var result = await db.Database
+                .SqlQueryRaw<int>(
+                    "SELECT CASE WHEN EXISTS (SELECT 1 FROM dbo.__SchemaBootstrap WHERE [Version] = {0}) THEN 1 ELSE 0 END AS [Value]",
+                    ExtendedSchemaVersion)
+                .SingleAsync(cancellationToken);
+            return result == 1;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static async Task MarkExtendedSchemaCurrentAsync(
+        ApplicationDbContext db,
+        CancellationToken cancellationToken)
+    {
+        await db.Database.ExecuteSqlAsync(
+            $"""
+            IF OBJECT_ID(N'dbo.__SchemaBootstrap', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.__SchemaBootstrap (
+                    [Version] nvarchar(64) NOT NULL PRIMARY KEY,
+                    [AppliedAt] datetime2 NOT NULL
+                );
+            END
+            IF NOT EXISTS (SELECT 1 FROM dbo.__SchemaBootstrap WHERE [Version] = {ExtendedSchemaVersion})
+                INSERT INTO dbo.__SchemaBootstrap ([Version], [AppliedAt]) VALUES ({ExtendedSchemaVersion}, SYSUTCDATETIME());
+            """,
+            cancellationToken);
+    }
+
+    private static async Task EnsureBusinessIdSequencesAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        const string sql = @"
+IF OBJECT_ID(N'[dbo].[BusinessIdSequences]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[BusinessIdSequences] (
+        [Id] uniqueidentifier NOT NULL,
+        [TenantId] uniqueidentifier NOT NULL,
+        [EntityName] nvarchar(450) NOT NULL,
+        [Prefix] nvarchar(max) NULL,
+        [Padding] int NOT NULL,
+        [CurrentValue] bigint NOT NULL,
+        [UpdatedAt] datetime2 NOT NULL,
+        CONSTRAINT [PK_BusinessIdSequences] PRIMARY KEY ([Id])
+    );
+    CREATE UNIQUE INDEX [IX_BusinessIdSequences_TenantId_EntityName]
+        ON [dbo].[BusinessIdSequences]([TenantId], [EntityName]);
+END;";
+
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure BusinessIdSequences table.");
+        }
+    }
+
+    private static async Task EnsureOrganizationStructureAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await MigrationSqlHelper.ExecuteSqlFileAsync(
+                db,
+                "20260809043000_AddOrganizationStructure.sql",
+                cancellationToken);
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure organization structure tables.");
+        }
+    }
+
+    private static async Task EnsureTravelAndAiAgentsAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await MigrationSqlHelper.ExecuteSqlFileAsync(
+                db,
+                "20260809153000_AddTravelAndAiAgents.sql",
+                cancellationToken);
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure travel and AI agent tables.");
+        }
+    }
+
+    private static async Task EnsureCrmLeadsAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await MigrationSqlHelper.ExecuteSqlFileAsync(
+                db,
+                "20260811010000_AddCrmLeads.sql",
+                cancellationToken);
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure CRM leads table.");
+        }
+    }
+
+    private static async Task EnsureExpensesAndGrnAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await MigrationSqlHelper.ExecuteSqlFileAsync(
+                db,
+                "20260811020000_AddExpensesAndGrn.sql",
+                cancellationToken);
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure expense and GRN tables.");
+        }
+    }
+
+    private static async Task EnsureBankReconciliationsAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await MigrationSqlHelper.ExecuteSqlFileAsync(
+                db,
+                "20260811030000_AddBankReconciliations.sql",
+                cancellationToken);
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure bank reconciliations table.");
+        }
+    }
+
+    private static async Task EnsureProjectTasksAndTimesheetsAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await MigrationSqlHelper.ExecuteSqlFileAsync(
+                db,
+                "20260811120000_AddProjectTasksAndTimesheets.sql",
+                cancellationToken);
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure project tasks and timesheet tables.");
+        }
+    }
+
+    private static async Task EnsureIntegrationConnectorsAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await MigrationSqlHelper.ExecuteSqlFileAsync(
+                db,
+                "20260811140000_AddIntegrationConnectors.sql",
+                cancellationToken);
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure integration connector tables.");
+        }
+    }
+
+    private static async Task EnsureIntegrationApiKeysAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await MigrationSqlHelper.ExecuteSqlFileAsync(
+                db,
+                "20260811160000_AddIntegrationApiKeys.sql",
+                cancellationToken);
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure integration API key tables.");
+        }
+    }
+
+    private static async Task EnsurePayrollFinalSettlementsAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await MigrationSqlHelper.ExecuteSqlFileAsync(
+                db,
+                "20260811170000_AddPayrollFinalSettlements.sql",
+                cancellationToken);
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure payroll final settlement tables.");
+        }
+    }
+
+    private static async Task EnsurePayrollEmployeeFinanceAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await MigrationSqlHelper.ExecuteSqlFileAsync(
+                db,
+                "20260811180000_AddPayrollEmployeeFinance.sql",
+                cancellationToken);
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure payroll loan/bonus/arrears tables.");
+        }
+    }
+
+    private static async Task EnsureSecurityControlsAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await MigrationSqlHelper.ExecuteSqlFileAsync(
+                db,
+                "20260811190000_AddSecurityControls.sql",
+                cancellationToken);
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure security control tables.");
+        }
+    }
+
+    private static async Task EnsureCustomReportsAndLicensingAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await MigrationSqlHelper.ExecuteSqlFileAsync(
+                db,
+                "20260811200000_AddCustomReportsAndLicensing.sql",
+                cancellationToken);
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure custom report and licensing invoice tables.");
+        }
     }
 
     private static async Task EnsurePasswordResetIndexesAsync(
@@ -179,6 +642,363 @@ END;";
         catch (System.Exception ex)
         {
             logger?.LogWarning(ex, "Could not ensure password reset indexes on Users.");
+        }
+    }
+
+    private static async Task EnsureProductionReadyHrFinanceAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await MigrationSqlHelper.ExecuteSqlFileAsync(
+                db,
+                "20260817120000_AddProductionReadyHrFinance.sql",
+                cancellationToken);
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure production-ready HR/finance schema.");
+        }
+    }
+
+    private static async Task EnsureDocumentNumberIndexesAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await MigrationSqlHelper.ExecuteSqlFileAsync(
+                db,
+                "20260818010000_AddDocumentNumberIndexes.sql",
+                cancellationToken);
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure unique document-number indexes.");
+        }
+    }
+
+    private static async Task EnsureOptionalDocumentLineItemIdsAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await MigrationSqlHelper.ExecuteSqlFileAsync(
+                db,
+                "20260819053000_OptionalDocumentLineItemIds.sql",
+                cancellationToken);
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not make document-line ItemId optional.");
+        }
+    }
+
+    private static async Task EnsureDiscountSchemesAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await MigrationSqlHelper.ExecuteSqlFileAsync(
+                db,
+                "20260819060000_AddDiscountSchemes.sql",
+                cancellationToken);
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure discount scheme tables.");
+        }
+    }
+
+    private static async Task EnsureOrgScopeColumnsAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        const string dynamicSql = @"
+DECLARE @sqlOrg NVARCHAR(MAX) = '';
+SELECT @sqlOrg = @sqlOrg + 'ALTER TABLE [' + t.TABLE_SCHEMA + '].[' + t.TABLE_NAME + '] ADD CompanyId UNIQUEIDENTIFIER NULL; '
+FROM INFORMATION_SCHEMA.TABLES t
+WHERE t.TABLE_TYPE = 'BASE TABLE'
+  AND t.TABLE_SCHEMA = 'dbo'
+  AND t.TABLE_NAME NOT LIKE '__%'
+  AND NOT EXISTS (
+      SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS c 
+      WHERE c.TABLE_SCHEMA = t.TABLE_SCHEMA 
+        AND c.TABLE_NAME = t.TABLE_NAME 
+        AND c.COLUMN_NAME = 'CompanyId'
+  );
+
+SELECT @sqlOrg = @sqlOrg + 'ALTER TABLE [' + t.TABLE_SCHEMA + '].[' + t.TABLE_NAME + '] ADD ProjectId UNIQUEIDENTIFIER NULL; '
+FROM INFORMATION_SCHEMA.TABLES t
+WHERE t.TABLE_TYPE = 'BASE TABLE'
+  AND t.TABLE_SCHEMA = 'dbo'
+  AND t.TABLE_NAME NOT LIKE '__%'
+  AND NOT EXISTS (
+      SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS c 
+      WHERE c.TABLE_SCHEMA = t.TABLE_SCHEMA 
+        AND c.TABLE_NAME = t.TABLE_NAME 
+        AND c.COLUMN_NAME = 'ProjectId'
+  );
+
+IF LEN(@sqlOrg) > 0 EXEC sp_executesql @sqlOrg;
+";
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(dynamicSql, cancellationToken);
+            logger?.LogInformation("Ensured CompanyId and ProjectId columns across all dbo tables.");
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure dynamic company/project scope columns.");
+        }
+
+        try
+        {
+            await MigrationSqlHelper.ExecuteSqlFileAsync(
+                db,
+                "20260819080000_AddOrgScopeColumns.sql",
+                cancellationToken);
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not apply AddOrgScopeColumns SQL file.");
+        }
+    }
+
+    private static async Task EnsureOrgScopeIndexesAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await MigrationSqlHelper.ExecuteSqlFileAsync(
+                db,
+                "20260819090000_AddOrgScopeIndexes.sql",
+                cancellationToken);
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure company/project list indexes.");
+        }
+    }
+
+    public static async Task EnsureSubscriptionTablesAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        const string sql = @"
+IF OBJECT_ID(N'dbo.SubscriptionPlans', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.SubscriptionPlans (
+        Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY DEFAULT NEWID(),
+        TenantId UNIQUEIDENTIFIER NOT NULL,
+        BusinessId NVARCHAR(100) NULL,
+        CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        UpdatedAt DATETIME2 NULL,
+        CreatedBy UNIQUEIDENTIFIER NULL,
+        UpdatedBy UNIQUEIDENTIFIER NULL,
+        IsDeleted BIT NOT NULL DEFAULT 0,
+        PlanCode NVARCHAR(50) NOT NULL,
+        Name NVARCHAR(200) NOT NULL,
+        Description NVARCHAR(MAX) NOT NULL DEFAULT '',
+        MonthlyPriceInr DECIMAL(18,2) NOT NULL DEFAULT 0,
+        AnnualPriceInr DECIMAL(18,2) NOT NULL DEFAULT 0,
+        MaxUsers INT NOT NULL DEFAULT 5,
+        MaxStorageMb INT NOT NULL DEFAULT 5120,
+        MaxApiCallsPerDay INT NOT NULL DEFAULT 10000,
+        AllowedModulesJson NVARCHAR(MAX) NOT NULL DEFAULT '[]',
+        IsCustomPricing BIT NOT NULL DEFAULT 0,
+        IsActive BIT NOT NULL DEFAULT 1,
+        SortOrder INT NOT NULL DEFAULT 0
+    );
+
+    CREATE UNIQUE INDEX IX_SubscriptionPlans_PlanCode ON dbo.SubscriptionPlans(PlanCode) WHERE IsDeleted = 0;
+END;
+
+IF OBJECT_ID(N'dbo.TenantSubscriptions', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.TenantSubscriptions (
+        Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY DEFAULT NEWID(),
+        TenantId UNIQUEIDENTIFIER NOT NULL,
+        BusinessId NVARCHAR(100) NULL,
+        CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        UpdatedAt DATETIME2 NULL,
+        CreatedBy UNIQUEIDENTIFIER NULL,
+        UpdatedBy UNIQUEIDENTIFIER NULL,
+        IsDeleted BIT NOT NULL DEFAULT 0,
+        PlanId UNIQUEIDENTIFIER NULL,
+        PlanCode NVARCHAR(50) NOT NULL DEFAULT 'trial',
+        Status NVARCHAR(50) NOT NULL DEFAULT 'Active',
+        BillingCycle NVARCHAR(50) NOT NULL DEFAULT 'Monthly',
+        Amount DECIMAL(18,2) NOT NULL DEFAULT 0,
+        Currency NVARCHAR(10) NOT NULL DEFAULT 'INR',
+        StartDate DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        EndDate DATETIME2 NULL,
+        TrialEndsAt DATETIME2 NULL,
+        NextBillingDate DATETIME2 NULL,
+        GatewayProvider NVARCHAR(50) NULL,
+        GatewaySubscriptionId NVARCHAR(200) NULL,
+        GatewayCustomerId NVARCHAR(200) NULL,
+        LastPaymentStatus NVARCHAR(50) NULL,
+        LastPaymentDate DATETIME2 NULL,
+        AutoRenew BIT NOT NULL DEFAULT 1
+    );
+
+    CREATE INDEX IX_TenantSubscriptions_TenantId ON dbo.TenantSubscriptions(TenantId);
+END;
+";
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+            logger?.LogInformation("Ensured SubscriptionPlans and TenantSubscriptions tables.");
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure subscription tables via DDL.");
+        }
+    }
+
+    public static async Task EnsureOutboxMessagesTableAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        const string sql = @"
+IF OBJECT_ID(N'dbo.OutboxMessages', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.OutboxMessages (
+        Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY DEFAULT NEWID(),
+        TenantId UNIQUEIDENTIFIER NOT NULL,
+        BusinessId NVARCHAR(128) NULL,
+        EventType NVARCHAR(256) NOT NULL DEFAULT '',
+        PayloadJson NVARCHAR(MAX) NOT NULL DEFAULT '',
+        OccurredAtUtc DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        ProcessedAtUtc DATETIME2 NULL,
+        Error NVARCHAR(MAX) NULL,
+        RetryCount INT NOT NULL DEFAULT 0,
+        IsProcessed BIT NOT NULL DEFAULT 0,
+        CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        UpdatedAt DATETIME2 NULL,
+        CreatedBy UNIQUEIDENTIFIER NULL,
+        IsDeleted BIT NOT NULL DEFAULT 0
+    );
+
+    CREATE NONCLUSTERED INDEX IX_OutboxMessages_Processing 
+    ON dbo.OutboxMessages (IsProcessed, RetryCount, OccurredAtUtc);
+END;
+";
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+            logger?.LogInformation("Ensured OutboxMessages table.");
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure OutboxMessages table via DDL.");
+        }
+    }
+
+    public static async Task EnsureBusinessIdColumnsAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        const string sql = @"
+IF OBJECT_ID(N'dbo.SubscriptionPlans', N'U') IS NOT NULL AND COL_LENGTH('dbo.SubscriptionPlans', 'BusinessId') IS NULL ALTER TABLE dbo.SubscriptionPlans ADD BusinessId NVARCHAR(100) NULL;
+IF OBJECT_ID(N'dbo.TenantSubscriptions', N'U') IS NOT NULL AND COL_LENGTH('dbo.TenantSubscriptions', 'BusinessId') IS NULL ALTER TABLE dbo.TenantSubscriptions ADD BusinessId NVARCHAR(100) NULL;
+IF OBJECT_ID(N'dbo.AuditLogs', N'U') IS NOT NULL AND COL_LENGTH('dbo.AuditLogs', 'BusinessId') IS NULL ALTER TABLE dbo.AuditLogs ADD BusinessId NVARCHAR(100) NULL;
+IF OBJECT_ID(N'dbo.Users', N'U') IS NOT NULL AND COL_LENGTH('dbo.Users', 'BusinessId') IS NULL ALTER TABLE dbo.Users ADD BusinessId NVARCHAR(100) NULL;
+IF OBJECT_ID(N'dbo.Tenants', N'U') IS NOT NULL AND COL_LENGTH('dbo.Tenants', 'BusinessId') IS NULL ALTER TABLE dbo.Tenants ADD BusinessId NVARCHAR(100) NULL;
+IF OBJECT_ID(N'dbo.Roles', N'U') IS NOT NULL AND COL_LENGTH('dbo.Roles', 'BusinessId') IS NULL ALTER TABLE dbo.Roles ADD BusinessId NVARCHAR(100) NULL;
+IF OBJECT_ID(N'dbo.Permissions', N'U') IS NOT NULL AND COL_LENGTH('dbo.Permissions', 'BusinessId') IS NULL ALTER TABLE dbo.Permissions ADD BusinessId NVARCHAR(100) NULL;
+IF OBJECT_ID(N'dbo.UserRoles', N'U') IS NOT NULL AND COL_LENGTH('dbo.UserRoles', 'BusinessId') IS NULL ALTER TABLE dbo.UserRoles ADD BusinessId NVARCHAR(100) NULL;
+IF OBJECT_ID(N'dbo.RolePermissions', N'U') IS NOT NULL AND COL_LENGTH('dbo.RolePermissions', 'BusinessId') IS NULL ALTER TABLE dbo.RolePermissions ADD BusinessId NVARCHAR(100) NULL;
+IF OBJECT_ID(N'dbo.Employees', N'U') IS NOT NULL AND COL_LENGTH('dbo.Employees', 'BusinessId') IS NULL ALTER TABLE dbo.Employees ADD BusinessId NVARCHAR(100) NULL;
+IF OBJECT_ID(N'dbo.Modules', N'U') IS NOT NULL AND COL_LENGTH('dbo.Modules', 'BusinessId') IS NULL ALTER TABLE dbo.Modules ADD BusinessId NVARCHAR(100) NULL;
+IF OBJECT_ID(N'dbo.TenantModules', N'U') IS NOT NULL AND COL_LENGTH('dbo.TenantModules', 'BusinessId') IS NULL ALTER TABLE dbo.TenantModules ADD BusinessId NVARCHAR(100) NULL;
+IF OBJECT_ID(N'dbo.TenantConfigs', N'U') IS NOT NULL AND COL_LENGTH('dbo.TenantConfigs', 'BusinessId') IS NULL ALTER TABLE dbo.TenantConfigs ADD BusinessId NVARCHAR(100) NULL;
+IF OBJECT_ID(N'dbo.WebsitePages', N'U') IS NOT NULL AND COL_LENGTH('dbo.WebsitePages', 'BusinessId') IS NULL ALTER TABLE dbo.WebsitePages ADD BusinessId NVARCHAR(100) NULL;
+IF OBJECT_ID(N'dbo.ContactSubmissions', N'U') IS NOT NULL AND COL_LENGTH('dbo.ContactSubmissions', 'BusinessId') IS NULL ALTER TABLE dbo.ContactSubmissions ADD BusinessId NVARCHAR(100) NULL;
+
+DECLARE @sql NVARCHAR(MAX) = '';
+SELECT @sql = @sql + 'ALTER TABLE [' + t.TABLE_SCHEMA + '].[' + t.TABLE_NAME + '] ADD BusinessId NVARCHAR(100) NULL; '
+FROM INFORMATION_SCHEMA.TABLES t
+WHERE t.TABLE_TYPE = 'BASE TABLE'
+  AND t.TABLE_SCHEMA = 'dbo'
+  AND t.TABLE_NAME NOT LIKE '__%'
+  AND NOT EXISTS (
+      SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS c 
+      WHERE c.TABLE_SCHEMA = t.TABLE_SCHEMA 
+        AND c.TABLE_NAME = t.TABLE_NAME 
+        AND c.COLUMN_NAME = 'BusinessId'
+  );
+IF LEN(@sql) > 0 EXEC sp_executesql @sql;
+";
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+            logger?.LogInformation("Ensured BusinessId column across all dbo database tables.");
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure BusinessId column across all tables.");
+        }
+    }
+
+    public static async Task EnsurePerformanceIndexesAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        const string sql = @"
+IF OBJECT_ID(N'dbo.NotificationMessages', N'U') IS NOT NULL
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_NotificationMessages_Tenant_User_Read' AND object_id = OBJECT_ID('dbo.NotificationMessages'))
+    BEGIN
+        CREATE NONCLUSTERED INDEX [IX_NotificationMessages_Tenant_User_Read]
+        ON [dbo].[NotificationMessages] ([TenantId], [RecipientUserId], [IsDeleted], [IsRead], [CreatedAt] DESC)
+        INCLUDE ([Title], [Message], [Channel], [Type], [Status], [SentAt], [ReadAt], [CompanyId], [ProjectId]);
+    END
+END;
+
+IF OBJECT_ID(N'dbo.AuditLogs', N'U') IS NOT NULL
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_AuditLogs_Tenant_Created' AND object_id = OBJECT_ID('dbo.AuditLogs'))
+    BEGIN
+        CREATE NONCLUSTERED INDEX [IX_AuditLogs_Tenant_Created]
+        ON [dbo].[AuditLogs] ([TenantId], [CreatedAt] DESC)
+        INCLUDE ([Action], [EntityName], [EntityId], [PerformedBy], [IsDeleted]);
+    END
+END;
+
+IF OBJECT_ID(N'dbo.Users', N'U') IS NOT NULL AND COL_LENGTH('dbo.Users', 'EmailHash') IS NOT NULL
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Users_TenantId_EmailHash' AND object_id = OBJECT_ID('dbo.Users'))
+    BEGIN
+        CREATE NONCLUSTERED INDEX [IX_Users_TenantId_EmailHash]
+        ON [dbo].[Users] ([TenantId], [EmailHash])
+        WHERE [IsDeleted] = 0;
+    END
+END;
+";
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+            logger?.LogInformation("Ensured performance covering indexes on NotificationMessages and AuditLogs.");
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Non-critical: could not create performance indexes.");
         }
     }
 

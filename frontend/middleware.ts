@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getServerApiV1BaseUrl } from "@/lib/api-base-url";
-import { AUTH_PATH_PREFIXES, BUSINESS_PATH_PREFIXES, OWNER_PATH_PREFIXES, matchesAnyPrefix } from "@/lib/erp/route-config";
-import { isPlatformOnlyPath, TENANT_PUBLIC_HOME } from "@/lib/erp/public-routing";
+import { AUTH_PATH_PREFIXES, BUSINESS_PATH_PREFIXES, OWNER_PATH_PREFIXES, matchesAnyPrefix } from "@/lib/workspace/route-config";
+import { isPlatformOnlyPath, TENANT_PUBLIC_HOME } from "@/lib/workspace/public-routing";
 import { hasTenantScopedHost, isLocalhostHostname } from "@/lib/tenant-host";
+import crypto from "crypto";
 
 const API_BASE_URL = getServerApiV1BaseUrl();
 const PROTECTED_PREFIXES = [...BUSINESS_PATH_PREFIXES, ...OWNER_PATH_PREFIXES, "/context"];
@@ -27,6 +28,13 @@ const ADMINISTRATION_REDIRECTS: [string, string][] = [
   ["/administration/profile", "/profile"],
   ["/administration", "/platform/settings"],
 ];
+
+interface TenantHostCacheEntry {
+  exists: boolean;
+  timestamp: number;
+}
+const TENANT_CACHE_TTL_MS = 60_000;
+const tenantHostCache = new Map<string, TenantHostCacheEntry>();
 
 export async function middleware(request: NextRequest) {
   const hostname = request.nextUrl.hostname.toLowerCase();
@@ -63,26 +71,44 @@ export async function middleware(request: NextRequest) {
   }
 
   if (hasTenantScopedHost(hostname)) {
-    try {
-      const res = await fetch(`${API_BASE_URL}/tenants/resolve?host=${encodeURIComponent(hostname)}`, { cache: "no-store" });
-      if (!res.ok) {
+    const cached = tenantHostCache.get(hostname);
+    let exists = false;
+    if (cached && Date.now() - cached.timestamp < TENANT_CACHE_TTL_MS) {
+      exists = cached.exists;
+    } else {
+      try {
+        const res = await fetch(`${API_BASE_URL}/tenants/resolve?host=${encodeURIComponent(hostname)}`, {
+          cache: "no-store",
+          headers: { Accept: "application/json" },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          exists = Boolean(data?.exists);
+          tenantHostCache.set(hostname, { exists, timestamp: Date.now() });
+        } else {
+          tenantHostCache.set(hostname, { exists: false, timestamp: Date.now() });
+        }
+      } catch {
         return NextResponse.redirect(new URL("/tenant-not-found", request.url));
       }
+    }
 
-      const data = await res.json();
-      if (!data?.exists) {
-        return NextResponse.redirect(new URL("/tenant-not-found", request.url));
-      }
-
-      if (pathname === "/" || isPlatformOnlyPath(pathname)) {
-        return NextResponse.redirect(new URL(TENANT_PUBLIC_HOME, request.url));
-      }
-    } catch {
+    if (!exists) {
       return NextResponse.redirect(new URL("/tenant-not-found", request.url));
+    }
+
+    if (pathname === "/" || isPlatformOnlyPath(pathname)) {
+      return NextResponse.redirect(new URL(TENANT_PUBLIC_HOME, request.url));
     }
   }
 
-  return NextResponse.next();
+  // Generate CSP nonce and set security headers
+  const nonce = crypto.randomBytes(16).toString("base64");
+  const csp = `default-src 'self'; script-src 'self' 'nonce-${nonce}' https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`;
+  const response = NextResponse.next();
+  response.headers.set("Content-Security-Policy", csp);
+  response.headers.set("X-Content-Nonce", nonce);
+  return response;
 }
 
 export const config = {

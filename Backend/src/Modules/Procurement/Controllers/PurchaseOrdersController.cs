@@ -2,8 +2,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using UabIndia.Api.Models;
 using UabIndia.Application.Interfaces;
 using UabIndia.Core.Entities;
 using UabIndia.Infrastructure.Data;
@@ -17,11 +19,13 @@ namespace UabIndia.Api.Modules.Procurement.Controllers
     {
         private readonly ApplicationDbContext _db;
         private readonly ITenantAccessor _tenantAccessor;
+        private readonly ICommercialOrderService _orders;
 
-        public PurchaseOrdersController(ApplicationDbContext db, ITenantAccessor tenantAccessor)
+        public PurchaseOrdersController(ApplicationDbContext db, ITenantAccessor tenantAccessor, ICommercialOrderService orders)
         {
             _db = db;
             _tenantAccessor = tenantAccessor;
+            _orders = orders;
         }
 
         [HttpGet]
@@ -48,7 +52,33 @@ namespace UabIndia.Api.Modules.Procurement.Controllers
         {
             var tenantId = _tenantAccessor.GetTenantId();
             var order = await _db.PurchaseOrders
-                .FirstOrDefaultAsync(o => o.Id == id && o.TenantId == tenantId && !o.IsDeleted);
+                .AsNoTracking()
+                .Where(o => o.Id == id && o.TenantId == tenantId && !o.IsDeleted)
+                .Select(o => new
+                {
+                    o.Id,
+                    o.PONumber,
+                    o.PODate,
+                    o.VendorId,
+                    o.ExpectedDeliveryDate,
+                    o.Status,
+                    o.SubTotal,
+                    o.TaxAmount,
+                    o.TotalAmount,
+                    o.Notes,
+                    Items = o.Items.Select(x => new
+                    {
+                        x.Id,
+                        x.ItemId,
+                        x.Description,
+                        x.Quantity,
+                        x.UnitPrice,
+                        x.TaxRate,
+                        x.TaxAmount,
+                        x.TotalAmount
+                    }).ToList()
+                })
+                .FirstOrDefaultAsync();
             if (order == null) return NotFound();
             return Ok(order);
         }
@@ -57,27 +87,16 @@ namespace UabIndia.Api.Modules.Procurement.Controllers
         [Authorize(Policy = "AdminOnly")]
         public async Task<IActionResult> Create([FromBody] CreatePurchaseOrderDto dto)
         {
-            var tenantId = _tenantAccessor.GetTenantId();
-
-            var order = new PurchaseOrder
-            {
-                PONumber = dto.PONumber,
-                PODate = dto.PODate,
-                VendorId = dto.VendorId,
-                ExpectedDeliveryDate = dto.ExpectedDeliveryDate,
-                TotalAmount = dto.TotalAmount,
-                Status = dto.Status ?? "Draft",
-                Notes = dto.Notes,
-                SubTotal = dto.TotalAmount,
-                TaxAmount = 0,
-                DiscountAmount = 0,
-                ShippingCharges = 0,
-                TenantId = tenantId,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            _db.PurchaseOrders.Add(order);
-            await _db.SaveChangesAsync();
+            var order = await _orders.CreatePurchaseOrderAsync(new CreatePurchaseOrderCommand(
+                dto.PONumber,
+                dto.PODate,
+                dto.VendorId,
+                dto.ExpectedDeliveryDate,
+                dto.TotalAmount,
+                dto.DiscountAmount,
+                dto.Status,
+                dto.Notes,
+                DocumentLines.ToCommands(dto.Items)));
             return Ok(new { message = "Purchase order created successfully", order });
         }
 
@@ -97,6 +116,7 @@ namespace UabIndia.Api.Modules.Procurement.Controllers
                 order.TotalAmount = dto.TotalAmount.Value;
                 order.SubTotal = dto.TotalAmount.Value;
             }
+            if (dto.DiscountAmount.HasValue) order.DiscountAmount = dto.DiscountAmount.Value;
             if (!string.IsNullOrWhiteSpace(dto.Status)) order.Status = dto.Status;
             if (dto.Notes != null) order.Notes = dto.Notes;
             order.UpdatedAt = DateTime.UtcNow;
@@ -130,8 +150,10 @@ namespace UabIndia.Api.Modules.Procurement.Controllers
         public Guid VendorId { get; set; }
         public DateTime? ExpectedDeliveryDate { get; set; }
         public decimal TotalAmount { get; set; }
+        public decimal DiscountAmount { get; set; }
         public string? Status { get; set; }
         public string? Notes { get; set; }
+        public List<DocumentLineDto>? Items { get; set; }
     }
 
     public class UpdatePurchaseOrderDto
@@ -139,6 +161,7 @@ namespace UabIndia.Api.Modules.Procurement.Controllers
         public DateTime? PODate { get; set; }
         public DateTime? ExpectedDeliveryDate { get; set; }
         public decimal? TotalAmount { get; set; }
+        public decimal? DiscountAmount { get; set; }
         public string? Status { get; set; }
         public string? Notes { get; set; }
     }

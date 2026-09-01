@@ -5,7 +5,6 @@ using UabIndia.Core.Entities;
 using UabIndia.Infrastructure.Data;
 using UabIndia.Application.Interfaces;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -18,18 +17,23 @@ namespace UabIndia.Api.Modules.CRM.Controllers
     {
         private readonly ApplicationDbContext _db;
         private readonly ITenantAccessor _tenantAccessor;
+        private readonly IDocumentNumberService _numbers;
 
-        public CustomersController(ApplicationDbContext db, ITenantAccessor tenantAccessor)
+        public CustomersController(ApplicationDbContext db, ITenantAccessor tenantAccessor, IDocumentNumberService numbers)
         {
             _db = db;
             _tenantAccessor = tenantAccessor;
+            _numbers = numbers;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int limit = 10)
         {
             var tenantId = _tenantAccessor.GetTenantId();
-            
+            if (page < 1) page = 1;
+            if (limit < 1) limit = 10;
+            if (limit > 100) limit = 100;
+
             var total = await _db.Customers.CountAsync(c => c.TenantId == tenantId && !c.IsDeleted);
             var customers = await _db.Customers
                 .Where(c => c.TenantId == tenantId && !c.IsDeleted)
@@ -38,14 +42,7 @@ namespace UabIndia.Api.Modules.CRM.Controllers
                 .Take(limit)
                 .ToListAsync();
 
-            return Ok(new
-            {
-                data = customers,
-                total,
-                page,
-                limit,
-                pages = (total + limit - 1) / limit
-            });
+            return Ok(new { success = true, data = customers, total, page, limit, pages = (total + limit - 1) / limit });
         }
 
         [HttpGet("{id}")]
@@ -53,32 +50,35 @@ namespace UabIndia.Api.Modules.CRM.Controllers
         {
             var tenantId = _tenantAccessor.GetTenantId();
             var customer = await _db.Customers
-                .FirstOrDefaultAsync(c => c.Id == id && c.TenantId == tenantId);
+                .FirstOrDefaultAsync(c => c.Id == id && c.TenantId == tenantId && !c.IsDeleted);
 
             if (customer == null)
-                return NotFound(new { message = "Customer not found" });
+                return NotFound(new { success = false, error = "Customer not found" });
 
-            return Ok(customer);
+            return Ok(new { success = true, data = customer });
         }
 
         [HttpPost]
-        [Authorize(Policy = "AdminOnly")]
         public async Task<IActionResult> Create([FromBody] CreateCustomerDto dto)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            if (string.IsNullOrWhiteSpace(dto.CustomerName))
+                return BadRequest(new { success = false, error = "Customer name is required" });
 
             var tenantId = _tenantAccessor.GetTenantId();
 
-            // Check for duplicate code
-            var exists = await _db.Customers
-                .AnyAsync(c => c.CustomerCode == dto.CustomerCode && c.TenantId == tenantId && !c.IsDeleted);
-            if (exists)
-                return BadRequest(new { message = "Customer code already exists" });
+            if (!string.IsNullOrWhiteSpace(dto.CustomerCode))
+            {
+                var exists = await _db.Customers
+                    .AnyAsync(c => c.CustomerCode == dto.CustomerCode && c.TenantId == tenantId && !c.IsDeleted);
+                if (exists)
+                    return BadRequest(new { success = false, error = "Customer code already exists" });
+            }
 
             var customer = new Customer
             {
-                CustomerCode = dto.CustomerCode,
+                CustomerCode = string.IsNullOrWhiteSpace(dto.CustomerCode)
+                    ? await _numbers.NextAsync("Customer", "CUST-", 5)
+                    : dto.CustomerCode,
                 CustomerName = dto.CustomerName,
                 CustomerType = dto.CustomerType ?? "Individual",
                 CompanyName = dto.CompanyName,
@@ -95,9 +95,10 @@ namespace UabIndia.Api.Modules.CRM.Controllers
                 PostalCode = dto.PostalCode,
                 ContactPerson = dto.ContactPerson,
                 CreditLimit = dto.CreditLimit,
-                PaymentTerms = dto.PaymentTerms ?? 30,
+                PaymentTerms = dto.PaymentTerms > 0 ? dto.PaymentTerms : 30,
                 OpeningBalance = dto.OpeningBalance,
-                Status = "Active",
+                Status = dto.Status ?? "Active",
+                Notes = dto.Notes,
                 TenantId = tenantId,
                 CreatedAt = DateTime.UtcNow
             };
@@ -105,11 +106,10 @@ namespace UabIndia.Api.Modules.CRM.Controllers
             _db.Customers.Add(customer);
             await _db.SaveChangesAsync();
 
-            return Ok(new { message = "Customer created successfully", customer });
+            return Ok(new { success = true, message = "Customer created successfully", data = customer });
         }
 
         [HttpPut("{id}")]
-        [Authorize(Policy = "AdminOnly")]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCustomerDto dto)
         {
             var tenantId = _tenantAccessor.GetTenantId();
@@ -117,29 +117,36 @@ namespace UabIndia.Api.Modules.CRM.Controllers
                 .FirstOrDefaultAsync(c => c.Id == id && c.TenantId == tenantId && !c.IsDeleted);
 
             if (customer == null)
-                return NotFound(new { message = "Customer not found" });
+                return NotFound(new { success = false, error = "Customer not found" });
 
-            customer.CustomerName = dto.CustomerName ?? customer.CustomerName;
-            customer.Email = dto.Email ?? customer.Email;
-            customer.PhoneNumber = dto.PhoneNumber ?? customer.PhoneNumber;
-            customer.MobileNumber = dto.MobileNumber ?? customer.MobileNumber;
-            customer.BillingAddress = dto.BillingAddress ?? customer.BillingAddress;
-            customer.ShippingAddress = dto.ShippingAddress ?? customer.ShippingAddress;
-            customer.City = dto.City ?? customer.City;
-            customer.State = dto.State ?? customer.State;
-            customer.PostalCode = dto.PostalCode ?? customer.PostalCode;
-            customer.CreditLimit = dto.CreditLimit ?? customer.CreditLimit;
-            customer.Status = dto.Status ?? customer.Status;
+            if (dto.CustomerName != null) customer.CustomerName = dto.CustomerName;
+            if (dto.CustomerType != null) customer.CustomerType = dto.CustomerType;
+            if (dto.CompanyName != null) customer.CompanyName = dto.CompanyName;
+            if (dto.GSTNumber != null) customer.GSTNumber = dto.GSTNumber;
+            if (dto.PANNumber != null) customer.PANNumber = dto.PANNumber;
+            if (dto.Email != null) customer.Email = dto.Email;
+            if (dto.PhoneNumber != null) customer.PhoneNumber = dto.PhoneNumber;
+            if (dto.MobileNumber != null) customer.MobileNumber = dto.MobileNumber;
+            if (dto.BillingAddress != null) customer.BillingAddress = dto.BillingAddress;
+            if (dto.ShippingAddress != null) customer.ShippingAddress = dto.ShippingAddress;
+            if (dto.City != null) customer.City = dto.City;
+            if (dto.State != null) customer.State = dto.State;
+            if (dto.Country != null) customer.Country = dto.Country;
+            if (dto.PostalCode != null) customer.PostalCode = dto.PostalCode;
+            if (dto.ContactPerson != null) customer.ContactPerson = dto.ContactPerson;
+            if (dto.CreditLimit.HasValue) customer.CreditLimit = dto.CreditLimit.Value;
+            if (dto.PaymentTerms.HasValue) customer.PaymentTerms = dto.PaymentTerms.Value;
+            if (dto.Status != null) customer.Status = dto.Status;
+            if (dto.Notes != null) customer.Notes = dto.Notes;
             customer.UpdatedAt = DateTime.UtcNow;
 
             _db.Customers.Update(customer);
             await _db.SaveChangesAsync();
 
-            return Ok(new { message = "Customer updated successfully", customer });
+            return Ok(new { success = true, message = "Customer updated successfully", data = customer });
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Policy = "AdminOnly")]
         public async Task<IActionResult> Delete(Guid id)
         {
             var tenantId = _tenantAccessor.GetTenantId();
@@ -147,14 +154,14 @@ namespace UabIndia.Api.Modules.CRM.Controllers
                 .FirstOrDefaultAsync(c => c.Id == id && c.TenantId == tenantId && !c.IsDeleted);
 
             if (customer == null)
-                return NotFound(new { message = "Customer not found" });
+                return NotFound(new { success = false, error = "Customer not found" });
 
             customer.IsDeleted = true;
             customer.UpdatedAt = DateTime.UtcNow;
             _db.Customers.Update(customer);
             await _db.SaveChangesAsync();
 
-            return Ok(new { message = "Customer deleted successfully" });
+            return Ok(new { success = true, message = "Customer deleted successfully" });
         }
     }
 
@@ -177,13 +184,19 @@ namespace UabIndia.Api.Modules.CRM.Controllers
         public string? PostalCode { get; set; }
         public string? ContactPerson { get; set; }
         public decimal CreditLimit { get; set; }
-        public int? PaymentTerms { get; set; }
+        public int PaymentTerms { get; set; } = 30;
         public decimal OpeningBalance { get; set; }
+        public string? Status { get; set; }
+        public string? Notes { get; set; }
     }
 
     public class UpdateCustomerDto
     {
         public string? CustomerName { get; set; }
+        public string? CustomerType { get; set; }
+        public string? CompanyName { get; set; }
+        public string? GSTNumber { get; set; }
+        public string? PANNumber { get; set; }
         public string? Email { get; set; }
         public string? PhoneNumber { get; set; }
         public string? MobileNumber { get; set; }
@@ -191,8 +204,12 @@ namespace UabIndia.Api.Modules.CRM.Controllers
         public string? ShippingAddress { get; set; }
         public string? City { get; set; }
         public string? State { get; set; }
+        public string? Country { get; set; }
         public string? PostalCode { get; set; }
+        public string? ContactPerson { get; set; }
         public decimal? CreditLimit { get; set; }
+        public int? PaymentTerms { get; set; }
         public string? Status { get; set; }
+        public string? Notes { get; set; }
     }
 }

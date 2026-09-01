@@ -1,6 +1,6 @@
 UabIndia ERP — Backend
 
-This folder contains the .NET 8 Clean Architecture backend for the UabIndia ERP platform.
+This folder contains the .NET 10 Clean Architecture backend for the UabIndia ERP platform.
 
 Structure:
 - src/UabIndia.Api: API project (controllers, middleware)

@@ -1,10 +1,12 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Calendar, Pencil, Users } from "lucide-react";
+import { Calendar, Users } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
+import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
 import { SideDrawer } from "@/components/ui/side-drawer";
-import { ListCreateButton } from "@/components/erp/list-toolbar";
+import { ErpCreateButton, ErpRefreshButton, ErpRowActions } from "@/components/workspace/page-kit";
+import { useErpListView } from "@/components/workspace/list-view";
 import {
   erpButtonClassName,
   erpFormInputClassName,
@@ -15,9 +17,7 @@ import {
   erpStatusBadgeTone,
   erpTableRowHoverClassName,
   erpTableTdClassName,
-  erpTableThClassName,
-  erpTableWrapClassName,
-} from "@/components/erp/erpStyles";
+} from "@/components/workspace/styles";
 import { crmApi } from "@/services/modules";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { notifyError, notifySuccess } from "@/lib/notifications";
@@ -37,8 +37,7 @@ type Lead = {
 
 const STAGES = ["New", "Contacted", "Qualified", "Proposal", "Negotiation", "Closed Won", "Closed Lost"];
 
-const formatCurrency = (value?: number) =>
-  value != null ? `₹${value.toLocaleString("en-IN")}` : "—";
+const formatCurrency = (value?: number) => (value != null ? `₹${value.toLocaleString("en-IN")}` : "—");
 
 export default function CRMLeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -75,7 +74,7 @@ export default function CRMLeadsPage() {
           expectedCloseDate: row.expectedCloseDate ? String(row.expectedCloseDate) : undefined,
           stage: String(row.stage ?? "New"),
           owner: row.owner ? String(row.owner) : undefined,
-        })),
+        }))
       );
     } catch (err) {
       const message = getApiErrorMessage(err, "Failed to load leads.");
@@ -149,8 +148,46 @@ export default function CRMLeadsPage() {
         stage,
         items: leads.filter((l) => l.stage === stage || (stage === "New" && !l.stage)),
       })),
-    [leads],
+    [leads]
   );
+
+  const list = useErpListView({
+    listKey: "crm-leads",
+    rows: leads,
+    columns: [
+      { key: "leadName", label: "Lead" },
+      { key: "customerName", label: "Customer" },
+      { key: "value", label: "Value", dataType: "currency" },
+      { key: "stage", label: "Stage" },
+      { key: "status", label: "Status" },
+      { key: "owner", label: "Owner" },
+      { key: "actions", label: "Actions", className: "text-right", locked: true },
+    ],
+    getRowId: (lead) => lead.id,
+    loading,
+    emptyMessage: "No leads found. Create your first lead to start tracking the CRM pipeline.",
+    onCreate: openCreate,
+    createLabel: "Add lead",
+    onRefresh: () => void load(),
+    renderRow: (lead) => (
+      <tr key={lead.id} className={erpTableRowHoverClassName}>
+        <td className={`${erpTableTdClassName} font-medium text-slate-900`}>{lead.leadName}</td>
+        <td className={erpTableTdClassName}>{lead.customerName || "—"}</td>
+        <td className={erpTableTdClassName}>{formatCurrency(lead.value)}</td>
+        <td className={erpTableTdClassName}>{lead.stage || "New"}</td>
+        <td className={erpTableTdClassName}>{lead.status || "—"}</td>
+        <td className={erpTableTdClassName}>{lead.owner || "Unassigned"}</td>
+        <td className={`${erpTableTdClassName} text-right`}>
+          <ErpRowActions
+            onEdit={{
+              label: "Edit",
+              onClick: () => openEdit(lead),
+            }}
+          />
+        </td>
+      </tr>
+    ),
+  });
 
   return (
     <StandardPageLayout
@@ -159,13 +196,21 @@ export default function CRMLeadsPage() {
       eyebrow="CRM / Leads"
       icon="pipeline"
       meta={
-        !loading ? (
-          <span className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
-            {leads.length} leads
-          </span>
-        ) : null
+        <CrudHeaderStats
+          items={[
+            { label: "Leads", value: leads.length, tone: "info" },
+            { label: "Open", value: leads.filter((l) => l.status === "Open" || !l.status).length, tone: "positive" },
+          ]}
+        />
       }
-      actions={<ListCreateButton label="Add lead" onClick={openCreate} />}
+      actions={
+        <>
+          <ErpRefreshButton onClick={() => void load()} loading={loading} />
+          {list.headerTools}
+          <ErpCreateButton label="Add lead" onClick={openCreate} />
+        </>
+      }
+      filters={list.filterBar}
     >
       {error ? (
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
@@ -209,9 +254,7 @@ export default function CRMLeadsPage() {
                         <p className="text-xs text-slate-500">{lead.customerName || "New lead"}</p>
                         <div className="mt-2 flex items-center justify-between text-xs">
                           <span className="font-semibold text-slate-700">{formatCurrency(lead.value)}</span>
-                          {lead.probability != null ? (
-                            <span className="text-slate-500">{lead.probability}%</span>
-                          ) : null}
+                          {lead.probability != null ? <span className="text-slate-500">{lead.probability}%</span> : null}
                         </div>
                         {lead.expectedCloseDate ? (
                           <div className="mt-1 flex items-center gap-1 text-xs text-slate-500">
@@ -232,61 +275,7 @@ export default function CRMLeadsPage() {
         </div>
       </section>
 
-      <section className={erpPanelClassName}>
-        <div className={erpPanelHeaderClassName}>
-          <h2 className={erpPanelTitleClassName}>Recent leads</h2>
-        </div>
-        <div className={erpPanelBodyClassName}>
-          <div className={erpTableWrapClassName}>
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead>
-                <tr>
-                  <th className={erpTableThClassName}>Lead</th>
-                  <th className={erpTableThClassName}>Customer</th>
-                  <th className={erpTableThClassName}>Value</th>
-                  <th className={erpTableThClassName}>Stage</th>
-                  <th className={erpTableThClassName}>Status</th>
-                  <th className={erpTableThClassName}>Owner</th>
-                  <th className={`${erpTableThClassName} text-right`}>Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
-                {loading ? (
-                  Array.from({ length: 4 }).map((_, i) => (
-                    <tr key={i}>
-                      <td colSpan={7} className={erpTableTdClassName}>
-                        <div className="h-4 animate-pulse rounded bg-slate-100" />
-                      </td>
-                    </tr>
-                  ))
-                ) : leads.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className={`${erpTableTdClassName} py-10 text-center text-slate-500`}>
-                      No leads found.
-                    </td>
-                  </tr>
-                ) : (
-                  leads.slice(0, 10).map((lead) => (
-                    <tr key={lead.id} className={erpTableRowHoverClassName}>
-                      <td className={`${erpTableTdClassName} font-medium text-slate-900`}>{lead.leadName}</td>
-                      <td className={erpTableTdClassName}>{lead.customerName || "—"}</td>
-                      <td className={erpTableTdClassName}>{formatCurrency(lead.value)}</td>
-                      <td className={erpTableTdClassName}>{lead.stage || "New"}</td>
-                      <td className={erpTableTdClassName}>{lead.status || "—"}</td>
-                      <td className={erpTableTdClassName}>{lead.owner || "Unassigned"}</td>
-                      <td className={`${erpTableTdClassName} text-right`}>
-                        <button type="button" className={`${erpButtonClassName.ghost} h-8 px-2`} onClick={() => openEdit(lead)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
+      <CrudCard>{list.table}</CrudCard>
 
       <SideDrawer
         open={drawerOpen}

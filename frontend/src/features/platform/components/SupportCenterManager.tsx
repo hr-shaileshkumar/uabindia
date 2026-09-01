@@ -1,129 +1,180 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
-import { Plus, Search } from "lucide-react";
-import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
-import { EmptyState } from "@/components/erp/empty-state";
-import { StatusBadge } from "@/components/erp/status-badge";
-import {
-  erpButtonClassName,
-  erpFormInputClassName,
-  erpPanelClassName,
-  erpTableTdClassName,
-  erpTableThClassName,
-} from "@/components/erp/erpStyles";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { PlatformGlobalPageShell } from "@/components/platform/PlatformGlobalPageShell";
+import { ErpDrawerFooter, ErpRowActions } from "@/components/workspace/page-kit";
+import { SideDrawer } from "@/components/ui/side-drawer";
 import { getApiErrorMessage } from "@/lib/api-errors";
+import { notifyError, notifySuccess } from "@/lib/notifications";
+import { appApi } from "@/services/modules/app";
 import { mapHelpdeskTicket, useHelpdeskTickets } from "@/features/platform/hooks/useHelpdeskTickets";
 
-const priorityTone = (priority: string) => {
-  if (priority === "High") return "danger" as const;
-  if (priority === "Medium") return "warning" as const;
-  return "info" as const;
-};
-
-const ticketStatusTone = (status: string) => {
-  if (status === "Resolved") return "positive" as const;
-  if (status === "In Progress") return "info" as const;
-  return "warning" as const;
-};
-
 export function SupportCenterManager() {
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [form, setForm] = useState({
+    subject: "",
+    description: "",
+    priority: "Medium",
+    category: "General",
+  });
   const { data, isLoading, isError, error, refetch } = useHelpdeskTickets(1, 50);
 
   const tickets = useMemo(() => (data?.tickets ?? []).map(mapHelpdeskTicket), [data?.tickets]);
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return tickets.filter((t) => {
+      const matchesSearch =
+        !q || t.subject.toLowerCase().includes(q) || t.ticketNumber.toLowerCase().includes(q);
+      const matchesStatus = statusFilter === "all" || t.status.toLowerCase() === statusFilter.toLowerCase();
+      return matchesSearch && matchesStatus;
+    });
+  }, [tickets, search, statusFilter]);
 
-  const filtered = tickets.filter(
-    (t) =>
-      t.subject.toLowerCase().includes(search.toLowerCase()) ||
-      t.ticketNumber.toLowerCase().includes(search.toLowerCase())
-  );
+  const createTicket = useMutation({
+    mutationFn: () =>
+      appApi.helpdesk.tickets.create({
+        subject: form.subject.trim(),
+        description: form.description.trim() || undefined,
+        priority: form.priority,
+        category: form.category,
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["helpdesk", "tickets"] });
+    },
+  });
+
+  const updateTicket = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      appApi.helpdesk.tickets.update(id, { status }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["helpdesk", "tickets"] });
+    },
+  });
+
+  const save = async () => {
+    if (!form.subject.trim()) {
+      notifyError("Subject is required.");
+      return;
+    }
+    try {
+      await createTicket.mutateAsync();
+      notifySuccess("Ticket created.");
+      setDrawerOpen(false);
+      setForm({ subject: "", description: "", priority: "Medium", category: "General" });
+    } catch (err) {
+      notifyError(getApiErrorMessage(err, "Failed to create ticket."));
+    }
+  };
 
   return (
-    <StandardPageLayout
-      title="Support Center & Knowledge Base"
-      subtitle="Manage customer support tickets, knowledge articles, release notes, and SLA resolution queues."
-      eyebrow="Platform"
-      icon="help-circle"
-      meta={
-        <CrudHeaderStats
-          items={[
-            { label: "Open", value: tickets.filter((t) => t.status !== "Resolved").length, tone: "warning" },
-            { label: "Resolved", value: tickets.filter((t) => t.status === "Resolved").length, tone: "positive" },
-            { label: "Total", value: data?.total ?? tickets.length, tone: "info" },
-          ]}
-        />
-      }
-      actions={
-        <>
-          <button type="button" className={`${erpButtonClassName.primary} gap-1.5`} disabled>
-            <Plus className="h-4 w-4" />
-            Create Ticket
-          </button>
-          <button type="button" onClick={() => void refetch()} className={erpButtonClassName.secondary}>
-            Refresh
-          </button>
-        </>
-      }
-      filters={
-        <div className="relative max-w-md">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search ticket ID or subject…"
-            className={`${erpFormInputClassName} pl-9`}
-          />
-        </div>
-      }
-    >
-      {isError && (
-        <div className="erp-alert-error text-sm">{getApiErrorMessage(error, "Failed to load support tickets.")}</div>
-      )}
-
-      <CrudCard title="Support ticket queue" description="Live helpdesk tickets from the platform API.">
-        {isLoading ? (
-          <div className="erp-loading">Loading tickets…</div>
-        ) : filtered.length === 0 ? (
-          <EmptyState
-            title="No support tickets found"
-            description="Support tickets will appear here once customers or employees raise requests through the helpdesk."
-            ctaLabel="Refresh list"
-            onClick={() => void refetch()}
-          />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr>
-                  <th className={erpTableThClassName}>Ticket</th>
-                  <th className={erpTableThClassName}>Subject</th>
-                  <th className={erpTableThClassName}>Priority</th>
-                  <th className={erpTableThClassName}>Status</th>
-                  <th className={erpTableThClassName}>Created</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((t) => (
-                  <tr key={t.id} className="border-t border-slate-100 hover:bg-slate-50">
-                    <td className={`${erpTableTdClassName} font-mono text-xs font-semibold text-slate-900`}>{t.ticketNumber}</td>
-                    <td className={erpTableTdClassName}>{t.subject}</td>
-                    <td className={erpTableTdClassName}>
-                      <StatusBadge tone={priorityTone(t.priority)}>{t.priority}</StatusBadge>
-                    </td>
-                    <td className={erpTableTdClassName}>
-                      <StatusBadge tone={ticketStatusTone(t.status)}>{t.status}</StatusBadge>
-                    </td>
-                    <td className={`${erpTableTdClassName} text-xs text-slate-500`}>{t.createdAt}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+    <>
+      <PlatformGlobalPageShell
+        title="Support center"
+        categoryTag="Platform"
+        icon="help-circle"
+        kpiMetrics={[
+          { label: "Open", value: tickets.filter((t) => t.status !== "Resolved").length, tone: "warning" },
+          { label: "Resolved", value: tickets.filter((t) => t.status === "Resolved").length, tone: "positive" },
+          { label: "Total", value: data?.total ?? tickets.length, tone: "info" },
+        ]}
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search ticket ID or subject…"
+        filterOptions={[
+          {
+            key: "status",
+            label: "Status",
+            value: statusFilter,
+            onChange: setStatusFilter,
+            options: [
+              { label: "All", value: "all" },
+              { label: "Open", value: "open" },
+              { label: "In Progress", value: "in progress" },
+              { label: "Resolved", value: "resolved" },
+            ],
+          },
+        ]}
+        primaryActionLabel="New ticket"
+        onPrimaryAction={() => setDrawerOpen(true)}
+        onRefresh={() => void refetch()}
+        isLoading={isLoading}
+        listKey="platform-support-tickets"
+        listRows={filtered}
+        getRowId={(row) => row.id}
+        emptyMessage="No support tickets yet."
+        listColumns={[
+          { key: "ticketNumber", label: "Ticket", dataType: "string" },
+          { key: "subject", label: "Subject", dataType: "string" },
+          { key: "priority", label: "Priority", dataType: "string" },
+          { key: "status", label: "Status", dataType: "string" },
+          { key: "actions", label: "Actions", locked: true },
+        ]}
+        renderListRow={(t) => (
+          <tr key={t.id} className="erp-tr">
+            <td className="erp-td font-mono text-xs">{t.ticketNumber}</td>
+            <td className="erp-td text-xs font-semibold">{t.subject}</td>
+            <td className="erp-td text-xs">{t.priority}</td>
+            <td className="erp-td">
+              <span className={t.status === "Resolved" ? "erp-chip erp-chip-success" : "erp-chip erp-chip-warning"}>{t.status}</span>
+            </td>
+            <td className="erp-td text-right">
+              <ErpRowActions
+                extra={
+                  t.status !== "Resolved" ? (
+                    <button
+                      type="button"
+                      className="rounded-md px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-100"
+                      disabled={updateTicket.isPending}
+                      onClick={() =>
+                        void updateTicket
+                          .mutateAsync({ id: t.id, status: "Resolved" })
+                          .then(() => notifySuccess("Ticket resolved."))
+                          .catch((err) => notifyError(getApiErrorMessage(err, "Update failed.")))
+                      }
+                    >
+                      Resolve
+                    </button>
+                  ) : null
+                }
+              />
+            </td>
+          </tr>
         )}
-      </CrudCard>
-    </StandardPageLayout>
+      >
+        {isError ? <div className="erp-alert-error text-sm">{getApiErrorMessage(error, "Failed to load tickets.")}</div> : null}
+      </PlatformGlobalPageShell>
+
+      <SideDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="New support ticket">
+        <div className="erp-form-grid">
+          <div className="erp-field md:col-span-2">
+            <label className="erp-label">Subject *</label>
+            <input className="erp-input" value={form.subject} onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))} />
+          </div>
+          <div className="erp-field">
+            <label className="erp-label">Priority</label>
+            <select className="erp-input" value={form.priority} onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))}>
+              <option>Low</option>
+              <option>Medium</option>
+              <option>High</option>
+            </select>
+          </div>
+          <div className="erp-field">
+            <label className="erp-label">Category</label>
+            <input className="erp-input" value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} />
+          </div>
+          <div className="erp-field md:col-span-2">
+            <label className="erp-label">Description</label>
+            <textarea className="erp-input min-h-24" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
+          </div>
+          <div className="md:col-span-2">
+            <ErpDrawerFooter onCancel={() => setDrawerOpen(false)} onSave={() => void save()} saving={createTicket.isPending} saveLabel="Create ticket" />
+          </div>
+        </div>
+      </SideDrawer>
+    </>
   );
 }

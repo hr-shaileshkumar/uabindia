@@ -1,17 +1,17 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
+import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
 import {
   ErpCreateButton,
   ErpDrawerFooter,
-  ErpEmptyState,
   ErpRefreshButton,
   ErpRowActions,
   ErpSearchFilter,
-} from "@/components/erp/erp-page-kit";
+} from "@/components/workspace/page-kit";
+import { useErpListView } from "@/components/workspace/list-view";
 import { SideDrawer } from "@/components/ui/side-drawer";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { notifyError, notifySuccess } from "@/lib/notifications";
@@ -29,13 +29,15 @@ const emptyForm = () => ({
   estimatedAmount: "",
 });
 
+type TravelRow = ReturnType<typeof mapTravelRequest>;
+
 export default function TravelPage() {
   const queryClient = useQueryClient();
   const { data, isLoading, isError, error, refetch } = useTravelRequests(1, 50);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [viewRow, setViewRow] = useState<ReturnType<typeof mapTravelRequest> | null>(null);
+  const [viewRow, setViewRow] = useState<TravelRow | null>(null);
   const [form, setForm] = useState(emptyForm());
   const [employees, setEmployees] = useState<{ id: string; fullName: string }[]>([]);
 
@@ -71,16 +73,20 @@ export default function TravelPage() {
   };
 
   const requests = useMemo(() => (data?.data ?? []).map(mapTravelRequest), [data?.data]);
-  const filtered = requests.filter((row) => {
-    const q = search.toLowerCase();
-    const matchesSearch =
-      !q ||
-      row.destination.toLowerCase().includes(q) ||
-      row.employee.toLowerCase().includes(q) ||
-      row.number.toLowerCase().includes(q);
-    const matchesStatus = statusFilter === "all" || row.status.toLowerCase() === statusFilter.toLowerCase();
-    return matchesSearch && matchesStatus;
-  });
+  const filtered = useMemo(
+    () =>
+      requests.filter((row) => {
+        const q = search.toLowerCase();
+        const matchesSearch =
+          !q ||
+          row.destination.toLowerCase().includes(q) ||
+          row.employee.toLowerCase().includes(q) ||
+          row.number.toLowerCase().includes(q);
+        const matchesStatus = statusFilter === "all" || row.status.toLowerCase() === statusFilter.toLowerCase();
+        return matchesSearch && matchesStatus;
+      }),
+    [requests, search, statusFilter]
+  );
 
   const handleCreate = async () => {
     if (!form.destination.trim() || !form.purpose.trim() || !form.startDate || !form.endDate) {
@@ -108,9 +114,63 @@ export default function TravelPage() {
     }
   };
 
+  const list = useErpListView({
+    listKey: "hrms-travel",
+    rows: filtered,
+    columns: [
+      { key: "number", label: "Request" },
+      { key: "employee", label: "Employee" },
+      { key: "destination", label: "Destination" },
+      { key: "period", label: "Period" },
+      { key: "amount", label: "Estimate" },
+      { key: "status", label: "Status" },
+      { key: "actions", label: "Actions", className: "text-right", locked: true },
+    ],
+    getRowId: (row) => row.id,
+    loading: isLoading,
+    emptyMessage: "No travel requests yet.",
+    onCreate: () => void openCreate(),
+    createLabel: "New request",
+    onRefresh: () => void refetch(),
+    extraFilters: (
+      <div className="flex flex-wrap items-end gap-3">
+        <ErpSearchFilter value={search} onChange={setSearch} placeholder="Filter destination, employee, or request…" />
+        <div className="min-w-40">
+          <label className="erp-label">Status</label>
+          <select className="erp-input" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <option value="all">All</option>
+            <option value="submitted">Submitted</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </div>
+      </div>
+    ),
+    renderRow: (row) => (
+      <tr key={row.id} className="erp-tr">
+        <td className="erp-td">
+          <div className="erp-row-title">{row.number}</div>
+          <div className="text-xs text-slate-500">{row.purpose}</div>
+        </td>
+        <td className="erp-td text-xs">{row.employee}</td>
+        <td className="erp-td text-xs">{row.destination}</td>
+        <td className="erp-td text-xs text-slate-500">{row.period}</td>
+        <td className="erp-td text-xs">{row.amount}</td>
+        <td className="erp-td">
+          <span className="erp-chip">{row.status}</span>
+        </td>
+        <td className="erp-td">
+          <ErpRowActions onView={{ label: "View", onClick: () => setViewRow(row) }} />
+        </td>
+      </tr>
+    ),
+  });
+
   return (
     <StandardPageLayout
-      title="Travel"
+      title="Travel Management"
+      subtitle="Submit, review, and track domestic and international travel requests, advances, and bookings."
+      eyebrow="HRMS / Travel"
       icon="plane"
       meta={
         <CrudHeaderStats
@@ -124,80 +184,15 @@ export default function TravelPage() {
       actions={
         <>
           <ErpRefreshButton onClick={() => void refetch()} loading={isLoading} />
+          {list.headerTools}
           <ErpCreateButton label="New request" onClick={() => void openCreate()} />
         </>
       }
-      filters={
-        <div className="flex flex-wrap items-end gap-3">
-          <ErpSearchFilter value={search} onChange={setSearch} placeholder="Filter destination, employee, or request…" />
-          <div className="min-w-40">
-            <label className="erp-label">Status</label>
-            <select className="erp-input" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              <option value="all">All</option>
-              <option value="submitted">Submitted</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-            </select>
-          </div>
-        </div>
-      }
+      filters={list.filterBar}
     >
       {isError ? <div className="erp-alert-error">{getApiErrorMessage(error, "Failed to load travel requests.")}</div> : null}
 
-      <CrudCard>
-        <div className="erp-table-wrap">
-          <table className="erp-table table-auto">
-            <thead className="erp-thead">
-              <tr>
-                <th className="erp-th">Request</th>
-                <th className="erp-th">Employee</th>
-                <th className="erp-th">Destination</th>
-                <th className="erp-th">Period</th>
-                <th className="erp-th">Estimate</th>
-                <th className="erp-th">Status</th>
-                <th className="erp-th text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="erp-td py-8 text-center text-xs text-slate-500">
-                    Loading…
-                  </td>
-                </tr>
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="erp-td">
-                    <ErpEmptyState
-                      message="No travel requests yet."
-                      action={<ErpCreateButton label="New request" onClick={() => void openCreate()} />}
-                    />
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((row) => (
-                  <tr key={row.id} className="erp-tr">
-                    <td className="erp-td">
-                      <div className="erp-row-title">{row.number}</div>
-                      <div className="text-xs text-slate-500">{row.purpose}</div>
-                    </td>
-                    <td className="erp-td text-xs">{row.employee}</td>
-                    <td className="erp-td text-xs">{row.destination}</td>
-                    <td className="erp-td text-xs text-slate-500">{row.period}</td>
-                    <td className="erp-td text-xs">{row.amount}</td>
-                    <td className="erp-td">
-                      <span className="erp-chip">{row.status}</span>
-                    </td>
-                    <td className="erp-td">
-                      <ErpRowActions onView={{ label: "View", onClick: () => setViewRow(row) }} />
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </CrudCard>
+      <CrudCard>{list.table}</CrudCard>
 
       <SideDrawer
         open={drawerOpen}

@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudHeaderStats } from "@/components/erp/crud-workspace";
-import { ErpRefreshButton } from "@/components/erp/erp-page-kit";
+import { CrudHeaderStats } from "@/components/workspace/crud-workspace";
+import { ErpRefreshButton } from "@/components/workspace/page-kit";
 import {
   erpButtonClassName,
   erpFormInputClassName,
@@ -12,7 +12,7 @@ import {
   erpPanelClassName,
   erpPanelHeaderClassName,
   erpPanelTitleClassName,
-} from "@/components/erp/erpStyles";
+} from "@/components/workspace/styles";
 import { Switch } from "@/components/ui/switch";
 import { appApi } from "@/services/modules";
 import { getApiErrorMessage } from "@/lib/api-errors";
@@ -109,7 +109,9 @@ export default function PasswordPoliciesPage() {
 
   return (
     <StandardPageLayout
-      title="Password policy"
+      title="Password Policy"
+      subtitle="Configure complexity rules, expiration cycles, lockout thresholds, and history restrictions."
+      eyebrow="Security / Governance"
       icon="shield"
       meta={
         <CrudHeaderStats

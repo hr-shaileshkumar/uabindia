@@ -1,11 +1,11 @@
-"use client";
+﻿"use client";
 
 import React, { useMemo, useState } from "react";
 import { Plug, CheckCircle2, ExternalLink, RefreshCw } from "lucide-react";
 import { PlatformGlobalPageShell, KpiMetricItem } from "@/components/platform/PlatformGlobalPageShell";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { notifyError, notifySuccess } from "@/lib/notifications";
-import { erpButtonClassName } from "@/components/erp/erpStyles";
+import { erpButtonClassName } from "@/components/workspace/styles";
 import {
   mapIntegration,
   useIntegrationMutations,

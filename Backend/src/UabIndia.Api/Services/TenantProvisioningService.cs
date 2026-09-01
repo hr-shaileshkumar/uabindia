@@ -57,7 +57,8 @@ namespace UabIndia.Api.Services
             "hrms",
             "payroll",
             "reports",
-            "erp"
+            "erp",
+            "projects"
         };
 
         private static readonly HashSet<string> CoreEnabledModules = new(StringComparer.OrdinalIgnoreCase)
@@ -836,7 +837,7 @@ ORDER BY [CreatedAt] DESC;";
                                 TenantId = tenant.Id,
                                 Email = normalizedAdminEmail,
                                 FullName = string.IsNullOrWhiteSpace(normalizedAdminName) ? "Tenant Admin" : normalizedAdminName,
-                                IsSystemAdmin = true,
+                                IsSystemAdmin = false,
                                 IsActive = true
                             };
 
@@ -2107,7 +2108,7 @@ END";
                     TenantId = tenant.Id,
                     Email = normalizedEmail,
                     FullName = normalizedName,
-                    IsSystemAdmin = true,
+                    IsSystemAdmin = false,
                     IsActive = true,
                     PasswordHash = _hasher.HashPassword(new User { Email = normalizedEmail }, generatedPassword)
                 };
@@ -2117,7 +2118,7 @@ END";
             {
                 adminUser.Email = normalizedEmail;
                 adminUser.FullName = normalizedName;
-                adminUser.IsSystemAdmin = true;
+                adminUser.IsSystemAdmin = false;
                 adminUser.IsActive = true;
             }
 

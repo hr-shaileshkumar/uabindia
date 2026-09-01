@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Hangfire;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,8 +11,10 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using UabIndia.Application.Interfaces;
 using UabIndia.Core.Entities;
+using UabIndia.Core.Security;
 using UabIndia.Infrastructure.Data;
 using UabIndia.Infrastructure.Data.Migrations;
+using UabIndia.Infrastructure.Services;
 
 namespace UabIndia.Api.Services
 {
@@ -24,7 +27,7 @@ namespace UabIndia.Api.Services
     /// Seeding is fully idempotent: each step checks before inserting.
     /// Schema version constant below controls when re-seed logic upgrades.
     /// </summary>
-    public class DatabaseInitializationService : IHostedService
+    public class DatabaseInitializationService : BackgroundService
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<DatabaseInitializationService> _logger;
@@ -35,13 +38,22 @@ namespace UabIndia.Api.Services
 
         private static readonly (string Key, string Name)[] DefaultModules =
         {
-            ("erp",       "ERP SaaS Platform"),
-            ("hrms",      "HRMS"),
-            ("payroll",   "Payroll"),
-            ("reports",   "Reports"),
-            ("platform",  "Platform / Core"),
-            ("licensing", "Modules & Licensing"),
-            ("security",  "Authentication & Security"),
+            ("erp",           "ERP SaaS Platform"),
+            ("hrms",          "HRMS"),
+            ("payroll",       "Payroll"),
+            ("finance",       "Finance"),
+            ("procurement",   "Procurement"),
+            ("inventory",     "Inventory"),
+            ("sales",         "Sales"),
+            ("crm",           "CRM"),
+            ("projects",      "Projects"),
+            ("reports",       "Reports"),
+            ("compliance",   "Compliance"),
+            ("workflow",      "Workflow"),
+            ("notifications", "Notifications"),
+            ("platform",      "Platform / Core"),
+            ("licensing",     "Modules & Licensing"),
+            ("security",      "Authentication & Security"),
         };
 
         private static readonly (string Module, string Action, string Description, string[] Roles)[] DefaultPermissions =
@@ -53,6 +65,15 @@ namespace UabIndia.Api.Services
             ("hrms",      "access", "Access HRMS module",           new[] { "SuperAdmin", "Admin", "HR Manager", "Manager", "Employee" }),
             ("payroll",   "access", "Access Payroll module",        new[] { "SuperAdmin", "Admin", "HR Manager", "Accountant" }),
             ("reports",   "access", "Access Reports module",        new[] { "SuperAdmin", "Admin", "HR Manager", "Manager", "Accountant" }),
+            ("crm",       "access", "Access CRM module",            new[] { "SuperAdmin", "Admin", "HR Manager", "Manager", "Accountant" }),
+            ("finance",      "access", "Access Finance module",          new[] { "SuperAdmin", "Admin", "Accountant" }),
+            ("procurement",  "access", "Access Procurement module",      new[] { "SuperAdmin", "Admin", "Accountant", "Manager" }),
+            ("inventory",    "access", "Access Inventory module",        new[] { "SuperAdmin", "Admin", "Accountant", "Manager" }),
+            ("compliance","access", "Access Compliance module",     new[] { "SuperAdmin", "Admin", "HR Manager", "Accountant" }),
+            ("workflow",  "access", "Access Workflow module",       new[] { "SuperAdmin", "Admin", "HR Manager", "Manager" }),
+            ("notifications","access", "Access Notifications module", new[] { "SuperAdmin", "Admin", "HR Manager", "Manager", "Employee" }),
+            ("sales",     "access", "Access Sales module",          new[] { "SuperAdmin", "Admin", "HR Manager", "Manager", "Accountant" }),
+            ("projects",  "access", "Access Projects module",       new[] { "SuperAdmin", "Admin", "HR Manager", "Manager", "Employee" }),
         };
 
         public DatabaseInitializationService(
@@ -65,7 +86,7 @@ namespace UabIndia.Api.Services
             _env = env;
         }
 
-        public async Task StartAsync(CancellationToken cancellationToken)
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             if (_env.IsEnvironment("Test"))
             {
@@ -76,7 +97,8 @@ namespace UabIndia.Api.Services
             _logger.LogInformation("DatabaseInitializationService: starting (schema version {Version})…", SeedSchemaVersion);
             try
             {
-                await InitializeAsync(cancellationToken);
+                await InitializeAsync(stoppingToken);
+                TryRegisterHangfireJobs();
                 _logger.LogInformation("DatabaseInitializationService: initialization complete.");
             }
             catch (Exception ex)
@@ -85,7 +107,41 @@ namespace UabIndia.Api.Services
             }
         }
 
-        public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+        private void TryRegisterHangfireJobs()
+        {
+            try
+            {
+                RecurringJob.AddOrUpdate<HangfireJobService>(
+                    "monthly-payroll",
+                    service => service.ProcessMonthlyPayroll(),
+                    "0 23 L * *",
+                    new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
+                RecurringJob.AddOrUpdate<HangfireJobService>(
+                    "leave-expiry",
+                    service => service.ExpireLeaveBalances(),
+                    Cron.Monthly(1, 1),
+                    new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
+                RecurringJob.AddOrUpdate<HangfireJobService>(
+                    "audit-log-archival",
+                    service => service.ArchiveAuditLogs(),
+                    Cron.Weekly(DayOfWeek.Sunday, 2),
+                    new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
+                RecurringJob.AddOrUpdate<HangfireJobService>(
+                    "send-notifications",
+                    service => service.SendPendingNotifications(),
+                    "*/30 * * * *",
+                    new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
+                RecurringJob.AddOrUpdate<HangfireJobService>(
+                    "cleanup-temp-data",
+                    service => service.CleanupTemporaryData(),
+                    Cron.Daily(3),
+                    new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Hangfire recurring jobs were not registered. The API will keep serving requests.");
+            }
+        }
 
         private async Task InitializeAsync(CancellationToken ct)
         {
@@ -94,7 +150,12 @@ namespace UabIndia.Api.Services
             var hasher         = scope.ServiceProvider.GetRequiredService<IPasswordHasher<User>>();
             var tenantAccessor = scope.ServiceProvider.GetRequiredService<ITenantAccessor>();
 
-            // ── Step 1: Apply pending migrations & schema column updates ──────────────
+            // ── Step 1: Idempotent schema bootstrap, then EF migrations ───────────────
+            await UabIndia.Infrastructure.Data.Migrations.MigrationBootstrap.EnsureInitialCleanSchemaAsync(
+                db, _logger, ct);
+            await UabIndia.Infrastructure.Data.Migrations.MigrationBootstrap.EnsureExtendedSchemaAsync(
+                db, _logger, ct);
+
             _logger.LogInformation("Applying database migrations…");
             if (db.Database.IsRelational())
             {
@@ -102,22 +163,40 @@ namespace UabIndia.Api.Services
                 {
                     await db.Database.MigrateAsync(ct);
                 }
-                catch (Microsoft.Data.SqlClient.SqlException sqlEx) when (sqlEx.Number == 2714)
+                catch (InvalidOperationException ex) when (ex.Message.Contains("PendingModelChangesWarning", StringComparison.Ordinal))
                 {
-                    _logger.LogWarning(sqlEx, "Migration failed because objects already exist. Attempting optional history repair.");
-                    await MigrationHistoryRepair.TryRepairPendingMigrationsAsync(db, _logger, ct);
+                    _logger.LogWarning(
+                        ex,
+                        "EF model snapshot is behind the live schema. Skipping pending-model validation and continuing startup.");
+                }
+                catch (Microsoft.Data.SqlClient.SqlException sqlEx) when (sqlEx.Number is 2714 or 2705)
+                {
+                    _logger.LogWarning(
+                        sqlEx,
+                        "Migration failed because schema objects already exist (SQL {ErrorNumber}). Attempting history repair.",
+                        sqlEx.Number);
+                    await MigrationHistoryRepair.TryRepairPendingMigrationsAsync(
+                        db, _logger, ct, force: _env.IsDevelopment());
+                    await db.Database.MigrateAsync(ct);
+                }
+                catch (Microsoft.Data.SqlClient.SqlException sqlEx) when (sqlEx.Number == 1919)
+                {
+                    _logger.LogWarning(
+                        sqlEx,
+                        "Migration failed because a column is too wide for an index (SQL 1919). Narrowing document-number columns and retrying.");
+                    await MigrationSqlHelper.ExecuteSqlFileAsync(
+                        db,
+                        "20260818010000_AddDocumentNumberIndexes.sql",
+                        ct);
                     await db.Database.MigrateAsync(ct);
                 }
             }
 
-            await UabIndia.Infrastructure.Data.Migrations.MigrationBootstrap.EnsureInitialCleanSchemaAsync(
-                db, _logger, ct);
-            await UabIndia.Infrastructure.Data.Migrations.MigrationBootstrap.EnsureExtendedSchemaAsync(
-                db, _logger, ct);
             _logger.LogInformation("Database migrations applied.");
 
-            // ── Step 2: Seed global modules (non-tenant-specific) ────────────────────
+            // ── Step 2: Seed global modules & SaaS Subscription Plans ────────────────
             await EnsureGlobalModulesAsync(db, ct);
+            await EnsureSubscriptionPlansAsync(db, ct);
 
             // ── Step 3: Check if any tenant already exists ───────────────────────────
             var anyTenant = await db.Tenants.AnyAsync(ct);
@@ -143,15 +222,23 @@ namespace UabIndia.Api.Services
 
                 foreach (var tid in allTenantIds)
                 {
+                    tenantAccessor.SetTenantId(tid);
                     await EnsureTenantModulesAsync(db, tid, ct);
 
                     var tenantRoles = await db.Roles
                         .AsNoTracking()
+                        .IgnoreQueryFilters()
                         .Where(r => r.TenantId == tid && !r.IsDeleted)
                         .ToListAsync(ct);
 
                     await EnsurePermissionsAsync(db, tid, tenantRoles, ct);
                 }
+
+                if (_env.IsDevelopment())
+                {
+                    await EnsureDevelopmentAdminUserAsync(db, hasher, tenantAccessor, ct);
+                }
+
                 return;
             }
 
@@ -188,14 +275,14 @@ namespace UabIndia.Api.Services
             var adminRole      = rolesToSeed.First(r => r.Name == "Admin");
 
             // ── Step 6: Create default SuperAdmin user ───────────────────────────────
-            var adminEmail    = Environment.GetEnvironmentVariable("SEED_ADMIN_EMAIL")    ?? "admin@erp.local";
-            var adminPassword = Environment.GetEnvironmentVariable("SEED_ADMIN_PASSWORD") ?? "Admin@123";
+            var adminEmail    = Environment.GetEnvironmentVariable("SEED_ADMIN_EMAIL")    ?? AuthUserLookup.DevAdminEmail;
+            var adminPassword = Environment.GetEnvironmentVariable("SEED_ADMIN_PASSWORD") ?? AuthUserLookup.DevAdminPassword;
             var adminName     = Environment.GetEnvironmentVariable("SEED_ADMIN_NAME")     ?? "System Administrator";
 
             var adminUser = new User
             {
                 TenantId      = tenant.Id,
-                Email         = adminEmail,
+                Email         = AuthUserLookup.NormalizeEmail(adminEmail),
                 FullName      = adminName,
                 IsSystemAdmin = true,
                 IsActive      = true
@@ -237,6 +324,88 @@ namespace UabIndia.Api.Services
             }
         }
 
+        private async Task EnsureSubscriptionPlansAsync(ApplicationDbContext db, CancellationToken ct)
+        {
+            try
+            {
+                var existingCodes = new HashSet<string>(
+                    await db.SubscriptionPlans.AsNoTracking().Select(p => p.PlanCode).ToListAsync(ct),
+                    StringComparer.OrdinalIgnoreCase);
+
+                var defaultPlans = new[]
+                {
+                    new SubscriptionPlan
+                    {
+                        PlanCode = "trial",
+                        Name = "Free Trial",
+                        Description = "14-day full access trial with core ERP & accounting features.",
+                        MonthlyPriceInr = 0,
+                        AnnualPriceInr = 0,
+                        MaxUsers = 5,
+                        MaxStorageMb = 2048,
+                        MaxApiCallsPerDay = 1000,
+                        AllowedModulesJson = "[\"platform\",\"finance\",\"inventory\",\"sales\",\"tax\"]",
+                        IsActive = true,
+                        SortOrder = 1
+                    },
+                    new SubscriptionPlan
+                    {
+                        PlanCode = "starter",
+                        Name = "Starter SaaS",
+                        Description = "Ideal for small businesses, startups, and growing teams.",
+                        MonthlyPriceInr = 2499,
+                        AnnualPriceInr = 23990,
+                        MaxUsers = 10,
+                        MaxStorageMb = 10240,
+                        MaxApiCallsPerDay = 5000,
+                        AllowedModulesJson = "[\"platform\",\"finance\",\"inventory\",\"sales\",\"tax\",\"hrms\"]",
+                        IsActive = true,
+                        SortOrder = 2
+                    },
+                    new SubscriptionPlan
+                    {
+                        PlanCode = "growth",
+                        Name = "Growth Business",
+                        Description = "Full ERP automation for mid-sized growing enterprises.",
+                        MonthlyPriceInr = 6999,
+                        AnnualPriceInr = 67190,
+                        MaxUsers = 35,
+                        MaxStorageMb = 51200,
+                        MaxApiCallsPerDay = 25000,
+                        AllowedModulesJson = "[\"platform\",\"finance\",\"inventory\",\"sales\",\"tax\",\"hrms\",\"payroll\",\"procurement\"]",
+                        IsActive = true,
+                        SortOrder = 3
+                    },
+                    new SubscriptionPlan
+                    {
+                        PlanCode = "enterprise",
+                        Name = "Enterprise Cloud",
+                        Description = "Unlimited scale, dedicated SLA, custom workflows, and integrations.",
+                        MonthlyPriceInr = 19999,
+                        AnnualPriceInr = 191990,
+                        MaxUsers = 999,
+                        MaxStorageMb = 512000,
+                        MaxApiCallsPerDay = 100000,
+                        AllowedModulesJson = "[\"*\"]",
+                        IsActive = true,
+                        SortOrder = 4
+                    }
+                };
+
+                var toAdd = defaultPlans.Where(p => !existingCodes.Contains(p.PlanCode)).ToList();
+                if (toAdd.Count > 0)
+                {
+                    db.SubscriptionPlans.AddRange(toAdd);
+                    await db.SaveChangesAsync(ct);
+                    _logger.LogInformation("Seeded {Count} SaaS Subscription Plans: {Codes}", toAdd.Count, string.Join(", ", toAdd.Select(p => p.PlanCode)));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not seed subscription plans during startup. The application will continue running.");
+            }
+        }
+
         private async Task EnsureTenantModulesAsync(ApplicationDbContext db, Guid tenantId, CancellationToken ct)
         {
             var existingKeys = new HashSet<string>(
@@ -261,12 +430,35 @@ namespace UabIndia.Api.Services
 
         private async Task EnsurePermissionsAsync(ApplicationDbContext db, Guid tenantId, IEnumerable<Role> tenantRoles, CancellationToken ct)
         {
-            var roleByName = tenantRoles.ToDictionary(r => r.Name, StringComparer.OrdinalIgnoreCase);
+            var roleByName = tenantRoles
+                .GroupBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.OrderBy(r => r.CreatedAt).ThenBy(r => r.Id).First(), StringComparer.OrdinalIgnoreCase);
 
             var existingPerms = await db.Permissions
-                .AsNoTracking()
+                .IgnoreQueryFilters()
                 .Where(p => p.TenantId == tenantId && !p.IsDeleted)
                 .ToListAsync(ct);
+
+            var duplicateExtras = existingPerms
+                .GroupBy(p => $"{p.Module}:{p.Action}", StringComparer.OrdinalIgnoreCase)
+                .SelectMany(group => group.OrderBy(p => p.CreatedAt).ThenBy(p => p.Id).Skip(1))
+                .ToList();
+
+            if (duplicateExtras.Count > 0)
+            {
+                foreach (var extra in duplicateExtras)
+                {
+                    extra.IsDeleted = true;
+                    extra.UpdatedAt = DateTime.UtcNow;
+                }
+
+                await db.SaveChangesAsync(ct);
+                existingPerms = existingPerms.Where(p => !p.IsDeleted).ToList();
+                _logger.LogWarning(
+                    "Removed {Count} duplicate permission(s) for tenant {TenantId}.",
+                    duplicateExtras.Count,
+                    tenantId);
+            }
 
             var existingPermKeys = new HashSet<string>(
                 existingPerms.Select(p => $"{p.Module}:{p.Action}"),
@@ -296,18 +488,18 @@ namespace UabIndia.Api.Services
                 _logger.LogInformation("Seeded {Count} permission(s) for tenant {TenantId}", newPerms.Count, tenantId);
             }
 
-            var allPerms = await db.Permissions
-                .AsNoTracking()
-                .Where(p => p.TenantId == tenantId && !p.IsDeleted)
-                .ToListAsync(ct);
-
-            var permByModuleAction = allPerms.ToDictionary(
-                p => $"{p.Module}:{p.Action}",
-                StringComparer.OrdinalIgnoreCase);
+            var allPerms = existingPerms.Concat(newPerms)
+                .Where(p => !p.IsDeleted)
+                .GroupBy(p => $"{p.Module}:{p.Action}", StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.OrderBy(p => p.CreatedAt).ThenBy(p => p.Id).First(),
+                    StringComparer.OrdinalIgnoreCase);
 
             var existingRolePerms = new HashSet<string>(
                 (await db.RolePermissions
                     .AsNoTracking()
+                    .IgnoreQueryFilters()
                     .Where(rp => rp.TenantId == tenantId && !rp.IsDeleted)
                     .Select(rp => new { rp.RoleId, rp.PermissionId })
                     .ToListAsync(ct))
@@ -318,7 +510,7 @@ namespace UabIndia.Api.Services
             foreach (var (module, action, _, roles) in DefaultPermissions)
             {
                 var permKey = $"{module}:{action}";
-                if (!permByModuleAction.TryGetValue(permKey, out var perm))
+                if (!allPerms.TryGetValue(permKey, out var perm))
                     continue;
 
                 foreach (var roleName in roles)
@@ -345,6 +537,339 @@ namespace UabIndia.Api.Services
                 db.RolePermissions.AddRange(newRolePerms);
                 await db.SaveChangesAsync(ct);
                 _logger.LogInformation("Seeded {Count} role-permission mapping(s) for tenant {TenantId}", newRolePerms.Count, tenantId);
+            }
+        }
+
+        private async Task EnsureDevelopmentAdminUserAsync(
+            ApplicationDbContext db,
+            IPasswordHasher<User> hasher,
+            ITenantAccessor tenantAccessor,
+            CancellationToken ct)
+        {
+            var tenant = await db.Tenants
+                .AsNoTracking()
+                .FirstOrDefaultAsync(t => t.Subdomain == "api" && t.IsActive && !t.IsDeleted, ct)
+                ?? await db.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.IsActive && !t.IsDeleted, ct);
+
+            if (tenant == null)
+            {
+                _logger.LogWarning("Development admin seed skipped: no active tenant found.");
+                return;
+            }
+
+            tenantAccessor.SetTenantId(tenant.Id);
+            tenantAccessor.SetTenantSchema($"tenant_{tenant.Subdomain ?? tenant.Id.ToString("N")}");
+
+            var adminEmail = Environment.GetEnvironmentVariable("SEED_ADMIN_EMAIL") ?? AuthUserLookup.DevAdminEmail;
+            var adminPassword = Environment.GetEnvironmentVariable("SEED_ADMIN_PASSWORD") ?? AuthUserLookup.DevAdminPassword;
+
+            var adminUser = await AuthUserLookup.FindUserByEmailAsync(db, adminEmail);
+            if (adminUser == null)
+            {
+                adminUser = await db.Users.IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(
+                        u => u.TenantId == tenant.Id && u.IsSystemAdmin && u.IsActive && !u.IsDeleted,
+                        ct);
+            }
+
+            if (adminUser == null)
+            {
+                adminUser = new User
+                {
+                    TenantId = tenant.Id,
+                    Email = AuthUserLookup.NormalizeEmail(adminEmail),
+                    FullName = "Admin User",
+                    IsSystemAdmin = false,
+                    IsActive = true,
+                };
+                adminUser.PasswordHash = hasher.HashPassword(adminUser, adminPassword);
+                db.Users.Add(adminUser);
+            }
+            else
+            {
+                adminUser.IsDeleted = false;
+                adminUser.IsActive = true;
+                adminUser.IsSystemAdmin = false;
+                adminUser.TenantId = tenant.Id;
+                adminUser.Email = AuthUserLookup.NormalizeEmail(adminEmail);
+                AccountLockoutPolicy.ResetFailedAttempts(adminUser);
+                adminUser.PasswordHash = hasher.HashPassword(adminUser, adminPassword);
+                adminUser.UpdatedAt = DateTime.UtcNow;
+                db.Users.Update(adminUser);
+            }
+
+            await db.SaveChangesAsync(ct);
+            _logger.LogInformation("Development admin credentials ensured for {Email}", adminEmail);
+
+            await EnsureDevelopmentSampleContentAsync(db, tenant.Id, ct);
+        }
+
+        private async Task EnsureDevelopmentSampleContentAsync(
+            ApplicationDbContext db,
+            Guid tenantId,
+            CancellationToken ct)
+        {
+            if (!_env.IsDevelopment())
+            {
+                return;
+            }
+
+            tenantId = tenantId == Guid.Empty
+                ? await db.Tenants.AsNoTracking().Where(t => t.IsActive && !t.IsDeleted).Select(t => t.Id).FirstOrDefaultAsync(ct)
+                : tenantId;
+
+            if (tenantId == Guid.Empty)
+            {
+                return;
+            }
+
+            var hasAiAgents = await db.AiAgents
+                .IgnoreQueryFilters()
+                .AnyAsync(a => a.TenantId == tenantId && !a.IsDeleted, ct);
+
+            if (!hasAiAgents)
+            {
+                db.AiAgents.AddRange(
+                    new AiAgent
+                    {
+                        TenantId = tenantId,
+                        AgentKey = "erp-copilot",
+                        Name = "ERP Copilot",
+                        Description = "General ERP navigation and operational guidance.",
+                        Provider = "OpenAI",
+                        ModelName = "gpt-4o-mini",
+                        Category = "Platform",
+                        IsEnabled = true,
+                    },
+                    new AiAgent
+                    {
+                        TenantId = tenantId,
+                        AgentKey = "hr-assistant",
+                        Name = "HR Assistant",
+                        Description = "HR policy and employee lifecycle helper.",
+                        Provider = "OpenAI",
+                        ModelName = "gpt-4o-mini",
+                        Category = "HRMS",
+                        IsEnabled = true,
+                    });
+
+                _logger.LogInformation("Seeded default AI agents for tenant {TenantId}", tenantId);
+            }
+
+            var defaultFlags = new (string Key, string Description, bool Enabled)[]
+            {
+                ("ENABLE_AI_RECRUITMENT_PARSER", "Parse resumes automatically with AI parsing pipeline", true),
+                ("ENABLE_AI_HR_ASSISTANT", "Enable HR assistant agent orchestration", true),
+            };
+
+            foreach (var (key, description, enabled) in defaultFlags)
+            {
+                var exists = await db.FeatureFlags
+                    .IgnoreQueryFilters()
+                    .AnyAsync(f => f.TenantId == tenantId && f.FeatureKey == key && !f.IsDeleted, ct);
+
+                if (!exists)
+                {
+                    db.FeatureFlags.Add(new FeatureFlag
+                    {
+                        TenantId = tenantId,
+                        FeatureKey = key,
+                        Description = description,
+                        IsEnabled = enabled,
+                    });
+                }
+            }
+
+            await db.SaveChangesAsync(ct);
+
+            await EnsureDemoNotificationTemplatesAsync(db, tenantId, ct);
+            await EnsureDemoCustomFieldsAsync(db, tenantId, ct);
+            await EnsureDemoIntegrationConnectorsAsync(db, tenantId, ct);
+
+            await PurgeDemoDataAsync(db, tenantId, ct);
+        }
+
+        private static async Task EnsureDemoIntegrationConnectorsAsync(
+            ApplicationDbContext db,
+            Guid tenantId,
+            CancellationToken ct)
+        {
+            var seeds = new (string Key, string Name, string Provider, string Category)[]
+            {
+                ("gst_portal", "GST Portal", "NIC / GSTN", "Tax"),
+                ("bank_feed", "Bank Statement Feed", "Generic CSV / API", "Finance"),
+                ("biometric_device", "Biometric Attendance", "ZKTeco / eSSL", "HR"),
+            };
+
+            foreach (var seed in seeds)
+            {
+                var exists = await db.IntegrationConnectors.IgnoreQueryFilters()
+                    .AnyAsync(c =>
+                        c.TenantId == tenantId &&
+                        c.ConnectorKey == seed.Key &&
+                        !c.IsDeleted, ct);
+                if (exists) continue;
+
+                db.IntegrationConnectors.Add(new IntegrationConnector
+                {
+                    TenantId = tenantId,
+                    ConnectorKey = seed.Key,
+                    Name = seed.Name,
+                    Provider = seed.Provider,
+                    Category = seed.Category,
+                    Status = "Inactive",
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
+            await db.SaveChangesAsync(ct);
+        }
+
+        private static async Task EnsureDemoCustomFieldsAsync(
+            ApplicationDbContext db,
+            Guid tenantId,
+            CancellationToken ct)
+        {
+            var seeds = new (string Entity, string Key, string Label, string Type, string? OptionsJson, string Section, int Sort)[]
+            {
+                ("Employee", "blood_group", "Blood Group", "select",
+                    "[\"A+\",\"A-\",\"B+\",\"B-\",\"AB+\",\"AB-\",\"O+\",\"O-\"]", "HR Details", 10),
+                ("Employee", "emergency_contact", "Emergency Contact", "text", null, "HR Details", 20),
+                ("SalesInvoice", "cost_center_code", "Cost Center Code", "text", null, "Billing", 10),
+                ("SalesInvoice", "po_reference", "Customer PO Reference", "text", null, "Billing", 20),
+                ("Project", "contract_type", "Contract Type", "select",
+                    "[\"Fixed\",\"T&M\",\"Retainer\"]", "Commercial", 10),
+                ("Project", "risk_level", "Risk Level", "select",
+                    "[\"Low\",\"Medium\",\"High\"]", "Commercial", 20),
+            };
+
+            foreach (var seed in seeds)
+            {
+                var exists = await db.EntityFieldDefinitions.IgnoreQueryFilters()
+                    .AnyAsync(d =>
+                        d.TenantId == tenantId &&
+                        d.EntityName == seed.Entity &&
+                        d.FieldKey == seed.Key &&
+                        !d.IsDeleted, ct);
+                if (exists) continue;
+
+                db.EntityFieldDefinitions.Add(new EntityFieldDefinition
+                {
+                    TenantId = tenantId,
+                    EntityName = seed.Entity,
+                    FieldKey = seed.Key,
+                    FieldLabel = seed.Label,
+                    FieldType = seed.Type,
+                    OptionsJson = seed.OptionsJson,
+                    IsRequired = false,
+                    IsActive = true,
+                    SortOrder = seed.Sort,
+                    Section = seed.Section,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
+            await db.SaveChangesAsync(ct);
+        }
+
+        private static async Task EnsureDemoNotificationTemplatesAsync(
+            ApplicationDbContext db,
+            Guid tenantId,
+            CancellationToken ct)
+        {
+            var templates = new (string Name, string Trigger, string Subject, string Body)[]
+            {
+                ("Leave Approved", "leave.approved", "Leave request approved",
+                    "Your leave request has been approved. Open ESS or Leave to review details."),
+                ("Leave Rejected", "leave.rejected", "Leave request rejected",
+                    "Your leave request was rejected. Please contact your manager if you need clarification."),
+                ("Expense Approved", "expense.approved", "Expense claim approved",
+                    "Your expense claim was approved and is ready for payment processing."),
+                ("Expense Rejected", "expense.rejected", "Expense claim rejected",
+                    "Your expense claim was rejected. Review the claim notes for more detail."),
+                ("Timesheet Approved", "timesheet.approved", "Timesheet approved",
+                    "Your timesheet entry was approved."),
+            };
+
+            foreach (var (name, trigger, subject, body) in templates)
+            {
+                var exists = await db.CommunicationTemplates.IgnoreQueryFilters()
+                    .AnyAsync(t => t.TenantId == tenantId && t.TriggerEvent == trigger && !t.IsDeleted, ct);
+                if (exists) continue;
+
+                db.CommunicationTemplates.Add(new CommunicationTemplate
+                {
+                    TenantId = tenantId,
+                    TemplateKind = "Email",
+                    Name = name,
+                    Subject = subject,
+                    Body = body,
+                    TriggerEvent = trigger,
+                    Language = "en",
+                    Status = "Active",
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
+            await db.SaveChangesAsync(ct);
+        }
+
+        private async Task PurgeDemoDataAsync(
+            ApplicationDbContext db,
+            Guid tenantId,
+            CancellationToken ct)
+        {
+            try
+            {
+                const string purgeSql = @"
+IF OBJECT_ID(N'dbo.SalesInvoices', N'U') IS NOT NULL
+    DELETE FROM dbo.SalesInvoices WHERE InvoiceNumber LIKE 'INV-2026-%';
+
+IF OBJECT_ID(N'dbo.ApprovalRequests', N'U') IS NOT NULL
+    DELETE FROM dbo.ApprovalRequests WHERE Comments LIKE '%Staged by AI Copilot%';
+
+IF OBJECT_ID(N'dbo.Items', N'U') IS NOT NULL
+    DELETE FROM dbo.Items WHERE ItemCode IN ('SRV-RACK-01', 'OP-100G-TX', 'ALUM-SHT-2M', 'MCU-PKG-32B', 'PWR-SUP-12V');
+
+IF OBJECT_ID(N'dbo.Customers', N'U') IS NOT NULL
+    DELETE FROM dbo.Customers WHERE CustomerCode = 'CUST-US-001';
+
+IF OBJECT_ID(N'dbo.Vendors', N'U') IS NOT NULL
+    DELETE FROM dbo.Vendors WHERE VendorCode = 'VEND-SG-001';
+
+IF OBJECT_ID(N'dbo.Employees', N'U') IS NOT NULL
+    DELETE FROM dbo.Employees WHERE EmployeeCode LIKE 'DEMO-EMP-%';
+
+IF OBJECT_ID(N'dbo.ProjectTasks', N'U') IS NOT NULL
+    DELETE FROM dbo.ProjectTasks WHERE TaskCode = 'DEMO-TSK-001';
+
+IF OBJECT_ID(N'dbo.Projects', N'U') IS NOT NULL
+    DELETE FROM dbo.Projects WHERE ProjectCode IN ('DEMO-P1', 'DEMO-P2');
+
+IF OBJECT_ID(N'dbo.CostCenters', N'U') IS NOT NULL
+    DELETE FROM dbo.CostCenters WHERE Code IN ('CC-OPS', 'CC-ADMIN');
+
+IF OBJECT_ID(N'dbo.LeavePolicies', N'U') IS NOT NULL
+    DELETE FROM dbo.LeavePolicies WHERE Name = 'Demo Casual Leave Policy';
+
+IF OBJECT_ID(N'dbo.LeaveTypes', N'U') IS NOT NULL
+    DELETE FROM dbo.LeaveTypes WHERE Code = 'CL' AND Name = 'Casual Leave';
+
+IF OBJECT_ID(N'dbo.PayrollComponents', N'U') IS NOT NULL
+    DELETE FROM dbo.PayrollComponents WHERE Name IN ('Basic', 'PF Deduction') AND StructureId IN (SELECT Id FROM dbo.PayrollStructures WHERE Name = 'Demo Standard Structure');
+
+IF OBJECT_ID(N'dbo.PayrollStructures', N'U') IS NOT NULL
+    DELETE FROM dbo.PayrollStructures WHERE Name = 'Demo Standard Structure';
+
+IF OBJECT_ID(N'dbo.Companies', N'U') IS NOT NULL
+    DELETE FROM dbo.Companies WHERE Code IN ('DEMO-001', 'UAB-IN', 'UAB-US', 'UAB-UK', 'UAB-AE', 'UAB-SG');
+";
+                await db.Database.ExecuteSqlRawAsync(purgeSql, ct);
+                _logger.LogInformation("DatabaseInitializationService: 100% pure database state enforced (all demo & dummy fixtures purged).");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Non-critical: could not execute demo purge SQL.");
             }
         }
     }

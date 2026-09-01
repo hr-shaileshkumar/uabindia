@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from "axios";
 import { getClientApiV1BaseUrl } from "@/lib/api-base-url";
 import { withPublicAudience } from "@/lib/public-audience";
-import { OWNER_PATH_PREFIXES, matchesAnyPrefix } from "@/lib/erp/route-config";
+import { OWNER_PATH_PREFIXES, matchesAnyPrefix } from "@/lib/workspace/route-config";
 import { getTenantSubdomainFromHost, isLocalhostHostname, isPotentialCustomTenantHost } from "@/lib/tenant-host";
 
 /**
@@ -64,15 +64,24 @@ export const persistTenantSubdomain = (tenant: string | null | undefined) => {
   const normalized = normalizeTenantSubdomain(tenant);
   if (!normalized) {
     window.localStorage.removeItem(TENANT_STORAGE_KEY);
+    window.dispatchEvent(
+      new CustomEvent("erp:tenant-changed", { detail: { subdomain: null } })
+    );
     return;
   }
 
   window.localStorage.setItem(TENANT_STORAGE_KEY, normalized);
+  window.dispatchEvent(
+    new CustomEvent("erp:tenant-changed", { detail: { subdomain: normalized } })
+  );
 };
 
 export const clearTenantSubdomain = () => {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(TENANT_STORAGE_KEY);
+  window.dispatchEvent(
+    new CustomEvent("erp:tenant-changed", { detail: { subdomain: null } })
+  );
 };
 
 export const getTenantSubdomain = (): string | null => {
@@ -87,11 +96,16 @@ export const getTenantSubdomain = (): string | null => {
     return tenantFromHost;
   }
 
-  if (isLocalhostHostname(hostname)) {
-    return queryTenant || tenantFromEnv;
+  if (queryTenant) {
+    return queryTenant;
   }
 
-  return queryTenant || tenantFromEnv;
+  const storedTenant = normalizeTenantSubdomain(window.localStorage.getItem(TENANT_STORAGE_KEY));
+  if (storedTenant) {
+    return storedTenant;
+  }
+
+  return tenantFromEnv;
 };
 
 const getTenantHeader = (): string | null => {
@@ -177,6 +191,26 @@ const dispatchApiErrorEvent = (error: AxiosError) => {
       },
     })
   );
+
+  // Automatically bridge unhandled API errors to user-facing toast notifications
+  const title =
+    status >= 500
+      ? "Server Error"
+      : status === 403
+      ? "Access Denied"
+      : status === 429
+      ? "Rate Limit Exceeded"
+      : "Request Failed";
+
+  window.dispatchEvent(
+    new CustomEvent("erp:notify", {
+      detail: {
+        variant: "error",
+        title,
+        message,
+      },
+    })
+  );
 };
 
 const requestRefreshToken = async (): Promise<boolean> => {
@@ -209,12 +243,26 @@ const requestRefreshToken = async (): Promise<boolean> => {
 
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
+    // Prevent duplicate /api/v1 prefix when calling with explicit /api/v1 paths
+    if (typeof config.url === "string" && config.url.startsWith("/api/v1/")) {
+      config.url = config.url.slice(7);
+    }
+
     const method = (config.method || "get").toLowerCase();
     const isStateChanging = ["post", "put", "patch", "delete"].includes(method);
     const isCsrfEndpoint = typeof config.url === "string" && config.url.includes("/auth/csrf-token");
 
     const tenant = getTenantHeader();
-    if (tenant) {
+    const urlStr = typeof config.url === "string" ? config.url.toLowerCase() : "";
+    const isGlobalTenantBypass =
+      urlStr.startsWith("superadmin/") ||
+      urlStr.startsWith("/superadmin/") ||
+      urlStr.startsWith("tenants/resolve") ||
+      urlStr.startsWith("/tenants/resolve") ||
+      urlStr.startsWith("tenants") ||
+      urlStr.startsWith("/tenants");
+
+    if (tenant && !isGlobalTenantBypass) {
       config.headers = config.headers || {};
       config.headers["X-Tenant"] = tenant;
     }

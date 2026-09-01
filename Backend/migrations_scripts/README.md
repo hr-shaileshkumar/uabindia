@@ -13,7 +13,9 @@ This folder contains SQL migration artifacts for the HRMS module-based schema.
 	- `company-master-20260202.sql`
 
 Notes:
-- Supported migration path is `master_setup.sql` and the module scripts in `modules/` only.
+- **Canonical runtime path:** EF Core migrations in `Backend/src/UabIndia.Infrastructure/Data/Migrations/` (applied automatically on API startup).
+- This folder (`migrations_scripts/`) is for **manual provisioning, brownfield repair, and reference** only.
+- Supported manual path is `master_setup.sql` and the module scripts in `modules/` when EF history is unavailable.
 - Legacy one-off migrations are kept in the `archive/` folder for reference only.
 
 Usage (review first):

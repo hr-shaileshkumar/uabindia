@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -27,17 +28,23 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
         private readonly ITenantAccessor _tenantAccessor;
         private readonly ILogger<OvertimeController> _logger;
         private readonly ApplicationDbContext _db;
+        private readonly IOvertimeApprovalService _approvals;
+        private readonly IOvertimeRequestService _requests;
 
         public OvertimeController(
             IOvertimeRepository overtimeRepository,
             ITenantAccessor tenantAccessor,
             ILogger<OvertimeController> logger,
-            ApplicationDbContext db)
+            ApplicationDbContext db,
+            IOvertimeApprovalService approvals,
+            IOvertimeRequestService requests)
         {
             _overtimeRepository = overtimeRepository;
             _tenantAccessor = tenantAccessor;
             _logger = logger;
             _db = db;
+            _approvals = approvals;
+            _requests = requests;
         }
 
         #region Overtime Request Endpoints
@@ -157,34 +164,31 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                     return BadRequest(ModelState);
 
                 var tenantId = _tenantAccessor.GetTenantId();
+                var created = await _requests.CreateAsync(new CreateOvertimeRequestCommand(
+                    dto.EmployeeId,
+                    dto.OvertimeDate,
+                    dto.StartTime,
+                    dto.EndTime,
+                    dto.BreakMinutes,
+                    dto.Reason,
+                    dto.ProjectCode,
+                    dto.ProjectId,
+                    dto.OvertimeType,
+                    dto.ManagerId,
+                    dto.IsPreApproved,
+                    dto.CompensationType,
+                    dto.OvertimeRate,
+                    dto.EmployeeNotes));
 
-                var request = new OvertimeRequest
-                {
-                    Id = Guid.NewGuid(),
-                    TenantId = tenantId,
-                    EmployeeId = dto.EmployeeId,
-                    OvertimeDate = dto.OvertimeDate,
-                    StartTime = dto.StartTime,
-                    EndTime = dto.EndTime,
-                    BreakMinutes = dto.BreakMinutes,
-                    Reason = dto.Reason,
-                    ProjectCode = dto.ProjectCode,
-                    ProjectId = dto.ProjectId,
-                    OvertimeType = dto.OvertimeType,
-                    ManagerId = dto.ManagerId,
-                    IsPreApproved = dto.IsPreApproved,
-                    CompensationType = dto.CompensationType,
-                    OvertimeRate = dto.OvertimeRate,
-                    EmployeeNotes = dto.EmployeeNotes,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                var created = await _overtimeRepository.CreateOvertimeRequestAsync(request);
                 var employeeNames = await GetEmployeeNamesAsync(
                     new[] { created.EmployeeId }.Concat(created.ManagerId.HasValue ? new[] { created.ManagerId.Value } : Array.Empty<Guid>()),
                     tenantId);
 
                 return CreatedAtAction(nameof(GetRequestById), new { id = created.Id }, MapToOvertimeRequestDto(created, employeeNames));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
@@ -318,49 +322,34 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
-                var tenantId = _tenantAccessor.GetTenantId();
+                var actor = await ResolveApproverAsync();
+                if (actor == null)
+                    return Unauthorized("Invalid user ID");
 
-                // Get current user info (would come from JWT claims in production)
-                var approverId = Guid.NewGuid(); // Placeholder
-                var approverName = "Manager Name"; // Would come from user context
-                var approverRole = "Manager"; // Would come from user context
-
-                var approval = new OvertimeApproval
-                {
-                    Id = Guid.NewGuid(),
-                    TenantId = tenantId,
-                    OvertimeRequestId = dto.OvertimeRequestId,
-                    ApproverId = approverId,
-                    ApproverName = approverName,
-                    ApproverRole = approverRole,
-                    Status = dto.Status,
-                    ApprovalNotes = dto.ApprovalNotes,
-                    RejectionReason = dto.RejectionReason,
-                    ApprovedHours = dto.ApprovedHours,
-                    ApprovedAmount = dto.ApprovedAmount,
-                    ApprovalLevel = 1,
-                    IsRequired = true,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                var created = await _overtimeRepository.CreateOvertimeApprovalAsync(approval);
-
-                // Update request status based on approval
-                var request = await _overtimeRepository.GetOvertimeRequestByIdAsync(dto.OvertimeRequestId, tenantId);
-                if (request != null)
-                {
-                    if (dto.Status == ApprovalStatus.Approved)
-                    {
-                        request.Status = OvertimeRequestStatus.Approved;
-                    }
-                    else if (dto.Status == ApprovalStatus.Rejected)
-                    {
-                        request.Status = OvertimeRequestStatus.Rejected;
-                    }
-                    await _overtimeRepository.UpdateOvertimeRequestAsync(request);
-                }
+                var created = await _approvals.DecideAsync(new CreateOvertimeApprovalCommand(
+                    dto.OvertimeRequestId,
+                    actor.Value.Id,
+                    actor.Value.Name,
+                    actor.Value.Role,
+                    dto.Status,
+                    dto.ApprovalNotes,
+                    dto.RejectionReason,
+                    dto.ApprovedHours,
+                    dto.ApprovedAmount));
 
                 return CreatedAtAction(nameof(GetApprovalsByRequest), new { requestId = created.OvertimeRequestId }, MapToOvertimeApprovalDto(created));
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound("Overtime request not found");
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
@@ -555,6 +544,29 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                 ApprovalCount = request.Approvals?.Count ?? 0,
                 CreatedAt = request.CreatedAt
             };
+        }
+
+        private async Task<(Guid Id, string Name, string Role)?> ResolveApproverAsync()
+        {
+            var raw = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? User.FindFirst("sub")?.Value;
+            if (!Guid.TryParse(raw, out var id) || id == Guid.Empty)
+                return null;
+
+            var name = User.FindFirst("name")?.Value
+                ?? User.FindFirst(ClaimTypes.Name)?.Value
+                ?? User.Identity?.Name;
+            var role = User.FindFirst(ClaimTypes.Role)?.Value ?? "Manager";
+
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
+                name = !string.IsNullOrWhiteSpace(user?.FullName)
+                    ? user!.FullName
+                    : user?.Email;
+            }
+
+            return (id, string.IsNullOrWhiteSpace(name) ? "Manager" : name, role);
         }
 
         private OvertimeApprovalDto MapToOvertimeApprovalDto(OvertimeApproval approval)

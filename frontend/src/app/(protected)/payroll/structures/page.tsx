@@ -1,18 +1,18 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
+import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
 import {
   ErpCreateButton,
   ErpDrawerFooter,
-  ErpEmptyState,
   ErpRefreshButton,
   ErpRowActions,
   ErpSearchFilter,
-} from "@/components/erp/erp-page-kit";
+} from "@/components/workspace/page-kit";
+import { useErpListView } from "@/components/workspace/list-view";
 import { SideDrawer } from "@/components/ui/side-drawer";
-import { UniversalDeleteDialog } from "@/components/erp/templates/UniversalDeleteDialog";
+import { UniversalDeleteDialog } from "@/components/workspace/templates/UniversalDeleteDialog";
 import { payrollApi } from "@/services/modules";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
@@ -41,6 +41,7 @@ export default function PayrollStructuresPage() {
   const [viewRow, setViewRow] = useState<PayrollStructure | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [confirmDeleteIds, setConfirmDeleteIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(emptyForm());
   const [recentCutoff] = useState(() => Date.now() - 30 * 86400000);
@@ -121,9 +122,61 @@ export default function PayrollStructuresPage() {
     }
   };
 
+  const pendingDeleteIds = deleteId ? [deleteId] : confirmDeleteIds;
+
+  const list = useErpListView({
+    listKey: "payroll-structures",
+    rows: filtered,
+    columns: [
+      { key: "name", label: "Name" },
+      { key: "effectiveFrom", label: "Effective from", dataType: "date" },
+      { key: "status", label: "Status" },
+      { key: "createdAt", label: "Created", dataType: "date" },
+      { key: "actions", label: "Actions", className: "text-right", locked: true },
+    ],
+    getRowId: (row) => row.id,
+    loading,
+    emptyMessage: "No structures found.",
+    onCreate: openCreate,
+    createLabel: "New structure",
+    onRefresh: () => void load(),
+    onBulkDelete: (rows) => {
+      if (rows.length === 1 && rows[0]) setDeleteId(rows[0].id);
+      else if (rows.length > 1) setConfirmDeleteIds(rows.map((row) => row.id));
+    },
+    extraFilters: (
+      <ErpSearchFilter value={search} onChange={setSearch} placeholder="Filter name or status…" />
+    ),
+    renderRow: (structure) => (
+      <tr key={structure.id} className="erp-tr">
+        <td className="erp-td text-slate-900">{structure.name || "Structure"}</td>
+        <td className="erp-td text-xs text-slate-600">
+          {structure.effectiveFrom
+            ? new Date(structure.effectiveFrom).toLocaleDateString("en-IN")
+            : "—"}
+        </td>
+        <td className="erp-td text-slate-600">{structure.status || "Active"}</td>
+        <td className="erp-td text-slate-600">
+          {structure.createdAt
+            ? new Date(structure.createdAt).toLocaleDateString("en-IN")
+            : "—"}
+        </td>
+        <td className="erp-td text-right">
+          <ErpRowActions
+            onView={{ label: "View", onClick: () => setViewRow(structure) }}
+            onEdit={{ label: "Edit", onClick: () => openEdit(structure) }}
+            onDelete={{ label: "Delete", onClick: () => setDeleteId(structure.id) }}
+          />
+        </td>
+      </tr>
+    ),
+  });
+
   return (
     <StandardPageLayout
       title="Payroll Structures"
+      subtitle="Configure salary components, earnings, allowances, deductions, and tax calculation rules."
+      eyebrow="Payroll / Configuration"
       icon="settings"
       meta={
         <CrudHeaderStats
@@ -155,70 +208,15 @@ export default function PayrollStructuresPage() {
       actions={
         <>
           <ErpRefreshButton onClick={() => void load()} loading={loading} />
+          {list.headerTools}
           <ErpCreateButton label="New structure" onClick={openCreate} />
         </>
       }
-      filters={<ErpSearchFilter value={search} onChange={setSearch} placeholder="Filter name or status…" />}
+      filters={list.filterBar}
     >
       {error ? <div className="erp-alert-error">{error}</div> : null}
 
-      <CrudCard>
-        <div className="erp-table-wrap">
-          <table className="erp-table table-auto">
-            <thead className="erp-thead">
-              <tr>
-                <th className="erp-th">Name</th>
-                <th className="erp-th">Effective from</th>
-                <th className="erp-th">Status</th>
-                <th className="erp-th">Created</th>
-                <th className="erp-th text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={5} className="erp-td py-8 text-center text-xs text-slate-500">
-                    Loading…
-                  </td>
-                </tr>
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="erp-td">
-                    <ErpEmptyState
-                      message="No structures found."
-                      action={<ErpCreateButton label="New structure" onClick={openCreate} />}
-                    />
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((structure) => (
-                  <tr key={structure.id} className="erp-tr">
-                    <td className="erp-td text-slate-900">{structure.name || "Structure"}</td>
-                    <td className="erp-td text-xs text-slate-600">
-                      {structure.effectiveFrom
-                        ? new Date(structure.effectiveFrom).toLocaleDateString("en-IN")
-                        : "—"}
-                    </td>
-                    <td className="erp-td text-slate-600">{structure.status || "Active"}</td>
-                    <td className="erp-td text-slate-600">
-                      {structure.createdAt
-                        ? new Date(structure.createdAt).toLocaleDateString("en-IN")
-                        : "—"}
-                    </td>
-                    <td className="erp-td text-right">
-                      <ErpRowActions
-                        onView={{ label: "View", onClick: () => setViewRow(structure) }}
-                        onEdit={{ label: "Edit", onClick: () => openEdit(structure) }}
-                        onDelete={{ label: "Delete", onClick: () => setDeleteId(structure.id) }}
-                      />
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </CrudCard>
+      <CrudCard>{list.table}</CrudCard>
 
       <SideDrawer open={Boolean(viewRow)} onClose={() => setViewRow(null)} title="Structure details">
         {viewRow ? (
@@ -295,15 +293,26 @@ export default function PayrollStructuresPage() {
       </SideDrawer>
 
       <UniversalDeleteDialog
-        open={Boolean(deleteId)}
-        onOpenChange={(open) => !open && setDeleteId(null)}
-        title="Delete payroll structure"
-        entityName={structures.find((s) => s.id === deleteId)?.name}
+        open={pendingDeleteIds.length > 0}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteId(null);
+            setConfirmDeleteIds([]);
+          }
+        }}
+        title={pendingDeleteIds.length > 1 ? `Delete ${pendingDeleteIds.length} structures` : "Delete payroll structure"}
+        entityName={
+          pendingDeleteIds.length > 1
+            ? `${pendingDeleteIds.length} structures`
+            : structures.find((s) => s.id === deleteId)?.name
+        }
         onConfirm={async () => {
-          if (!deleteId) return;
-          await payrollApi.structures.delete(deleteId);
-          notifySuccess("Structure deleted.");
+          for (const id of pendingDeleteIds) {
+            await payrollApi.structures.delete(id);
+          }
+          notifySuccess(pendingDeleteIds.length > 1 ? "Structures deleted." : "Structure deleted.");
           setDeleteId(null);
+          setConfirmDeleteIds([]);
           await load();
         }}
       />

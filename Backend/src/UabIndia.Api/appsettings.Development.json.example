@@ -1,6 +1,6 @@
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=UabIndia_HRMS_Dev;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true;"
+    "DefaultConnection": "Server=localhost\\YOUR_SQL_INSTANCE;Database=UabIndia_HRMS_Dev;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true;"
   },
   "Logging": {
     "LogLevel": {
@@ -10,12 +10,12 @@
     }
   },
   "Jwt": {
-    "Key": "dev-only-change-this-to-a-strong-secret-key-min-32-chars",
+    "Key": "${JWT_KEY}",
     "Issuer": "UabIndia",
     "Audience": "UabIndiaUsers"
   },
   "Encryption": {
-    "Key": "dev-only-change-this-to-a-strong-secret-key-min-32-chars"
+    "Key": "${ENCRYPTION_KEY}"
   },
   "Cors": {
     "AllowedOrigins": [

@@ -42,12 +42,12 @@ export const flattenNavigationItems = (payload?: { modules?: NavigationModule[] 
     groupLabel: string;
   }[] = [];
 
-  for (const module of payload?.modules ?? []) {
-    const moduleKey = module.key ?? "unknown";
-    const moduleLabel = module.displayName ?? module.label ?? moduleKey;
+  for (const navModule of payload?.modules ?? []) {
+    const moduleKey = navModule.key ?? "unknown";
+    const moduleLabel = navModule.displayName ?? navModule.label ?? moduleKey;
 
-    if (module.groups?.length) {
-      for (const group of module.groups) {
+    if (navModule.groups?.length) {
+      for (const group of navModule.groups) {
         for (const item of group.items ?? []) {
           rows.push({
             id: `${moduleKey}-${item.href ?? item.path ?? item.label}`,
@@ -60,7 +60,7 @@ export const flattenNavigationItems = (payload?: { modules?: NavigationModule[] 
       }
     }
 
-    for (const item of module.items ?? []) {
+    for (const item of navModule.items ?? []) {
       rows.push({
         id: `${moduleKey}-${item.href ?? item.path ?? item.label}`,
         label: item.label ?? "Menu Item",

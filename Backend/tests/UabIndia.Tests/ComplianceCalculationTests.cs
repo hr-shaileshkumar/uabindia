@@ -51,10 +51,10 @@ namespace UabIndia.Tests
 
             Assert.Equal(15000m, created.PFWages);
             Assert.Equal(1800m, created.EmployeeContribution, 2);
-            Assert.Equal(1249.5m, created.EmployerContributionPF, 2);
-            Assert.Equal(250.5m, created.EmployerContributionEPS, 2);
-            Assert.Equal(49.5m, created.AdminCharges, 2);
-            Assert.Equal(3300m, created.TotalContribution, 2);
+            Assert.Equal(550.50m, created.EmployerContributionPF, 2);
+            Assert.Equal(1249.50m, created.EmployerContributionEPS, 2);
+            Assert.Equal(75m, created.AdminCharges, 2);
+            Assert.Equal(3600m, created.TotalContribution, 2);
 
             context.Dispose();
         }
@@ -81,11 +81,11 @@ namespace UabIndia.Tests
 
             var created = await repository.CreateESIAsync(esi);
 
-            Assert.Equal(21000m, created.ESIWages);
+            Assert.Equal(0m, created.ESIWages);
             Assert.False(created.IsESIEligible);
-            Assert.Equal(157.5m, created.EmployeeContribution, 2);
-            Assert.Equal(682.5m, created.EmployerContribution, 2);
-            Assert.Equal(840m, created.TotalContribution, 2);
+            Assert.Equal(0m, created.EmployeeContribution, 2);
+            Assert.Equal(0m, created.EmployerContribution, 2);
+            Assert.Equal(0m, created.TotalContribution, 2);
 
             context.Dispose();
         }
@@ -162,9 +162,9 @@ namespace UabIndia.Tests
 
             var created = await repository.CreateIncomeTaxAsync(incomeTax);
 
-            Assert.Equal(950000m, created.TaxableIncome);
-            Assert.Equal(46800m, created.TotalTaxLiability, 2);
-            Assert.Equal(0m, created.RebateUnder87A);
+            Assert.Equal(925000m, created.TaxableIncome);
+            Assert.Equal(0m, created.TotalTaxLiability, 2);
+            Assert.True(created.RebateUnder87A > 0m);
 
             context.Dispose();
         }

@@ -19,16 +19,17 @@ type PublicHeaderProps = {
   allowedPaths?: string[];
 };
 
-/** Compact primary nav for the marketing header (logo covers Home; Book demo is a CTA). */
-const PLATFORM_HEADER_HREFS = ["/products", "/industries", "/pricing", "/resources", "/about", "/careers", "/contact"];
-const TENANT_HEADER_HREFS = ["/about", "/careers", "/contact"];
+/** Primary nav for platform marketing center and right sections */
+const PLATFORM_CENTER_HREFS = ["/products", "/industries", "/pricing", "/resources"];
+const PLATFORM_RIGHT_HREFS = ["/about", "/careers", "/contact"];
+const TENANT_NAV_HREFS = ["/about", "/careers", "/contact"];
 
 export default function PublicHeader({
   audience = "tenant",
   profile,
   headerContent,
 }: PublicHeaderProps) {
-  const pathname = usePathname();
+  const pathname = usePathname() || "";
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -37,20 +38,26 @@ export default function PublicHeader({
 
   const homeHref = headerContent.homeHref || getDefaultPublicHomeHref(audience);
 
-  const navLinks = useMemo(() => {
+  const { centerLinks, rightLinks } = useMemo(() => {
     const defaults = getPublicNavLinks(audience, "primary");
-    const preferred = platformMode ? PLATFORM_HEADER_HREFS : TENANT_HEADER_HREFS;
-    const fromDefaults = preferred
-      .map((href) => defaults.find((link) => link.href === href))
-      .filter((link): link is { label: string; href: string } => Boolean(link));
-
-    // CMS links may only include Home — never let that collapse the marketing nav.
-    if (fromDefaults.length > 0) {
-      return fromDefaults;
+    
+    if (platformMode) {
+      const center = PLATFORM_CENTER_HREFS
+        .map((href) => defaults.find((link) => link.href === href))
+        .filter((link): link is { label: string; href: string } => Boolean(link));
+      const right = PLATFORM_RIGHT_HREFS
+        .map((href) => defaults.find((link) => link.href === href))
+        .filter((link): link is { label: string; href: string } => Boolean(link));
+      return { centerLinks: center, rightLinks: right };
+    } else {
+      const tenantLinks = TENANT_NAV_HREFS
+        .map((href) => defaults.find((link) => link.href === href))
+        .filter((link): link is { label: string; href: string } => Boolean(link));
+      return { centerLinks: [], rightLinks: tenantLinks };
     }
-
-    return defaults.filter((link) => link.href !== "/" && link.href !== "/login" && link.href !== "/book-demo");
   }, [audience, platformMode]);
+
+  const allMobileLinks = useMemo(() => [...centerLinks, ...rightLinks], [centerLinks, rightLinks]);
 
   const primaryCtaHref = withPublicAudience(
     headerContent.primaryCtaHref || (platformMode ? "/book-demo" : "/login"),
@@ -84,40 +91,62 @@ export default function PublicHeader({
       )}
     >
       <div className={cn(publicSectionClassName, "flex h-16 items-center justify-between gap-4")}>
+        {/* Left: Brand Logo */}
         <Link
           href={withPublicAudience(homeHref, audience)}
           className="flex shrink-0 items-center"
           onClick={() => setIsMobileMenuOpen(false)}
         >
-          <img src="/logo.png" alt={brandName} className="h-7 w-auto object-contain" />
+          <img src={profile.logoUrl || "/logo.png"} alt={brandName} className="h-7 w-auto object-contain" />
         </Link>
 
-        <nav className="hidden items-center gap-0.5 lg:flex">
-          {navLinks.map((item) => (
+        {/* Center: Main Product / Solutions Nav (in Platform mode) */}
+        {centerLinks.length > 0 && (
+          <nav className="hidden items-center gap-1 lg:flex">
+            {centerLinks.map((item) => (
+              <Link
+                key={item.href}
+                href={withPublicAudience(item.href, audience)}
+                className={cn(
+                  "rounded-lg px-3 py-2 text-sm font-medium transition",
+                  isActive(item.href)
+                    ? "bg-slate-100 text-slate-900"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
+                )}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        )}
+
+        {/* Right: Company Nav (About, Careers, Contact) + Auth CTAs */}
+        <div className="hidden items-center gap-2 lg:flex">
+          {rightLinks.map((item) => (
             <Link
               key={item.href}
               href={withPublicAudience(item.href, audience)}
               className={cn(
                 "rounded-lg px-3 py-2 text-sm font-medium transition",
                 isActive(item.href)
-                  ? "bg-slate-100 text-slate-900"
+                  ? "bg-slate-100 text-slate-900 font-semibold"
                   : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
               )}
             >
               {item.label}
             </Link>
           ))}
-        </nav>
 
-        <div className="hidden items-center gap-2 lg:flex">
-          {secondaryCtaHref ? (
-            <Link href={secondaryCtaHref} className={publicButtonClassName.ghost}>
-              Login
+          <div className="ml-2 flex items-center gap-2 border-l border-slate-200 pl-3">
+            {secondaryCtaHref ? (
+              <Link href={secondaryCtaHref} className={publicButtonClassName.ghost}>
+                Login
+              </Link>
+            ) : null}
+            <Link href={primaryCtaHref} className={publicButtonClassName.primary}>
+              {primaryCtaLabel}
             </Link>
-          ) : null}
-          <Link href={primaryCtaHref} className={publicButtonClassName.primary}>
-            {primaryCtaLabel}
-          </Link>
+          </div>
         </div>
 
         <button
@@ -133,7 +162,7 @@ export default function PublicHeader({
       {isMobileMenuOpen ? (
         <div className="border-t border-slate-200 bg-white lg:hidden">
           <div className={cn(publicSectionClassName, "space-y-1 py-3")}>
-            {navLinks.map((item) => (
+            {allMobileLinks.map((item) => (
               <Link
                 key={item.href}
                 href={withPublicAudience(item.href, audience)}

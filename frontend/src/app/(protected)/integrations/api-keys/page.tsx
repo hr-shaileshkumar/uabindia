@@ -1,20 +1,20 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Copy } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
+import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
 import {
   ErpCreateButton,
   ErpDrawerFooter,
   ErpRefreshButton,
   ErpRowActions,
   ErpSearchFilter,
-} from "@/components/erp/erp-page-kit";
+} from "@/components/workspace/page-kit";
 import { SideDrawer } from "@/components/ui/side-drawer";
-import { UniversalDeleteDialog } from "@/components/erp/templates/UniversalDeleteDialog";
-import { useErpListView } from "@/components/erp/erp-list-view";
-import { erpButtonClassName } from "@/components/erp/erpStyles";
+import { UniversalDeleteDialog } from "@/components/workspace/templates/UniversalDeleteDialog";
+import { useErpListView } from "@/components/workspace/list-view";
+import { erpButtonClassName } from "@/components/workspace/styles";
 import { appApi } from "@/services/modules";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
@@ -174,6 +174,8 @@ export default function IntegrationsApiKeysPage() {
     <>
       <StandardPageLayout
         title="API Keys"
+        subtitle="Manage developer API credentials, access tokens, permissions, and revocation."
+        eyebrow="Integrations / Security"
         icon="key"
         meta={
           <CrudHeaderStats

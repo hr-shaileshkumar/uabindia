@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { ExternalLink, RefreshCw, PlugZap, ScrollText } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
-import { ErpRefreshButton } from "@/components/erp/erp-page-kit";
-import { useErpListView } from "@/components/erp/erp-list-view";
+import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
+import { ErpRefreshButton } from "@/components/workspace/page-kit";
+import { useErpListView } from "@/components/workspace/list-view";
 import { SideDrawer } from "@/components/ui/side-drawer";
-import { erpButtonClassName, erpFormInputClassName } from "@/components/erp/erpStyles";
+import { erpButtonClassName, erpFormInputClassName } from "@/components/workspace/styles";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import {
@@ -116,7 +116,7 @@ export function IntegrationHubManager() {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Search integration or provider…"
-        className={`${erpFormInputClassName} max-w-xs`}
+        className="erp-input h-8 w-56 sm:w-64"
       />
     ),
     renderRow: (conn) => (

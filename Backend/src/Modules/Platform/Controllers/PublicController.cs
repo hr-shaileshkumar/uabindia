@@ -1,12 +1,22 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using UabIndia.Api.Models;
 using UabIndia.Api.Services;
 using UabIndia.Application.Interfaces;
+using UabIndia.Core.Authorization;
+using UabIndia.Core.Entities;
+using UabIndia.Core.Services;
+using UabIndia.Identity.Services;
+using UabIndia.Infrastructure.Data;
 
 namespace UabIndia.Api.Modules.Platform.Controllers
 {
@@ -18,15 +28,201 @@ namespace UabIndia.Api.Modules.Platform.Controllers
         private readonly ITenantAccessor _tenantAccessor;
         private readonly IWebsiteContentService _websiteContentService;
         private readonly ILogger<PublicController> _logger;
+        private readonly ApplicationDbContext _db;
+        private readonly IPasswordHasher<User> _hasher;
+        private readonly JwtService _jwt;
+        private readonly IEncryptionService _encryption;
 
         public PublicController(
             ITenantAccessor tenantAccessor,
             IWebsiteContentService websiteContentService,
-            ILogger<PublicController> logger)
+            ILogger<PublicController> logger,
+            ApplicationDbContext db,
+            IPasswordHasher<User> hasher,
+            JwtService jwt,
+            IEncryptionService encryption)
         {
             _tenantAccessor = tenantAccessor;
             _websiteContentService = websiteContentService;
             _logger = logger;
+            _db = db;
+            _hasher = hasher;
+            _jwt = jwt;
+            _encryption = encryption;
+        }
+
+        [HttpGet("check-subdomain")]
+        public async Task<IActionResult> CheckSubdomain([FromQuery] string? subdomain)
+        {
+            if (string.IsNullOrWhiteSpace(subdomain))
+                return BadRequest(new { available = false, message = "Subdomain is required." });
+
+            var slug = Regex.Replace(subdomain.Trim().ToLowerInvariant(), @"[^a-z0-9-]", "");
+            if (slug.Length < 3)
+                return Ok(new { available = false, message = "Subdomain must be at least 3 characters." });
+
+            var reserved = new[] { "app", "api", "admin", "superadmin", "platform", "portal", "uabindia", "support", "billing" };
+            if (reserved.Contains(slug))
+                return Ok(new { available = false, message = "This subdomain is reserved." });
+
+            var exists = await _db.Tenants.AsNoTracking().IgnoreQueryFilters()
+                .AnyAsync(t => t.Subdomain == slug && t.DeletedAt == null);
+
+            return Ok(new { available = !exists, slug });
+        }
+
+        [HttpPost("register-tenant")]
+        [EnableRateLimiting("public-register")]
+        public async Task<IActionResult> RegisterTenant([FromBody] SelfServeRegisterDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.CompanyName) || string.IsNullOrWhiteSpace(dto.AdminEmail) || string.IsNullOrWhiteSpace(dto.Password))
+                return BadRequest(new { success = false, message = "Company Name, Email, and Password are required." });
+
+            var slug = string.IsNullOrWhiteSpace(dto.Subdomain)
+                ? Regex.Replace(dto.CompanyName.Trim().ToLowerInvariant(), @"[^a-z0-9-]", "")
+                : Regex.Replace(dto.Subdomain.Trim().ToLowerInvariant(), @"[^a-z0-9-]", "");
+
+            if (slug.Length < 3)
+                slug = $"{slug}-erp";
+
+            var tenantExists = await _db.Tenants.AsNoTracking().IgnoreQueryFilters()
+                .AnyAsync(t => t.Subdomain == slug && t.DeletedAt == null);
+
+            if (tenantExists)
+                return BadRequest(new { success = false, message = $"Subdomain '{slug}' is already taken. Please choose another." });
+
+            var normalizedAdminEmail = dto.AdminEmail.Trim().ToLowerInvariant();
+            var adminEmailHash = _encryption.ComputeHash(normalizedAdminEmail);
+
+            var emailExists = await _db.Users.AsNoTracking().IgnoreQueryFilters()
+                .AnyAsync(u => u.EmailHash == adminEmailHash && !u.IsDeleted);
+
+            if (emailExists)
+                return BadRequest(new { success = false, message = "An account with this email address already exists." });
+
+            // 1. Create Tenant
+            var tenant = new Tenant
+            {
+                Name = dto.CompanyName.Trim(),
+                Subdomain = slug,
+                IsActive = true,
+                ProvisionStatus = "Completed"
+            };
+            _db.Tenants.Add(tenant);
+            await _db.SaveChangesAsync();
+
+            // 2. Create Default Company
+            var company = new Company
+            {
+                TenantId = tenant.Id,
+                Name = dto.CompanyName.Trim(),
+                LegalName = dto.CompanyName.Trim(),
+                Industry = string.IsNullOrWhiteSpace(dto.Industry) ? "Technology & Services" : dto.Industry.Trim(),
+                Country = "India",
+                Email = dto.AdminEmail.Trim(),
+                PhoneNumber = dto.PhoneNumber?.Trim(),
+                IsActive = true
+            };
+            _db.Companies.Add(company);
+
+            // 3. Create Admin Role & User
+            var adminRole = new Role
+            {
+                TenantId = tenant.Id,
+                Name = RoleCatalog.SuperAdminRoleName,
+                Description = "Super Administrator with full ERP permissions."
+            };
+            _db.Roles.Add(adminRole);
+
+            var user = new User
+            {
+                TenantId = tenant.Id,
+                CompanyId = company.Id,
+                Email = normalizedAdminEmail,
+                EmailHash = adminEmailHash,
+                FullName = string.IsNullOrWhiteSpace(dto.AdminName) ? "Admin" : dto.AdminName.Trim(),
+                IsActive = true,
+                IsSystemAdmin = false
+            };
+            user.PasswordHash = _hasher.HashPassword(user, dto.Password);
+            _db.Users.Add(user);
+
+            var userRole = new UserRole
+            {
+                TenantId = tenant.Id,
+                UserId = user.Id,
+                RoleId = adminRole.Id
+            };
+            _db.UserRoles.Add(userRole);
+
+            // 4. Provision Free Trial Subscription
+            var sub = new TenantSubscription
+            {
+                TenantId = tenant.Id,
+                PlanCode = "trial",
+                Status = "Active",
+                BillingCycle = "Monthly",
+                Amount = 0,
+                Currency = "INR",
+                StartDate = DateTime.UtcNow,
+                EndDate = DateTime.UtcNow.AddDays(14),
+                TrialEndsAt = DateTime.UtcNow.AddDays(14),
+                GatewayProvider = "Manual"
+            };
+            _db.TenantSubscriptions.Add(sub);
+
+            // 5. Seed Core Chart of Accounts for Indian SME Accounting
+            var coaDefaults = new (string Code, string Name, string Type, string SubType)[]
+            {
+                ("1000", "Cash in Hand", "Asset", "Current Asset"),
+                ("1010", "Main Operating Bank Account", "Asset", "Current Asset"),
+                ("1200", "Accounts Receivable (Trade Debtors)", "Asset", "Current Asset"),
+                ("1400", "Finished Goods Inventory", "Asset", "Current Asset"),
+                ("2000", "Accounts Payable (Trade Creditors)", "Liability", "Current Liability"),
+                ("2100", "GST Output Tax Payable", "Liability", "Current Liability"),
+                ("3000", "Shareholder Capital / Equity", "Equity", "Equity"),
+                ("4000", "Sales Revenue (Goods & Services)", "Revenue", "Operating Revenue"),
+                ("5000", "Cost of Goods Sold (COGS)", "Expense", "Direct Cost"),
+                ("6000", "Salaries & Payroll Expense", "Expense", "Operating Expense"),
+                ("6100", "Rent, Utilities & Office Expense", "Expense", "Operating Expense")
+            };
+
+            foreach (var (code, name, type, subType) in coaDefaults)
+            {
+                _db.ChartOfAccounts.Add(new ChartOfAccount
+                {
+                    TenantId = tenant.Id,
+                    AccountCode = code,
+                    AccountName = name,
+                    AccountType = type,
+                    SubType = subType,
+                    IsActive = true
+                });
+            }
+
+            await _db.SaveChangesAsync();
+
+            // 6. Generate Token
+            var token = _jwt.GenerateToken(user.Id, tenant.Id, new[] { RoleCatalog.SuperAdminRoleName, RoleCatalog.AdminRoleName }, TimeSpan.FromDays(7));
+
+            return Ok(new
+            {
+                success = true,
+                message = "Workspace created successfully! Redirecting to setup...",
+                token,
+                tenant = new
+                {
+                    id = tenant.Id,
+                    name = tenant.Name,
+                    subdomain = tenant.Subdomain
+                },
+                user = new
+                {
+                    id = user.Id,
+                    email = user.Email,
+                    fullName = user.FullName
+                }
+            });
         }
 
         [HttpGet("company-profile")]
@@ -203,5 +399,16 @@ namespace UabIndia.Api.Modules.Platform.Controllers
                 }
             };
         }
+    }
+
+    public class SelfServeRegisterDto
+    {
+        public string CompanyName { get; set; } = string.Empty;
+        public string? Subdomain { get; set; }
+        public string? AdminName { get; set; }
+        public string AdminEmail { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string? Industry { get; set; }
+        public string? PhoneNumber { get; set; }
     }
 }

@@ -1,20 +1,20 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Download, Upload } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudCard, CrudHeaderStats } from "@/components/erp/crud-workspace";
+import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
 import {
   ErpCreateButton,
   ErpDrawerFooter,
   ErpRefreshButton,
   ErpRowActions,
   ErpSearchFilter,
-} from "@/components/erp/erp-page-kit";
+} from "@/components/workspace/page-kit";
 import { SideDrawer } from "@/components/ui/side-drawer";
-import { UniversalDeleteDialog } from "@/components/erp/templates/UniversalDeleteDialog";
-import { useErpListView } from "@/components/erp/erp-list-view";
+import { UniversalDeleteDialog } from "@/components/workspace/templates/UniversalDeleteDialog";
+import { useErpListView } from "@/components/workspace/list-view";
 import { appApi } from "@/services/modules";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { notifyError, notifySuccess } from "@/lib/notifications";
@@ -144,6 +144,8 @@ export default function DocumentVaultPage() {
   return (
     <StandardPageLayout
       title="Documents"
+      subtitle="Centralized file store for employee records, contracts, policies, and shared company files."
+      eyebrow="Operations / Documents"
       icon="file"
       meta={<CrudHeaderStats items={stats} />}
       actions={

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { ReactNode } from "react";
 import Link from "next/link";
@@ -22,7 +22,7 @@ import {
   publicSectionClassName,
   publicSectionSpacingClassName,
 } from "@/components/public/publicStyles";
-import { ContactDemoForm } from "@/components/erp/contact-demo-form";
+import { ContactDemoForm } from "@/components/workspace/contact-demo-form";
 import { usePublicPageData } from "@/hooks/usePublicPageData";
 import {
   demoAgenda,

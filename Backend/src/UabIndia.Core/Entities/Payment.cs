@@ -5,6 +5,8 @@ namespace UabIndia.Core.Entities
     // Payment (both receivable and payable)
     public class Payment : BaseEntity
     {
+        public Guid? CompanyId { get; set; }
+        public Guid? ProjectId { get; set; }
         public string PaymentNumber { get; set; } = string.Empty;
         public DateTime PaymentDate { get; set; }
         public string PaymentType { get; set; } = string.Empty; // Received, Paid

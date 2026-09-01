@@ -1,8 +1,8 @@
 "use client";
 
-import type { ReactNode } from "react";
+import React, { useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MotionReveal } from "@/components/public/PublicMotion";
 import PublicProductPreview from "@/components/public/PublicProductPreview";
@@ -302,41 +302,129 @@ export function ProcessTimeline({
 }
 
 export function PricingGrid({ plans }: { plans: PricingPlan[] }) {
+  const [currency, setCurrency] = useState<"INR" | "USD">("INR");
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
+
+  const currencies = [
+    { code: "INR" as const, symbol: "₹", label: "₹ INR (India)" },
+    { code: "USD" as const, symbol: "$", label: "$ USD (Global / International)" },
+  ];
+
   return (
-    <div className="grid gap-4 lg:grid-cols-3">
-      {plans.map((plan) => (
-        <article
-          key={plan.name}
-          className={cn(
-            publicPanelClassName,
-            "flex flex-col",
-            plan.featured && "border-slate-900 ring-1 ring-slate-900",
-          )}
-        >
-          {plan.featured ? (
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-slate-900">Recommended</p>
-          ) : null}
-          <h3 className="text-lg font-semibold text-slate-900">{plan.name}</h3>
-          <p className="mt-1 text-sm text-slate-500">{plan.audience}</p>
-          <p className="mt-4 text-2xl font-semibold text-slate-900">{plan.price}</p>
-          <p className="mt-1 text-xs text-slate-500">{plan.implementation}</p>
-          <p className="mt-4 text-sm leading-relaxed text-slate-600">{plan.summary}</p>
-          <ul className="mt-5 flex-1 space-y-2">
-            {plan.points.map((point) => (
-              <li key={point} className="flex items-start gap-2 text-sm text-slate-700">
-                <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-                {point}
-              </li>
+    <div className="space-y-8">
+      {/* Controls Bar: Currency Selector & Billing Cycle Toggle */}
+      <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:flex-row sm:px-6">
+        {/* Currency Switcher */}
+        <div className="flex items-center gap-2">
+          <Globe className="h-4 w-4 text-slate-500" />
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Billing Currency:</span>
+          <div className="flex flex-wrap gap-1.5">
+            {currencies.map((c) => (
+              <button
+                key={c.code}
+                type="button"
+                onClick={() => setCurrency(c.code)}
+                className={cn(
+                  "rounded-lg px-3 py-1.5 text-xs font-semibold transition flex items-center gap-1.5",
+                  currency === c.code
+                    ? "bg-slate-900 text-white shadow-sm"
+                    : "bg-white text-slate-700 hover:bg-slate-200/70 border border-slate-200"
+                )}
+              >
+                <span>{c.code === "INR" ? "🇮🇳 ₹ INR (India)" : "🌎 $ USD (Global)"}</span>
+              </button>
             ))}
-          </ul>
-          <Link
-            href={`/book-demo?plan=${plan.name.toLowerCase().replace(/\s+/g, "-")}`}
-            className={cn(plan.featured ? publicButtonClassName.primary : publicButtonClassName.secondary, "mt-6 w-full")}
-          >
-            Talk to sales
-          </Link>
-        </article>
-      ))}
+          </div>
+        </div>
+
+        {/* Monthly vs Annual Toggle */}
+        <div className="flex items-center gap-2">
+          <div className="inline-flex rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setBillingCycle("monthly")}
+              className={cn(
+                "rounded-md px-3 py-1 text-xs font-semibold transition",
+                billingCycle === "monthly" ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"
+              )}
+            >
+              Monthly
+            </button>
+            <button
+              type="button"
+              onClick={() => setBillingCycle("annual")}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-semibold transition",
+                billingCycle === "annual" ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"
+              )}
+            >
+              <span>Annual</span>
+              <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">Save 20%</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Pricing Cards Grid */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {plans.map((plan) => {
+          const planPriceObj = plan.pricesByCurrency ? plan.pricesByCurrency[currency] : null;
+          const displayPrice = planPriceObj
+            ? billingCycle === "annual"
+              ? planPriceObj.annual
+              : `${planPriceObj.monthly} / month`
+            : plan.price;
+
+          return (
+            <article
+              key={plan.name}
+              className={cn(
+                publicPanelClassName,
+                "flex flex-col relative",
+                plan.featured && "border-slate-900 ring-2 ring-slate-900 shadow-xl"
+              )}
+            >
+              {plan.featured ? (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-slate-900 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow">
+                  Most Popular
+                </div>
+              ) : null}
+              <h3 className="text-lg font-semibold text-slate-900">{plan.name}</h3>
+              <p className="mt-1 text-xs text-slate-500 min-h-[32px]">{plan.audience}</p>
+              
+              <div className="mt-4">
+                <p className="text-2xl font-bold tracking-tight text-slate-900">{displayPrice}</p>
+                <p className="mt-1 text-[11px] text-slate-500 font-medium">{plan.implementation}</p>
+              </div>
+
+              <p className="mt-4 text-xs leading-relaxed text-slate-600 min-h-[36px]">{plan.summary}</p>
+              
+              <ul className="mt-5 flex-1 space-y-2.5 border-t border-slate-100 pt-4">
+                {plan.points.map((point) => (
+                  <li key={point} className="flex items-start gap-2 text-xs text-slate-700">
+                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                    <span>{point}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <Link
+                href={
+                  plan.name.includes("Enterprise")
+                    ? "/book-demo"
+                    : `/register?plan=${plan.name.toLowerCase().replace(/\s+/g, "-")}&currency=${currency}`
+                }
+                className={cn(
+                  plan.featured ? publicButtonClassName.primary : publicButtonClassName.secondary,
+                  "mt-6 w-full text-center py-2.5 text-xs font-semibold"
+                )}
+              >
+                {plan.name.includes("Enterprise") ? "Talk to Enterprise Sales" : "Start 14-Day Free Trial"}
+              </Link>
+            </article>
+          );
+        })}
+      </div>
     </div>
   );
 }

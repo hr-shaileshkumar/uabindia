@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { appApi } from "@/services/modules/app";
 
 export type ApiKeySummary = {
@@ -35,3 +35,27 @@ export const mapApiKey = (item: ApiKeySummary, index: number) => ({
   createdAt: item.createdAt ? new Date(item.createdAt).toLocaleDateString("en-IN") : "-",
   lastUsed: item.lastUsedAt ? new Date(item.lastUsedAt).toLocaleDateString("en-IN") : "Never",
 });
+
+export const useApiKeyMutations = () => {
+  const queryClient = useQueryClient();
+
+  const createApiKey = useMutation({
+    mutationFn: async ({ name, scope }: { name: string; scope?: string }) => {
+      return appApi.licensing.createApiKey({ name, scope });
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: apiKeysQueryKey });
+    },
+  });
+
+  const revokeApiKey = useMutation({
+    mutationFn: async (id: string) => {
+      return appApi.licensing.revokeApiKey(id);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: apiKeysQueryKey });
+    },
+  });
+
+  return { createApiKey, revokeApiKey };
+};

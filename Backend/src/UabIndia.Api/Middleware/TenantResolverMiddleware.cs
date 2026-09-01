@@ -92,6 +92,13 @@ namespace UabIndia.Api.Middleware
                     return;
                 }
 
+                if (context.User?.Identity?.IsAuthenticated != true)
+                {
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    await context.Response.WriteAsync("Unauthorized");
+                    return;
+                }
+
                 context.Response.StatusCode = 400;
                 await context.Response.WriteAsync("Tenant context missing");
                 return;
@@ -221,6 +228,12 @@ namespace UabIndia.Api.Middleware
                 return true;
             }
 
+            if (value.StartsWith("/api/v1/superadmin", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/v1/tenants/resolve", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
             return false;
         }
 
@@ -238,12 +251,14 @@ namespace UabIndia.Api.Middleware
                 || value.Equals("/api/v1/public/contact", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("/api/v1/recruitment/job-postings/active", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("/api/v1/auth/login", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/v1/auth/me", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("/api/v1/auth/forgot-password", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("/api/v1/auth/reset-password", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("/api/v1/tenants/resolve", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("/api/v1/auth/refresh", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("/api/v1/auth/csrf-token", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("/api/v1/iam/auth/login", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/v1/iam/auth/me", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("/api/v1/iam/auth/forgot-password", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("/api/v1/iam/auth/reset-password", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("/api/v1/iam/auth/refresh", StringComparison.OrdinalIgnoreCase)

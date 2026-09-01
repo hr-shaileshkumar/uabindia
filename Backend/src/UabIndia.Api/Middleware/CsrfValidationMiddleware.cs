@@ -21,6 +21,7 @@ namespace UabIndia.Api.Middleware
             "/api/v1/iam/auth/login",
             "/api/v1/iam/auth/refresh",
             "/api/v1/iam/auth/csrf-token",
+            "/hubs",
             "/health",
             "/health/live",
             "/health/ready"
