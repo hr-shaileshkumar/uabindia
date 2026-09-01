@@ -110,7 +110,7 @@ namespace UabIndia.Infrastructure.Services
             var statutory = 0;
             decimal totalGross = 0;
             decimal totalNet = 0;
-            decimal totalPfEe = 0, totalPfEr = 0, totalEsiEe = 0, totalEsiEr = 0, totalPt = 0, totalTds = 0;
+            decimal totalPfEe = 0, totalPfEr = 0, totalEsiEe = 0, totalEsiEr = 0, totalPt = 0, totalTds = 0, totalOtherDeductions = 0;
 
             if (!alreadyGenerated)
             {
@@ -184,31 +184,71 @@ namespace UabIndia.Infrastructure.Services
                         else deductions += amount;
                     }
 
+                    decimal hra = 0m;
+                    decimal special = 0m;
+
+                    decimal CalculateComponent(PayrollComponent component, decimal grossBasis)
+                    {
+                        if (!string.IsNullOrWhiteSpace(component.Formula))
+                        {
+                            var vars = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase)
+                            {
+                                ["BASIC"] = basic * factor,
+                                ["GROSS"] = grossBasis,
+                                ["CTC"] = (assignment?.MonthlyCtc ?? employee.MonthlyCtc),
+                                ["HRA"] = hra * factor,
+                                ["SPECIAL"] = special * factor,
+                                ["DAYS"] = payableDays,
+                                ["FACTOR"] = factor
+                            };
+                            return PayrollFormulaEvaluator.Evaluate(component.Formula, vars);
+                        }
+
+                        if (string.Equals(component.CalculationType, "PercentageOfCtc", StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(component.PercentageBase, "CTC", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var ctc = assignment?.MonthlyCtc ?? employee.MonthlyCtc;
+                            return component.Percentage.HasValue
+                                ? IndiaStatutoryCalculator.RoundMoney(ctc * component.Percentage.Value / 100m)
+                                : (component.Amount ?? 0m);
+                        }
+
+                        if (string.Equals(component.CalculationType, "PercentageOfGross", StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(component.PercentageBase, "Gross", StringComparison.OrdinalIgnoreCase))
+                        {
+                            return component.Percentage.HasValue
+                                ? IndiaStatutoryCalculator.RoundMoney(grossBasis * component.Percentage.Value / 100m)
+                                : (component.Amount ?? 0m);
+                        }
+
+                        if (component.Percentage.HasValue && component.Percentage.Value > 0)
+                        {
+                            return IndiaStatutoryCalculator.RoundMoney(basic * component.Percentage.Value / 100m * factor);
+                        }
+
+                        return (component.Amount ?? 0m) * (component.Type == "Earning" ? factor : 1m);
+                    }
+
                     if (structureComponents.Count > 0)
                     {
                         foreach (var component in structureComponents.Where(c => c.Type == "Earning"))
                         {
-                            var amount = component.Amount ?? 0m;
-                            if (component.Percentage is > 0)
-                                amount = basic * component.Percentage.Value / 100m;
-                            else if (component.Name.Contains("Basic", StringComparison.OrdinalIgnoreCase) && amount <= 0)
-                                amount = basic;
-                            AddLine(component.Name, "Earning", amount * factor, component.IsStatutory);
-                        }
+                            var amount = CalculateComponent(component, 0m);
+                            if (component.Name.Contains("Basic", StringComparison.OrdinalIgnoreCase) && amount <= 0)
+                                amount = basic * factor;
+                            else if (component.Name.Contains("HRA", StringComparison.OrdinalIgnoreCase))
+                                hra = amount;
+                            else if (component.Name.Contains("Special", StringComparison.OrdinalIgnoreCase))
+                                special = amount;
 
-                        foreach (var component in structureComponents.Where(c => c.Type == "Deduction" && !componentLooksStatutory(c.Name)))
-                        {
-                            var amount = component.Amount ?? 0m;
-                            if (component.Percentage is > 0)
-                                amount = basic * component.Percentage.Value / 100m;
-                            AddLine(component.Name, "Deduction", amount * factor, component.IsStatutory);
+                            AddLine(component.Name, "Earning", amount, component.IsStatutory);
                         }
                     }
                     else
                     {
                         AddLine("Basic", "Earning", basic * factor);
-                        var hra = assignment?.Hra > 0 ? assignment.Hra : IndiaStatutoryCalculator.RoundMoney(basic * 0.40m);
-                        var special = assignment?.SpecialAllowance > 0 ? assignment.SpecialAllowance : Math.Max(0m, (assignment?.MonthlyCtc ?? employee.MonthlyCtc) - basic - hra);
+                        hra = assignment?.Hra > 0 ? assignment.Hra : IndiaStatutoryCalculator.RoundMoney(basic * 0.40m);
+                        special = assignment?.SpecialAllowance > 0 ? assignment.SpecialAllowance : Math.Max(0m, (assignment?.MonthlyCtc ?? employee.MonthlyCtc) - basic - hra);
                         AddLine("HRA", "Earning", hra * factor);
                         AddLine("Special Allowance", "Earning", special * factor);
                     }
@@ -257,15 +297,42 @@ namespace UabIndia.Infrastructure.Services
 
                     var gross = earnings;
                     var alreadyCoveredEsi = !string.IsNullOrWhiteSpace(employee.EsiNumber);
+
+                    // Track which statutory deductions were explicitly configured by the user
+                    var userPfComponent = structureComponents.FirstOrDefault(c => c.Type == "Deduction" && (c.Name.Contains("PF", StringComparison.OrdinalIgnoreCase) || c.Name.Contains("Provident", StringComparison.OrdinalIgnoreCase)));
+                    var userEsiComponent = structureComponents.FirstOrDefault(c => c.Type == "Deduction" && c.Name.Contains("ESI", StringComparison.OrdinalIgnoreCase));
+                    var userPtComponent = structureComponents.FirstOrDefault(c => c.Type == "Deduction" && (c.Name.Contains("Professional Tax", StringComparison.OrdinalIgnoreCase) || c.Name.Equals("PT", StringComparison.OrdinalIgnoreCase)));
+                    var userTdsComponent = structureComponents.FirstOrDefault(c => c.Type == "Deduction" && (c.Name.Contains("TDS", StringComparison.OrdinalIgnoreCase) || c.Name.Contains("Tax Deducted", StringComparison.OrdinalIgnoreCase) || c.Name.Contains("Income Tax", StringComparison.OrdinalIgnoreCase)));
+
+                    // 1. Process all user-defined custom deductions (Fixed amount, Percentage of Basic/Gross/CTC, or Formula)
+                    foreach (var component in structureComponents.Where(c => c.Type == "Deduction"))
+                    {
+                        var amount = CalculateComponent(component, gross);
+                        AddLine(component.Name, "Deduction", amount, component.IsStatutory);
+                    }
+
+                    // 2. Default statutory fallbacks (only apply if the user has NOT provided an explicit custom component)
                     var pf = IndiaStatutoryCalculator.CalculatePf(basic * factor);
                     var esi = IndiaStatutoryCalculator.CalculateEsi(gross, alreadyCoveredEsi);
                     var pt = IndiaStatutoryCalculator.CalculateProfessionalTax(employee.State ?? stateCode, gross, periodStart.Month);
                     var tds = IndiaStatutoryCalculator.CalculateMonthlyTds(gross * 12m, TaxRegimeKind.New).MonthlyTds;
 
-                    AddLine("Provident Fund", "Deduction", pf.EmployeeContribution, true);
-                    AddLine("ESI", "Deduction", esi.EmployeeContribution, true);
-                    AddLine("Professional Tax", "Deduction", pt, true);
-                    AddLine("TDS", "Deduction", tds, true);
+                    if (userPfComponent == null)
+                    {
+                        AddLine("Provident Fund", "Deduction", pf.EmployeeContribution, true);
+                    }
+                    if (userEsiComponent == null)
+                    {
+                        AddLine("ESI", "Deduction", esi.EmployeeContribution, true);
+                    }
+                    if (userPtComponent == null)
+                    {
+                        AddLine("Professional Tax", "Deduction", pt, true);
+                    }
+                    if (userTdsComponent == null)
+                    {
+                        AddLine("TDS", "Deduction", tds, true);
+                    }
 
                     foreach (var loan in loans.Where(l => l.EmployeeId == employee.Id && l.OutstandingAmount > 0))
                     {
@@ -281,6 +348,13 @@ namespace UabIndia.Infrastructure.Services
                     }
 
                     var net = Math.Max(0m, earnings - deductions);
+
+                    var eePf = lines.FirstOrDefault(l => l.Type == "Deduction" && (l.Name.Contains("PF", StringComparison.OrdinalIgnoreCase) || l.Name.Contains("Provident", StringComparison.OrdinalIgnoreCase)))?.Amount ?? 0m;
+                    var eeEsi = lines.FirstOrDefault(l => l.Type == "Deduction" && l.Name.Contains("ESI", StringComparison.OrdinalIgnoreCase))?.Amount ?? 0m;
+                    var eePt = lines.FirstOrDefault(l => l.Type == "Deduction" && (l.Name.Contains("Professional Tax", StringComparison.OrdinalIgnoreCase) || l.Name.Equals("PT", StringComparison.OrdinalIgnoreCase)))?.Amount ?? 0m;
+                    var eeTds = lines.FirstOrDefault(l => l.Type == "Deduction" && (l.Name.Contains("TDS", StringComparison.OrdinalIgnoreCase) || l.Name.Contains("Tax Deducted", StringComparison.OrdinalIgnoreCase) || l.Name.Contains("Income Tax", StringComparison.OrdinalIgnoreCase)))?.Amount ?? 0m;
+                    var otherDed = Math.Max(0m, deductions - (eePf + eeEsi + eePt + eeTds));
+
                     var payslip = new Payslip
                     {
                         TenantId = tenantId,
@@ -296,10 +370,10 @@ namespace UabIndia.Infrastructure.Services
                         Basic = IndiaStatutoryCalculator.RoundMoney(basic * factor),
                         TotalEarnings = earnings,
                         TotalDeductions = deductions,
-                        PfEmployee = pf.EmployeeContribution,
-                        EsiEmployee = esi.EmployeeContribution,
-                        ProfessionalTax = pt,
-                        Tds = tds,
+                        PfEmployee = eePf,
+                        EsiEmployee = eeEsi,
+                        ProfessionalTax = eePt,
+                        Tds = eeTds,
                         Details = $"Basic={basic:0.00}; payableDays={payableDays:0.##}/{workingDays}; LOP={lopDays:0.##}",
                         CreatedAt = DateTime.UtcNow,
                         Lines = lines
@@ -308,14 +382,15 @@ namespace UabIndia.Infrastructure.Services
 
                     totalGross += gross;
                     totalNet += net;
-                    totalPfEe += pf.EmployeeContribution;
-                    totalPfEr += pf.EmployerEpf + pf.EmployerEps;
-                    totalEsiEe += esi.EmployeeContribution;
-                    totalEsiEr += esi.EmployerContribution;
-                    totalPt += pt;
-                    totalTds += tds;
+                    totalPfEe += eePf;
+                    totalPfEr += (userPfComponent == null ? pf.EmployerEpf + pf.EmployerEps : 0m);
+                    totalEsiEe += eeEsi;
+                    totalEsiEr += (userEsiComponent == null ? esi.EmployerContribution : 0m);
+                    totalPt += eePt;
+                    totalTds += eeTds;
+                    totalOtherDeductions += otherDed;
 
-                    statutory += await UpsertStatutoryAsync(employee, tenantId, run, periodStart, monthYear, financialYear, stateCode, pf, esi, pt, tds, gross, basic * factor);
+                    statutory += await UpsertStatutoryAsync(employee, tenantId, run, periodStart, monthYear, financialYear, stateCode, pf, esi, eePt, eeTds, gross, basic * factor);
                 }
             }
             else
@@ -327,25 +402,39 @@ namespace UabIndia.Infrastructure.Services
                 totalEsiEe = slips.Sum(s => s.EsiEmployee);
                 totalPt = slips.Sum(s => s.ProfessionalTax);
                 totalTds = slips.Sum(s => s.Tds);
+                totalOtherDeductions = slips.Sum(s => Math.Max(0m, s.TotalDeductions - (s.PfEmployee + s.EsiEmployee + s.ProfessionalTax + s.Tds)));
             }
 
             JournalEntry? journal = null;
             if (totalGross > 0)
             {
                 var employerCost = totalPfEr + totalEsiEr;
+                var journalLines = new List<LedgerLine>
+                {
+                    new("5100", "Salary Expense", "Expense", totalGross + employerCost, 0, "Gross pay + employer statutory"),
+                    new("2101", "Salary Payable", "Liability", 0, totalNet, "Net pay")
+                };
+
+                if (totalPfEe + totalPfEr > 0)
+                    journalLines.Add(new("2102", "PF Payable", "Liability", 0, totalPfEe + totalPfEr, "PF EE+ER"));
+
+                if (totalEsiEe + totalEsiEr > 0)
+                    journalLines.Add(new("2103", "ESI Payable", "Liability", 0, totalEsiEe + totalEsiEr, "ESI EE+ER"));
+
+                if (totalPt > 0)
+                    journalLines.Add(new("2104", "PT Payable", "Liability", 0, totalPt, "Professional tax"));
+
+                if (totalTds > 0)
+                    journalLines.Add(new("2105", "TDS Payable", "Liability", 0, totalTds, "Income tax TDS"));
+
+                if (totalOtherDeductions > 0)
+                    journalLines.Add(new("2109", "Other Payroll Deductions Payable", "Liability", 0, totalOtherDeductions, "Custom deductions / formulas / insurance"));
+
                 journal = await _ledger.PostAsync(
                     "JE-PAY-",
                     periodEnd,
                     $"Payroll {periodStart:MMM yyyy}",
-                    new List<LedgerLine>
-                    {
-                        new("5100", "Salary Expense", "Expense", totalGross + employerCost, 0, "Gross pay + employer statutory"),
-                        new("2101", "Salary Payable", "Liability", 0, totalNet, "Net pay"),
-                        new("2102", "PF Payable", "Liability", 0, totalPfEe + totalPfEr, "PF EE+ER"),
-                        new("2103", "ESI Payable", "Liability", 0, totalEsiEe + totalEsiEr, "ESI EE+ER"),
-                        new("2104", "PT Payable", "Liability", 0, totalPt, "Professional tax"),
-                        new("2105", "TDS Payable", "Liability", 0, totalTds, "Income tax TDS"),
-                    },
+                    journalLines,
                     "PayrollRun",
                     run.Id,
                     cancellationToken);
@@ -370,11 +459,6 @@ namespace UabIndia.Infrastructure.Services
                 $"Payroll run completed with {slipCount} payslip(s), statutory records, and GL posting.");
         }
 
-        private static bool componentLooksStatutory(string name)
-        {
-            var n = name.ToLowerInvariant();
-            return n.Contains("pf") || n.Contains("esi") || n.Contains("tds") || n.Contains("pt") || n.Contains("provident") || n.Contains("professional tax");
-        }
 
         private async Task<int> UpsertStatutoryAsync(
             Employee employee,
