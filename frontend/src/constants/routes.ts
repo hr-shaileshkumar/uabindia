@@ -131,6 +131,8 @@ export const ROUTES = {
   // Sales & CRM
   CRM_HOME: "/crm",
   LEADS: "/crm/leads",
+  CRM_CONTACTS: "/crm/contacts",
+  CRM_PIPELINE: "/crm/pipeline",
   SALES_HOME: "/sales",
   CUSTOMERS: "/crm/customers",
     QUOTATIONS: "/quotations",

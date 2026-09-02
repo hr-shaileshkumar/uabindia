@@ -9,6 +9,13 @@ export const crmApi = {
     update: (id: string, data: ApiPayload) => apiClient.put(`/crm/customers/${id}`, data),
     delete: (id: string) => apiClient.delete(`/crm/customers/${id}`),
   },
+  contacts: {
+    getAll: (page = 1, limit = 200) => apiClient.get(`/crm/contacts?page=${page}&limit=${limit}`),
+    getById: (id: string) => apiClient.get(`/crm/contacts/${id}`),
+    create: (data: ApiPayload) => apiClient.post("/crm/contacts", data),
+    update: (id: string, data: ApiPayload) => apiClient.put(`/crm/contacts/${id}`, data),
+    delete: (id: string) => apiClient.delete(`/crm/contacts/${id}`),
+  },
   leads: {
     getAll: (page = 1, limit = 50) => apiClient.get(`/crm/leads?page=${page}&limit=${limit}`),
     getById: (id: string) => apiClient.get(`/crm/leads/${id}`),

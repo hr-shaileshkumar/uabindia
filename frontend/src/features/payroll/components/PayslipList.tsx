@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -63,6 +63,7 @@ export function PayslipList() {
   const { activeCountry } = useLocalization();
   const [search, setSearch] = useState("");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [downloadingForm16Id, setDownloadingForm16Id] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSlip, setSelectedSlip] = useState<PayslipData | null>(null);
 
@@ -101,6 +102,25 @@ export function PayslipList() {
       notifyError(getApiErrorMessage(err, "Failed to download payslip."), "Payslips");
     } finally {
       setDownloadingId(null);
+    }
+  };
+
+  const handleDownloadForm16 = async (slip: PayslipRecord) => {
+    try {
+      setDownloadingForm16Id(slip.id);
+      const fy = slip.month && slip.month >= 4 ? slip.year : slip.year - 1;
+      const response = await payrollApi.statutory.form16(slip.employeeId, fy);
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `form16-${slip.employeeId}-FY${fy}-${fy + 1}.pdf`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      notifyError(getApiErrorMessage(err, "Failed to download Form 16."), "Payroll");
+    } finally {
+      setDownloadingForm16Id(null);
     }
   };
 
@@ -177,6 +197,16 @@ export function PayslipList() {
               >
                 <FileCheck className="h-3.5 w-3.5 text-indigo-600" />
                 <span>View / Print</span>
+              </button>
+              <button
+                type="button"
+                title="Download Form 16"
+                disabled={downloadingForm16Id === slip.id}
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 hover:text-emerald-700 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+                onClick={() => void handleDownloadForm16(slip)}
+              >
+                <Download className="h-3.5 w-3.5 text-emerald-600" />
+                <span>{downloadingForm16Id === slip.id ? "…" : "Form 16"}</span>
               </button>
             </div>
           </td>

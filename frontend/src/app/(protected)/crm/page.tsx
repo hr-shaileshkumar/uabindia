@@ -1,8 +1,8 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { FileText, ShoppingCart, TrendingUp, Users } from "lucide-react";
+import { Contact, FileText, KanbanSquare, ShoppingCart, TrendingUp, Users } from "lucide-react";
 import { ModuleWorkspaceHub } from "@/components/workspace/module-workspace-hub";
 import {
   erpPanelBodyClassName,
@@ -16,6 +16,8 @@ import { getApiErrorMessage } from "@/lib/api-errors";
 
 const LINKS = [
   { href: ROUTES.LEADS, label: "Leads", icon: TrendingUp, desc: "Pipeline, qualification, and conversion" },
+  { href: "/crm/pipeline", label: "Pipeline", icon: KanbanSquare, desc: "Visual Kanban deal stage board" },
+  { href: "/crm/contacts", label: "Contacts", icon: Contact, desc: "Business contacts and communication" },
   { href: ROUTES.CUSTOMERS, label: "Customers", icon: Users, desc: "Account master and commercial terms" },
   { href: ROUTES.QUOTATIONS, label: "Quotations", icon: FileText, desc: "Proposals and pricing" },
   { href: ROUTES.SALES_ORDERS, label: "Sales orders", icon: ShoppingCart, desc: "Confirmed demand and fulfilment" },
