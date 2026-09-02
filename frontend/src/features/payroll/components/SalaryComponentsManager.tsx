@@ -24,8 +24,11 @@ export type PayrollComponent = {
   structureId?: string;
   name?: string;
   type?: string;
+  calculationType?: string;
   amount?: number | null;
   percentage?: number | null;
+  formula?: string | null;
+  percentageBase?: string | null;
   isStatutory?: boolean;
 };
 
@@ -33,8 +36,11 @@ const emptyForm = () => ({
   structureId: "",
   name: "",
   type: "Earning",
+  calculationType: "FixedAmount",
   amount: "",
   percentage: "",
+  formula: "",
+  percentageBase: "Basic",
   isStatutory: false,
 });
 
@@ -94,7 +100,9 @@ export function SalaryComponentsManager() {
     const q = search.trim().toLowerCase();
     if (!q) return components;
     return components.filter((c) =>
-      [c.name, c.type, structureName(c.structureId)].some((v) => (v || "").toLowerCase().includes(q)),
+      [c.name, c.type, c.calculationType, c.formula, structureName(c.structureId)].some((v) =>
+        (v || "").toLowerCase().includes(q),
+      ),
     );
   }, [components, search, structureName]);
 
@@ -113,11 +121,21 @@ export function SalaryComponentsManager() {
       structureId: row.structureId ?? "",
       name: row.name ?? "",
       type: row.type || "Earning",
+      calculationType: row.calculationType || (row.formula ? "Formula" : row.percentage != null ? "PercentageOfBasic" : "FixedAmount"),
       amount: row.amount != null ? String(row.amount) : "",
       percentage: row.percentage != null ? String(row.percentage) : "",
+      formula: row.formula || "",
+      percentageBase: row.percentageBase || "Basic",
       isStatutory: Boolean(row.isStatutory),
     });
     setDrawerOpen(true);
+  };
+
+  const insertVariable = (variable: string) => {
+    setForm((prev) => ({
+      ...prev,
+      formula: prev.formula ? `${prev.formula} ${variable}` : variable,
+    }));
   };
 
   const handleSave = async () => {
@@ -133,8 +151,14 @@ export function SalaryComponentsManager() {
       structureId: form.structureId,
       name: form.name.trim(),
       type: form.type,
-      amount: form.amount ? Number(form.amount) : null,
-      percentage: form.percentage ? Number(form.percentage) : null,
+      calculationType: form.calculationType,
+      amount: form.calculationType === "FixedAmount" && form.amount ? Number(form.amount) : null,
+      percentage:
+        form.calculationType.startsWith("Percentage") && form.percentage
+          ? Number(form.percentage)
+          : null,
+      formula: form.calculationType === "Formula" ? form.formula.trim() : null,
+      percentageBase: form.percentageBase,
       isStatutory: form.isStatutory,
     };
     try {
@@ -151,123 +175,144 @@ export function SalaryComponentsManager() {
     }
   };
 
+  const earningCount = components.filter((c) => c.type === "Earning").length;
+  const deductionCount = components.filter((c) => c.type === "Deduction").length;
+  const formulaCount = components.filter((c) => Boolean(c.formula) || c.calculationType === "Formula").length;
+
+  const renderCalculationSummary = (c: PayrollComponent) => {
+    if (c.calculationType === "Formula" || c.formula) {
+      return (
+        <span className="font-mono text-xs text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded">
+          fx: {c.formula || "—"}
+        </span>
+      );
+    }
+    if (c.calculationType === "PercentageOfGross" || c.percentageBase === "Gross") {
+      return <span>{c.percentage != null ? `${c.percentage}% of Gross` : "—"}</span>;
+    }
+    if (c.calculationType === "PercentageOfCtc" || c.percentageBase === "CTC") {
+      return <span>{c.percentage != null ? `${c.percentage}% of CTC` : "—"}</span>;
+    }
+    if (c.percentage != null && c.percentage > 0) {
+      return <span>{c.percentage}% of Basic</span>;
+    }
+    if (c.amount != null) {
+      return <span>₹ {Number(c.amount).toLocaleString("en-IN")}</span>;
+    }
+    return <span className="text-slate-400">Fixed / Default</span>;
+  };
+
   return (
     <StandardPageLayout
-      title="Payroll Components"
-      subtitle="Configure recurring earnings, statutory allowances, perquisites, and deductions."
-      eyebrow="Payroll / Setup"
-      icon="settings"
-      meta={
-        <CrudHeaderStats
-          items={[
-            { label: "Components", value: components.length },
-            {
-              label: "Earnings",
-              value: components.filter((c) => (c.type || "").toLowerCase() === "earning").length,
-              tone: "positive",
-            },
-            {
-              label: "Deductions",
-              value: components.filter((c) => (c.type || "").toLowerCase() === "deduction").length,
-              tone: "danger",
-            },
-            {
-              label: "Statutory",
-              value: components.filter((c) => c.isStatutory).length,
-              tone: "info",
-            },
-          ]}
-        />
-      }
+      title="Salary & Deduction Components"
+      subtitle="Configure dynamic earnings, deductions, percentages, ratios, and math formulas per structure."
       actions={
-        <>
+        <div className="flex items-center gap-2">
           <ErpRefreshButton onClick={() => void load()} loading={loading} />
-          <ErpCreateButton
-            label="New component"
-            onClick={openCreate}
-            disabled={structures.length === 0}
-          />
-        </>
+          <ErpCreateButton onClick={openCreate} label="Add Component" />
+        </div>
       }
-      filters={
-        <div className="flex flex-wrap items-end gap-3">
-          <ErpSearchFilter value={search} onChange={setSearch} placeholder="Filter name or type…" />
-          <div>
-            <label className="erp-label">Structure</label>
+    >
+      <CrudHeaderStats
+        items={[
+          { label: "Total Components", value: components.length, helper: "Across all structures" },
+          { label: "Earnings / Allowances", value: earningCount, helper: "Base, HRA, Special, Travel" },
+          { label: "Deductions & Taxes", value: deductionCount, helper: "PF, TDS, ESI, Custom Dues" },
+          { label: "Dynamic Formulas", value: formulaCount, helper: "Algebraic calculation rules" },
+        ]}
+      />
+
+      <CrudCard>
+        <div className="p-4 flex flex-col md:flex-row gap-3 border-b border-slate-200 dark:border-slate-800">
+          <ErpSearchFilter
+            value={search}
+            onChange={setSearch}
+            placeholder="Search by name, type, formula, or structure..."
+          />
+          <div className="w-full md:w-64">
             <select
-              className="erp-select min-w-44"
+              aria-label="Filter by structure"
+              className="erp-select"
               value={structureFilter}
               onChange={(e) => setStructureFilter(e.target.value)}
             >
-              <option value="all">All structures</option>
+              <option value="all">All Structures ({structures.length})</option>
               {structures.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.name || "Structure"}
+                  {s.name || s.id}
                 </option>
               ))}
             </select>
           </div>
         </div>
-      }
-    >
-      {error ? <div className="erp-alert-error">{error}</div> : null}
 
-      <CrudCard>
-        <div className="erp-table-wrap">
-          <table className="erp-table table-auto">
-            <thead className="erp-thead">
+        {error ? (
+          <div className="p-4 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20">
+            {error}
+          </div>
+        ) : null}
+
+        <div className="overflow-x-auto">
+          <table className="erp-table">
+            <thead>
               <tr>
-                <th className="erp-th">Name</th>
-                <th className="erp-th">Structure</th>
-                <th className="erp-th">Type</th>
-                <th className="erp-th">Amount / %</th>
-                <th className="erp-th">Statutory</th>
-                <th className="erp-th text-right">Actions</th>
+                <th>Component Name</th>
+                <th>Structure</th>
+                <th>Type</th>
+                <th>Calculation Rule / Formula</th>
+                <th>Statutory</th>
+                <th className="text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="erp-td py-8 text-center text-xs text-slate-500">
-                    Loading…
+                  <td colSpan={6} className="text-center py-8 text-slate-500">
+                    Loading components...
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="erp-td">
                     <ErpEmptyState
-                      message={
-                        structures.length === 0
-                          ? "Create a payroll structure first, then add components."
-                          : "No components found."
-                      }
-                      action={
-                        structures.length > 0 ? (
-                          <ErpCreateButton label="New component" onClick={openCreate} />
-                        ) : undefined
-                      }
+                      message="No components found."
+                      description="Create earnings, statutory deductions, or dynamic math formula rules."
+                      action={<ErpCreateButton label="Add Component" onClick={openCreate} />}
                     />
                   </td>
                 </tr>
               ) : (
                 filtered.map((component) => (
                   <tr key={component.id} className="erp-tr">
-                    <td className="erp-td text-slate-900 dark:text-white font-medium">{component.name || "Component"}</td>
-                    <td className="erp-td text-slate-600 dark:text-slate-400">{structureName(component.structureId)}</td>
-                    <td className="erp-td text-slate-600 dark:text-slate-400">{component.type || "Earning"}</td>
-                    <td className="erp-td text-xs text-slate-600 dark:text-slate-400">
-                      {component.amount != null
-                        ? `₹ ${Number(component.amount).toLocaleString("en-IN")}`
-                        : "—"}
-                      {component.percentage != null ? ` · ${component.percentage}%` : ""}
+                    <td className="erp-td text-slate-900 dark:text-white font-medium">
+                      {component.name || "Component"}
+                    </td>
+                    <td className="erp-td text-slate-600 dark:text-slate-400">
+                      {structureName(component.structureId)}
                     </td>
                     <td className="erp-td">
                       <span
                         className={
-                          component.isStatutory ? "erp-chip erp-chip-info" : "erp-chip erp-chip-neutral"
+                          component.type === "Earning"
+                            ? "erp-chip erp-chip-success"
+                            : "erp-chip erp-chip-warning"
                         }
                       >
-                        {component.isStatutory ? "Yes" : "No"}
+                        {component.type || "Earning"}
+                      </span>
+                    </td>
+                    <td className="erp-td text-sm text-slate-700 dark:text-slate-300">
+                      {renderCalculationSummary(component)}
+                    </td>
+                    <td className="erp-td">
+                      <span
+                        className={
+                          component.isStatutory
+                            ? "erp-chip erp-chip-info"
+                            : "erp-chip erp-chip-neutral"
+                        }
+                      >
+                        {component.isStatutory ? "Statutory" : "Standard"}
                       </span>
                     </td>
                     <td className="erp-td text-right">
@@ -285,31 +330,45 @@ export function SalaryComponentsManager() {
         </div>
       </CrudCard>
 
-      <SideDrawer open={Boolean(viewRow)} onClose={() => setViewRow(null)} title="Component details">
+      <SideDrawer
+        open={Boolean(viewRow)}
+        onClose={() => setViewRow(null)}
+        title="Component Details"
+      >
         {viewRow ? (
           <div className="erp-form-grid">
             <div className="erp-field md:col-span-2">
               <label className="erp-label">Name</label>
-              <p className="text-sm text-slate-800 dark:text-slate-200">{viewRow.name || "—"}</p>
+              <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                {viewRow.name || "—"}
+              </p>
             </div>
             <div className="erp-field">
               <label className="erp-label">Structure</label>
-              <p className="text-sm text-slate-800 dark:text-slate-200">{structureName(viewRow.structureId)}</p>
+              <p className="text-sm text-slate-800 dark:text-slate-200">
+                {structureName(viewRow.structureId)}
+              </p>
             </div>
             <div className="erp-field">
               <label className="erp-label">Type</label>
               <p className="text-sm text-slate-800 dark:text-slate-200">{viewRow.type || "—"}</p>
             </div>
-            <div className="erp-field">
-              <label className="erp-label">Amount</label>
-              <p className="text-sm text-slate-800 dark:text-slate-200">
-                {viewRow.amount != null ? `₹ ${Number(viewRow.amount).toLocaleString("en-IN")}` : "—"}
-              </p>
+            <div className="erp-field md:col-span-2">
+              <label className="erp-label">Calculation Mode</label>
+              <div className="mt-1">{renderCalculationSummary(viewRow)}</div>
             </div>
+            {viewRow.formula ? (
+              <div className="erp-field md:col-span-2">
+                <label className="erp-label">Formula Expression</label>
+                <code className="block p-2 text-xs bg-slate-100 dark:bg-slate-900 rounded font-mono text-indigo-600 dark:text-indigo-400">
+                  {viewRow.formula}
+                </code>
+              </div>
+            ) : null}
             <div className="erp-field">
-              <label className="erp-label">Percentage</label>
+              <label className="erp-label">Statutory Flag</label>
               <p className="text-sm text-slate-800 dark:text-slate-200">
-                {viewRow.percentage != null ? `${viewRow.percentage}%` : "—"}
+                {viewRow.isStatutory ? "Yes (Statutory Compliance)" : "No (Custom)"}
               </p>
             </div>
           </div>
@@ -319,7 +378,7 @@ export function SalaryComponentsManager() {
       <SideDrawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        title={editingId ? "Edit payroll component" : "New payroll component"}
+        title={editingId ? "Edit Payroll & Deduction Component" : "New Payroll & Deduction Component"}
         footer={
           <ErpDrawerFooter
             onCancel={() => setDrawerOpen(false)}
@@ -347,53 +406,126 @@ export function SalaryComponentsManager() {
             </select>
           </div>
           <div className="erp-field md:col-span-2">
-            <label className="erp-label">Name *</label>
+            <label className="erp-label">Component Name *</label>
             <input
               className="erp-input"
+              placeholder="e.g. Basic, HRA, Provident Fund, Health Insurance, Canteen Dues, Custom TDS"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
           </div>
           <div className="erp-field">
-            <label className="erp-label">Type *</label>
+            <label className="erp-label">Component Type *</label>
             <select
               className="erp-select"
               value={form.type}
               onChange={(e) => setForm({ ...form, type: e.target.value })}
             >
-              <option value="Earning">Earning</option>
-              <option value="Deduction">Deduction</option>
+              <option value="Earning">Earning / Allowance (+)</option>
+              <option value="Deduction">Deduction / Tax (-)</option>
             </select>
           </div>
           <div className="erp-field">
-            <label className="erp-label">Statutory</label>
+            <label className="erp-label">Statutory Compliance</label>
             <label className="mt-2 flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
               <input
                 type="checkbox"
                 checked={form.isStatutory}
                 onChange={(e) => setForm({ ...form, isStatutory: e.target.checked })}
               />
-              Statutory component
+              Statutory line (PF / ESI / PT / TDS)
             </label>
           </div>
-          <div className="erp-field">
-            <label className="erp-label">Amount</label>
-            <input
-              type="number"
-              className="erp-input"
-              value={form.amount}
-              onChange={(e) => setForm({ ...form, amount: e.target.value })}
-            />
+
+          <div className="erp-field md:col-span-2">
+            <label className="erp-label">Calculation Method *</label>
+            <select
+              className="erp-select font-medium text-slate-800 dark:text-slate-200"
+              value={form.calculationType}
+              onChange={(e) => setForm({ ...form, calculationType: e.target.value })}
+            >
+              <option value="FixedAmount">Fixed Amount (₹ exact amount)</option>
+              <option value="PercentageOfBasic">Percentage of Basic (% of Basic)</option>
+              <option value="PercentageOfGross">Percentage of Gross (% of Gross Earnings)</option>
+              <option value="PercentageOfCtc">Percentage of CTC (% of Total CTC)</option>
+              <option value="Formula">Dynamic Math Formula (e.g. (BASIC + HRA) * 0.05)</option>
+            </select>
           </div>
-          <div className="erp-field">
-            <label className="erp-label">Percentage</label>
-            <input
-              type="number"
-              className="erp-input"
-              value={form.percentage}
-              onChange={(e) => setForm({ ...form, percentage: e.target.value })}
-            />
-          </div>
+
+          {form.calculationType === "FixedAmount" ? (
+            <div className="erp-field md:col-span-2">
+              <label className="erp-label">Fixed Amount (₹) *</label>
+              <input
+                type="number"
+                step="0.01"
+                placeholder="e.g. 50000 or 1500"
+                className="erp-input"
+                value={form.amount}
+                onChange={(e) => setForm({ ...form, amount: e.target.value })}
+              />
+              <p className="text-xs text-slate-500 mt-1">Direct monthly fixed rupee value.</p>
+            </div>
+          ) : null}
+
+          {form.calculationType.startsWith("Percentage") ? (
+            <div className="erp-field md:col-span-2">
+              <label className="erp-label">
+                Percentage (%) *{" "}
+                <span className="text-xs text-indigo-600 font-normal">
+                  ({form.calculationType === "PercentageOfGross" ? "of Gross" : form.calculationType === "PercentageOfCtc" ? "of CTC" : "of Basic"})
+                </span>
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                placeholder="e.g. 10 for 10% or 40 for 40%"
+                className="erp-input"
+                value={form.percentage}
+                onChange={(e) => setForm({ ...form, percentage: e.target.value })}
+              />
+              <p className="text-xs text-slate-500 mt-1">
+                Calculates ratio automatically based on selected wage base.
+              </p>
+            </div>
+          ) : null}
+
+          {form.calculationType === "Formula" ? (
+            <div className="erp-field md:col-span-2">
+              <label className="erp-label">Dynamic Math Formula *</label>
+              <input
+                type="text"
+                placeholder="e.g. (BASIC + HRA) * 0.05 or BASIC * 0.10 + 500"
+                className="erp-input font-mono text-sm"
+                value={form.formula}
+                onChange={(e) => setForm({ ...form, formula: e.target.value })}
+              />
+              <div className="mt-2">
+                <span className="text-xs text-slate-500 mr-2">Click to insert variables:</span>
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {["BASIC", "HRA", "SPECIAL", "GROSS", "CTC", "DAYS", "FACTOR"].map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => insertVariable(v)}
+                      className="px-2 py-0.5 text-xs bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 dark:bg-slate-800 dark:hover:bg-slate-700 rounded font-mono border border-slate-200 dark:border-slate-700 transition"
+                    >
+                      +{v}
+                    </button>
+                  ))}
+                  {["+", "-", "*", "/", "(", ")"].map((op) => (
+                    <button
+                      key={op}
+                      type="button"
+                      onClick={() => insertVariable(op)}
+                      className="px-2 py-0.5 text-xs bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 rounded font-mono transition"
+                    >
+                      {op}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
       </SideDrawer>
 

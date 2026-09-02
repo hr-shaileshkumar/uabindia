@@ -162,8 +162,11 @@ namespace UabIndia.Api.Modules.Payroll.Controllers
                 StructureId = dto.StructureId,
                 Name = dto.Name,
                 Type = dto.Type,
+                CalculationType = dto.CalculationType ?? "FixedAmount",
                 Amount = dto.Amount,
                 Percentage = dto.Percentage,
+                Formula = dto.Formula,
+                PercentageBase = dto.PercentageBase ?? "Basic",
                 IsStatutory = dto.IsStatutory
             };
 
@@ -182,8 +185,11 @@ namespace UabIndia.Api.Modules.Payroll.Controllers
 
             component.Name = dto.Name;
             component.Type = dto.Type;
+            component.CalculationType = dto.CalculationType ?? "FixedAmount";
             component.Amount = dto.Amount;
             component.Percentage = dto.Percentage;
+            component.Formula = dto.Formula;
+            component.PercentageBase = dto.PercentageBase ?? "Basic";
             component.IsStatutory = dto.IsStatutory;
 
             await _db.SaveChangesAsync();

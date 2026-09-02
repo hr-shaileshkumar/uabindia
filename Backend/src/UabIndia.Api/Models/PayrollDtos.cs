@@ -33,8 +33,11 @@ namespace UabIndia.Api.Models
         public string Name { get; set; } = string.Empty;
         [Required]
         public string Type { get; set; } = "Earning"; // Earning or Deduction
+        public string CalculationType { get; set; } = "FixedAmount"; // FixedAmount, PercentageOfBasic, PercentageOfGross, PercentageOfCtc, Formula
         public decimal? Amount { get; set; }
         public decimal? Percentage { get; set; }
+        public string? Formula { get; set; }
+        public string? PercentageBase { get; set; } = "Basic";
         public bool IsStatutory { get; set; }
     }
 
@@ -44,8 +47,11 @@ namespace UabIndia.Api.Models
         public string Name { get; set; } = string.Empty;
         [Required]
         public string Type { get; set; } = "Earning";
+        public string CalculationType { get; set; } = "FixedAmount";
         public decimal? Amount { get; set; }
         public decimal? Percentage { get; set; }
+        public string? Formula { get; set; }
+        public string? PercentageBase { get; set; } = "Basic";
         public bool IsStatutory { get; set; }
     }
 
