@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PricingLandingPage } from "@/components/public/pages/PlatformMarketingPages";
+import { PricingLandingPage } from "@/components/public/pages/PublicMarketingPages";
 import { buildPublicMetadata } from "@/lib/public-metadata";
 import { resolveAudienceForPath, type PublicSearchParams } from "@/lib/public-page-request";
 

@@ -10,6 +10,7 @@ using UabIndia.Api.Authorization;
 using UabIndia.Application.Interfaces;
 using UabIndia.Core.Entities;
 using UabIndia.Infrastructure.Data;
+using UabIndia.Api.Modules.Administration.Controllers;
 
 namespace UabIndia.Api.Modules.HRMS.Controllers
 {
@@ -92,27 +93,137 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
         }
 
         [HttpGet("policies")]
-        public async Task<IActionResult> GetPolicies()
+        public async Task<IActionResult> GetPolicies([FromQuery] Guid? companyId = null, [FromQuery] Guid? projectId = null)
         {
             var tenantId = _tenantAccessor.GetTenantId();
-            var data = await _db.LeavePolicies
+            var exists = await _db.LeavePolicies.AnyAsync(p => p.TenantId == tenantId && !p.IsDeleted);
+            if (!exists)
+            {
+                var defaults = new List<LeavePolicy>
+                {
+                    new LeavePolicy
+                    {
+                        Id = Guid.NewGuid(),
+                        TenantId = tenantId,
+                        Name = "Earned / Privilege Leave (EL/PL)",
+                        Description = "Annual 15-day privilege leave allocation with up to 30 days carry forward",
+                        Type = "Earned",
+                        EntitlementPerYear = 15,
+                        CarryForwardAllowed = true,
+                        MaxCarryForward = 30,
+                        AllocationFrequency = AllocationFrequency.Monthly,
+                        EnableProration = true,
+                        AutoAllocate = true,
+                        IsDefault = true,
+                        Status = "Active",
+                        CreatedAt = DateTime.UtcNow
+                    },
+                    new LeavePolicy
+                    {
+                        Id = Guid.NewGuid(),
+                        TenantId = tenantId,
+                        Name = "Casual Leave (CL)",
+                        Description = "Standard casual leave quota",
+                        Type = "Casual",
+                        EntitlementPerYear = 12,
+                        CarryForwardAllowed = false,
+                        MaxCarryForward = 0,
+                        AllocationFrequency = AllocationFrequency.Yearly,
+                        EnableProration = true,
+                        AutoAllocate = true,
+                        IsDefault = false,
+                        Status = "Active",
+                        CreatedAt = DateTime.UtcNow
+                    },
+                    new LeavePolicy
+                    {
+                        Id = Guid.NewGuid(),
+                        TenantId = tenantId,
+                        Name = "Sick / Medical Leave (SL)",
+                        Description = "Statutory medical and sickness leave",
+                        Type = "Sick",
+                        EntitlementPerYear = 12,
+                        CarryForwardAllowed = true,
+                        MaxCarryForward = 15,
+                        AllocationFrequency = AllocationFrequency.Yearly,
+                        EnableProration = true,
+                        AutoAllocate = true,
+                        IsDefault = false,
+                        Status = "Active",
+                        CreatedAt = DateTime.UtcNow
+                    }
+                };
+                _db.LeavePolicies.AddRange(defaults);
+                await _db.SaveChangesAsync();
+            }
+
+            var query = _db.LeavePolicies
                 .AsNoTracking()
-                .Where(p => p.TenantId == tenantId)
+                .Where(p => p.TenantId == tenantId && !p.IsDeleted);
+
+            if (projectId.HasValue)
+            {
+                query = query.Where(p => p.ProjectId == projectId.Value || p.ProjectId == null);
+            }
+            else if (companyId.HasValue)
+            {
+                query = query.Where(p => p.CompanyId == companyId.Value || (p.CompanyId == null && p.ProjectId == null));
+            }
+
+            var data = await query
+                .OrderByDescending(p => p.IsDefault)
+                .ThenBy(p => p.Name)
                 .Select(p => new LeavePolicyDto
                 {
                     Id = p.Id,
                     Name = p.Name,
+                    Description = p.Description,
+                    IsDefault = p.IsDefault,
+                    CompanyId = p.CompanyId,
+                    ProjectId = p.ProjectId,
+                    DepartmentId = p.DepartmentId,
                     Type = p.Type,
                     EntitlementPerYear = p.EntitlementPerYear,
                     CarryForwardAllowed = p.CarryForwardAllowed,
                     MaxCarryForward = p.MaxCarryForward,
                     AllocationFrequency = p.AllocationFrequency.ToString(),
                     EnableProration = p.EnableProration,
-                    AutoAllocate = p.AutoAllocate
+                    AutoAllocate = p.AutoAllocate,
+                    Status = p.Status
                 })
                 .ToListAsync();
 
             return Ok(data);
+        }
+
+        [HttpGet("policies/{id:guid}")]
+        public async Task<IActionResult> GetPolicyById(Guid id)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var policy = await _db.LeavePolicies
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId && !p.IsDeleted);
+
+            if (policy == null) return NotFound();
+
+            return Ok(new LeavePolicyDto
+            {
+                Id = policy.Id,
+                Name = policy.Name,
+                Description = policy.Description,
+                IsDefault = policy.IsDefault,
+                CompanyId = policy.CompanyId,
+                ProjectId = policy.ProjectId,
+                DepartmentId = policy.DepartmentId,
+                Type = policy.Type,
+                EntitlementPerYear = policy.EntitlementPerYear,
+                CarryForwardAllowed = policy.CarryForwardAllowed,
+                MaxCarryForward = policy.MaxCarryForward,
+                AllocationFrequency = policy.AllocationFrequency.ToString(),
+                EnableProration = policy.EnableProration,
+                AutoAllocate = policy.AutoAllocate,
+                Status = policy.Status
+            });
         }
 
         [Authorize(Policy = "AdminOnly")]
@@ -121,9 +232,23 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
+            var tenantId = _tenantAccessor.GetTenantId();
+            if (dto.IsDefault)
+            {
+                var existingDefaults = await _db.LeavePolicies
+                    .Where(p => p.TenantId == tenantId && p.IsDefault && !p.IsDeleted)
+                    .ToListAsync();
+                foreach (var ed in existingDefaults) ed.IsDefault = false;
+            }
+
             var policy = new LeavePolicy
             {
                 Name = dto.Name,
+                Description = dto.Description,
+                IsDefault = dto.IsDefault,
+                CompanyId = dto.CompanyId,
+                ProjectId = dto.ProjectId,
+                DepartmentId = dto.DepartmentId,
                 Type = dto.Type,
                 EntitlementPerYear = dto.EntitlementPerYear,
                 CarryForwardAllowed = dto.CarryForwardAllowed,
@@ -131,7 +256,9 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                 AllocationFrequency = Enum.Parse<AllocationFrequency>(dto.AllocationFrequency),
                 EnableProration = dto.EnableProration,
                 AutoAllocate = dto.AutoAllocate,
-                TenantId = _tenantAccessor.GetTenantId()
+                Status = dto.Status ?? "Active",
+                TenantId = tenantId,
+                CreatedAt = DateTime.UtcNow
             };
 
             _db.LeavePolicies.Add(policy);
@@ -141,14 +268,91 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             {
                 Id = policy.Id,
                 Name = policy.Name,
+                Description = policy.Description,
+                IsDefault = policy.IsDefault,
+                CompanyId = policy.CompanyId,
+                ProjectId = policy.ProjectId,
+                DepartmentId = policy.DepartmentId,
                 Type = policy.Type,
                 EntitlementPerYear = policy.EntitlementPerYear,
                 CarryForwardAllowed = policy.CarryForwardAllowed,
                 MaxCarryForward = policy.MaxCarryForward,
                 AllocationFrequency = policy.AllocationFrequency.ToString(),
                 EnableProration = policy.EnableProration,
-                AutoAllocate = policy.AutoAllocate
+                AutoAllocate = policy.AutoAllocate,
+                Status = policy.Status
             });
+        }
+
+        [Authorize(Policy = "AdminOnly")]
+        [HttpPut("policies/{id:guid}")]
+        public async Task<IActionResult> UpdatePolicy(Guid id, [FromBody] CreateLeavePolicyDto dto)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var tenantId = _tenantAccessor.GetTenantId();
+            var policy = await _db.LeavePolicies.FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId && !p.IsDeleted);
+            if (policy == null) return NotFound();
+
+            if (dto.IsDefault && !policy.IsDefault)
+            {
+                var existingDefaults = await _db.LeavePolicies
+                    .Where(p => p.TenantId == tenantId && p.IsDefault && p.Id != id && !p.IsDeleted)
+                    .ToListAsync();
+                foreach (var ed in existingDefaults) ed.IsDefault = false;
+            }
+
+            policy.Name = dto.Name;
+            policy.Description = dto.Description;
+            policy.IsDefault = dto.IsDefault;
+            policy.CompanyId = dto.CompanyId;
+            policy.ProjectId = dto.ProjectId;
+            policy.DepartmentId = dto.DepartmentId;
+            policy.Type = dto.Type;
+            policy.EntitlementPerYear = dto.EntitlementPerYear;
+            policy.CarryForwardAllowed = dto.CarryForwardAllowed;
+            policy.MaxCarryForward = dto.MaxCarryForward;
+            policy.AllocationFrequency = Enum.Parse<AllocationFrequency>(dto.AllocationFrequency);
+            policy.EnableProration = dto.EnableProration;
+            policy.AutoAllocate = dto.AutoAllocate;
+            policy.Status = dto.Status ?? "Active";
+            policy.UpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync();
+
+            return Ok(new LeavePolicyDto
+            {
+                Id = policy.Id,
+                Name = policy.Name,
+                Description = policy.Description,
+                IsDefault = policy.IsDefault,
+                CompanyId = policy.CompanyId,
+                ProjectId = policy.ProjectId,
+                DepartmentId = policy.DepartmentId,
+                Type = policy.Type,
+                EntitlementPerYear = policy.EntitlementPerYear,
+                CarryForwardAllowed = policy.CarryForwardAllowed,
+                MaxCarryForward = policy.MaxCarryForward,
+                AllocationFrequency = policy.AllocationFrequency.ToString(),
+                EnableProration = policy.EnableProration,
+                AutoAllocate = policy.AutoAllocate,
+                Status = policy.Status
+            });
+        }
+
+        [Authorize(Policy = "AdminOnly")]
+        [HttpDelete("policies/{id:guid}")]
+        public async Task<IActionResult> DeletePolicy(Guid id)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var policy = await _db.LeavePolicies.FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId && !p.IsDeleted);
+            if (policy == null) return NotFound();
+
+            policy.IsDeleted = true;
+            policy.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+
+            return Ok(new { message = "Leave policy deleted from database." });
         }
 
         [HttpGet("policies/{policyId:guid}/rules")]
@@ -251,14 +455,32 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
         }
 
         [HttpGet("approvals")]
-        public async Task<IActionResult> GetApprovals([FromQuery] string status = "Pending")
+        public async Task<IActionResult> GetApprovals([FromQuery] string status = "Pending", [FromQuery] bool myTeamOnly = false)
         {
             var tenantId = _tenantAccessor.GetTenantId();
-            var requests = await _db.LeaveRequests
+            var query = _db.LeaveRequests
                 .AsNoTracking()
-                .Where(r => r.TenantId == tenantId && r.Status == status)
-                .ToListAsync();
+                .Where(r => r.TenantId == tenantId && r.Status == status);
 
+            var currentEmpId = await ResolveCurrentEmployeeIdAsync(tenantId);
+            var isSuperAdmin = User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || User.IsInRole("HR Manager");
+
+            if (myTeamOnly || (!isSuperAdmin && currentEmpId.HasValue))
+            {
+                if (currentEmpId.HasValue)
+                {
+                    var teamEmployeeIds = await _db.Employees
+                        .AsNoTracking()
+                        .Where(e => e.TenantId == tenantId && !e.IsDeleted &&
+                                   (e.ReportingManagerId == currentEmpId.Value || e.ManagerId == currentEmpId.Value || e.ActingManagerId == currentEmpId.Value))
+                        .Select(e => e.Id)
+                        .ToListAsync();
+
+                    query = query.Where(r => teamEmployeeIds.Contains(r.EmployeeId));
+                }
+            }
+
+            var requests = await query.OrderByDescending(r => r.CreatedAt).ToListAsync();
             return Ok(await MapLeaveRequestsAsync(requests, tenantId));
         }
 
@@ -411,8 +633,28 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             try
             {
                 var tenantId = _tenantAccessor.GetTenantId();
-                var req = await _leaveRequests.ApproveAsync(id, await ResolveCurrentEmployeeIdAsync(tenantId), ResolveCurrentUserId());
-                return Ok(await MapLeaveRequestAsync(req, tenantId));
+                var req = await _db.LeaveRequests.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id && r.TenantId == tenantId);
+                if (req == null) return NotFound();
+
+                var currentEmpId = await ResolveCurrentEmployeeIdAsync(tenantId);
+                var isSuperAdmin = User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || User.IsInRole("HR Manager");
+
+                if (!isSuperAdmin)
+                {
+                    var applicant = await _db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.Id == req.EmployeeId && e.TenantId == tenantId);
+                    if (applicant != null && currentEmpId.HasValue)
+                    {
+                        var isDirectMgr = applicant.ReportingManagerId == currentEmpId.Value || applicant.ManagerId == currentEmpId.Value;
+                        var isActingMgr = applicant.ActingManagerId == currentEmpId.Value;
+                        if (!isDirectMgr && !isActingMgr)
+                        {
+                            return StatusCode(403, new { message = "You are not authorized to approve leave for this employee. Only their reporting manager or HR can approve." });
+                        }
+                    }
+                }
+
+                var approved = await _leaveRequests.ApproveAsync(id, currentEmpId, ResolveCurrentUserId());
+                return Ok(await MapLeaveRequestAsync(approved, tenantId));
             }
             catch (KeyNotFoundException)
             {
@@ -432,8 +674,28 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             try
             {
                 var tenantId = _tenantAccessor.GetTenantId();
-                var req = await _leaveRequests.RejectAsync(id, await ResolveCurrentEmployeeIdAsync(tenantId), ResolveCurrentUserId());
-                return Ok(await MapLeaveRequestAsync(req, tenantId));
+                var req = await _db.LeaveRequests.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id && r.TenantId == tenantId);
+                if (req == null) return NotFound();
+
+                var currentEmpId = await ResolveCurrentEmployeeIdAsync(tenantId);
+                var isSuperAdmin = User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || User.IsInRole("HR Manager");
+
+                if (!isSuperAdmin)
+                {
+                    var applicant = await _db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.Id == req.EmployeeId && e.TenantId == tenantId);
+                    if (applicant != null && currentEmpId.HasValue)
+                    {
+                        var isDirectMgr = applicant.ReportingManagerId == currentEmpId.Value || applicant.ManagerId == currentEmpId.Value;
+                        var isActingMgr = applicant.ActingManagerId == currentEmpId.Value;
+                        if (!isDirectMgr && !isActingMgr)
+                        {
+                            return StatusCode(403, new { message = "You are not authorized to reject leave for this employee. Only their reporting manager or HR can reject." });
+                        }
+                    }
+                }
+
+                var rejected = await _leaveRequests.RejectAsync(id, currentEmpId, ResolveCurrentUserId());
+                return Ok(await MapLeaveRequestAsync(rejected, tenantId));
             }
             catch (KeyNotFoundException)
             {
@@ -580,7 +842,8 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                 ApprovedBy = request.ApprovedBy,
                 ApprovedByName = approvedByName,
                 ApprovedAt = request.ApprovedAt,
-                Reason = request.Reason
+                Reason = request.Reason,
+                CreatedAt = request.CreatedAt
             };
         }
 
@@ -604,6 +867,37 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                 .ToDictionaryAsync(
                     employee => employee.Id,
                     employee => !string.IsNullOrWhiteSpace(employee.Name) ? employee.Name : employee.EmployeeCode);
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // LEAVE POLICIES (DATABASE & BACKEND GOVERNED)
+        // ─────────────────────────────────────────────────────────────────────
+
+        [HttpGet("policies/schema")]
+        public async Task<IActionResult> GetPolicySchema([FromQuery] Guid? companyId = null, [FromQuery] Guid? projectId = null)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            await PoliciesController.EnsurePolicyRuleDefinitionsSeededAsync(_db, tenantId);
+
+            var defs = await _db.PolicyRuleDefinitions
+                .AsNoTracking()
+                .Where(d => d.TenantId == tenantId && !d.IsDeleted && d.IsVisible && d.Category == "LEAVE")
+                .OrderBy(d => d.DisplayOrder)
+                .ToListAsync();
+
+            var resolvedFields = PoliciesController.ResolveFieldDefinitions(defs, companyId, projectId);
+            var defaultsDict = resolvedFields.ToDictionary(f => (string)f.key, f => (object)f.defaultValue);
+
+            var schema = new
+            {
+                category = "LEAVE",
+                policyType = "LeavePolicy",
+                scope = new { companyId, projectId },
+                defaults = defaultsDict,
+                fieldDefinitions = resolvedFields
+            };
+
+            return Ok(schema);
         }
     }
 }

@@ -20,7 +20,6 @@ import { cn } from "@/lib/utils";
 import { ROUTES } from "@/constants/routes";
 import { useNavigationStore } from "@/store/navigationStore";
 import { useUiSchema } from "@/context/UiSchemaContext";
-import { useOrgContext } from "@/context/OrgContext";
 import {
   buildWorkspaceModules,
   groupWorkspaceModulesForSidebar,
@@ -239,7 +238,6 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const setSearchOpen = useNavigationStore((state) => state.setSearchOpen);
   const favorites = useNavigationStore((state) => state.favorites);
   const removeFavorite = useNavigationStore((state) => state.removeFavorite);
-  const { companyName } = useOrgContext();
   const { navigation: schemaNav, enabledModules } = useUiSchema();
   const dynamicModules = buildWorkspaceModules(schemaNav.modules, enabledModules);
   const sections = groupWorkspaceModulesForSidebar(dynamicModules);
@@ -250,25 +248,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   }, [pathname]);
 
   const renderNav = (collapsed: boolean) => (
-    <>
-      {/* Brand Header */}
-      <div className={cn("flex items-center gap-3 border-b border-slate-100 px-4 py-3.5 dark:border-slate-800", collapsed && "justify-center px-2")}>
-        <Link href={ROUTES.DASHBOARD} onClick={onMobileClose} className="flex items-center gap-2.5 min-w-0">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-700 to-indigo-600 text-white shadow-xs font-bold text-sm">
-            U
-          </div>
-          {!collapsed && (
-            <div className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-bold text-slate-900 dark:text-white leading-tight">
-                UAB India
-              </span>
-              <span className="block truncate text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
-                {companyName || "Enterprise"}
-              </span>
-            </div>
-          )}
-        </Link>
-      </div>
+    <div className={cn("flex flex-1 flex-col min-h-0", collapsed ? "pt-2" : "pt-2")}>
 
       {/* Quick Search Shortcut */}
       {!collapsed && (
@@ -393,7 +373,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           {!collapsed ? <span>Help & Support</span> : <SidebarTooltip label="Help & Support" />}
         </Link>
       </div>
-    </>
+    </div>
   );
 
   const sidebarClasses = "flex flex-col border-r border-slate-200/90 bg-white dark:border-slate-800 dark:bg-slate-900";
@@ -425,12 +405,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
             className={cn("fixed inset-y-0 left-0 z-50 flex w-72 flex-col lg:hidden", sidebarClasses)}
           >
             <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
-              <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600 text-white font-bold text-xs">
-                  U
-                </div>
-                <span className="text-sm font-bold text-slate-900 dark:text-white">UAB India</span>
-              </div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Navigation</span>
               <button
                 type="button"
                 onClick={onMobileClose}

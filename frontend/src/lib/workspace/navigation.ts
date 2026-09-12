@@ -1,4 +1,4 @@
-﻿import type { Module } from "@/types";
+import type { Module } from "@/types";
 import { ROUTES } from "@/constants/routes";
 import type { NavGroupDto, NavItemDto, NavModuleDto } from "@/lib/ui-schema/types";
 import {
@@ -80,12 +80,12 @@ export type SidebarNavSection = {
 };
 
 const SIDEBAR_SECTION_DEFS: Array<{ id: string; label: string; keys: readonly string[] }> = [
-  { id: "work", label: "My work", keys: ["ess", "mss", "notifications", "workflow"] },
-  { id: "people", label: "People", keys: ["hrms", "payroll"] },
-  { id: "finance", label: "Finance", keys: ["finance", "reports"] },
-  { id: "commerce", label: "Buy & sell", keys: ["procurement", "inventory", "crm", "sales"] },
-  { id: "ops", label: "Operations", keys: ["projects", "assets", "helpdesk", "documents", "communication", "ai"] },
-  { id: "platform", label: "Platform", keys: ["platform", "company", "superadmin", "security", "settings", "integrations"] },
+  { id: "work", label: "My Work", keys: ["ess", "mss", "workflow", "notifications"] },
+  { id: "people", label: "People & Talent", keys: ["hrms", "payroll"] },
+  { id: "commerce", label: "Supply Chain & Sales", keys: ["sales", "crm", "procurement", "inventory"] },
+  { id: "finance", label: "Finance & Accounts", keys: ["finance", "reports"] },
+  { id: "ops", label: "Operations & Delivery", keys: ["projects", "helpdesk", "communication", "documents", "ai"] },
+  { id: "administration", label: "Administration", keys: ["platform", "company", "superadmin", "security", "settings", "integrations"] },
 ];
 
 export function groupWorkspaceModulesForSidebar(modules: WorkspaceModule[]): SidebarNavSection[] {
@@ -147,9 +147,9 @@ const sortWorkspaceModules = (modules: WorkspaceModule[]) =>
   });
 
 const FALLBACK_HOME_BY_MODULE: Record<string, string> = {
-  platform: ROUTES.PLATFORM_HOME,
+  platform: ROUTES.ADMINISTRATION_HOME,
   superadmin: ROUTES.SUPERADMIN_DASHBOARD,
-  company: ROUTES.PLATFORM_COMPANIES,
+  company: ROUTES.ADMINISTRATION_COMPANIES,
   administration: ROUTES.ADMINISTRATION_HOME,
   ess: ROUTES.ESS_HOME,
   mss: ROUTES.MSS_HOME,
@@ -228,8 +228,8 @@ const deriveRootPath = (value?: string | null) => {
   const segments = canonical.split("/").filter(Boolean);
   if (segments.length === 0) return "/";
 
-  if (segments[0] === "platform") {
-    return "/platform";
+  if (segments[0] === "platform" || segments[0] === "administration") {
+    return "/administration";
   }
 
   return `/${segments[0]}`;

@@ -67,7 +67,7 @@ export const getDefaultHeaderContent = (
   announcement: "",
   homeHref: getDefaultPublicHomeHref(audience),
   navLinks: getPublicNavLinks(audience, "primary"),
-  primaryCtaLabel: audience === "platform" ? "Book demo" : "Login",
+  primaryCtaLabel: audience === "platform" ? "Request a Demo" : "Login",
   primaryCtaHref: audience === "platform" ? "/book-demo" : "/login",
 });
 
@@ -109,7 +109,7 @@ export const getWebsitePageTemplate = (pageType: string, profile: ClientProfile)
           profile.heroSubtitle ||
           "A polished tenant-aware SaaS platform for finance, HR, payroll, and operational teams.",
         primaryCtaLabel: "Login",
-        secondaryCtaLabel: "Book a demo",
+        secondaryCtaLabel: "Request a Demo",
         trustPills: ["Tenant-ready branding", "HRMS + Payroll + ERP", "Role-based access", "Audit-aware operations"],
         featureCards: [
           {

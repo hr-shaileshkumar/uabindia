@@ -1,74 +1,115 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ChangeEvent } from "react";
-import { Button } from "@/components/ui/button";
-import { notifyError, notifySuccess } from "@/lib/notifications";
-import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
-import { SideDrawer } from "@/components/ui/side-drawer";
-import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudCard } from "@/components/workspace/crud-workspace";
-import { ErpCreateButton, ErpRefreshButton, ErpRowActions } from "@/components/workspace/page-kit";
-import { useErpListView } from "@/components/workspace/list-view";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Building2,
+  CheckCircle2,
+  XCircle,
+  CreditCard,
+  Mail,
+  Phone,
+  MapPin,
+  Briefcase,
+  ShieldCheck,
+  Truck,
+  UserCheck,
+} from "lucide-react";
+import {
+  AdministrationGlobalPageShell,
+  type KpiMetricItem,
+  type PlatformListColumn,
+} from "@/components/administration/AdministrationGlobalPageShell";
+import { ErpDrawerFooter, ErpRowActions } from "@/components/workspace/page-kit";
+import { UniversalDeleteDialog } from "@/components/workspace/templates/UniversalDeleteDialog";
+import { QuickCopyButton } from "@/components/workspace/quick-copy";
 import { procurementApi } from "@/services/modules";
-import { ShieldCheck, Building2, CreditCard } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/formatters";
 import { useLocalization } from "@/context/LocalizationContext";
+import { getApiErrorMessage } from "@/lib/api-errors";
+import { notifyError, notifySuccess } from "@/lib/notifications";
+import { cn } from "@/lib/utils";
 
 type Vendor = {
   id: string;
   vendorCode: string;
   vendorName: string;
   vendorType: string;
+  companyName?: string;
   gstNumber?: string;
+  email?: string;
+  phoneNumber?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postalCode?: string;
+  contactPerson?: string;
   paymentTerms?: number;
   creditLimit?: number;
-  balanceAmount?: number;
+  status?: string;
 };
 
-type VendorForm = {
-  vendorCode: string;
-  vendorName: string;
-  vendorType: string;
-  gstNumber: string;
-  paymentTerms: number;
-  creditLimit: number;
-};
+const VENDOR_TYPES = [
+  "Supplier",
+  "Service Provider",
+  "Contractor",
+  "Consultant",
+  "Logistics & Freight",
+  "Manufacturer",
+  "Distributor",
+];
+
+const emptyVendorForm = () => ({
+  vendorCode: "",
+  vendorName: "",
+  vendorType: "Supplier",
+  companyName: "",
+  gstNumber: "",
+  email: "",
+  phoneNumber: "",
+  contactPerson: "",
+  address: "",
+  city: "",
+  state: "",
+  country: "India",
+  postalCode: "",
+  paymentTerms: 30,
+  creditLimit: 0,
+  status: "Active",
+});
 
 const vendorsApi = procurementApi.vendors;
 
 export default function VendorsManager() {
-  const { activeCountry, labels } = useLocalization();
-  const { confirm, confirmDialog } = useConfirmDialog();
+  const { labels } = useLocalization();
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  
-  // Drawer states
-  const [isFormDrawerOpen, setIsFormDrawerOpen] = useState(false);
-  const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
-  const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
 
-  const [formData, setFormData] = useState<VendorForm>({
-    vendorCode: "",
-    vendorName: "",
-    vendorType: "Supplier",
-    gstNumber: "",
-    paymentTerms: 30,
-    creditLimit: 0,
-  });
+  // Drawer inspector states
+  const [mode, setMode] = useState<"closed" | "create" | "edit" | "view">("closed");
+  const [editing, setEditing] = useState<Vendor | null>(null);
+  const [form, setForm] = useState(emptyVendorForm());
+  const [activeTab, setActiveTab] = useState<"basic" | "address" | "commercial">("basic");
+  const [isSaving, setIsSaving] = useState(false);
 
+  // Delete dialog state
+  const [deleteTarget, setDeleteTarget] = useState<Vendor | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Fetch Vendors
   const fetchVendors = async () => {
     try {
       setLoading(true);
-      const response = await vendorsApi.getAll();
-      setVendors(response.data?.data || []);
       setError(null);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to fetch vendors";
-      setError(message);
+      const res = await vendorsApi.getAll(1, 200);
+      const list = res.data?.data || res.data?.vendors || (Array.isArray(res.data) ? res.data : []);
+      setVendors(list);
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Failed to fetch vendors"));
     } finally {
       setLoading(false);
     }
@@ -78,346 +119,727 @@ export default function VendorsManager() {
     void fetchVendors();
   }, []);
 
+  // Filtered vendors
   const filteredVendors = useMemo(() => {
-    if (!searchTerm.trim()) return vendors;
-    const term = searchTerm.toLowerCase();
-    return vendors.filter(
-      (v) =>
-        v.vendorName.toLowerCase().includes(term) ||
-        v.vendorCode.toLowerCase().includes(term) ||
-        v.vendorType.toLowerCase().includes(term) ||
-        (v.gstNumber && v.gstNumber.toLowerCase().includes(term))
-    );
-  }, [vendors, searchTerm]);
+    const q = search.toLowerCase().trim();
+    return vendors.filter((v) => {
+      const matchesSearch =
+        !q ||
+        (v.vendorName || "").toLowerCase().includes(q) ||
+        (v.vendorCode || "").toLowerCase().includes(q) ||
+        (v.vendorType || "").toLowerCase().includes(q) ||
+        (v.email || "").toLowerCase().includes(q) ||
+        (v.phoneNumber || "").toLowerCase().includes(q) ||
+        (v.city || "").toLowerCase().includes(q) ||
+        (v.gstNumber || "").toLowerCase().includes(q);
 
+      const matchesType = typeFilter === "all" || v.vendorType === typeFilter;
+
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "Active" && (v.status || "Active").toLowerCase() === "active") ||
+        (statusFilter === "Inactive" && (v.status || "").toLowerCase() === "inactive");
+
+      return matchesSearch && matchesType && matchesStatus;
+    });
+  }, [vendors, search, typeFilter, statusFilter]);
+
+  // KPI Calculations
   const supplierCount = useMemo(
-    () => vendors.filter((vendor) => vendor.vendorType.toLowerCase() === "supplier").length,
+    () => vendors.filter((v) => (v.vendorType || "").toLowerCase().includes("supplier")).length,
     [vendors]
   );
   const serviceCount = useMemo(
-    () => vendors.filter((vendor) => vendor.vendorType.toLowerCase() === "service").length,
+    () => vendors.filter((v) => (v.vendorType || "").toLowerCase().includes("service")).length,
+    [vendors]
+  );
+  const totalCreditLimit = useMemo(
+    () => vendors.reduce((sum, v) => sum + (Number(v.creditLimit) || 0), 0),
     [vendors]
   );
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === "creditLimit" || name === "paymentTerms" ? Number(value) : value,
-    }));
+  const kpis: KpiMetricItem[] = [
+    {
+      label: "Total Suppliers",
+      value: vendors.length,
+      tone: "info",
+      icon: <Truck className="h-3.5 w-3.5" />,
+      subtext: "Master vendor registry",
+    },
+    {
+      label: "Material Suppliers",
+      value: supplierCount,
+      tone: "positive",
+      icon: <ShieldCheck className="h-3.5 w-3.5" />,
+      subtext: "Goods & raw stock",
+    },
+    {
+      label: "Service Providers",
+      value: serviceCount,
+      tone: "neutral",
+      icon: <Briefcase className="h-3.5 w-3.5" />,
+      subtext: "Services & logistics",
+    },
+    {
+      label: "Vendor Credit Limit",
+      value: formatCurrency(totalCreditLimit),
+      tone: "warning",
+      icon: <CreditCard className="h-3.5 w-3.5" />,
+      subtext: "Approved credit limit",
+    },
+  ];
+
+  // Drawer Openers
+  const openCreate = () => {
+    setEditing(null);
+    setForm(emptyVendorForm());
+    setActiveTab("basic");
+    setMode("create");
   };
 
-  const resetForm = () => {
-    setFormData({
-      vendorCode: "",
-      vendorName: "",
-      vendorType: "Supplier",
-      gstNumber: "",
-      paymentTerms: 30,
-      creditLimit: 0,
-    });
-    setEditingId(null);
-  };
-
-  const openCreateDrawer = () => {
-    resetForm();
-    setIsFormDrawerOpen(true);
-  };
-
-  const openEditDrawer = (vendor: Vendor) => {
-    setFormData({
-      vendorCode: vendor.vendorCode,
-      vendorName: vendor.vendorName,
-      vendorType: vendor.vendorType,
+  const openEdit = (vendor: Vendor) => {
+    setEditing(vendor);
+    setForm({
+      vendorCode: vendor.vendorCode || "",
+      vendorName: vendor.vendorName || "",
+      vendorType: vendor.vendorType || "Supplier",
+      companyName: vendor.companyName || "",
       gstNumber: vendor.gstNumber || "",
+      email: vendor.email || "",
+      phoneNumber: vendor.phoneNumber || "",
+      contactPerson: vendor.contactPerson || "",
+      address: vendor.address || "",
+      city: vendor.city || "",
+      state: vendor.state || "",
+      country: vendor.country || "India",
+      postalCode: vendor.postalCode || "",
       paymentTerms: vendor.paymentTerms || 30,
       creditLimit: vendor.creditLimit || 0,
+      status: vendor.status || "Active",
     });
-    setEditingId(vendor.id);
-    setIsFormDrawerOpen(true);
+    setActiveTab("basic");
+    setMode("edit");
   };
 
-  const openViewDrawer = (vendor: Vendor) => {
-    setSelectedVendor(vendor);
-    setIsViewDrawerOpen(true);
+  const openView = (vendor: Vendor) => {
+    setEditing(vendor);
+    setMode("view");
   };
 
+  // Save Vendor
   const handleSave = async () => {
-    if (!formData.vendorName.trim() || !formData.vendorCode.trim()) {
-      notifyError("Vendor name and vendor code are required fields.");
+    if (!form.vendorName.trim()) {
+      notifyError("Vendor Name is required.");
       return;
     }
 
+    const payload = {
+      vendorCode: form.vendorCode.trim() || undefined,
+      vendorName: form.vendorName.trim(),
+      vendorType: form.vendorType,
+      companyName: form.companyName.trim() || undefined,
+      gstNumber: form.gstNumber.trim().toUpperCase() || undefined,
+      email: form.email.trim() || undefined,
+      phoneNumber: form.phoneNumber.trim() || undefined,
+      contactPerson: form.contactPerson.trim() || undefined,
+      address: form.address.trim() || undefined,
+      city: form.city.trim() || undefined,
+      state: form.state.trim() || undefined,
+      country: form.country.trim() || "India",
+      postalCode: form.postalCode.trim() || undefined,
+      paymentTerms: Number(form.paymentTerms) || 30,
+      creditLimit: Number(form.creditLimit) || 0,
+    };
+
     try {
-      setLoading(true);
-      if (editingId) {
-        await vendorsApi.update(editingId, formData);
-        notifySuccess(`Vendor "${formData.vendorName}" updated successfully.`);
+      setIsSaving(true);
+      if (mode === "edit" && editing) {
+        await vendorsApi.update(editing.id, payload);
+        notifySuccess(`Vendor "${form.vendorName}" updated successfully.`);
       } else {
-        await vendorsApi.create(formData);
-        notifySuccess(`Vendor "${formData.vendorName}" created successfully.`);
+        await vendorsApi.create(payload);
+        notifySuccess(`Vendor "${form.vendorName}" created successfully.`);
       }
-      setIsFormDrawerOpen(false);
-      resetForm();
+      setMode("closed");
       await fetchVendors();
-      setError(null);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to save vendor";
-      notifyError(message);
+    } catch (err) {
+      notifyError(getApiErrorMessage(err, "Failed to save vendor."));
     } finally {
-      setLoading(false);
+      setIsSaving(false);
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    const ok = await confirm({
-      title: `Delete vendor "${name}"`,
-      message: "Are you sure you want to delete this vendor master record? This action cannot be undone.",
-      confirmText: "Delete Record",
-      variant: "danger",
-    });
-    if (!ok) return;
+  // Delete Vendor
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
     try {
-      await vendorsApi.delete(id);
-      setVendors((prev) => prev.filter((v) => v.id !== id));
-      notifySuccess("Vendor record deleted.");
-      void fetchVendors();
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to delete vendor";
-      notifyError(message);
+      setIsDeleting(true);
+      await vendorsApi.delete(deleteTarget.id);
+      notifySuccess(`Vendor "${deleteTarget.vendorName}" deleted successfully.`);
+      setDeleteTarget(null);
+      await fetchVendors();
+    } catch (err) {
+      notifyError(getApiErrorMessage(err, "Failed to delete vendor."));
+    } finally {
+      setIsDeleting(false);
     }
   };
 
-  const list = useErpListView({
-    listKey: "vendors",
-    rows: filteredVendors,
-    columns: [
-      { key: "vendorCode", label: "Code" },
-      { key: "vendorName", label: "Vendor Name" },
-      { key: "vendorType", label: "Type" },
-      { key: "gstNumber", label: "GST Number" },
-      { key: "paymentTerms", label: "Payment Terms", dataType: "number" },
-      { key: "creditLimit", label: "Credit Limit", dataType: "currency" },
-      { key: "actions", label: "Actions", className: "text-right", locked: true },
-    ],
-    getRowId: (row) => row.id,
-    loading,
-    emptyMessage: searchTerm ? "No vendors match your search criteria." : "No vendors found. Click New vendor to create the first record.",
-    onCreate: openCreateDrawer,
-    createLabel: "New vendor",
-    onRefresh: () => void fetchVendors(),
-    importColumns: [
-      { key: "vendorCode", label: "Vendor Code", required: true, sample: "VEND-1001" },
-      { key: "vendorName", label: "Vendor Name", required: true, sample: "FastLogistics Logistics Pvt Ltd" },
-      { key: "vendorType", label: "Vendor Type", sample: "Supplier" },
-      { key: "gstNumber", label: "GST Number", sample: "27BBBBB0000B1Z5" },
-      { key: "paymentTerms", label: "Payment Terms (Days)", sample: "30" },
-      { key: "creditLimit", label: "Credit Limit", sample: "200000" },
-    ],
-    onBulkImport: async (rows) => {
-      for (const row of rows) {
-        await vendorsApi.create({
-          vendorCode: String(row.vendorCode || ""),
-          vendorName: String(row.vendorName || ""),
-          vendorType: row.vendorType ? String(row.vendorType) : "Supplier",
-          gstNumber: row.gstNumber ? String(row.gstNumber) : undefined,
-          paymentTerms: row.paymentTerms ? Number(row.paymentTerms) : 30,
-          creditLimit: row.creditLimit ? Number(row.creditLimit) : 0,
-        });
-      }
-      notifySuccess(`Imported ${rows.length} vendor record(s) successfully.`);
-      await fetchVendors();
-    },
-    extraFilters: (
-      <input
-        type="search"
-        placeholder="Search vendor name, GST, code..."
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        className="erp-input max-w-xs"
-      />
-    ),
-    onBulkDelete: async (rows) => {
-      for (const row of rows) {
-        await vendorsApi.delete(row.id);
-      }
-      notifySuccess(`${rows.length} vendor record(s) deleted.`);
-      await fetchVendors();
-    },
-    renderRow: (vendor) => (
-      <tr key={vendor.id} className="erp-tr">
-        <td className="erp-td font-semibold text-slate-900">{vendor.vendorCode}</td>
-        <td className="erp-td font-medium text-slate-800">{vendor.vendorName}</td>
-        <td className="erp-td">
-          <Badge variant="outline" className="text-xs font-normal">
-            {vendor.vendorType}
-          </Badge>
-        </td>
-        <td className="erp-td font-mono text-xs text-slate-600">{vendor.gstNumber || "-"}</td>
-        <td className="erp-td text-slate-600">{vendor.paymentTerms || 30} days</td>
-        <td className="erp-td font-semibold text-slate-900">{formatCurrency(vendor.creditLimit)}</td>
-        <td className="erp-td text-right">
-          <ErpRowActions
-            onView={{ label: "View", onClick: () => openViewDrawer(vendor) }}
-            onEdit={{ label: "Edit", onClick: () => openEditDrawer(vendor) }}
-            onDelete={{ label: "Delete", onClick: () => void handleDelete(vendor.id, vendor.vendorName) }}
-          />
-        </td>
-      </tr>
-    ),
-  });
+  // CSV Export
+  const handleExportCsv = () => {
+    if (filteredVendors.length === 0) {
+      notifyError("No vendor records to export.");
+      return;
+    }
+    const headers = [
+      "Vendor Code",
+      "Vendor Name",
+      "Vendor Category",
+      "Email",
+      "Phone",
+      "City",
+      "State",
+      "GSTIN",
+      "Payment Terms",
+      "Credit Limit",
+    ];
+    const rows = filteredVendors.map((v) => [
+      `"${(v.vendorCode || "").replace(/"/g, '""')}"`,
+      `"${(v.vendorName || "").replace(/"/g, '""')}"`,
+      `"${(v.vendorType || "Supplier").replace(/"/g, '""')}"`,
+      `"${(v.email || "").replace(/"/g, '""')}"`,
+      `"${(v.phoneNumber || "").replace(/"/g, '""')}"`,
+      `"${(v.city || "").replace(/"/g, '""')}"`,
+      `"${(v.state || "").replace(/"/g, '""')}"`,
+      `"${(v.gstNumber || "").replace(/"/g, '""')}"`,
+      `"${v.paymentTerms ?? 30}"`,
+      `"${v.creditLimit ?? 0}"`,
+    ]);
+    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `vendors_master_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    notifySuccess(`Exported ${filteredVendors.length} vendor record(s) to CSV.`);
+  };
 
-  return (
-    <StandardPageLayout
-      title="Vendors Master"
-      subtitle="Manage procurement supplier directory, onboarding readiness, tax registration, and payment terms."
-      eyebrow="Procurement / Masters"
-      icon="briefcase"
-      meta={
-        <>
-          <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
-            {vendors.length} Total Records
-          </span>
-          <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700">
-            {supplierCount} Suppliers
-          </span>
-          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
-            {serviceCount} Service Partners
-          </span>
-        </>
-      }
-      actions={
-        <>
-          <ErpRefreshButton onClick={() => void fetchVendors()} loading={loading} />
-          {list.headerTools}
-          <ErpCreateButton label="New vendor" onClick={openCreateDrawer} />
-        </>
-      }
-      filters={list.filterBar}
-    >
-      {confirmDialog}
-      {error ? <div className="erp-alert-error text-sm">{error}</div> : null}
-      <CrudCard>{list.table}</CrudCard>
+  // Table Columns
+  const listColumns: PlatformListColumn[] = [
+    { key: "name", label: "Vendor & Supplier", dataType: "string" },
+    { key: "type", label: "Category" },
+    { key: "contact", label: "Contact Info" },
+    { key: "location", label: "Location" },
+    { key: "taxId", label: `GSTIN (${labels.taxId})` },
+    { key: "terms", label: "Terms & Credit", dataType: "currency" },
+    { key: "actions", label: "Actions", locked: true },
+  ];
 
-      {/* Slide-Over Drawer for Create / Edit Form */}
-      <SideDrawer
-        open={isFormDrawerOpen}
-        onClose={() => setIsFormDrawerOpen(false)}
-        title={editingId ? `Edit Vendor: ${formData.vendorCode}` : "Create New Vendor"}
-        subtitle="Capture procurement-safe vendor master data, tax registration, and payment terms."
-        width="lg"
-        footer={
-          <div className="flex justify-end gap-2.5 w-full">
-            <Button variant="outline" onClick={() => setIsFormDrawerOpen(false)}>Cancel</Button>
-            <Button onClick={() => void handleSave()} disabled={loading} className="bg-slate-900 text-white hover:bg-slate-800">
-              {editingId ? "Update Vendor" : "Save Vendor"}
-            </Button>
-          </div>
-        }
-      >
-        <div className="space-y-5">
-          {/* Section 1: Business Identity */}
-          <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-4 space-y-3.5">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Business Identity</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              <div>
-                <label className="erp-label">Vendor Code <span className="text-rose-500">*</span></label>
-                <input name="vendorCode" value={formData.vendorCode} onChange={handleChange} placeholder="e.g. VND-1024" className="erp-input font-mono text-xs uppercase mt-1" />
-              </div>
-              <div>
-                <label className="erp-label">Vendor Category</label>
-                <select name="vendorType" value={formData.vendorType} onChange={handleChange} className="erp-select mt-1">
-                  <option value="Supplier">Supplier (Goods & Materials)</option>
-                  <option value="Contractor">Contractor (Civil & Specialized)</option>
-                  <option value="Service">Service Partner (Consultancy & IT)</option>
-                </select>
-              </div>
-              <div className="sm:col-span-2">
-                <label className="erp-label">Vendor Legal / Trading Name <span className="text-rose-500">*</span></label>
-                <input name="vendorName" value={formData.vendorName} onChange={handleChange} placeholder="Full business legal name as per GST/PAN" className="erp-input mt-1" />
-              </div>
-            </div>
+  // Drawer Form Content
+  const drawerForm = (
+    <div className="space-y-0">
+      {/* Tabs */}
+      <div className="flex border-b border-slate-100 dark:border-slate-800 mb-5">
+        {(
+          [
+            { id: "basic", label: "Basic Info", icon: <UserCheck className="h-3.5 w-3.5 mr-1.5" /> },
+            { id: "address", label: "Address & Facility", icon: <MapPin className="h-3.5 w-3.5 mr-1.5" /> },
+            { id: "commercial", label: "Commercial & Tax", icon: <CreditCard className="h-3.5 w-3.5 mr-1.5" /> },
+          ] as const
+        ).map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+            className={`inline-flex items-center px-4 py-2.5 text-xs font-semibold transition-colors border-b-2 cursor-pointer ${
+              activeTab === tab.id
+                ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
+                : "border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+            }`}
+          >
+            {tab.icon}
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "basic" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Vendor Code
+            </label>
+            <input
+              className="erp-input h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs font-mono uppercase dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              value={form.vendorCode}
+              placeholder="e.g. VEN-1001 (auto-generated if empty)"
+              onChange={(e) => setForm((f) => ({ ...f, vendorCode: e.target.value.toUpperCase() }))}
+            />
           </div>
 
-          {/* Section 2: Tax & Commercial Terms */}
-          <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-4 space-y-3.5">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Tax & Commercial Terms</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              <div className="sm:col-span-2">
-                <label className="erp-label">Tax Identification Number ({labels.taxId})</label>
-                <input name="gstNumber" value={formData.gstNumber} onChange={handleChange} placeholder="Tax / Registration ID" className="erp-input uppercase font-mono text-xs mt-1" />
-                <p className="text-[11px] text-slate-400 mt-1">Official registered tax identification number</p>
-              </div>
-              <div>
-                <label className="erp-label">Payment Terms (Days)</label>
-                <input name="paymentTerms" value={formData.paymentTerms} onChange={handleChange} type="number" min={0} placeholder="30" className="erp-input mt-1" />
-              </div>
-              <div>
-                <label className="erp-label">Approved Credit Limit ({activeCountry.currencySymbol})</label>
-                <input name="creditLimit" value={formData.creditLimit} onChange={handleChange} type="number" min={0} placeholder="0" className="erp-input mt-1 font-mono" />
-              </div>
-            </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Vendor Category
+            </label>
+            <select
+              className="erp-input h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              value={form.vendorType}
+              onChange={(e) => setForm((f) => ({ ...f, vendorType: e.target.value }))}
+            >
+              {VENDOR_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Vendor Legal / Trade Name *
+            </label>
+            <input
+              className="erp-input h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              value={form.vendorName}
+              placeholder="Full registered trade or corporate name"
+              onChange={(e) => setForm((f) => ({ ...f, vendorName: e.target.value }))}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Contact Person / Sales POC
+            </label>
+            <input
+              className="erp-input h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              value={form.contactPerson}
+              placeholder="Primary account executive"
+              onChange={(e) => setForm((f) => ({ ...f, contactPerson: e.target.value }))}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Corporate Email
+            </label>
+            <input
+              type="email"
+              className="erp-input h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              value={form.email}
+              placeholder="orders@vendor.com"
+              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Phone / Helpline
+            </label>
+            <input
+              className="erp-input h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              value={form.phoneNumber}
+              placeholder="+91 98765 43210"
+              onChange={(e) => setForm((f) => ({ ...f, phoneNumber: e.target.value }))}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Operating Status
+            </label>
+            <select
+              className="erp-input h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              value={form.status}
+              onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+            >
+              <option value="Active">Active Supplier</option>
+              <option value="Inactive">Dormant / Blacklisted</option>
+            </select>
           </div>
         </div>
-      </SideDrawer>
+      )}
 
-      {/* Slide-Over Drawer for Quick View Details */}
-      <SideDrawer
-        open={isViewDrawerOpen}
-        onClose={() => setIsViewDrawerOpen(false)}
-        title={selectedVendor ? selectedVendor.vendorName : "Vendor Details"}
-        subtitle={selectedVendor ? `Vendor Code: ${selectedVendor.vendorCode}` : ""}
-        width="md"
-        footer={
-          <div className="flex justify-between w-full">
-            <Button variant="outline" onClick={() => setIsViewDrawerOpen(false)}>Close</Button>
-            {selectedVendor && (
-              <Button onClick={() => { setIsViewDrawerOpen(false); openEditDrawer(selectedVendor); }}>
-                Edit Vendor Record
-              </Button>
-            )}
+      {activeTab === "address" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              City
+            </label>
+            <input
+              className="erp-input h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              value={form.city}
+              placeholder="e.g. Pune, Chennai"
+              onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+            />
           </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              State / Province
+            </label>
+            <input
+              className="erp-input h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              value={form.state}
+              placeholder="e.g. Maharashtra, Tamil Nadu"
+              onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Country
+            </label>
+            <input
+              className="erp-input h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              value={form.country}
+              placeholder="India"
+              onChange={(e) => setForm((f) => ({ ...f, country: e.target.value }))}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              PIN / Postal Code
+            </label>
+            <input
+              className="erp-input h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              value={form.postalCode}
+              placeholder="e.g. 411001"
+              onChange={(e) => setForm((f) => ({ ...f, postalCode: e.target.value }))}
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Factory / Dispatch Address
+            </label>
+            <textarea
+              className="erp-input w-full min-h-[80px] rounded-lg border border-slate-200 bg-white p-3 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              value={form.address}
+              placeholder="Full dispatch warehouse or corporate address"
+              onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+            />
+          </div>
+        </div>
+      )}
+
+      {activeTab === "commercial" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              GSTIN / Tax ID ({labels.taxId})
+            </label>
+            <input
+              maxLength={15}
+              className="erp-input h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs font-mono uppercase dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              value={form.gstNumber}
+              placeholder="e.g. 27BBBBB0000B1Z5"
+              onChange={(e) => setForm((f) => ({ ...f, gstNumber: e.target.value.toUpperCase() }))}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Payment Terms (Days)
+            </label>
+            <input
+              type="number"
+              min={0}
+              className="erp-input h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              value={form.paymentTerms}
+              placeholder="30"
+              onChange={(e) => setForm((f) => ({ ...f, paymentTerms: Number(e.target.value) }))}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Approved Supplier Credit Limit (₹)
+            </label>
+            <input
+              type="number"
+              min={0}
+              className="erp-input h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              value={form.creditLimit}
+              placeholder="e.g. 200000"
+              onChange={(e) => setForm((f) => ({ ...f, creditLimit: Number(e.target.value) }))}
+            />
+          </div>
+
+          <div className="md:col-span-2 rounded-xl border border-blue-100 bg-blue-50 p-4 dark:border-blue-900/60 dark:bg-blue-950/40">
+            <p className="text-xs font-semibold text-blue-800 dark:text-blue-300 mb-1">
+              Procurement & 3-Way Match Integration
+            </p>
+            <p className="text-xs text-blue-700 dark:text-blue-200 leading-relaxed">
+              Vendor profiles govern Purchase Orders (PO), Goods Receipt Notes (GRN), and Accounts Payable (AP) supplier invoices. GSTIN verification ensures automatic Input Tax Credit (ITC) reconciliation with GSTR-2B.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Drawer Footer */}
+      <div className="mt-5 border-t border-slate-100 dark:border-slate-800 pt-4">
+        <ErpDrawerFooter
+          onCancel={() => setMode("closed")}
+          onSave={() => void handleSave()}
+          saving={isSaving}
+          isEdit={mode === "edit"}
+        />
+      </div>
+    </div>
+  );
+
+  // Read-only View Content
+  const viewInspectorContent = editing && (
+    <div className="space-y-4 py-2">
+      <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-2 dark:border-slate-800 dark:bg-slate-900/50">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Supplier Profile</span>
+          <span className="inline-flex items-center rounded-md bg-teal-50 px-2 py-0.5 text-xs font-semibold text-teal-700 border border-teal-200/60 dark:bg-teal-950/50 dark:text-teal-300">
+            {editing.vendorType || "Supplier"}
+          </span>
+        </div>
+        <h3 className="text-base font-bold text-slate-900 dark:text-white">{editing.vendorName}</h3>
+        <p className="text-xs font-mono text-slate-500">Code: {editing.vendorCode}</p>
+      </div>
+
+      <div className="space-y-2.5">
+        <div className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 bg-white dark:border-slate-800 dark:bg-slate-900">
+          <Mail className="h-4 w-4 text-slate-400 shrink-0" />
+          <div>
+            <p className="text-[11px] text-slate-400">Order Dispatch Email</p>
+            <p className="text-xs font-medium text-slate-800 dark:text-slate-200">{editing.email || "—"}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 bg-white dark:border-slate-800 dark:bg-slate-900">
+          <Phone className="h-4 w-4 text-slate-400 shrink-0" />
+          <div>
+            <p className="text-[11px] text-slate-400">Helpline / POC</p>
+            <p className="text-xs font-medium text-slate-800 dark:text-slate-200">{editing.phoneNumber || "—"}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 bg-white dark:border-slate-800 dark:bg-slate-900">
+          <MapPin className="h-4 w-4 text-slate-400 shrink-0" />
+          <div>
+            <p className="text-[11px] text-slate-400">Factory / Location</p>
+            <p className="text-xs font-medium text-slate-800 dark:text-slate-200">
+              {[editing.city, editing.state, editing.country].filter(Boolean).join(", ") || "—"}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 bg-white dark:border-slate-800 dark:bg-slate-900">
+          <CreditCard className="h-4 w-4 text-slate-400 shrink-0" />
+          <div>
+            <p className="text-[11px] text-slate-400">Credit Limit & Terms</p>
+            <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+              {formatCurrency(editing.creditLimit)} · {editing.paymentTerms || 30} Days Payment Terms
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={() => setMode("closed")}
+          className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+        >
+          Close
+        </button>
+        <button
+          type="button"
+          onClick={() => openEdit(editing)}
+          className="inline-flex h-8 items-center rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white hover:bg-blue-700"
+        >
+          Edit Vendor
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      <AdministrationGlobalPageShell
+        title="Vendors & Supplier Directory"
+        subtitle="Manage supplier master records, vendor categories, payment terms, procurement contracts, and tax IDs."
+        categoryTag="Procurement & Sourcing / Masters"
+        icon="truck"
+        kpiMetrics={kpis}
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search vendor name, code, category, GST, city…"
+        filterOptions={[
+          {
+            key: "type",
+            label: "All Categories",
+            value: typeFilter,
+            onChange: setTypeFilter,
+            options: [
+              { label: "All Categories", value: "all" },
+              ...VENDOR_TYPES.map((t) => ({ label: t, value: t })),
+            ],
+          },
+          {
+            key: "status",
+            label: "All Statuses",
+            value: statusFilter,
+            onChange: setStatusFilter,
+            options: [
+              { label: "All Statuses", value: "all" },
+              { label: "Active Only", value: "Active" },
+              { label: "Inactive Only", value: "Inactive" },
+            ],
+          },
+        ]}
+        onClearFilters={() => {
+          setSearch("");
+          setTypeFilter("all");
+          setStatusFilter("all");
+        }}
+        primaryActionLabel="Add Vendor"
+        onPrimaryAction={openCreate}
+        onRefresh={() => void fetchVendors()}
+        onExportCsv={handleExportCsv}
+        isLoading={loading}
+        listKey="procurement-vendors"
+        listRows={filteredVendors}
+        getRowId={(row) => row.id}
+        emptyMessage="No vendor accounts found. Click Add Vendor to register your first supplier."
+        listColumns={listColumns}
+        renderListRow={(vendor) => (
+          <tr key={vendor.id} className="erp-tr">
+            <td className="erp-td">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 text-xs font-bold text-white shadow-sm">
+                  {(vendor.vendorName || "V").slice(0, 2).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => openView(vendor)}
+                    className="text-sm font-semibold text-slate-900 hover:text-blue-600 dark:text-white dark:hover:text-blue-400 truncate text-left block cursor-pointer transition-colors"
+                  >
+                    {vendor.vendorName}
+                  </button>
+                  <div className="text-xs font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                    <span>{vendor.vendorCode}</span>
+                    <QuickCopyButton text={vendor.vendorCode} label="code" />
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td className="erp-td">
+              <span className="inline-flex items-center rounded-md bg-teal-50 px-2 py-0.5 text-xs font-semibold text-teal-700 border border-teal-200/60 dark:bg-teal-950/50 dark:text-teal-300 dark:border-teal-800/60">
+                {vendor.vendorType || "Supplier"}
+              </span>
+            </td>
+            <td className="erp-td">
+              <div className="space-y-0.5">
+                {vendor.email && (
+                  <div className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-300">
+                    <Mail className="h-3 w-3 text-slate-400 shrink-0" />
+                    {vendor.email}
+                  </div>
+                )}
+                {vendor.phoneNumber && (
+                  <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                    <Phone className="h-3 w-3 text-slate-400 shrink-0" />
+                    {vendor.phoneNumber}
+                  </div>
+                )}
+                {!vendor.email && !vendor.phoneNumber && (
+                  <span className="text-xs text-slate-400">—</span>
+                )}
+              </div>
+            </td>
+            <td className="erp-td">
+              {vendor.city || vendor.state ? (
+                <div className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-300">
+                  <MapPin className="h-3 w-3 text-slate-400 shrink-0" />
+                  {[vendor.city, vendor.state].filter(Boolean).join(", ")}
+                </div>
+              ) : (
+                <span className="text-xs text-slate-400">—</span>
+              )}
+            </td>
+            <td className="erp-td font-mono text-xs text-slate-600 dark:text-slate-300">
+              {vendor.gstNumber ? (
+                <div className="flex items-center gap-1">
+                  <span>{vendor.gstNumber}</span>
+                  <QuickCopyButton text={vendor.gstNumber} label="tax id" />
+                </div>
+              ) : (
+                "—"
+              )}
+            </td>
+            <td className="erp-td">
+              <div className="text-xs">
+                <span className="font-semibold text-slate-800 dark:text-slate-200">
+                  {formatCurrency(vendor.creditLimit)}
+                </span>
+                <span className="text-[11px] text-slate-400 block">
+                  {vendor.paymentTerms || 30} Days Terms
+                </span>
+              </div>
+            </td>
+            <td className="erp-td text-right">
+              <ErpRowActions
+                onView={{ label: "View Details", onClick: () => openView(vendor) }}
+                onEdit={{ label: "Edit Vendor", onClick: () => openEdit(vendor) }}
+                onDelete={{ label: "Delete Supplier", onClick: () => setDeleteTarget(vendor) }}
+              />
+            </td>
+          </tr>
+        )}
+        isInspectorOpen={mode !== "closed"}
+        onInspectorClose={() => setMode("closed")}
+        inspectorTitle={
+          mode === "edit"
+            ? `Edit: ${editing?.vendorName}`
+            : mode === "view"
+              ? `Supplier Profile: ${editing?.vendorName}`
+              : "Register New Vendor"
         }
+        inspectorSubTitle={
+          mode === "view"
+            ? "Supplier commercial profile, contact, and procurement terms"
+            : "Fill details across Basic Info, Address & Facility, and Commercial & Tax tabs"
+        }
+        inspectorWidth="xl"
+        inspectorContent={mode === "view" ? viewInspectorContent : drawerForm}
       >
-        {selectedVendor && (
-          <div className="space-y-5 py-2">
-            <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Vendor Profile</span>
-                <Badge variant="outline">{selectedVendor.vendorType}</Badge>
-              </div>
-              <h3 className="text-lg font-bold text-slate-900">{selectedVendor.vendorName}</h3>
-              <p className="text-xs text-slate-500 font-mono">Code: {selectedVendor.vendorCode}</p>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 bg-white">
-                <Building2 className="h-5 w-5 text-slate-600 shrink-0" />
-                <div>
-                  <p className="text-xs text-slate-500">GST Registration Number</p>
-                  <p className="text-sm font-semibold text-slate-900 font-mono">{selectedVendor.gstNumber || "Not Registered"}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 bg-white">
-                <ShieldCheck className="h-5 w-5 text-emerald-600 shrink-0" />
-                <div>
-                  <p className="text-xs text-slate-500">Standard Payment Terms</p>
-                  <p className="text-sm font-semibold text-slate-900">{selectedVendor.paymentTerms || 30} Net Days</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 bg-white">
-                <CreditCard className="h-5 w-5 text-sky-600 shrink-0" />
-                <div>
-                  <p className="text-xs text-slate-500">Approved Credit Ceiling</p>
-                  <p className="text-sm font-bold text-slate-900">{formatCurrency(selectedVendor.creditLimit)}</p>
-                </div>
-              </div>
-            </div>
+        {error && (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-700 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-300 flex items-center justify-between">
+            <span>{error}</span>
+            <button
+              type="button"
+              onClick={() => void fetchVendors()}
+              className="font-bold text-rose-800 underline hover:text-rose-900 cursor-pointer"
+            >
+              Retry
+            </button>
           </div>
         )}
-      </SideDrawer>
-    </StandardPageLayout>
+      </AdministrationGlobalPageShell>
+
+      {/* Universal Delete Dialog */}
+      <UniversalDeleteDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Delete Vendor Supplier"
+        entityName={deleteTarget?.vendorName || deleteTarget?.vendorCode}
+        description={`Are you sure you want to delete vendor "${deleteTarget?.vendorName}"? Active purchase orders and goods receipt notes will retain archival vendor reference.`}
+        isHardDelete
+        loading={isDeleting}
+        onConfirm={handleDeleteConfirm}
+      />
+    </>
   );
 }

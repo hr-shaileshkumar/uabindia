@@ -1,4 +1,4 @@
-ï»¿"use client";
+"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -25,7 +25,7 @@ import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import {
   erpButtonClassName,
 } from "@/components/workspace/styles";
-import { platformApi } from "@/services/modules/platform";
+import { platformApi } from "@/services/modules/administration";
 import { notifyError } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
 import {
@@ -193,7 +193,7 @@ export function SuperAdminDashboard() {
         {[
           {
             label: "Total Organizations",
-            value: loading ? "â€¦" : String(tenants.length || 1),
+            value: loading ? "…" : String(tenants.length || 1),
             change: "+18.2% vs last month",
             trend: "up",
             subtext: "Active across India & Global",
@@ -203,7 +203,7 @@ export function SuperAdminDashboard() {
           },
           {
             label: "Active Production Workspaces",
-            value: loading ? "â€¦" : String(activeTenantsCount || 1),
+            value: loading ? "…" : String(activeTenantsCount || 1),
             change: "100% Operational",
             trend: "neutral",
             subtext: "Zero active incidents",
@@ -223,7 +223,7 @@ export function SuperAdminDashboard() {
           },
           {
             label: "Suspended / Inactive",
-            value: loading ? "â€¦" : String(suspendedTenantsCount),
+            value: loading ? "…" : String(suspendedTenantsCount),
             change: "Policy & Plan Compliance",
             trend: "neutral",
             subtext: "0 chargeback holds",
@@ -367,7 +367,7 @@ export function SuperAdminDashboard() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search tenant or subdomainâ€¦"
+              placeholder="Search tenant or subdomain…"
               className="w-full rounded-xl border border-slate-200 bg-slate-50/60 pl-9 pr-3 py-1.5 text-xs text-slate-900 outline-none focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500"
             />
           </div>
@@ -387,7 +387,7 @@ export function SuperAdminDashboard() {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-slate-400">Loading clustersâ€¦</td>
+                  <td colSpan={5} className="py-8 text-center text-slate-400">Loading clusters…</td>
                 </tr>
               ) : filteredTenants.length === 0 ? (
                 <tr>
@@ -403,7 +403,7 @@ export function SuperAdminDashboard() {
                         </div>
                         <div>
                           <p className="font-semibold text-slate-900">{t.name}</p>
-                          <p className="text-[10px] text-slate-400 font-mono">{t.id.slice(0, 8)}â€¦</p>
+                          <p className="text-[10px] text-slate-400 font-mono">{t.id.slice(0, 8)}…</p>
                         </div>
                       </div>
                     </td>

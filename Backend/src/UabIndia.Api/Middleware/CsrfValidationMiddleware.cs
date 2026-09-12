@@ -49,10 +49,33 @@ namespace UabIndia.Api.Middleware
                 return;
             }
 
-            var csrfCookie = context.Request.Cookies["csrf_token"];
-            var csrfHeader = context.Request.Headers["X-CSRF-Token"].FirstOrDefault();
+            // Bearer-authenticated API requests (with Authorization header) are inherently immune to CSRF
+            var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
+            if (!string.IsNullOrWhiteSpace(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            {
+                var csrfCookie = context.Request.Cookies["csrf_token"];
+                var csrfHeader = context.Request.Headers["X-CSRF-Token"].FirstOrDefault();
+                if (!string.IsNullOrWhiteSpace(csrfCookie) && !string.IsNullOrWhiteSpace(csrfHeader) && !string.Equals(csrfCookie, csrfHeader, StringComparison.Ordinal))
+                {
+                    _logger.LogWarning("CSRF validation mismatch for {Path}", path);
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    await context.Response.WriteAsJsonAsync(new ApiErrorResponse
+                    {
+                        Message = "CSRF validation failed.",
+                        Code = "csrf_validation_failed",
+                        TraceId = context.TraceIdentifier
+                    });
+                    return;
+                }
+                await _next(context);
+                return;
+            }
 
-            if (string.IsNullOrWhiteSpace(csrfCookie) || string.IsNullOrWhiteSpace(csrfHeader) || !string.Equals(csrfCookie, csrfHeader, StringComparison.Ordinal))
+            // Cookie-based session requests require double-submit CSRF token matching
+            var csrfCookieRequired = context.Request.Cookies["csrf_token"];
+            var csrfHeaderRequired = context.Request.Headers["X-CSRF-Token"].FirstOrDefault();
+
+            if (string.IsNullOrWhiteSpace(csrfCookieRequired) || string.IsNullOrWhiteSpace(csrfHeaderRequired) || !string.Equals(csrfCookieRequired, csrfHeaderRequired, StringComparison.Ordinal))
             {
                 _logger.LogWarning("CSRF validation failed for {Path}", path);
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;

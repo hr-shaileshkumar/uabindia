@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Text;
 using UabIndia.Api.Models;
+using UabIndia.Api.Modules.Administration.Controllers;
 using UabIndia.Application.Interfaces;
 using UabIndia.Core.Entities;
 using UabIndia.Infrastructure.Data;
@@ -50,11 +51,25 @@ namespace UabIndia.Api.Modules.Payroll.Controllers
         // ===== SALARY STRUCTURES =====
 
         [HttpGet("structures")]
-        public async Task<IActionResult> GetStructures()
+        public async Task<IActionResult> GetStructures([FromQuery] Guid? companyId = null, [FromQuery] Guid? projectId = null)
         {
-            var data = await _db.PayrollStructures
+            var tenantId = _tenantAccessor.GetTenantId();
+            var query = _db.PayrollStructures
                 .AsNoTracking()
-                .OrderByDescending(s => s.EffectiveFrom)
+                .Where(s => s.TenantId == tenantId && !s.IsDeleted);
+
+            if (projectId.HasValue)
+            {
+                query = query.Where(s => s.ProjectId == projectId.Value || s.ProjectId == null);
+            }
+            else if (companyId.HasValue)
+            {
+                query = query.Where(s => s.CompanyId == companyId.Value || (s.CompanyId == null && s.ProjectId == null));
+            }
+
+            var data = await query
+                .OrderByDescending(s => s.IsDefault)
+                .ThenByDescending(s => s.EffectiveFrom)
                 .ToListAsync();
 
             return Ok(data);
@@ -79,11 +94,26 @@ namespace UabIndia.Api.Modules.Payroll.Controllers
             if (!ModelState.IsValid) 
                 return BadRequest(ModelState);
 
+            var tenantId = _tenantAccessor.GetTenantId();
+            if (dto.IsDefault)
+            {
+                var existingDefaults = await _db.PayrollStructures
+                    .Where(s => s.TenantId == tenantId && s.IsDefault && !s.IsDeleted)
+                    .ToListAsync();
+                foreach (var ed in existingDefaults) ed.IsDefault = false;
+            }
+
             var structure = new PayrollStructure
             {
+                TenantId = tenantId,
                 Name = dto.Name,
+                Description = dto.Description,
+                IsDefault = dto.IsDefault,
+                CompanyId = dto.CompanyId,
+                ProjectId = dto.ProjectId,
                 EffectiveFrom = dto.EffectiveFrom,
-                EffectiveTo = dto.EffectiveTo
+                EffectiveTo = dto.EffectiveTo,
+                CreatedAt = DateTime.UtcNow
             };
 
             _db.PayrollStructures.Add(structure);
@@ -99,9 +129,23 @@ namespace UabIndia.Api.Modules.Payroll.Controllers
             if (structure == null)
                 return NotFound(new { message = "Structure not found" });
 
+            var tenantId = _tenantAccessor.GetTenantId();
+            if (dto.IsDefault && !structure.IsDefault)
+            {
+                var existingDefaults = await _db.PayrollStructures
+                    .Where(s => s.TenantId == tenantId && s.IsDefault && s.Id != id && !s.IsDeleted)
+                    .ToListAsync();
+                foreach (var ed in existingDefaults) ed.IsDefault = false;
+            }
+
             structure.Name = dto.Name;
+            structure.Description = dto.Description;
+            structure.IsDefault = dto.IsDefault;
+            structure.CompanyId = dto.CompanyId;
+            structure.ProjectId = dto.ProjectId;
             structure.EffectiveFrom = dto.EffectiveFrom;
             structure.EffectiveTo = dto.EffectiveTo;
+            structure.UpdatedAt = DateTime.UtcNow;
 
             await _db.SaveChangesAsync();
             return Ok(structure);
@@ -1468,6 +1512,202 @@ namespace UabIndia.Api.Modules.Payroll.Controllers
             _db.IncomeTaxes.Add(tax);
             await _db.SaveChangesAsync();
             return tax;
+        }
+
+        // ===== PAYROLL POLICIES (DATABASE DRIVEN) =====
+
+        [HttpGet("policies/schema")]
+        public async Task<IActionResult> GetPolicySchema([FromQuery] Guid? companyId = null, [FromQuery] Guid? projectId = null)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            await PoliciesController.EnsurePolicyRuleDefinitionsSeededAsync(_db, tenantId);
+
+            var defs = await _db.PolicyRuleDefinitions
+                .AsNoTracking()
+                .Where(d => d.TenantId == tenantId && !d.IsDeleted && d.IsVisible && d.Category == "PAYROLL_COMPENSATION")
+                .OrderBy(d => d.DisplayOrder)
+                .ToListAsync();
+
+            var resolvedFields = PoliciesController.ResolveFieldDefinitions(defs, companyId, projectId);
+            var defaultsDict = resolvedFields.ToDictionary(f => (string)f.key, f => (object)f.defaultValue);
+
+            var schema = new
+            {
+                category = "PAYROLL_COMPENSATION",
+                policyType = "PayrollPolicy",
+                scope = new { companyId, projectId },
+                defaults = defaultsDict,
+                fieldDefinitions = resolvedFields
+            };
+
+            return Ok(schema);
+        }
+
+        [HttpGet("policies")]
+        public async Task<IActionResult> GetPolicies([FromQuery] Guid? companyId = null, [FromQuery] Guid? projectId = null)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var exists = await _db.PayrollPolicies.AnyAsync(p => p.TenantId == tenantId && !p.IsDeleted);
+            if (!exists)
+            {
+                var defaultPol = new PayrollPolicy
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = tenantId,
+                    Name = "Standard Statutory Payroll Policy (India)",
+                    Description = "Standard statutory compensation policy compliant with Indian PF, ESI, and Tax regulations.",
+                    IsDefault = true,
+                    PayCycle = "CalendarMonth",
+                    BasicPercentageOfGross = 50.0m,
+                    HraPercentageOfBasic = 40.0m,
+                    PfCalculationBasis = "StatutoryWageCeiling",
+                    PfWageCeiling = 15000.0m,
+                    PfEmployeeRate = 12.0m,
+                    PfEmployerRate = 12.0m,
+                    IsEsiEnabled = true,
+                    EsiWageCeiling = 21000.0m,
+                    EsiEmployeeRate = 0.75m,
+                    EsiEmployerRate = 3.25m,
+                    ProfessionalTaxMonthly = 200.0m,
+                    PayDayOfMonth = 1,
+                    AllowNegativeTakeHome = false,
+                    Status = "Active",
+                    CreatedAt = DateTime.UtcNow
+                };
+                _db.PayrollPolicies.Add(defaultPol);
+                await _db.SaveChangesAsync();
+            }
+
+            var query = _db.PayrollPolicies
+                .AsNoTracking()
+                .Where(p => p.TenantId == tenantId && !p.IsDeleted);
+
+            if (projectId.HasValue)
+            {
+                query = query.Where(p => p.ProjectId == projectId.Value || p.ProjectId == null);
+            }
+            else if (companyId.HasValue)
+            {
+                query = query.Where(p => p.CompanyId == companyId.Value || (p.CompanyId == null && p.ProjectId == null));
+            }
+
+            var policies = await query
+                .OrderByDescending(p => p.IsDefault)
+                .ThenBy(p => p.Name)
+                .ToListAsync();
+
+            return Ok(policies);
+        }
+
+        [HttpGet("policies/default")]
+        public async Task<IActionResult> GetDefaultPolicy()
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var policy = await _db.PayrollPolicies
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.IsDefault && !p.IsDeleted)
+                ?? await _db.PayrollPolicies
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.TenantId == tenantId && !p.IsDeleted);
+
+            return policy == null ? NotFound() : Ok(policy);
+        }
+
+        [HttpGet("policies/{id:guid}")]
+        public async Task<IActionResult> GetPolicyById(Guid id)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var policy = await _db.PayrollPolicies
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId && !p.IsDeleted);
+
+            return policy == null ? NotFound() : Ok(policy);
+        }
+
+        [Authorize(Policy = "AdminOnly")]
+        [HttpPost("policies")]
+        public async Task<IActionResult> CreatePolicy([FromBody] PayrollPolicy model)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            model.Id = Guid.NewGuid();
+            model.TenantId = tenantId;
+            model.CreatedAt = DateTime.UtcNow;
+
+            if (model.IsDefault)
+            {
+                var existingDefaults = await _db.PayrollPolicies
+                    .Where(p => p.TenantId == tenantId && p.IsDefault)
+                    .ToListAsync();
+                foreach (var ed in existingDefaults) ed.IsDefault = false;
+            }
+
+            _db.PayrollPolicies.Add(model);
+            await _db.SaveChangesAsync();
+
+            return Ok(model);
+        }
+
+        [Authorize(Policy = "AdminOnly")]
+        [HttpPut("policies/{id:guid}")]
+        public async Task<IActionResult> UpdatePolicy(Guid id, [FromBody] PayrollPolicy model)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var policy = await _db.PayrollPolicies.FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId && !p.IsDeleted);
+            if (policy == null) return NotFound();
+
+            policy.Name = model.Name;
+            policy.Description = model.Description;
+            policy.PayCycle = model.PayCycle;
+            policy.BasicPercentageOfGross = model.BasicPercentageOfGross;
+            policy.HraPercentageOfBasic = model.HraPercentageOfBasic;
+            policy.PfCalculationBasis = model.PfCalculationBasis;
+            policy.PfWageCeiling = model.PfWageCeiling;
+            policy.PfEmployeeRate = model.PfEmployeeRate;
+            policy.PfEmployerRate = model.PfEmployerRate;
+            policy.IsEsiEnabled = model.IsEsiEnabled;
+            policy.EsiWageCeiling = model.EsiWageCeiling;
+            policy.EsiEmployeeRate = model.EsiEmployeeRate;
+            policy.EsiEmployerRate = model.EsiEmployerRate;
+            policy.ProfessionalTaxMonthly = model.ProfessionalTaxMonthly;
+            policy.PayDayOfMonth = model.PayDayOfMonth;
+            policy.AllowNegativeTakeHome = model.AllowNegativeTakeHome;
+            policy.CompanyId = model.CompanyId;
+            policy.ProjectId = model.ProjectId;
+            policy.Status = model.Status;
+            policy.UpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync();
+            return Ok(policy);
+        }
+
+        [Authorize(Policy = "AdminOnly")]
+        [HttpDelete("policies/{id:guid}")]
+        public async Task<IActionResult> DeletePolicy(Guid id)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var policy = await _db.PayrollPolicies.FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId && !p.IsDeleted);
+            if (policy == null) return NotFound();
+
+            policy.IsDeleted = true;
+            policy.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+
+            return Ok(new { message = "Payroll policy deleted from database." });
+        }
+
+        [Authorize(Policy = "AdminOnly")]
+        [HttpPost("policies/{id:guid}/set-default")]
+        public async Task<IActionResult> SetDefaultPolicy(Guid id)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var target = await _db.PayrollPolicies.FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId && !p.IsDeleted);
+            if (target == null) return NotFound();
+
+            var all = await _db.PayrollPolicies.Where(p => p.TenantId == tenantId && !p.IsDeleted).ToListAsync();
+            foreach (var p in all) p.IsDefault = (p.Id == id);
+
+            await _db.SaveChangesAsync();
+            return Ok(new { message = "Default payroll policy updated in database." });
         }
     }
 }

@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { LegalPublicPage } from "@/components/public/pages/PlatformMarketingPages";
+import { LegalPublicPage } from "@/components/public/pages/PublicMarketingPages";
 import { buildPublicMetadata } from "@/lib/public-metadata";
 import { resolveAudienceForPath, type PublicSearchParams } from "@/lib/public-page-request";
 
 export const metadata: Metadata = buildPublicMetadata({
-  title: "Privacy",
+  title: "Privacy Policy",
   description:
     "Privacy summary for public website visitors, contact requests, and demo enquiries handled by UabIndia ERP.",
   path: "/privacy",
@@ -20,8 +20,8 @@ export default async function PrivacyPage({
   return (
     <LegalPublicPage
       audience={audience}
-      title="Privacy"
-      eyebrow="Privacy summary"
+      title="Privacy Policy"
+      eyebrow="Data Privacy & Compliance"
       path="/privacy"
       body={[
         {

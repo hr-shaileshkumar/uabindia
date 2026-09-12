@@ -59,17 +59,30 @@ export function WorkspaceBrand() {
   useEffect(() => {
     let cancelled = false;
 
-    publicApi
-      .getCompanyProfile("tenant")
-      .then((response) => {
-        if (!cancelled) setTenantLogoUrl(extractTenantLogo(response.data));
-      })
-      .catch(() => {
-        if (!cancelled) setTenantLogoUrl(null);
-      });
+    const fetchTenantBrand = () => {
+      publicApi
+        .getCompanyProfile("tenant")
+        .then((response) => {
+          if (!cancelled) setTenantLogoUrl(extractTenantLogo(response.data));
+        })
+        .catch(() => {
+          if (!cancelled) setTenantLogoUrl(null);
+        });
+    };
+
+    fetchTenantBrand();
+
+    const handleTenantChange = () => {
+      fetchTenantBrand();
+    };
+
+    window.addEventListener("erp:tenant-changed", handleTenantChange);
+    window.addEventListener("storage", handleTenantChange);
 
     return () => {
       cancelled = true;
+      window.removeEventListener("erp:tenant-changed", handleTenantChange);
+      window.removeEventListener("storage", handleTenantChange);
     };
   }, []);
 
@@ -103,25 +116,25 @@ export function WorkspaceBrand() {
   const alt = companyName || DEFAULT_ALT;
 
   return (
-    <Link href={ROUTES.DASHBOARD} className="flex min-w-0 items-center gap-2" aria-label={alt}>
+    <Link href={ROUTES.DASHBOARD} className="flex min-w-0 items-center gap-2 transition-opacity hover:opacity-90" aria-label={alt}>
       {src ? (
         <Image
           src={src}
           alt={alt}
-          width={128}
-          height={32}
-          className="h-8 w-auto max-w-[9rem] object-contain"
+          width={120}
+          height={28}
+          className="h-7 w-auto max-w-[8.5rem] object-contain dark:brightness-110"
           priority
           unoptimized
           onError={() => setBroken((previous) => (previous.includes(src) ? previous : [...previous, src]))}
         />
       ) : (
-        <>
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-[13px] font-bold text-white">
+        <div className="flex items-center gap-1.5">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-xs font-bold text-white dark:bg-slate-100 dark:text-slate-900">
             U
           </span>
-          <span className="hidden truncate text-[13px] font-semibold leading-tight text-slate-900 sm:block">{alt}</span>
-        </>
+          <span className="hidden truncate text-xs font-semibold leading-tight text-slate-900 dark:text-white sm:block">{alt}</span>
+        </div>
       )}
     </Link>
   );

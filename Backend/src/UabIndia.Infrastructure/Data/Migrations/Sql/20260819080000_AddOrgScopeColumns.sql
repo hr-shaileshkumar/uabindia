@@ -225,131 +225,175 @@ GO
     ) firstOn ON firstOn.TenantId = c.TenantId AND firstOn.CreatedAt = c.CreatedAt
     WHERE c.IsDeleted = 0
 )
-UPDATE t SET t.CompanyId = fc.CompanyId FROM dbo.CrmLeads t INNER JOIN FirstCompany fc ON fc.TenantId = t.TenantId WHERE t.CompanyId IS NULL;
+UPDATE t SET t.CompanyId = fc.CompanyId FROM dbo.Payments t INNER JOIN FirstCompany fc ON fc.TenantId = t.TenantId WHERE t.CompanyId IS NULL;
 GO
 
-;WITH FirstCompany AS (
-    SELECT c.TenantId, c.Id AS CompanyId
-    FROM dbo.Companies c
-    INNER JOIN (
-        SELECT TenantId, MIN(CreatedAt) AS CreatedAt
-        FROM dbo.Companies
-        WHERE IsDeleted = 0
-        GROUP BY TenantId
-    ) firstOn ON firstOn.TenantId = c.TenantId AND firstOn.CreatedAt = c.CreatedAt
-    WHERE c.IsDeleted = 0
-)
-UPDATE t SET t.CompanyId = fc.CompanyId FROM dbo.ExpenseClaims t INNER JOIN FirstCompany fc ON fc.TenantId = t.TenantId WHERE t.CompanyId IS NULL;
+IF OBJECT_ID(N'dbo.CrmLeads', N'U') IS NOT NULL
+BEGIN
+    ;WITH FirstCompany AS (
+        SELECT c.TenantId, c.Id AS CompanyId
+        FROM dbo.Companies c
+        INNER JOIN (
+            SELECT TenantId, MIN(CreatedAt) AS CreatedAt
+            FROM dbo.Companies
+            WHERE IsDeleted = 0
+            GROUP BY TenantId
+        ) firstOn ON firstOn.TenantId = c.TenantId AND firstOn.CreatedAt = c.CreatedAt
+        WHERE c.IsDeleted = 0
+    )
+    UPDATE t SET t.CompanyId = fc.CompanyId FROM dbo.CrmLeads t INNER JOIN FirstCompany fc ON fc.TenantId = t.TenantId WHERE t.CompanyId IS NULL;
+END;
 GO
 
-;WITH FirstCompany AS (
-    SELECT c.TenantId, c.Id AS CompanyId
-    FROM dbo.Companies c
-    INNER JOIN (
-        SELECT TenantId, MIN(CreatedAt) AS CreatedAt
-        FROM dbo.Companies
-        WHERE IsDeleted = 0
-        GROUP BY TenantId
-    ) firstOn ON firstOn.TenantId = c.TenantId AND firstOn.CreatedAt = c.CreatedAt
-    WHERE c.IsDeleted = 0
-)
-UPDATE t SET t.CompanyId = fc.CompanyId FROM dbo.DiscountSchemes t INNER JOIN FirstCompany fc ON fc.TenantId = t.TenantId WHERE t.CompanyId IS NULL;
+IF OBJECT_ID(N'dbo.ExpenseClaims', N'U') IS NOT NULL
+BEGIN
+    ;WITH FirstCompany AS (
+        SELECT c.TenantId, c.Id AS CompanyId
+        FROM dbo.Companies c
+        INNER JOIN (
+            SELECT TenantId, MIN(CreatedAt) AS CreatedAt
+            FROM dbo.Companies
+            WHERE IsDeleted = 0
+            GROUP BY TenantId
+        ) firstOn ON firstOn.TenantId = c.TenantId AND firstOn.CreatedAt = c.CreatedAt
+        WHERE c.IsDeleted = 0
+    )
+    UPDATE t SET t.CompanyId = fc.CompanyId FROM dbo.ExpenseClaims t INNER JOIN FirstCompany fc ON fc.TenantId = t.TenantId WHERE t.CompanyId IS NULL;
+END;
 GO
 
-;WITH FirstCompany AS (
-    SELECT c.TenantId, c.Id AS CompanyId
-    FROM dbo.Companies c
-    INNER JOIN (
-        SELECT TenantId, MIN(CreatedAt) AS CreatedAt
-        FROM dbo.Companies
-        WHERE IsDeleted = 0
-        GROUP BY TenantId
-    ) firstOn ON firstOn.TenantId = c.TenantId AND firstOn.CreatedAt = c.CreatedAt
-    WHERE c.IsDeleted = 0
-)
-UPDATE t SET t.CompanyId = fc.CompanyId FROM dbo.StockMovements t INNER JOIN FirstCompany fc ON fc.TenantId = t.TenantId WHERE t.CompanyId IS NULL;
+IF OBJECT_ID(N'dbo.DiscountSchemes', N'U') IS NOT NULL
+BEGIN
+    ;WITH FirstCompany AS (
+        SELECT c.TenantId, c.Id AS CompanyId
+        FROM dbo.Companies c
+        INNER JOIN (
+            SELECT TenantId, MIN(CreatedAt) AS CreatedAt
+            FROM dbo.Companies
+            WHERE IsDeleted = 0
+            GROUP BY TenantId
+        ) firstOn ON firstOn.TenantId = c.TenantId AND firstOn.CreatedAt = c.CreatedAt
+        WHERE c.IsDeleted = 0
+    )
+    UPDATE t SET t.CompanyId = fc.CompanyId FROM dbo.DiscountSchemes t INNER JOIN FirstCompany fc ON fc.TenantId = t.TenantId WHERE t.CompanyId IS NULL;
+END;
 GO
 
-;WITH FirstCompany AS (
-    SELECT c.TenantId, c.Id AS CompanyId
-    FROM dbo.Companies c
-    INNER JOIN (
-        SELECT TenantId, MIN(CreatedAt) AS CreatedAt
-        FROM dbo.Companies
-        WHERE IsDeleted = 0
-        GROUP BY TenantId
-    ) firstOn ON firstOn.TenantId = c.TenantId AND firstOn.CreatedAt = c.CreatedAt
-    WHERE c.IsDeleted = 0
-)
-UPDATE t SET t.CompanyId = fc.CompanyId FROM dbo.GoodsReceiptNotes t INNER JOIN FirstCompany fc ON fc.TenantId = t.TenantId WHERE t.CompanyId IS NULL;
+IF OBJECT_ID(N'dbo.StockMovements', N'U') IS NOT NULL
+BEGIN
+    ;WITH FirstCompany AS (
+        SELECT c.TenantId, c.Id AS CompanyId
+        FROM dbo.Companies c
+        INNER JOIN (
+            SELECT TenantId, MIN(CreatedAt) AS CreatedAt
+            FROM dbo.Companies
+            WHERE IsDeleted = 0
+            GROUP BY TenantId
+        ) firstOn ON firstOn.TenantId = c.TenantId AND firstOn.CreatedAt = c.CreatedAt
+        WHERE c.IsDeleted = 0
+    )
+    UPDATE t SET t.CompanyId = fc.CompanyId FROM dbo.StockMovements t INNER JOIN FirstCompany fc ON fc.TenantId = t.TenantId WHERE t.CompanyId IS NULL;
+END;
 GO
 
-;WITH FirstCompany AS (
-    SELECT c.TenantId, c.Id AS CompanyId
-    FROM dbo.Companies c
-    INNER JOIN (
-        SELECT TenantId, MIN(CreatedAt) AS CreatedAt
-        FROM dbo.Companies
-        WHERE IsDeleted = 0
-        GROUP BY TenantId
-    ) firstOn ON firstOn.TenantId = c.TenantId AND firstOn.CreatedAt = c.CreatedAt
-    WHERE c.IsDeleted = 0
-)
-UPDATE t SET t.CompanyId = fc.CompanyId FROM dbo.PurchaseRequests t INNER JOIN FirstCompany fc ON fc.TenantId = t.TenantId WHERE t.CompanyId IS NULL;
+IF OBJECT_ID(N'dbo.GoodsReceiptNotes', N'U') IS NOT NULL
+BEGIN
+    ;WITH FirstCompany AS (
+        SELECT c.TenantId, c.Id AS CompanyId
+        FROM dbo.Companies c
+        INNER JOIN (
+            SELECT TenantId, MIN(CreatedAt) AS CreatedAt
+            FROM dbo.Companies
+            WHERE IsDeleted = 0
+            GROUP BY TenantId
+        ) firstOn ON firstOn.TenantId = c.TenantId AND firstOn.CreatedAt = c.CreatedAt
+        WHERE c.IsDeleted = 0
+    )
+    UPDATE t SET t.CompanyId = fc.CompanyId FROM dbo.GoodsReceiptNotes t INNER JOIN FirstCompany fc ON fc.TenantId = t.TenantId WHERE t.CompanyId IS NULL;
+END;
 GO
 
-;WITH FirstCompany AS (
-    SELECT c.TenantId, c.Id AS CompanyId
-    FROM dbo.Companies c
-    INNER JOIN (
-        SELECT TenantId, MIN(CreatedAt) AS CreatedAt
-        FROM dbo.Companies
-        WHERE IsDeleted = 0
-        GROUP BY TenantId
-    ) firstOn ON firstOn.TenantId = c.TenantId AND firstOn.CreatedAt = c.CreatedAt
-    WHERE c.IsDeleted = 0
-)
-UPDATE t SET t.CompanyId = fc.CompanyId FROM dbo.SalesReturns t INNER JOIN FirstCompany fc ON fc.TenantId = t.TenantId WHERE t.CompanyId IS NULL;
+IF OBJECT_ID(N'dbo.PurchaseRequests', N'U') IS NOT NULL
+BEGIN
+    ;WITH FirstCompany AS (
+        SELECT c.TenantId, c.Id AS CompanyId
+        FROM dbo.Companies c
+        INNER JOIN (
+            SELECT TenantId, MIN(CreatedAt) AS CreatedAt
+            FROM dbo.Companies
+            WHERE IsDeleted = 0
+            GROUP BY TenantId
+        ) firstOn ON firstOn.TenantId = c.TenantId AND firstOn.CreatedAt = c.CreatedAt
+        WHERE c.IsDeleted = 0
+    )
+    UPDATE t SET t.CompanyId = fc.CompanyId FROM dbo.PurchaseRequests t INNER JOIN FirstCompany fc ON fc.TenantId = t.TenantId WHERE t.CompanyId IS NULL;
+END;
 GO
 
-;WITH FirstCompany AS (
-    SELECT c.TenantId, c.Id AS CompanyId
-    FROM dbo.Companies c
-    INNER JOIN (
-        SELECT TenantId, MIN(CreatedAt) AS CreatedAt
-        FROM dbo.Companies
-        WHERE IsDeleted = 0
-        GROUP BY TenantId
-    ) firstOn ON firstOn.TenantId = c.TenantId AND firstOn.CreatedAt = c.CreatedAt
-    WHERE c.IsDeleted = 0
-)
-UPDATE t SET t.CompanyId = fc.CompanyId FROM dbo.FixedAssets t INNER JOIN FirstCompany fc ON fc.TenantId = t.TenantId WHERE t.CompanyId IS NULL;
+IF OBJECT_ID(N'dbo.SalesReturns', N'U') IS NOT NULL
+BEGIN
+    ;WITH FirstCompany AS (
+        SELECT c.TenantId, c.Id AS CompanyId
+        FROM dbo.Companies c
+        INNER JOIN (
+            SELECT TenantId, MIN(CreatedAt) AS CreatedAt
+            FROM dbo.Companies
+            WHERE IsDeleted = 0
+            GROUP BY TenantId
+        ) firstOn ON firstOn.TenantId = c.TenantId AND firstOn.CreatedAt = c.CreatedAt
+        WHERE c.IsDeleted = 0
+    )
+    UPDATE t SET t.CompanyId = fc.CompanyId FROM dbo.SalesReturns t INNER JOIN FirstCompany fc ON fc.TenantId = t.TenantId WHERE t.CompanyId IS NULL;
+END;
 GO
 
-;WITH FirstCompany AS (
-    SELECT c.TenantId, c.Id AS CompanyId
-    FROM dbo.Companies c
-    INNER JOIN (
-        SELECT TenantId, MIN(CreatedAt) AS CreatedAt
-        FROM dbo.Companies
-        WHERE IsDeleted = 0
-        GROUP BY TenantId
-    ) firstOn ON firstOn.TenantId = c.TenantId AND firstOn.CreatedAt = c.CreatedAt
-    WHERE c.IsDeleted = 0
-)
-UPDATE t SET t.CompanyId = fc.CompanyId FROM dbo.BankReconciliations t INNER JOIN FirstCompany fc ON fc.TenantId = t.TenantId WHERE t.CompanyId IS NULL;
+IF OBJECT_ID(N'dbo.FixedAssets', N'U') IS NOT NULL
+BEGIN
+    ;WITH FirstCompany AS (
+        SELECT c.TenantId, c.Id AS CompanyId
+        FROM dbo.Companies c
+        INNER JOIN (
+            SELECT TenantId, MIN(CreatedAt) AS CreatedAt
+            FROM dbo.Companies
+            WHERE IsDeleted = 0
+            GROUP BY TenantId
+        ) firstOn ON firstOn.TenantId = c.TenantId AND firstOn.CreatedAt = c.CreatedAt
+        WHERE c.IsDeleted = 0
+    )
+    UPDATE t SET t.CompanyId = fc.CompanyId FROM dbo.FixedAssets t INNER JOIN FirstCompany fc ON fc.TenantId = t.TenantId WHERE t.CompanyId IS NULL;
+END;
 GO
 
-;WITH FirstCompany AS (
-    SELECT c.TenantId, c.Id AS CompanyId
-    FROM dbo.Companies c
-    INNER JOIN (
-        SELECT TenantId, MIN(CreatedAt) AS CreatedAt
-        FROM dbo.Companies
-        WHERE IsDeleted = 0
-        GROUP BY TenantId
-    ) firstOn ON firstOn.TenantId = c.TenantId AND firstOn.CreatedAt = c.CreatedAt
-    WHERE c.IsDeleted = 0
-)
-UPDATE t SET t.CompanyId = fc.CompanyId FROM dbo.StockBalances t INNER JOIN FirstCompany fc ON fc.TenantId = t.TenantId WHERE t.CompanyId IS NULL;
+IF OBJECT_ID(N'dbo.BankReconciliations', N'U') IS NOT NULL
+BEGIN
+    ;WITH FirstCompany AS (
+        SELECT c.TenantId, c.Id AS CompanyId
+        FROM dbo.Companies c
+        INNER JOIN (
+            SELECT TenantId, MIN(CreatedAt) AS CreatedAt
+            FROM dbo.Companies
+            WHERE IsDeleted = 0
+            GROUP BY TenantId
+        ) firstOn ON firstOn.TenantId = c.TenantId AND firstOn.CreatedAt = c.CreatedAt
+        WHERE c.IsDeleted = 0
+    )
+    UPDATE t SET t.CompanyId = fc.CompanyId FROM dbo.BankReconciliations t INNER JOIN FirstCompany fc ON fc.TenantId = t.TenantId WHERE t.CompanyId IS NULL;
+END;
+GO
+
+IF OBJECT_ID(N'dbo.StockBalances', N'U') IS NOT NULL
+BEGIN
+    ;WITH FirstCompany AS (
+        SELECT c.TenantId, c.Id AS CompanyId
+        FROM dbo.Companies c
+        INNER JOIN (
+            SELECT TenantId, MIN(CreatedAt) AS CreatedAt
+            FROM dbo.Companies
+            WHERE IsDeleted = 0
+            GROUP BY TenantId
+        ) firstOn ON firstOn.TenantId = c.TenantId AND firstOn.CreatedAt = c.CreatedAt
+        WHERE c.IsDeleted = 0
+    )
+    UPDATE t SET t.CompanyId = fc.CompanyId FROM dbo.StockBalances t INNER JOIN FirstCompany fc ON fc.TenantId = t.TenantId WHERE t.CompanyId IS NULL;
+END;
 GO

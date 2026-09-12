@@ -82,6 +82,8 @@ public static class AuthUserLookup
             return null;
         }
 
+        // If a specific tenant workspace URL was requested (e.g. acme.uabindia.in),
+        // ensure the user belongs to that tenant (or is a platform SystemAdmin).
         if (requestedTenantId != Guid.Empty)
         {
             if (user.TenantId != requestedTenantId && !user.IsSystemAdmin)
@@ -89,10 +91,8 @@ public static class AuthUserLookup
                 return null;
             }
         }
-        else if (!user.IsSystemAdmin)
-        {
-            return null;
-        }
+        // When requestedTenantId is Guid.Empty (the primary/global login page),
+        // allow the user to authenticate directly into their assigned tenant workspace.
 
         return user;
     }
@@ -103,13 +103,9 @@ public static class AuthUserLookup
         Guid requestedTenantId,
         IEncryptionService? encryption = null)
     {
-        if (requestedTenantId != Guid.Empty)
-        {
-            return false;
-        }
-
-        var user = await FindUserByEmailAsync(db, email, encryption);
-        return user != null && !user.IsSystemAdmin;
+        // Global / direct login is supported; users are automatically signed into their tenant.
+        await Task.CompletedTask;
+        return false;
     }
 }
 

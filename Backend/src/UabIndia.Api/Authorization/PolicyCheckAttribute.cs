@@ -31,14 +31,18 @@ namespace UabIndia.Api.Authorization
             }
 
             var user = context.HttpContext.User;
-            var roles = user.Claims.Where(c => c.Type.EndsWith("/role", StringComparison.OrdinalIgnoreCase) || c.Type.EndsWith("role", StringComparison.OrdinalIgnoreCase))
+            var roles = user.Claims.Where(c => c.Type == System.Security.Claims.ClaimTypes.Role || c.Type.EndsWith("/role", StringComparison.OrdinalIgnoreCase) || c.Type.Equals("role", StringComparison.OrdinalIgnoreCase))
                 .Select(c => RoleCatalog.Normalize(c.Value))
                 .Where(r => !string.IsNullOrWhiteSpace(r))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
             Guid? userId = null;
-            var sub = user.Claims.FirstOrDefault(c => c.Type.EndsWith("/sub", StringComparison.OrdinalIgnoreCase) || c.Type.EndsWith("sub", StringComparison.OrdinalIgnoreCase));
+            var sub = user.Claims.FirstOrDefault(c => 
+                c.Type == System.Security.Claims.ClaimTypes.NameIdentifier || 
+                c.Type == System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub ||
+                c.Type.EndsWith("nameidentifier", StringComparison.OrdinalIgnoreCase) ||
+                c.Type.EndsWith("sub", StringComparison.OrdinalIgnoreCase));
             if (Guid.TryParse(sub?.Value, out var parsedUserId))
             {
                 userId = parsedUserId;

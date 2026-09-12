@@ -45,7 +45,6 @@ const nextConfig: NextConfig = {
       "@tanstack/react-table",
       "@tanstack/react-query",
     ],
-    turbopackFileSystemCacheForDev: true,
   },
   images: {
     unoptimized: true,
@@ -56,14 +55,6 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return [
-      {
-        source: "/erp",
-        destination: "/",
-      },
-      {
-        source: "/erp/:path*",
-        destination: "/:path*",
-      },
       {
         source: "/health",
         destination: `${apiOrigin}/health`,
@@ -84,6 +75,14 @@ const nextConfig: NextConfig = {
         source: "/hubs/:path*",
         destination: `${apiOrigin}/hubs/:path*`,
       },
+      {
+        source: "/platform",
+        destination: "/administration",
+      },
+      {
+        source: "/platform/:path*",
+        destination: "/administration/:path*",
+      },
     ];
   },
   async redirects() {
@@ -93,17 +92,17 @@ const nextConfig: NextConfig = {
       { source: "/erp/:path*", destination: "/:path*", permanent: false },
       { source: "/superadmin", destination: "/superadmin/dashboard", permanent: false },
       { source: "/app/:path*", destination: "/:path*", permanent: false },
-      { source: "/hrms/departments", destination: "/platform/departments", permanent: false },
-      { source: "/hrms/designations", destination: "/platform/designations", permanent: false },
+      { source: "/hrms/departments", destination: "/administration/departments", permanent: false },
+      { source: "/hrms/designations", destination: "/administration/designations", permanent: false },
       { source: "/recruitment", destination: "/hrms/recruitment", permanent: false },
       { source: "/performance", destination: "/hrms/performance", permanent: false },
       { source: "/travel", destination: "/hrms/travel", permanent: false },
       { source: "/tours", destination: "/hrms/travel", permanent: false },
       { source: "/fleet", destination: "/dashboard", permanent: false },
       { source: "/healthcare", destination: "/dashboard", permanent: false },
-      { source: "/projects", destination: "/platform/projects", permanent: false },
-      { source: "/security/sessions", destination: "/platform/security/sessions", permanent: false },
-      { source: "/security/devices", destination: "/platform/security/sessions", permanent: false },
+      { source: "/projects", destination: "/administration/projects", permanent: false },
+      { source: "/security/sessions", destination: "/administration/security/sessions", permanent: false },
+      { source: "/security/devices", destination: "/administration/security/sessions", permanent: false },
       { source: "/customers", destination: "/crm/customers", permanent: false },
       { source: "/customers/:path*", destination: "/crm/customers/:path*", permanent: false },
     ];

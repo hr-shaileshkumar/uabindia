@@ -1,7 +1,5 @@
-﻿import { redirect } from "next/navigation";
-import { ROUTES } from "@/constants/routes";
+import FleetManager from "@/features/fleet/components/FleetManager";
 
-/** Fleet has no backend module yet — keep out of production nav. */
-export default function PlannedFleetRedirect() {
-  redirect(ROUTES.DASHBOARD);
+export default function FleetPage() {
+  return <FleetManager />;
 }

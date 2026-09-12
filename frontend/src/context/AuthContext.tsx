@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -15,6 +15,9 @@ import {
 export type AuthUser = User & {
   id?: string;
   roles?: string[];
+  tenantName?: string;
+  tenantSubdomain?: string;
+  isSystemAdmin?: boolean;
   [key: string]: unknown;
 };
 
@@ -76,6 +79,9 @@ const normalizeAuthUser = (payload: unknown): AuthUser | null => {
     employeeId: asOptionalString(data.employeeId),
     companyId: asOptionalString(data.companyId),
     tenantId: asOptionalString(data.tenantId),
+    tenantName: asOptionalString(data.tenantName),
+    tenantSubdomain: asOptionalString(data.tenantSubdomain),
+    isSystemAdmin: Boolean(data.isSystemAdmin),
     isActive: typeof data.isActive === "boolean" ? data.isActive : true,
     avatarUrl: resolveAvatarUrl(data),
   };
@@ -182,7 +188,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const isSuperAdmin = !![...(user?.roles || []), user?.role].some((role) => isSuperAdminRole(role));
+  const isSuperAdmin = Boolean(
+    user?.isSystemAdmin || !![...(user?.roles || []), user?.role].some((role) => isSuperAdminRole(role))
+  );
 
   const value = useMemo(
     () => ({

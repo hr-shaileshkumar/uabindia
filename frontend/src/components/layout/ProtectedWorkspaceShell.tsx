@@ -202,7 +202,16 @@ export function ProtectedWorkspaceShell({ children }: { children: ReactNode }) {
   );
   const canManageWorkspaceSetup =
     isSuperAdmin ||
-    hasPermission(["module:platform", "platform.*", "platform.access", "platform.view"]);
+    hasPermission([
+      "module:administration",
+      "administration.*",
+      "administration.access",
+      "administration.view",
+      "module:platform",
+      "platform.*",
+      "platform.access",
+      "platform.view",
+    ]);
   const isSuperAdminRoute = pathname.startsWith("/superadmin");
   const _shellStatus = useMemo(() => {
     if (schemaError && !usingCache) {

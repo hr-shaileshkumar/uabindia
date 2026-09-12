@@ -5,6 +5,29 @@ IF OBJECT_ID(N'dbo.ExpenseClaims', N'U') IS NOT NULL AND COL_LENGTH('dbo.Expense
     ALTER TABLE dbo.ExpenseClaims ADD JournalEntryId UNIQUEIDENTIFIER NULL;
 GO
 
+IF OBJECT_ID(N'dbo.AuditLogs', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.AuditLogs', 'Hash') IS NULL
+        ALTER TABLE dbo.AuditLogs ADD Hash NVARCHAR(128) NULL;
+    IF COL_LENGTH('dbo.AuditLogs', 'PrevHash') IS NULL
+        ALTER TABLE dbo.AuditLogs ADD PrevHash NVARCHAR(128) NULL;
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name IN (N'IX_AuditLogs_Tenant_Created', N'IX_AuditLogs_Tenant_CreatedAt', N'IX_AuditLogs_Tenant_Action_CreatedAt') AND object_id = OBJECT_ID(N'dbo.AuditLogs'))
+    BEGIN
+        IF COL_LENGTH('dbo.AuditLogs', 'Action') IS NOT NULL AND (COL_LENGTH('dbo.AuditLogs', 'Action') = -1 OR COL_LENGTH('dbo.AuditLogs', 'Action') > 200)
+            ALTER TABLE dbo.AuditLogs ALTER COLUMN [Action] NVARCHAR(100) NULL;
+        IF COL_LENGTH('dbo.AuditLogs', 'EntityName') IS NOT NULL AND (COL_LENGTH('dbo.AuditLogs', 'EntityName') = -1 OR COL_LENGTH('dbo.AuditLogs', 'EntityName') > 200)
+            ALTER TABLE dbo.AuditLogs ALTER COLUMN [EntityName] NVARCHAR(100) NULL;
+    END
+END
+GO
+
+IF OBJECT_ID(N'dbo.SalesInvoices', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.SalesInvoices', 'Status') IS NOT NULL AND (COL_LENGTH('dbo.SalesInvoices', 'Status') = -1 OR COL_LENGTH('dbo.SalesInvoices', 'Status') > 100)
+        ALTER TABLE dbo.SalesInvoices ALTER COLUMN [Status] NVARCHAR(50) NULL;
+END
+GO
+
 -- COL_LENGTH returns -1 for nvarchar(max). Index keys must be <= 1700 bytes.
 IF OBJECT_ID(N'dbo.SalesInvoices', N'U') IS NOT NULL
 AND COL_LENGTH('dbo.SalesInvoices', 'InvoiceNumber') IS NOT NULL

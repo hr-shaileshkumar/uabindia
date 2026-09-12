@@ -1,11 +1,11 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using UabIndia.Application.Interfaces;
+using UabIndia.Core.Entities;
 using UabIndia.Infrastructure.Data;
 
 namespace UabIndia.Infrastructure.Services
@@ -14,9 +14,6 @@ namespace UabIndia.Infrastructure.Services
     {
         private readonly ApplicationDbContext _db;
         private readonly IDocumentSequenceService _sequenceService;
-
-        // In-memory thread-safe state container for field service work order dispatches (isolated per tenant)
-        private static readonly ConcurrentDictionary<Guid, List<ServiceTicketDto>> _tenantTickets = new();
 
         public FieldServiceDispatchService(ApplicationDbContext db, IDocumentSequenceService sequenceService)
         {
@@ -29,19 +26,18 @@ namespace UabIndia.Infrastructure.Services
             string? status = null,
             CancellationToken ct = default)
         {
-            EnsureSeededTickets(tenantId);
+            await EnsureSeededTicketsAsync(tenantId, ct);
 
-            if (_tenantTickets.TryGetValue(tenantId, out var tickets))
+            var query = _db.FieldServiceTickets
+                .Where(t => t.TenantId == tenantId && !t.IsDeleted);
+
+            if (!string.IsNullOrWhiteSpace(status))
             {
-                var query = tickets.AsEnumerable();
-                if (!string.IsNullOrWhiteSpace(status))
-                {
-                    query = query.Where(t => t.Status.Equals(status, StringComparison.OrdinalIgnoreCase));
-                }
-                return await Task.FromResult(query.OrderByDescending(t => t.ScheduledDate).ToList());
+                query = query.Where(t => t.Status == status);
             }
 
-            return await Task.FromResult(new List<ServiceTicketDto>());
+            var tickets = await query.OrderByDescending(t => t.ScheduledDate).ToListAsync(ct);
+            return tickets.Select(MapToDto).ToList();
         }
 
         public async Task<ServiceTicketDto> CreateServiceTicketAsync(
@@ -49,17 +45,29 @@ namespace UabIndia.Infrastructure.Services
             ServiceTicketDto dto,
             CancellationToken ct = default)
         {
-            EnsureSeededTickets(tenantId);
-
             var ticketNumber = await _sequenceService.GetNextSequenceNumberAsync(tenantId, "ServiceTicket", "SRV", ct);
-            dto.Id = Guid.NewGuid();
-            dto.TicketNumber = ticketNumber;
-            dto.Status = "Dispatched";
 
-            var tickets = _tenantTickets.GetOrAdd(tenantId, _ => new List<ServiceTicketDto>());
-            tickets.Insert(0, dto);
+            var ticket = new FieldServiceTicket
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                TicketNumber = ticketNumber,
+                CustomerId = dto.CustomerId,
+                CustomerName = dto.CustomerName,
+                ServiceAddress = dto.ServiceAddress,
+                Priority = !string.IsNullOrWhiteSpace(dto.Priority) ? dto.Priority : "High",
+                Status = "Dispatched",
+                ScheduledDate = dto.ScheduledDate != default ? dto.ScheduledDate : DateTime.UtcNow.AddDays(1),
+                AssignedTechnicianName = dto.AssignedTechnicianName,
+                AssignedTechnicianPhone = dto.AssignedTechnicianPhone,
+                IssueDescription = dto.IssueDescription,
+                CreatedAt = DateTime.UtcNow
+            };
 
-            return await Task.FromResult(dto);
+            _db.FieldServiceTickets.Add(ticket);
+            await _db.SaveChangesAsync(ct);
+
+            return MapToDto(ticket);
         }
 
         public async Task<ServiceTicketDto?> DispatchTechnicianAsync(
@@ -67,22 +75,19 @@ namespace UabIndia.Infrastructure.Services
             DispatchTechnicianRequest req,
             CancellationToken ct = default)
         {
-            EnsureSeededTickets(tenantId);
+            var ticket = await _db.FieldServiceTickets
+                .FirstOrDefaultAsync(t => t.Id == req.TicketId && t.TenantId == tenantId && !t.IsDeleted, ct);
 
-            if (_tenantTickets.TryGetValue(tenantId, out var tickets))
-            {
-                var ticket = tickets.FirstOrDefault(t => t.Id == req.TicketId);
-                if (ticket != null)
-                {
-                    ticket.AssignedTechnicianName = req.TechnicianName;
-                    ticket.AssignedTechnicianPhone = req.TechnicianPhone;
-                    ticket.ScheduledDate = req.ScheduledDate;
-                    ticket.Status = "EnRoute";
-                    return await Task.FromResult(ticket);
-                }
-            }
+            if (ticket == null) return null;
 
-            return await Task.FromResult<ServiceTicketDto?>(null);
+            ticket.AssignedTechnicianName = req.TechnicianName;
+            ticket.AssignedTechnicianPhone = req.TechnicianPhone;
+            ticket.ScheduledDate = req.ScheduledDate;
+            ticket.Status = "EnRoute";
+            ticket.UpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync(ct);
+            return MapToDto(ticket);
         }
 
         public async Task<ServiceTicketDto?> CompleteServiceTicketAsync(
@@ -90,73 +95,85 @@ namespace UabIndia.Infrastructure.Services
             CompleteServiceTicketRequest req,
             CancellationToken ct = default)
         {
-            EnsureSeededTickets(tenantId);
+            var ticket = await _db.FieldServiceTickets
+                .FirstOrDefaultAsync(t => t.Id == req.TicketId && t.TenantId == tenantId && !t.IsDeleted, ct);
 
-            if (_tenantTickets.TryGetValue(tenantId, out var tickets))
-            {
-                var ticket = tickets.FirstOrDefault(t => t.Id == req.TicketId);
-                if (ticket != null)
-                {
-                    ticket.ResolutionNotes = req.ResolutionNotes;
-                    ticket.CustomerSignatureName = req.CustomerSignatureName;
-                    ticket.CompletedAt = DateTime.UtcNow;
-                    ticket.Status = "Completed";
-                    ticket.PartsUsed = req.PartsUsed ?? new List<ServicePartLineDto>();
-                    return await Task.FromResult(ticket);
-                }
-            }
+            if (ticket == null) return null;
 
-            return await Task.FromResult<ServiceTicketDto?>(null);
+            ticket.ResolutionNotes = req.ResolutionNotes;
+            ticket.CustomerSignatureName = req.CustomerSignatureName;
+            ticket.CompletedAt = DateTime.UtcNow;
+            ticket.Status = "Completed";
+            ticket.UpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync(ct);
+            return MapToDto(ticket);
         }
 
-        private static void EnsureSeededTickets(Guid tenantId)
+        private async Task EnsureSeededTicketsAsync(Guid tenantId, CancellationToken ct)
         {
-            _tenantTickets.GetOrAdd(tenantId, tid => new List<ServiceTicketDto>
+            var exists = await _db.FieldServiceTickets.AnyAsync(t => t.TenantId == tenantId && !t.IsDeleted, ct);
+            if (exists) return;
+
+            var t1 = new FieldServiceTicket
             {
-                new()
-                {
-                    Id = Guid.Parse("88888888-8888-8888-8888-888888888801"),
-                    TicketNumber = "SRV-2026-0034",
-                    CustomerId = Guid.Parse("00000000-0000-0000-0000-000000000001"),
-                    CustomerName = "Apex Global Logistics Hub A",
-                    ServiceAddress = "Industrial Park 4, Logistics Blvd, Gateway 2",
-                    Priority = "Critical",
-                    Status = "InProgress",
-                    ScheduledDate = DateTime.UtcNow,
-                    AssignedTechnicianName = "Vikram Sharma",
-                    AssignedTechnicianPhone = "+91 98201 44512",
-                    IssueDescription = "Hydraulic pressure loss on conveyor line 3. High vibration warning.",
-                    PartsUsed = new List<ServicePartLineDto>
-                    {
-                        new()
-                        {
-                            ItemId = Guid.Parse("00000000-0000-0000-0000-000000000002"),
-                            ItemCode = "SKU-PMP-200",
-                            ItemName = "High-Pressure Hydraulic Pump 250 Bar",
-                            QuantityUsed = 1,
-                            UnitCost = 450m,
-                            TotalCost = 450m
-                        }
-                    }
-                },
-                new()
-                {
-                    Id = Guid.Parse("88888888-8888-8888-8888-888888888802"),
-                    TicketNumber = "SRV-2026-0029",
-                    CustomerId = Guid.Parse("00000000-0000-0000-0000-000000000002"),
-                    CustomerName = "Precision Tooling Assembly Plant",
-                    ServiceAddress = "Sector 18, Phase II Industrial Area",
-                    Priority = "Medium",
-                    Status = "Completed",
-                    ScheduledDate = DateTime.UtcNow.AddDays(-2),
-                    AssignedTechnicianName = "Marcus Vance",
-                    AssignedTechnicianPhone = "+91 97110 88231",
-                    IssueDescription = "Quarterly preventive maintenance and thermal imaging audit on motor stators.",
-                    ResolutionNotes = "Cleaned filter assemblies, calibrated rotor alignment, and renewed insulation bushings.",
-                    CustomerSignatureName = "Rajesh Mehta (Plant Operations Head)",
-                    CompletedAt = DateTime.UtcNow.AddDays(-2)
-                }
-            });
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                TicketNumber = "SRV-2026-0034",
+                CustomerName = "Apex Global Logistics Hub A",
+                ServiceAddress = "Industrial Park 4, Logistics Blvd, Gateway 2, Mumbai",
+                Priority = "Critical",
+                Status = "InProgress",
+                ScheduledDate = DateTime.UtcNow,
+                AssignedTechnicianName = "Vikram Sharma",
+                AssignedTechnicianPhone = "+91 98201 44512",
+                IssueDescription = "Hydraulic pressure loss on conveyor line 3. High vibration warning.",
+                CreatedAt = DateTime.UtcNow.AddDays(-1)
+            };
+
+            var t2 = new FieldServiceTicket
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                TicketNumber = "SRV-2026-0029",
+                CustomerName = "Precision Tooling Assembly Plant",
+                ServiceAddress = "Sector 18, Phase II Industrial Area, Bengaluru",
+                Priority = "Medium",
+                Status = "Completed",
+                ScheduledDate = DateTime.UtcNow.AddDays(-2),
+                AssignedTechnicianName = "Marcus Vance",
+                AssignedTechnicianPhone = "+91 97110 88231",
+                IssueDescription = "Quarterly preventive maintenance and thermal imaging audit on motor stators.",
+                ResolutionNotes = "Cleaned filter assemblies, calibrated rotor alignment, and renewed insulation bushings.",
+                CustomerSignatureName = "Rajesh Mehta (Plant Operations Head)",
+                CompletedAt = DateTime.UtcNow.AddDays(-2),
+                CreatedAt = DateTime.UtcNow.AddDays(-3)
+            };
+
+            _db.FieldServiceTickets.AddRange(t1, t2);
+            await _db.SaveChangesAsync(ct);
+        }
+
+        private static ServiceTicketDto MapToDto(FieldServiceTicket t)
+        {
+            return new ServiceTicketDto
+            {
+                Id = t.Id,
+                TicketNumber = t.TicketNumber,
+                CustomerId = t.CustomerId,
+                CustomerName = t.CustomerName,
+                ServiceAddress = t.ServiceAddress,
+                Priority = t.Priority,
+                Status = t.Status,
+                ScheduledDate = t.ScheduledDate,
+                AssignedTechnicianName = t.AssignedTechnicianName,
+                AssignedTechnicianPhone = t.AssignedTechnicianPhone,
+                IssueDescription = t.IssueDescription,
+                ResolutionNotes = t.ResolutionNotes,
+                CustomerSignatureName = t.CustomerSignatureName,
+                CompletedAt = t.CompletedAt,
+                PartsUsed = new List<ServicePartLineDto>()
+            };
         }
     }
 }

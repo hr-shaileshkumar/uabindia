@@ -5,10 +5,12 @@ import type { ApiPayload } from "./shared";
 export const payrollApi = {
   dashboard: () => apiClient.get<PayrollOverviewStats>("/reports/payroll/overview"),
   structures: {
-    list: (page?: number, limit?: number) => {
+    list: (params?: { page?: number; limit?: number; companyId?: string; projectId?: string }) => {
       const query = new URLSearchParams();
-      if (page) query.append("page", page.toString());
-      if (limit) query.append("limit", limit.toString());
+      if (params?.page) query.append("page", params.page.toString());
+      if (params?.limit) query.append("limit", params.limit.toString());
+      if (params?.companyId) query.append("companyId", params.companyId);
+      if (params?.projectId) query.append("projectId", params.projectId);
       const suffix = query.toString() ? `?${query}` : "";
       return apiClient.get(`/payroll/structures${suffix}`);
     },
@@ -16,6 +18,28 @@ export const payrollApi = {
     create: (data: ApiPayload) => apiClient.post("/payroll/structures", data),
     update: (id: string, data: ApiPayload) => apiClient.put(`/payroll/structures/${id}`, data),
     delete: (id: string) => apiClient.delete(`/payroll/structures/${id}`),
+  },
+  policies: {
+    getSchema: (companyId?: string, projectId?: string) => {
+      const query = new URLSearchParams();
+      if (companyId) query.append("companyId", companyId);
+      if (projectId) query.append("projectId", projectId);
+      const suffix = query.toString() ? `?${query}` : "";
+      return apiClient.get(`/payroll/policies/schema${suffix}`);
+    },
+    list: (companyId?: string, projectId?: string) => {
+      const query = new URLSearchParams();
+      if (companyId) query.append("companyId", companyId);
+      if (projectId) query.append("projectId", projectId);
+      const suffix = query.toString() ? `?${query}` : "";
+      return apiClient.get(`/payroll/policies${suffix}`);
+    },
+    getById: (id: string) => apiClient.get(`/payroll/policies/${id}`),
+    getDefault: () => apiClient.get("/payroll/policies/default"),
+    create: (data: ApiPayload) => apiClient.post("/payroll/policies", data),
+    update: (id: string, data: ApiPayload) => apiClient.put(`/payroll/policies/${id}`, data),
+    delete: (id: string) => apiClient.delete(`/payroll/policies/${id}`),
+    setDefault: (id: string) => apiClient.post(`/payroll/policies/${id}/set-default`, {}),
   },
   components: {
     list: (structureId?: string) => {

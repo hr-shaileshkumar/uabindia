@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using UabIndia.Api.Models;
-using UabIndia.Api.Modules.Platform.Controllers;
+using UabIndia.Api.Modules.Administration.Controllers;
 using UabIndia.Core.Entities;
 using UabIndia.Infrastructure.Data;
 using UabIndia.Infrastructure.Services;

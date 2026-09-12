@@ -99,6 +99,16 @@ namespace UabIndia.Api.Modules.Procurement.Controllers
             if (dto.VendorName != null) vendor.VendorName = dto.VendorName;
             if (dto.Email != null) vendor.Email = dto.Email;
             if (dto.PhoneNumber != null) vendor.PhoneNumber = dto.PhoneNumber;
+            if (dto.VendorType != null) vendor.VendorType = dto.VendorType;
+            if (dto.CompanyName != null) vendor.CompanyName = dto.CompanyName;
+            if (dto.GSTNumber != null) vendor.GSTNumber = dto.GSTNumber;
+            if (dto.Address != null) vendor.Address = dto.Address;
+            if (dto.City != null) vendor.City = dto.City;
+            if (dto.State != null) vendor.State = dto.State;
+            if (dto.Country != null) vendor.Country = dto.Country;
+            if (dto.PostalCode != null) vendor.PostalCode = dto.PostalCode;
+            if (dto.CreditLimit.HasValue) vendor.CreditLimit = dto.CreditLimit.Value;
+            if (dto.PaymentTerms.HasValue) vendor.PaymentTerms = dto.PaymentTerms.Value;
             vendor.UpdatedAt = DateTime.UtcNow;
 
             _db.Vendors.Update(vendor);
@@ -145,5 +155,15 @@ namespace UabIndia.Api.Modules.Procurement.Controllers
         public string? VendorName { get; set; }
         public string? Email { get; set; }
         public string? PhoneNumber { get; set; }
+        public string? VendorType { get; set; }
+        public string? CompanyName { get; set; }
+        public string? GSTNumber { get; set; }
+        public string? Address { get; set; }
+        public string? City { get; set; }
+        public string? State { get; set; }
+        public string? Country { get; set; }
+        public string? PostalCode { get; set; }
+        public decimal? CreditLimit { get; set; }
+        public int? PaymentTerms { get; set; }
     }
 }

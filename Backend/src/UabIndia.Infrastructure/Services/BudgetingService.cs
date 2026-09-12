@@ -1,11 +1,11 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using UabIndia.Application.Interfaces;
+using UabIndia.Core.Entities;
 using UabIndia.Infrastructure.Data;
 
 namespace UabIndia.Infrastructure.Services
@@ -13,9 +13,6 @@ namespace UabIndia.Infrastructure.Services
     public class BudgetingService : IBudgetingService
     {
         private readonly ApplicationDbContext _db;
-
-        // In-memory persistent cache for tenant cost center budget plans (isolated per tenant)
-        private static readonly ConcurrentDictionary<Guid, Dictionary<(Guid CostCenterId, int FiscalYear), decimal>> _tenantBudgetPlans = new();
 
         public BudgetingService(ApplicationDbContext db)
         {
@@ -33,91 +30,94 @@ namespace UabIndia.Infrastructure.Services
                 FiscalYear = fiscalYear
             };
 
-            var costCenters = await _db.CostCenters.IgnoreQueryFilters()
+            var costCenters = await _db.CostCenters
                 .Where(c => c.TenantId == tenantId && !c.IsDeleted && c.IsActive)
                 .ToListAsync(ct);
 
-            // Fallback seed cost centers if none exist
             if (costCenters.Count == 0)
             {
-                costCenters = new List<Core.Entities.CostCenter>
+                var company = await _db.Companies.FirstOrDefaultAsync(c => c.TenantId == tenantId && !c.IsDeleted, ct);
+                var companyId = company?.Id ?? Guid.Empty;
+
+                costCenters = new List<CostCenter>
                 {
-                    new() { Id = Guid.Parse("22222222-2222-2222-2222-222222222201"), Name = "Operations & Plant Machinery", Code = "CC-OPS", CostCenterType = "Production", TenantId = tenantId },
-                    new() { Id = Guid.Parse("22222222-2222-2222-2222-222222222202"), Name = "Information Technology & Cloud", Code = "CC-IT", CostCenterType = "Infrastructure", TenantId = tenantId },
-                    new() { Id = Guid.Parse("22222222-2222-2222-2222-222222222203"), Name = "Sales & Global Marketing", Code = "CC-SALES", CostCenterType = "Commercial", TenantId = tenantId },
-                    new() { Id = Guid.Parse("22222222-2222-2222-2222-222222222204"), Name = "Human Capital & Talent", Code = "CC-HR", CostCenterType = "Administration", TenantId = tenantId },
+                    new() { Id = Guid.NewGuid(), CompanyId = companyId, Name = "Operations & Plant Machinery", Code = "CC-OPS", CostCenterType = "Production", TenantId = tenantId },
+                    new() { Id = Guid.NewGuid(), CompanyId = companyId, Name = "Information Technology & Cloud", Code = "CC-IT", CostCenterType = "Infrastructure", TenantId = tenantId },
+                    new() { Id = Guid.NewGuid(), CompanyId = companyId, Name = "Sales & Global Marketing", Code = "CC-SALES", CostCenterType = "Commercial", TenantId = tenantId },
+                    new() { Id = Guid.NewGuid(), CompanyId = companyId, Name = "Human Capital & Talent", Code = "CC-HR", CostCenterType = "Administration", TenantId = tenantId },
                 };
+                _db.CostCenters.AddRange(costCenters);
+                await _db.SaveChangesAsync(ct);
             }
 
-            var plans = _tenantBudgetPlans.GetOrAdd(tenantId, _ => new Dictionary<(Guid, int), decimal>
+            var budgets = await _db.CostCenterBudgets
+                .Where(b => b.TenantId == tenantId && b.FiscalYear == fiscalYear && !b.IsDeleted)
+                .ToDictionaryAsync(b => b.CostCenterId, ct);
+
+            // Seed initial budgets in DB if none exist
+            if (budgets.Count == 0)
             {
-                { (costCenters[0].Id, fiscalYear), 250000m },
-                { (costCenters[1].Id, fiscalYear), 120000m },
-                { (costCenters.Count > 2 ? costCenters[2].Id : Guid.NewGuid(), fiscalYear), 180000m },
-                { (costCenters.Count > 3 ? costCenters[3].Id : Guid.NewGuid(), fiscalYear), 95000m },
-            });
+                decimal[] defaultAllocations = { 250000m, 120000m, 180000m, 95000m };
+                int i = 0;
+                foreach (var cc in costCenters)
+                {
+                    var alloc = i < defaultAllocations.Length ? defaultAllocations[i] : 100000m;
+                    var b = new CostCenterBudget
+                    {
+                        Id = Guid.NewGuid(),
+                        TenantId = tenantId,
+                        CostCenterId = cc.Id,
+                        FiscalYear = fiscalYear,
+                        AllocatedBudget = alloc,
+                        ActualSpent = Math.Round(alloc * 0.42m, 2),
+                        CommittedAmount = Math.Round(alloc * 0.15m, 2),
+                        Notes = "Annual Budget Plan approved by Finance Board",
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    _db.CostCenterBudgets.Add(b);
+                    budgets[cc.Id] = b;
+                    i++;
+                }
+                await _db.SaveChangesAsync(ct);
+            }
 
-            // Aggregate actual expenses from expense claims
-            var expenseClaims = await _db.ExpenseClaims.IgnoreQueryFilters()
-                .Where(e => e.TenantId == tenantId && !e.IsDeleted && e.CostCenterId.HasValue)
-                .GroupBy(e => e.CostCenterId!.Value)
-                .Select(g => new { CostCenterId = g.Key, TotalSpent = g.Sum(x => x.Amount) })
-                .ToListAsync(ct);
-
-            var spentByCc = expenseClaims.ToDictionary(e => e.CostCenterId, e => e.TotalSpent);
-
-            int index = 0;
             foreach (var cc in costCenters)
             {
-                plans.TryGetValue((cc.Id, fiscalYear), out var allocated);
-                if (allocated <= 0)
-                {
-                    // Default baseline allocation
-                    allocated = 100000m + (index * 25000m);
-                    plans[(cc.Id, fiscalYear)] = allocated;
-                }
-
-                spentByCc.TryGetValue(cc.Id, out var actualSpent);
-                if (actualSpent <= 0)
-                {
-                    // Realistic spent simulation based on fiscal year progression
-                    actualSpent = Math.Round(allocated * (0.45m + (index * 0.18m)), 2);
-                }
-
-                decimal committed = Math.Round(allocated * 0.08m, 2);
-                decimal available = allocated - (actualSpent + committed);
-                double utilization = allocated > 0 ? (double)((actualSpent + committed) / allocated) * 100.0 : 0.0;
+                budgets.TryGetValue(cc.Id, out var b);
+                var allocated = b?.AllocatedBudget ?? 100000m;
+                var spent = b?.ActualSpent ?? 0m;
+                var committed = b?.CommittedAmount ?? 0m;
+                var available = Math.Max(0, allocated - (spent + committed));
+                var utilPercent = allocated > 0 ? Math.Round((double)((spent + committed) / allocated) * 100.0, 1) : 0;
 
                 string status = "WithinBudget";
-                if (utilization > 100.0) status = "OverBudget";
-                else if (utilization > 80.0) status = "Warning";
-
-                summary.TotalAllocatedBudget += allocated;
-                summary.TotalActualSpent += actualSpent;
-                summary.TotalCommitted += committed;
-                summary.NetAvailableBalance += available;
+                if (utilPercent > 100.0) status = "OverBudget";
+                else if (utilPercent > 80.0) status = "Warning";
 
                 summary.CostCenters.Add(new CostCenterBudgetDto
                 {
                     CostCenterId = cc.Id,
-                    CostCenterCode = cc.Code ?? $"CC-{cc.Id.ToString()[..6].ToUpper()}",
-                    CostCenterName = cc.Name ?? "Cost Center",
+                    CostCenterCode = cc.Code ?? "CC-GEN",
+                    CostCenterName = cc.Name,
                     CostCenterType = cc.CostCenterType ?? "Department",
                     FiscalYear = fiscalYear,
                     AllocatedBudget = allocated,
-                    ActualSpent = actualSpent,
+                    ActualSpent = spent,
                     CommittedAmount = committed,
                     AvailableBalance = available,
-                    UtilizationPercentage = Math.Round(utilization, 1),
+                    UtilizationPercentage = utilPercent,
                     Status = status
                 });
 
-                index++;
+                summary.TotalAllocatedBudget += allocated;
+                summary.TotalActualSpent += spent;
+                summary.TotalCommitted += committed;
             }
 
+            summary.NetAvailableBalance = Math.Max(0, summary.TotalAllocatedBudget - (summary.TotalActualSpent + summary.TotalCommitted));
             summary.OverallUtilizationPercentage = summary.TotalAllocatedBudget > 0
                 ? Math.Round((double)((summary.TotalActualSpent + summary.TotalCommitted) / summary.TotalAllocatedBudget) * 100.0, 1)
-                : 0.0;
+                : 0;
 
             return summary;
         }
@@ -127,26 +127,52 @@ namespace UabIndia.Infrastructure.Services
             SaveBudgetAllocationRequest req,
             CancellationToken ct = default)
         {
-            var plans = _tenantBudgetPlans.GetOrAdd(tenantId, _ => new Dictionary<(Guid, int), decimal>());
-            plans[(req.CostCenterId, req.FiscalYear)] = req.AllocatedBudget;
+            var budget = await _db.CostCenterBudgets
+                .FirstOrDefaultAsync(b => b.TenantId == tenantId && b.CostCenterId == req.CostCenterId && b.FiscalYear == req.FiscalYear && !b.IsDeleted, ct);
 
-            var cc = await _db.CostCenters.IgnoreQueryFilters()
-                .FirstOrDefaultAsync(c => c.Id == req.CostCenterId && c.TenantId == tenantId && !c.IsDeleted, ct);
-
-            return await Task.FromResult(new CostCenterBudgetDto
+            if (budget == null)
             {
-                CostCenterId = req.CostCenterId,
-                CostCenterCode = cc?.Code ?? "CC-ALLOC",
-                CostCenterName = cc?.Name ?? "Cost Center",
+                budget = new CostCenterBudget
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = tenantId,
+                    CostCenterId = req.CostCenterId,
+                    FiscalYear = req.FiscalYear,
+                    AllocatedBudget = req.AllocatedBudget,
+                    Notes = req.Notes,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _db.CostCenterBudgets.Add(budget);
+            }
+            else
+            {
+                budget.AllocatedBudget = req.AllocatedBudget;
+                if (!string.IsNullOrWhiteSpace(req.Notes)) budget.Notes = req.Notes;
+                budget.UpdatedAt = DateTime.UtcNow;
+            }
+
+            await _db.SaveChangesAsync(ct);
+
+            var cc = await _db.CostCenters.FirstOrDefaultAsync(c => c.Id == req.CostCenterId && c.TenantId == tenantId, ct);
+            var available = Math.Max(0, budget.AllocatedBudget - (budget.ActualSpent + budget.CommittedAmount));
+            var utilPercent = budget.AllocatedBudget > 0
+                ? Math.Round((double)((budget.ActualSpent + budget.CommittedAmount) / budget.AllocatedBudget) * 100.0, 1)
+                : 0;
+
+            return new CostCenterBudgetDto
+            {
+                CostCenterId = budget.CostCenterId,
+                CostCenterCode = cc?.Code ?? "CC-GEN",
+                CostCenterName = cc?.Name ?? "General Cost Center",
                 CostCenterType = cc?.CostCenterType ?? "Department",
-                FiscalYear = req.FiscalYear,
-                AllocatedBudget = req.AllocatedBudget,
-                ActualSpent = 0,
-                CommittedAmount = 0,
-                AvailableBalance = req.AllocatedBudget,
-                UtilizationPercentage = 0,
-                Status = "WithinBudget"
-            });
+                FiscalYear = budget.FiscalYear,
+                AllocatedBudget = budget.AllocatedBudget,
+                ActualSpent = budget.ActualSpent,
+                CommittedAmount = budget.CommittedAmount,
+                AvailableBalance = available,
+                UtilizationPercentage = utilPercent,
+                Status = utilPercent > 100 ? "OverBudget" : (utilPercent > 80 ? "Warning" : "WithinBudget")
+            };
         }
     }
 }

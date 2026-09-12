@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,7 +22,7 @@ const platformSchema = z.object({
   companyName: z.string().min(2, "Company name is required"),
   name: z.string().min(2, "Contact name is required"),
   mobile: z.string().min(10, "Enter a valid mobile number"),
-  email: z.email("Enter a valid email address"),
+  email: z.string().email("Enter a valid email address"),
   employeeCount: z.string().min(1, "Employee count is required"),
   message: z.string().min(10, "Please share your requirement"),
 });
@@ -30,7 +30,7 @@ const platformSchema = z.object({
 const tenantSchema = z.object({
   name: z.string().min(2, "Your name is required"),
   mobile: z.string().min(10, "Enter a valid mobile number"),
-  email: z.email("Enter a valid email address"),
+  email: z.string().email("Enter a valid email address"),
   subject: z.string().min(3, "Subject is required"),
   message: z.string().min(10, "Please describe your issue"),
 });
@@ -171,11 +171,11 @@ export function ContactDemoForm({ audience = "platform", variant = "erp" }: Cont
         <div className="md:col-span-2 flex justify-end">
           {isPublic ? (
             <button type="submit" disabled={formState.isSubmitting} className={publicButtonClassName.primary}>
-              {formState.isSubmitting ? "Submitting..." : "Submit support request"}
+              {formState.isSubmitting ? "Submitting..." : "Submit Support Request"}
             </button>
           ) : (
             <Button type="submit" disabled={formState.isSubmitting}>
-              {formState.isSubmitting ? "Submitting..." : "Submit support request"}
+              {formState.isSubmitting ? "Submitting..." : "Submit Support Request"}
             </Button>
           )}
         </div>
@@ -232,11 +232,11 @@ export function ContactDemoForm({ audience = "platform", variant = "erp" }: Cont
       <div className="md:col-span-2 flex justify-end">
         {isPublic ? (
           <button type="submit" disabled={formState.isSubmitting} className={publicButtonClassName.primary}>
-            {formState.isSubmitting ? "Submitting..." : "Submit request"}
+            {formState.isSubmitting ? "Submitting..." : "Request Walkthrough"}
           </button>
         ) : (
           <Button type="submit" disabled={formState.isSubmitting}>
-            {formState.isSubmitting ? "Submitting..." : "Submit request"}
+            {formState.isSubmitting ? "Submitting..." : "Request Walkthrough"}
           </Button>
         )}
       </div>

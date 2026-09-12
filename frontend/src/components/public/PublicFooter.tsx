@@ -31,16 +31,18 @@ export default function PublicFooter({
   const platformMode = audience === "platform";
 
   const productLinks = [
-    { label: "Products", href: "/products" },
-    { label: "Industries", href: "/industries" },
-    { label: "Pricing", href: "/pricing" },
-    { label: "Resources", href: "/resources" },
+    { label: "Products & Modules", href: "/products" },
+    { label: "Industry Solutions", href: "/industries" },
+    { label: "Pricing & Plans", href: "/pricing" },
+    { label: "Resources & Guides", href: "/resources" },
+    { label: "Request a Demo", href: "/book-demo" },
   ];
   const companyLinks = [
-    { label: "About", href: "/about" },
+    { label: "About Us", href: "/about" },
     { label: "Careers", href: "/careers" },
-    { label: "Contact", href: "/contact" },
+    { label: "Contact Us", href: "/contact" },
     { label: "Help & Support", href: "/help-support" },
+    { label: "Sign In", href: "/login" },
   ];
 
   if (variant === "minimal") {
@@ -128,10 +130,10 @@ export default function PublicFooter({
                 {(footerLinks.length > 0
                   ? footerLinks
                   : [
-                      { label: "About", href: "/about" },
+                      { label: "About Us", href: "/about" },
                       { label: "Careers", href: "/careers" },
-                      { label: "Contact", href: "/contact" },
-                      { label: "Login", href: "/login" },
+                      { label: "Contact Us", href: "/contact" },
+                      { label: "Sign In", href: "/login" },
                     ]
                 ).map((link) => (
                   <li key={link.href}>
@@ -153,10 +155,10 @@ export default function PublicFooter({
           </p>
           <div className="flex gap-4">
             <Link href={withPublicAudience("/privacy", audience)} className="text-xs text-slate-500 hover:text-slate-900">
-              Privacy
+              Privacy Policy
             </Link>
             <Link href={withPublicAudience("/terms", audience)} className="text-xs text-slate-500 hover:text-slate-900">
-              Terms
+              Terms of Service
             </Link>
           </div>
         </div>

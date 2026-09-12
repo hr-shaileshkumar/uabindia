@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using UabIndia.Application.Interfaces;
+using UabIndia.Core.Authorization;
 using UabIndia.Core.Entities;
 using UabIndia.Core.Security;
 using UabIndia.Infrastructure.Data;
@@ -150,6 +151,18 @@ namespace UabIndia.Api.Services
             var hasher         = scope.ServiceProvider.GetRequiredService<IPasswordHasher<User>>();
             var tenantAccessor = scope.ServiceProvider.GetRequiredService<ITenantAccessor>();
 
+            // ── Step 0: Ensure physical database exists ──────────────────────────────
+            if (db.Database.IsRelational())
+            {
+                var canConnect = false;
+                try { canConnect = await db.Database.CanConnectAsync(ct); } catch { canConnect = false; }
+                if (!canConnect)
+                {
+                    _logger.LogInformation("Database does not exist — creating physical database via MigrateAsync…");
+                    try { await db.Database.MigrateAsync(ct); } catch (Exception ex) { _logger.LogWarning(ex, "Initial MigrateAsync on new DB encountered warning."); }
+                }
+            }
+
             // ── Step 1: Idempotent schema bootstrap, then EF migrations ───────────────
             await UabIndia.Infrastructure.Data.Migrations.MigrationBootstrap.EnsureInitialCleanSchemaAsync(
                 db, _logger, ct);
@@ -177,7 +190,14 @@ namespace UabIndia.Api.Services
                         sqlEx.Number);
                     await MigrationHistoryRepair.TryRepairPendingMigrationsAsync(
                         db, _logger, ct, force: _env.IsDevelopment());
-                    await db.Database.MigrateAsync(ct);
+                    try
+                    {
+                        await db.Database.MigrateAsync(ct);
+                    }
+                    catch (Exception retryEx)
+                    {
+                        _logger.LogWarning(retryEx, "MigrateAsync retry after history repair encountered warning. Continuing with seeding.");
+                    }
                 }
                 catch (Microsoft.Data.SqlClient.SqlException sqlEx) when (sqlEx.Number == 1919)
                 {
@@ -188,7 +208,18 @@ namespace UabIndia.Api.Services
                         db,
                         "20260818010000_AddDocumentNumberIndexes.sql",
                         ct);
-                    await db.Database.MigrateAsync(ct);
+                    try
+                    {
+                        await db.Database.MigrateAsync(ct);
+                    }
+                    catch (Exception retryEx)
+                    {
+                        _logger.LogWarning(retryEx, "MigrateAsync retry after narrowing document-number columns encountered warning. Continuing with seeding.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Database migration encountered an unexpected exception; continuing with startup seeding.");
                 }
             }
 
@@ -203,6 +234,20 @@ namespace UabIndia.Api.Services
             if (anyTenant)
             {
                 _logger.LogInformation("Tenants already exist — running back-fill for existing tenants…");
+
+                // Auto-migrate legacy 'api' tenant subdomain to 'erp'
+                var legacyApiTenant = await db.Tenants.FirstOrDefaultAsync(t => t.Subdomain == "api", ct);
+                if (legacyApiTenant != null)
+                {
+                    legacyApiTenant.Subdomain = "erp";
+                    if (legacyApiTenant.Name == "UabIndia API Tenant" || legacyApiTenant.Name == "Default Organization" || legacyApiTenant.Name == "Enterprise SaaS Tenant")
+                    {
+                        legacyApiTenant.Name = "UabIndia ERP";
+                    }
+                    legacyApiTenant.UpdatedAt = DateTime.UtcNow;
+                    await db.SaveChangesAsync(ct);
+                    _logger.LogInformation("Migrated legacy tenant subdomain from 'api' to 'erp'");
+                }
 
                 var allTenantIds = await db.Tenants
                     .AsNoTracking()
@@ -224,6 +269,7 @@ namespace UabIndia.Api.Services
                 {
                     tenantAccessor.SetTenantId(tid);
                     await EnsureTenantModulesAsync(db, tid, ct);
+                    await EnsureDefaultRolesForTenantAsync(db, tid, ct);
 
                     var tenantRoles = await db.Roles
                         .AsNoTracking()
@@ -245,11 +291,11 @@ namespace UabIndia.Api.Services
             _logger.LogInformation("No tenants found — seeding default system tenant…");
 
             // ── Step 4: Create default tenant ───────────────────────────────────────
-            var defaultSubdomain = _env.IsProduction() ? "default" : "api";
+            var defaultSubdomain = "erp";
             var tenant = new Tenant
             {
                 Subdomain = defaultSubdomain,
-                Name      = "Default Organization",
+                Name      = "UabIndia ERP",
                 IsActive  = true
             };
             db.Tenants.Add(tenant);
@@ -428,6 +474,48 @@ namespace UabIndia.Api.Services
             }
         }
 
+        private static readonly (string Name, string Description)[] StandardRoles =
+        {
+            (RoleCatalog.SuperAdminRoleName, "System super administrator — unrestricted access"),
+            (RoleCatalog.AdminRoleName, "Tenant administrator"),
+            (RoleCatalog.HrManagerRoleName, "Human Resources manager"),
+            (RoleCatalog.AccountantRoleName, "Finance and accounts"),
+            (RoleCatalog.ManagerRoleName, "Department manager"),
+            (RoleCatalog.EmployeeRoleName, "Standard employee")
+        };
+
+        private async Task EnsureDefaultRolesForTenantAsync(ApplicationDbContext db, Guid tenantId, CancellationToken ct)
+        {
+            var existingRoles = await db.Roles
+                .IgnoreQueryFilters()
+                .Where(r => r.TenantId == tenantId && !r.IsDeleted)
+                .ToListAsync(ct);
+
+            var existingNames = new HashSet<string>(existingRoles.Select(r => r.Name), StringComparer.OrdinalIgnoreCase);
+
+            var toAdd = new List<Role>();
+            foreach (var (name, desc) in StandardRoles)
+            {
+                if (!existingNames.Contains(name))
+                {
+                    toAdd.Add(new Role
+                    {
+                        TenantId = tenantId,
+                        Name = name,
+                        Description = desc
+                    });
+                }
+            }
+
+            if (toAdd.Count > 0)
+            {
+                db.Roles.AddRange(toAdd);
+                await db.SaveChangesAsync(ct);
+                _logger.LogInformation("Seeded {Count} default role(s) for tenant {TenantId}: {Roles}",
+                    toAdd.Count, tenantId, string.Join(", ", toAdd.Select(r => r.Name)));
+            }
+        }
+
         private async Task EnsurePermissionsAsync(ApplicationDbContext db, Guid tenantId, IEnumerable<Role> tenantRoles, CancellationToken ct)
         {
             var roleByName = tenantRoles
@@ -548,7 +636,8 @@ namespace UabIndia.Api.Services
         {
             var tenant = await db.Tenants
                 .AsNoTracking()
-                .FirstOrDefaultAsync(t => t.Subdomain == "api" && t.IsActive && !t.IsDeleted, ct)
+                .FirstOrDefaultAsync(t => t.Subdomain == "erp" && t.IsActive && !t.IsDeleted, ct)
+                ?? await db.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Subdomain == "api" && t.IsActive && !t.IsDeleted, ct)
                 ?? await db.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.IsActive && !t.IsDeleted, ct);
 
             if (tenant == null)
@@ -578,8 +667,8 @@ namespace UabIndia.Api.Services
                 {
                     TenantId = tenant.Id,
                     Email = AuthUserLookup.NormalizeEmail(adminEmail),
-                    FullName = "Admin User",
-                    IsSystemAdmin = false,
+                    FullName = "Enterprise Admin",
+                    IsSystemAdmin = true,
                     IsActive = true,
                 };
                 adminUser.PasswordHash = hasher.HashPassword(adminUser, adminPassword);
@@ -589,13 +678,40 @@ namespace UabIndia.Api.Services
             {
                 adminUser.IsDeleted = false;
                 adminUser.IsActive = true;
-                adminUser.IsSystemAdmin = false;
+                adminUser.IsSystemAdmin = true;
                 adminUser.TenantId = tenant.Id;
+                adminUser.FullName = string.IsNullOrWhiteSpace(adminUser.FullName) || adminUser.FullName == "Admin User" ? "Enterprise Admin" : adminUser.FullName;
                 adminUser.Email = AuthUserLookup.NormalizeEmail(adminEmail);
                 AccountLockoutPolicy.ResetFailedAttempts(adminUser);
                 adminUser.PasswordHash = hasher.HashPassword(adminUser, adminPassword);
                 adminUser.UpdatedAt = DateTime.UtcNow;
                 db.Users.Update(adminUser);
+            }
+
+            await db.SaveChangesAsync(ct);
+
+            // Ensure SuperAdmin and Admin roles for the development admin user
+            var defaultAdminRoles = await db.Roles
+                .IgnoreQueryFilters()
+                .Where(r => r.TenantId == tenant.Id && !r.IsDeleted && (r.Name == RoleCatalog.SuperAdminRoleName || r.Name == RoleCatalog.AdminRoleName))
+                .ToListAsync(ct);
+
+            var existingUserRoles = await db.UserRoles
+                .IgnoreQueryFilters()
+                .Where(ur => ur.TenantId == tenant.Id && ur.UserId == adminUser.Id)
+                .ToListAsync(ct);
+
+            foreach (var role in defaultAdminRoles)
+            {
+                if (!existingUserRoles.Any(ur => ur.RoleId == role.Id))
+                {
+                    db.UserRoles.Add(new UserRole
+                    {
+                        TenantId = tenant.Id,
+                        UserId = adminUser.Id,
+                        RoleId = role.Id
+                    });
+                }
             }
 
             await db.SaveChangesAsync(ct);
@@ -627,6 +743,9 @@ namespace UabIndia.Api.Services
                 .IgnoreQueryFilters()
                 .AnyAsync(a => a.TenantId == tenantId && !a.IsDeleted, ct);
 
+            await db.Database.ExecuteSqlRawAsync(
+                "UPDATE dbo.AiAgents SET Category = 'Administration' WHERE Category = 'Platform'", ct);
+
             if (!hasAiAgents)
             {
                 db.AiAgents.AddRange(
@@ -638,7 +757,7 @@ namespace UabIndia.Api.Services
                         Description = "General ERP navigation and operational guidance.",
                         Provider = "OpenAI",
                         ModelName = "gpt-4o-mini",
-                        Category = "Platform",
+                        Category = "Administration",
                         IsEnabled = true,
                     },
                     new AiAgent

@@ -42,30 +42,48 @@ namespace UabIndia.Api.Services
 
         private static string[] Perms(string moduleKey, params string[] keys)
         {
-            var permissions = keys
-                .Where(key => !string.IsNullOrWhiteSpace(key))
-                .Concat(new[]
-                {
-                    $"module:{moduleKey}",
-                    $"{moduleKey}.*",
-                    $"{moduleKey}.access",
-                    $"resource:{moduleKey}.access",
-                })
-                .Distinct(Comparer)
-                .ToArray();
+            var baseList = keys.Where(key => !string.IsNullOrWhiteSpace(key)).ToList();
+            var perms = baseList.Concat(new[]
+            {
+                $"module:{moduleKey}",
+                $"{moduleKey}.*",
+                $"{moduleKey}.access",
+                $"resource:{moduleKey}.access",
+            });
 
-            return permissions;
+            if (Comparer.Equals(moduleKey, "platform") || Comparer.Equals(moduleKey, "administration"))
+            {
+                var alt = Comparer.Equals(moduleKey, "platform") ? "administration" : "platform";
+                perms = perms.Concat(new[]
+                {
+                    $"module:{alt}",
+                    $"{alt}.*",
+                    $"{alt}.access",
+                    $"resource:{alt}.access",
+                });
+
+                var expanded = baseList.Select(k =>
+                    k.StartsWith("platform.", StringComparison.OrdinalIgnoreCase)
+                        ? "administration." + k["platform.".Length..]
+                        : k.StartsWith("administration.", StringComparison.OrdinalIgnoreCase)
+                            ? "platform." + k["administration.".Length..]
+                            : k);
+
+                perms = perms.Concat(expanded);
+            }
+
+            return perms.Distinct(Comparer).ToArray();
         }
 
         private static string[] LegacyErpPerms(params string[] keys) => Perms("erp", keys);
 
         private static readonly List<DerivedModuleSeed> DerivedModules = new()
         {
-            new("erp", "administration", "Administration", "Administration", "Shared workspace actions, approvals, notifications, documents, and user-level utilities.", "sliders", "/dashboard", 35, new[] { "/dashboard", "/approvals", "/notifications", "/documents", "/profile" }),
-            new("erp", "finance", "Finance", "Finance", "Accounting, journals, transactions, billing, tax, and reconciliation workflows.", "bank", "/finance", 60, new[] { "/finance", "/chart-of-accounts", "/journal-entries", "/payments", "/invoices", "/expenses", "/tax-management", "/bank-reconciliation", "/accounting-periods" }),
-            new("erp", "inventory", "Inventory", "Inventory", "Items, warehouses, stock movement, adjustments, and transfer visibility.", "box", "/inventory", 80, new[] { "/inventory", "/items", "/warehouses", "/stock-movements", "/inventory-adjustments", "/inventory-transfers" }),
+            new("erp", "finance", "Finance", "Finance", "Accounting, journals, transactions, billing, tax, and reconciliation workflows.", "bank", "/finance", 60, new[] { "/finance", "/chart-of-accounts", "/journal-entries", "/payments", "/invoices", "/expenses", "/tax-management", "/bank-reconciliation", "/accounting-periods", "/compliance", "/finance/budgeting", "/finance/consolidation" }),
+            new("erp", "inventory", "Inventory", "Inventory", "Items, warehouses, stock movement, adjustments, and transfer visibility.", "box", "/inventory", 80, new[] { "/inventory", "/items", "/warehouses", "/stock-movements", "/inventory-adjustments", "/inventory-transfers", "/inventory/wms", "/manufacturing/work-orders" }),
             new("erp", "procurement", "Procurement", "Procurement", "Vendor, request, purchase order, goods receipt, and vendor bill workflows.", "shopping-cart", "/procurement", 90, new[] { "/procurement", "/vendors", "/purchase-requests", "/purchase-orders", "/grn", "/vendor-bills" }),
-            new("erp", "sales", "Sales", "Sales", "Customer, quotation, discount scheme, sales order, and returns activity.", "shopping-bag", "/sales", 100, new[] { "/sales", "/customers", "/quotations", "/discounts", "/sales-orders", "/returns" }),
+            new("erp", "sales", "Sales", "Sales", "Customer, quotation, discount scheme, sales order, and returns activity.", "shopping-bag", "/sales", 100, new[] { "/sales", "/customers", "/crm/customers", "/quotations", "/discounts", "/sales-orders", "/returns", "/sales/pricing", "/portal" }),
+            new("erp", "projects", "Projects & Service", "Projects & Service", "Projects, task backlog, timesheets, field service, and fixed assets.", "folder", "/administration/projects", 110, new[] { "/projects", "/administration/projects", "/platform/projects", "/field-service", "/assets/depreciation" }),
             new("erp", "helpdesk", "Helpdesk", "Helpdesk", "Support intake, escalations, and knowledge workflows.", "ticket", "/helpdesk", 130, new[] { "/helpdesk" }),
             new("erp", "communication", "Communication", "Communication", "Announcements and reusable employee or customer message templates.", "megaphone", "/communication", 140, new[] { "/communication" }),
             new("erp", "integrations", "Integrations", "Integrations", "API keys, webhooks, app connections, and diagnostics.", "plug", "/integrations", 150, new[] { "/integrations" }),
@@ -96,7 +114,7 @@ namespace UabIndia.Api.Services
                 return moduleKey;
             }
 
-            return ResolveDerivedModuleByPath(path)?.ModuleKey ?? "administration";
+            return ResolveDerivedModuleByPath(path)?.ModuleKey ?? "platform";
         }
 
         public static List<ModuleMetaDto> ExpandEnabledModules(IEnumerable<ModuleMetaDto> modules)
@@ -133,6 +151,22 @@ namespace UabIndia.Api.Services
                         });
                     }
 
+                    continue;
+                }
+
+                if (Comparer.Equals(module.Key, "platform"))
+                {
+                    result.Add(new ModuleMetaDto
+                    {
+                        Key = module.Key,
+                        Name = "Administration",
+                        DisplayName = "Administration",
+                        Description = module.Description ?? "Enterprise administration, organization governance, system configuration, and control center.",
+                        Icon = "sliders",
+                        BasePath = "/administration",
+                        SortOrder = module.SortOrder,
+                        Version = module.Version,
+                    });
                     continue;
                 }
 
@@ -221,35 +255,66 @@ namespace UabIndia.Api.Services
 
         private static readonly List<NavSeed> NavigationItems = new()
         {
-            new("platform", "Overview", "platform-home", "Admin Overview", "/platform", "dashboard", Perms("platform", "platform.view")),
-            new("platform", "Tenant Management", "platform-companies", "Companies", "/platform/companies", "building", Perms("platform", "platform.companies.view")),
-            new("platform", "Tenant Management", "platform-tenants", "Tenants", "/platform/tenants", "layers", Perms("platform", "platform.tenants.view")),
-            new("platform", "Tenant Management", "platform-projects", "Projects", "/platform/projects", "folder", Perms("platform", "platform.projects.view")),
-            new("platform", "Tenant Management", "platform-branches", "Branches", "/platform/branches", "building", Perms("platform", "platform.companies.view")),
-            new("platform", "Tenant Management", "platform-business-units", "Business Units", "/platform/business-units", "layers", Perms("platform", "platform.companies.view")),
-            new("platform", "Tenant Management", "platform-departments", "Departments", "/platform/departments", "layers", Perms("platform", "platform.companies.view")),
-            new("platform", "Tenant Management", "platform-designations", "Designations", "/platform/designations", "award", Perms("platform", "platform.companies.view")),
-            new("platform", "Tenant Management", "platform-cost-centers", "Cost Centers", "/platform/cost-centers", "dollar-sign", Perms("platform", "platform.companies.view")),
-            new("platform", "Tenant Management", "platform-holiday-calendar", "Holiday Calendar", "/platform/holiday-calendar", "calendar", Perms("platform", "platform.companies.view")),
-            new("platform", "Access Control", "platform-users", "Users", "/platform/users", "users", Perms("platform", "platform.users.view")),
-            new("platform", "Access Control", "platform-roles", "Roles", "/platform/roles", "shield", Perms("platform", "platform.roles.view")),
-            new("platform", "Access Control", "platform-permissions", "Permissions", "/platform/permissions", "key", Perms("platform", "platform.permissions.view")),
-            new("platform", "Access Control", "platform-module-mapping", "Module Enablement", "/platform/module-mapping", "grid", Perms("platform", "platform.settings.view")),
-            new("platform", "Integrations", "platform-connectors", "Integrations & Connectors", "/platform/integrations/connectors", "key", Perms("platform", "platform.view")),
-            new("platform", "Security", "platform-security-sessions", "Active Sessions", "/platform/security/sessions", "shield", Perms("platform", "platform.view")),
-            new("platform", "Configuration", "platform-settings", "Settings", "/platform/settings", "settings", Perms("platform", "platform.settings.view")),
-            new("platform", "Configuration", "platform-notification-templates", "Notification Templates", "/platform/notification-templates", "bell", Perms("platform", "platform.settings.view")),
-            new("platform", "Website & Branding", "platform-website-pages", "Website Pages", "/platform/website/pages", "file-text", Perms("platform", "platform.website.pages.view")),
-            new("platform", "Monitoring", "platform-system-health", "System Health", "/platform/system-health", "activity", Perms("platform", "platform.view")),
-            new("platform", "Monitoring", "platform-audit-logs", "Audit Logs", "/platform/audit-logs", "clipboard", Perms("platform", "audit.view")),
-            new("platform", "Monitoring", "platform-contact-submissions", "Contact Submissions", "/platform/contact-submissions", "mail", Perms("platform", "platform.contactsubmissions.view")),
-            new("platform", "Monitoring", "platform-recycle-bin", "Recycle Bin", "/platform/recycle-bin", "trash", Perms("platform", "platform.view")),
+            // ── Administration: 1. Organization ──────────────────────────────
+            new("platform", "Organization", "platform-tenants", "Tenants", "/administration/tenants", "layers", Perms("platform", "platform.tenants.view")),
+            new("platform", "Organization", "platform-companies", "Companies", "/administration/companies", "building", Perms("platform", "platform.companies.view")),
+            new("platform", "Organization", "platform-projects", "Projects", "/administration/projects", "folder", Perms("platform", "platform.projects.view")),
+            new("platform", "Organization", "platform-branches", "Branches", "/administration/branches", "building", Perms("platform", "platform.companies.view")),
+            new("platform", "Organization", "platform-business-units", "Business Units", "/administration/business-units", "layers", Perms("platform", "platform.companies.view")),
+            new("platform", "Organization", "platform-departments", "Departments", "/administration/departments", "layers", Perms("platform", "platform.companies.view")),
+            new("platform", "Organization", "platform-designations", "Designations", "/administration/designations", "award", Perms("platform", "platform.companies.view")),
+            new("platform", "Organization", "platform-cost-centers", "Cost Centers", "/administration/cost-centers", "dollar-sign", Perms("platform", "platform.companies.view")),
+            new("platform", "Organization", "platform-holiday-calendar", "Holiday Calendar", "/administration/holiday-calendar", "calendar", Perms("platform", "platform.companies.view")),
+            new("platform", "Organization", "platform-org-chart", "Org Chart", "/administration/org-chart", "git-branch", Perms("platform", "platform.companies.view")),
+
+            // ── Administration: 2. User Management ────────────────────────────
+            new("platform", "User Management", "platform-users", "Users", "/administration/users", "users", Perms("platform", "platform.users.view")),
+            new("platform", "User Management", "platform-roles", "Roles", "/administration/roles", "shield", Perms("platform", "platform.roles.view")),
+            new("platform", "User Management", "platform-permissions", "Permissions", "/administration/permissions", "key", Perms("platform", "platform.permissions.view")),
+
+            // ── Administration: 3. Configuration ──────────────────────────────
+            new("platform", "Configuration", "platform-module-mapping", "Navigation & Modules", "/administration/module-mapping", "grid", Perms("platform", "platform.settings.view")),
+            new("platform", "Configuration", "platform-schema-manager", "Schema Manager", "/administration/schema-manager", "database", Perms("platform", "platform.settings.view")),
+            new("platform", "Configuration", "platform-entity-builder", "Entity Builder", "/administration/entity-builder", "layers", Perms("platform", "platform.view")),
+            new("platform", "Configuration", "platform-settings", "System Settings", "/administration/settings", "settings", Perms("platform", "platform.settings.view")),
+            new("platform", "Configuration", "platform-feature-flags", "Feature Flags", "/administration/feature-flags", "sliders", Perms("platform", "platform.settings.view")),
+
+            // ── Administration: 4. Workflow ───────────────────────────────────
+            new("platform", "Workflow", "platform-workflow-config", "Workflows", "/administration/workflow-config", "git-branch", Perms("platform", "platform.settings.view")),
+            new("platform", "Workflow", "platform-approvals", "Approvals", "/approvals", "check-circle", Perms("platform", "approvals.view")),
+
+            // ── Administration: 5. Communication ──────────────────────────────
+            new("platform", "Communication", "platform-notifications", "Notifications", "/notifications", "bell", Perms("platform", "notifications.view")),
+            new("platform", "Communication", "platform-notification-templates", "Notification Templates", "/administration/notification-templates", "mail", Perms("platform", "platform.settings.view")),
+
+            // ── Administration: 6. Security ───────────────────────────────────
+            new("platform", "Security", "platform-security-sessions", "Access Control", "/administration/security/sessions", "shield", Perms("platform", "platform.view")),
+            new("platform", "Security", "platform-policies", "Security Settings", "/administration/policies", "lock", Perms("platform", "platform.view")),
+
+            // ── Administration: 7. Governance ─────────────────────────────────
+            new("platform", "Governance", "platform-audit-logs", "Audit Logs", "/administration/audit-logs", "clipboard", Perms("platform", "audit.view")),
+            new("platform", "Governance", "platform-master-data", "Master Data & Localization", "/administration/master-data", "globe", Perms("platform", "platform.view")),
+            new("platform", "Governance", "platform-data-management", "Data Governance & Registries", "/administration/data-management", "database", Perms("platform", "platform.view")),
+            new("platform", "Governance", "platform-privacy", "Data Privacy & DPDP Vault", "/administration/privacy", "shield", Perms("platform", "platform.view")),
+            new("platform", "Governance", "platform-backup", "Backup & Disaster Recovery", "/administration/backup", "hard-drive", Perms("platform", "platform.view")),
+            new("platform", "Governance", "platform-recycle-bin", "Recycle Bin", "/administration/recycle-bin", "trash", Perms("platform", "platform.view")),
+
+            // ── Administration: 8. Billing ────────────────────────────────────
+            new("platform", "Billing", "platform-licensing", "Licensing & Subscriptions", "/administration/licensing", "credit-card", Perms("platform", "platform.view")),
+
+            // ── Administration: 9. System ─────────────────────────────────────
+            new("platform", "System", "platform-system-health", "System Health", "/administration/system-health", "activity", Perms("platform", "platform.view")),
+            new("platform", "System", "platform-website-pages", "Websites", "/administration/website/pages", "globe", Perms("platform", "platform.website.pages.view")),
+            new("platform", "System", "platform-developer-center", "Developer Center", "/administration/developer-center", "code", Perms("platform", "platform.view")),
+            new("platform", "System", "platform-webhooks", "Webhooks", "/administration/webhooks", "webhook", Perms("platform", "platform.view")),
+            new("platform", "System", "platform-edi", "EDI X12 Studio", "/administration/edi", "file-text", Perms("platform", "platform.view")),
+            new("platform", "System", "platform-contact-submissions", "Contact Submissions", "/administration/contact-submissions", "mail", Perms("platform", "platform.contactsubmissions.view")),
 
             new("ai", "AI Copilot Engine", "ai-home", "AI HR Copilot", "/ai", "bot", Perms("platform", "platform.view")),
             new("documents", "Document Center", "documents-home", "Document Vault", "/documents", "file-text", Perms("platform", "platform.view")),
             new("helpdesk", "Support", "helpdesk-home", "Service Helpdesk", "/helpdesk", "ticket", LegacyErpPerms()),
 
-            new("administration", "Workspace", "admin-dashboard", "Platform Dashboard", "/dashboard", "dashboard", LegacyErpPerms("dashboard.view")),
+            new("administration", "Workspace", "admin-dashboard", "Administration Dashboard", "/dashboard", "dashboard", LegacyErpPerms("dashboard.view")),
             new("administration", "Workspace", "admin-approvals", "Approvals", "/approvals", "check-circle", LegacyErpPerms("approvals.view")),
             new("administration", "Workspace", "admin-notifications", "Notifications", "/notifications", "bell", LegacyErpPerms("notifications.view")),
             new("administration", "Workspace", "admin-documents", "Documents", "/documents", "document", LegacyErpPerms("documents.view")),
@@ -259,10 +324,14 @@ namespace UabIndia.Api.Services
             new("finance", "Accounting", "finance-journal-entries", "Journal Entries", "/journal-entries", "journal", LegacyErpPerms("journalentries.view")),
             new("finance", "Treasury", "finance-payments", "Payments", "/payments", "credit-card", LegacyErpPerms("payments.view")),
             new("finance", "Treasury", "finance-invoices", "Invoices", "/invoices", "receipt", LegacyErpPerms("payments.view")),
+            new("finance", "Treasury", "finance-vendor-bills", "Vendor Bills", "/vendor-bills", "receipt", LegacyErpPerms("payments.view")),
             new("finance", "Compliance", "finance-accounting-periods", "Accounting Periods", "/accounting-periods", "calendar", LegacyErpPerms("journalentries.view")),
             new("finance", "Treasury", "finance-expenses", "Expenses", "/expenses", "wallet", LegacyErpPerms("payments.view")),
             new("finance", "Compliance", "finance-tax-management", "Tax Management", "/tax-management", "calculator", LegacyErpPerms("chartofaccounts.view")),
             new("finance", "Compliance", "finance-bank-reconciliation", "Bank Reconciliation", "/bank-reconciliation", "bank", LegacyErpPerms("payments.view")),
+            new("finance", "Compliance", "finance-compliance", "E-Invoicing & Compliance", "/compliance", "shield", LegacyErpPerms("chartofaccounts.view")),
+            new("finance", "Planning", "finance-budgeting", "Budgeting & Forecasting", "/finance/budgeting", "trending-up", LegacyErpPerms("chartofaccounts.view")),
+            new("finance", "Planning", "finance-consolidation", "Financial Consolidation", "/finance/consolidation", "layers", LegacyErpPerms("chartofaccounts.view")),
             new("procurement", "Overview", "procurement-home", "Procurement Dashboard", "/procurement", "dashboard", LegacyErpPerms("vendor.view")),
             new("procurement", "Sourcing", "procurement-vendors", "Vendors", "/vendors", "truck", LegacyErpPerms("vendor.view")),
             new("procurement", "Demand", "procurement-purchase-requests", "Purchase Requests", "/purchase-requests", "shopping-cart", LegacyErpPerms("purchaseorders.view")),
@@ -272,21 +341,30 @@ namespace UabIndia.Api.Services
             new("sales", "Overview", "sales-home", "Sales Dashboard", "/sales", "dashboard", LegacyErpPerms("customer.view")),
             new("sales", "CRM & Sales", "sales-customers", "Customers", "/customers", "users", LegacyErpPerms("customer.view")),
             new("sales", "CRM & Sales", "sales-quotations", "Quotations", "/quotations", "file-text", LegacyErpPerms("salesorders.view")),
+            new("sales", "Pricing", "sales-pricing", "Pricing Matrix", "/sales/pricing", "tag", LegacyErpPerms("salesorders.view")),
             new("sales", "Pricing", "sales-discounts", "Discounts", "/discounts", "percent", LegacyErpPerms("salesorders.view")),
             new("sales", "CRM & Sales", "sales-sales-orders", "Sales Orders", "/sales-orders", "shopping-bag", LegacyErpPerms("salesorders.view")),
+            new("sales", "CRM & Sales", "sales-invoices", "Invoices", "/invoices", "receipt", LegacyErpPerms("salesorders.view")),
             new("sales", "CRM & Sales", "sales-returns", "Returns", "/returns", "rotate-ccw", LegacyErpPerms("salesorders.view")),
+            new("sales", "CRM & Sales", "sales-portal", "B2B Customer Portal", "/portal", "globe", LegacyErpPerms("customer.view")),
             new("crm", "Overview", "crm-home", "CRM Dashboard", "/crm", "dashboard", Perms("crm", "crm.access")),
             new("crm", "Pipeline", "crm-leads", "Leads", "/crm/leads", "trending-up", Perms("crm", "crm.access")),
+            new("crm", "Pipeline", "crm-pipeline", "Visual Pipeline", "/crm/pipeline", "columns", Perms("crm", "crm.access")),
             new("crm", "Accounts", "crm-customers", "Customers", "/crm/customers", "users", Perms("crm", "crm.access")),
-            new("projects", "Delivery", "projects-home", "Projects Register", "/platform/projects", "folder", Perms("projects", "projects.access")),
+            new("crm", "Accounts", "crm-contacts", "Contacts", "/crm/contacts", "contact-round", Perms("crm", "crm.access")),
+            new("projects", "Delivery", "projects-home", "Projects Register", "/administration/projects", "folder", Perms("projects", "projects.access")),
             new("projects", "Delivery", "projects-tasks", "Project Tasks", "/projects/tasks", "clipboard", Perms("projects", "projects.access")),
             new("projects", "Delivery", "projects-timesheets", "Timesheets", "/projects/timesheets", "clock", Perms("projects", "projects.access")),
+            new("projects", "Delivery", "projects-field-service", "Field Service", "/field-service", "map-pin", Perms("projects", "projects.access")),
+            new("projects", "Delivery", "projects-assets-depreciation", "Fixed Asset Depreciation", "/assets/depreciation", "trending-down", Perms("projects", "projects.access")),
             new("inventory", "Overview", "inventory-home", "Inventory Dashboard", "/inventory", "dashboard", LegacyErpPerms("item.view")),
             new("inventory", "Stock Control", "inventory-items", "Items", "/items", "box", LegacyErpPerms("item.view")),
             new("inventory", "Stock Control", "inventory-warehouses", "Warehouses", "/warehouses", "warehouse", LegacyErpPerms("warehouses.view")),
+            new("inventory", "Stock Control", "inventory-wms", "WMS & Bin Locations", "/inventory/wms", "layers", LegacyErpPerms("item.view")),
             new("inventory", "Movements", "inventory-stock-movements", "Stock Movements", "/stock-movements", "trending-up", LegacyErpPerms("stockmovements.view")),
             new("inventory", "Movements", "inventory-adjustments", "Inventory Adjustments", "/inventory-adjustments", "sliders", LegacyErpPerms("stockmovements.view")),
             new("inventory", "Movements", "inventory-transfers", "Inventory Transfers", "/inventory-transfers", "arrow-right-left", LegacyErpPerms("stockmovements.view")),
+            new("inventory", "Movements", "inventory-work-orders", "Manufacturing Work Orders", "/manufacturing/work-orders", "cpu", LegacyErpPerms("item.view")),
             new("helpdesk", "Service", "helpdesk-home", "Helpdesk Overview", "/helpdesk", "dashboard", LegacyErpPerms()),
             new("helpdesk", "Service", "helpdesk-tickets", "Tickets", "/helpdesk/tickets", "ticket", LegacyErpPerms()),
             new("helpdesk", "Service", "helpdesk-escalations", "Escalations", "/helpdesk/escalations", "alert-triangle", LegacyErpPerms()),
@@ -365,7 +443,7 @@ namespace UabIndia.Api.Services
 
         private static readonly List<DashboardSeed> DashboardWidgets = new()
         {
-            new("workspace-modules", "Workspace modules", "dashboard-platform", "Platform control", "/platform", "platform", "settings", "Tenant governance, access control, website administration, and operational monitoring.", Perms("platform", "platform.view")),
+            new("workspace-modules", "Workspace modules", "dashboard-platform", "Administration", "/administration", "platform", "sliders", "Tenant governance, access control, system configuration, security, and operational monitoring.", Perms("platform", "platform.view")),
             new("workspace-modules", "Workspace modules", "dashboard-administration", "Administration", "/dashboard", "administration", "dashboard", "Shared approvals, documents, alerts, and personal workspace utilities.", LegacyErpPerms("dashboard.view")),
             new("workspace-modules", "Workspace modules", "dashboard-hrms", "HRMS", "/hrms", "hrms", "employees", "Employee records, attendance, leave, recruitment, training, and lifecycle flows.", Perms("hrms", "hrms.view")),
             new("workspace-modules", "Workspace modules", "dashboard-payroll", "Payroll", "/payroll", "payroll", "payroll", "Runs, payslips, structures, statutory processing, and payroll operations.", Perms("payroll", "payroll.view")),

@@ -24,13 +24,21 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+import { headers } from "next/headers";
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headersList = await headers();
+  const nonce = headersList.get("x-nonce") ?? undefined;
+
   return (
     <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth">
+      <head>
+        {nonce && <meta property="csp-nonce" content={nonce} />}
+      </head>
       <body className="min-h-screen">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <ScreenFitController />
@@ -40,3 +48,4 @@ export default function RootLayout({
     </html>
   );
 }
+

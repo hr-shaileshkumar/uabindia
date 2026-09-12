@@ -316,6 +316,18 @@ namespace UabIndia.Api.Services
                     return true;
                 }
 
+                // Dual alias check between administration and platform
+                if (normalized.StartsWith("administration.", StringComparison.OrdinalIgnoreCase))
+                {
+                    var alt = "platform." + normalized["administration.".Length..];
+                    if (permissionSnapshot.GrantedPermissions.Contains(alt)) return true;
+                }
+                else if (normalized.StartsWith("platform.", StringComparison.OrdinalIgnoreCase))
+                {
+                    var alt = "administration." + normalized["platform.".Length..];
+                    if (permissionSnapshot.GrantedPermissions.Contains(alt)) return true;
+                }
+
                 if (normalized.EndsWith(".*", StringComparison.Ordinal))
                 {
                     var prefix = normalized[..^2];
@@ -331,12 +343,25 @@ namespace UabIndia.Api.Services
                     continue;
                 }
 
+                var altScope = moduleScope.Equals("administration", StringComparison.OrdinalIgnoreCase)
+                    ? "platform"
+                    : moduleScope.Equals("platform", StringComparison.OrdinalIgnoreCase)
+                        ? "administration"
+                        : null;
+
                 if (permissionSnapshot.GrantedPermissions.Contains($"module:{moduleScope}") ||
                     permissionSnapshot.GrantedPermissions.Contains($"{moduleScope}.*") ||
                     permissionSnapshot.GrantedPermissions.Contains($"{moduleScope}.access") ||
                     permissionSnapshot.GrantedPermissions.Contains($"{moduleScope}.view") ||
                     permissionSnapshot.GrantedPermissions.Contains($"resource:{moduleScope}.access") ||
-                    permissionSnapshot.GrantedPermissions.Contains($"resource:{moduleScope}.view"))
+                    permissionSnapshot.GrantedPermissions.Contains($"resource:{moduleScope}.view") ||
+                    (altScope != null && (
+                        permissionSnapshot.GrantedPermissions.Contains($"module:{altScope}") ||
+                        permissionSnapshot.GrantedPermissions.Contains($"{altScope}.*") ||
+                        permissionSnapshot.GrantedPermissions.Contains($"{altScope}.access") ||
+                        permissionSnapshot.GrantedPermissions.Contains($"{altScope}.view") ||
+                        permissionSnapshot.GrantedPermissions.Contains($"resource:{altScope}.access") ||
+                        permissionSnapshot.GrantedPermissions.Contains($"resource:{altScope}.view"))))
                 {
                     return true;
                 }

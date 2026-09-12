@@ -1,8 +1,8 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Sparkles } from "lucide-react";
+import { CheckCircle2, Sparkles, ShieldCheck } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
 import { ErpCreateButton, ErpRefreshButton, ErpRowActions } from "@/components/workspace/page-kit";
@@ -16,6 +16,8 @@ import {
 } from "@/components/workspace/styles";
 import { RecordAiDrawer } from "@/components/ai/RecordAiDrawer";
 import { PayrollExecutionWizard } from "./PayrollExecutionWizard";
+import { PayrollPolicyDrawer } from "./PayrollPolicyDrawer";
+import { usePayrollPolicy } from "../hooks/usePayrollPolicy";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { payrollApi } from "@/services/modules";
@@ -41,6 +43,8 @@ const runStatusTone = (status?: string | null) => {
 };
 
 export function PayrollRunList() {
+  const policyHook = usePayrollPolicy();
+  const [policyDrawerOpen, setPolicyDrawerOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [aiRunId, setAiRunId] = useState<string | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -214,6 +218,14 @@ export function PayrollRunList() {
           {list.headerTools}
           <button
             type="button"
+            onClick={() => setPolicyDrawerOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50"
+          >
+            <ShieldCheck className="h-4 w-4 text-indigo-600" />
+            Wage Policy
+          </button>
+          <button
+            type="button"
             onClick={() => setWizardOpen(true)}
             className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-indigo-500"
           >
@@ -239,6 +251,19 @@ export function PayrollRunList() {
           }}
         />
       )}
+
+      {/* Dynamic Payroll Compensation Policy Studio Drawer */}
+      <PayrollPolicyDrawer
+        open={policyDrawerOpen}
+        onOpenChange={setPolicyDrawerOpen}
+        policies={policyHook.policies}
+        activePolicy={policyHook.activePolicy}
+        saving={policyHook.saving}
+        onSave={async (input, id) =>
+          id ? policyHook.updatePolicy(id, input) : policyHook.createPolicy(input)
+        }
+        onSetDefault={policyHook.setDefaultPolicy}
+      />
 
       <RecordAiDrawer
         open={Boolean(aiRunId)}

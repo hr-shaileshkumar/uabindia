@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { Clock3, Mail, MapPinned, PhoneCall } from "lucide-react";
 import { DemoAgendaPanel, SupportLaneGrid } from "@/components/public/PublicMarketingBlocks";
@@ -28,7 +28,7 @@ export default function ContactPageClient({ audience }: { audience: PublicAudien
     usePublicPageData("contact", audience);
 
   const content = parseContent<ContactContent>({
-    eyebrow: audience === "platform" ? "Contact" : "Support",
+    eyebrow: audience === "platform" ? "Contact Us" : "Support",
     title:
       audience === "platform"
         ? "Tell us about your business"
@@ -83,7 +83,7 @@ export default function ContactPageClient({ audience }: { audience: PublicAudien
 
             {contactItems.length > 0 ? (
               <div className={publicPanelClassName}>
-                <p className={publicEyebrowClassName}>Direct contact</p>
+                <p className={publicEyebrowClassName}>Direct Contact Channels</p>
                 <div className="mt-4 space-y-3">
                   {contactItems.map((item) => {
                     const Icon = item.icon;
@@ -111,8 +111,8 @@ export default function ContactPageClient({ audience }: { audience: PublicAudien
       {audience === "platform" ? (
         <section className={publicSectionSpacingClassName}>
           <div className={publicSectionClassName}>
-            <p className={publicEyebrowClassName}>Support coverage</p>
-            <h2 className="mt-2 text-2xl font-semibold text-slate-900">Who handles what</h2>
+            <p className={publicEyebrowClassName}>Support Coverage</p>
+            <h2 className="mt-2 text-2xl font-semibold text-slate-900">Dedicated Coverage by Stage</h2>
             <p className="mt-2 max-w-2xl text-sm text-slate-600">
               Sales, implementation, and live support each have a clear owner.
             </p>

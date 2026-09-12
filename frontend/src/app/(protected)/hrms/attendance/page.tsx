@@ -2,22 +2,8 @@
 
 import { useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import AttendanceList from "@/features/hrms/components/AttendanceList";
+import AttendanceList, { type AttendanceRecord } from "@/features/hrms/attendance";
 import { hrmsApi } from "@/services/modules";
-type AttendanceRecord = {
-  id: string;
-  date?: string;
-  employeeName?: string;
-  employeeCode?: string;
-  status?: string;
-  checkIn?: string;
-  checkOut?: string;
-  punchType?: string;
-  timestamp?: string;
-  geoValidated?: boolean;
-  deviceId?: string;
-  source?: string;
-};
 
 export default function AttendancePage() {
   const searchParams = useSearchParams();

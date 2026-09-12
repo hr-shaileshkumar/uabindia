@@ -9,6 +9,7 @@ export const AUTH_PATH_PREFIXES = [
 ] as const;
 
 export const OWNER_PATH_PREFIXES = [
+  "/administration",
   "/platform",
   "/superadmin",
 ] as const;
@@ -146,6 +147,12 @@ export function matchesAnyPrefix(pathname: string, prefixes: readonly string[]) 
 export function canonicalizeProtectedPath(pathname: string) {
   const normalized = normalizePathname(pathname);
   if (normalized === "/" || normalized === "/context") return normalized;
+
+  if (normalized === "/platform" || normalized.startsWith("/platform/")) {
+    const suffix = normalized.slice("/platform".length);
+    return normalizePathname(`/administration${suffix}`);
+  }
+
   if (matchesAnyPrefix(normalized, OWNER_PATH_PREFIXES)) return normalized;
 
   if (normalized === "/erp") {

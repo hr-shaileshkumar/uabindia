@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using UabIndia.Api.Models;
 using UabIndia.Api.Modules.HRMS.Controllers;
 using UabIndia.Api.Services;
-using UabIndia.Api.Modules.Platform.Controllers;
+using UabIndia.Api.Modules.Administration.Controllers;
 using UabIndia.Core.Entities;
 using UabIndia.Core.Services;
 using UabIndia.Infrastructure.Data;

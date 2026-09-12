@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
@@ -10,7 +10,7 @@ import { useErpListView } from "@/components/workspace/list-view";
 import { erpButtonClassName } from "@/components/workspace/styles";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { notifyError, notifySuccess } from "@/lib/notifications";
-import { mapIntegration, useIntegrationMutations, useIntegrations } from "@/features/platform/hooks/useIntegrations";
+import { mapIntegration, useIntegrationMutations, useIntegrations } from "@/features/administration/hooks/useIntegrations";
 
 export default function IntegrationsAppsPage() {
   const { data = [], isLoading, isError, error, refetch } = useIntegrations();
@@ -173,7 +173,7 @@ export default function IntegrationsAppsPage() {
       }
       filters={
         <>
-          <ErpSearchFilter value={search} onChange={setSearch} placeholder="Filter app or provider…" />
+          <ErpSearchFilter value={search} onChange={setSearch} placeholder="Filter app or provider�" />
           {list.filterBar}
         </>
       }

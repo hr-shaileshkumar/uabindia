@@ -3,10 +3,22 @@ import type { ApiPayload } from "./shared";
 
 export const financeApi = {
   chartOfAccounts: {
-    getAll: () => apiClient.get("/chartOfAccounts"),
+    getAll: (type?: string) => {
+      const q = type && type !== "ALL" ? `?type=${encodeURIComponent(type)}` : "";
+      return apiClient.get(`/chartOfAccounts${q}`);
+    },
     getById: (id: string) => apiClient.get(`/chartOfAccounts/${id}`),
     create: (data: ApiPayload) => apiClient.post("/chartOfAccounts", data),
+    update: (id: string, data: ApiPayload) => apiClient.put(`/chartOfAccounts/${id}`, data),
+    delete: (id: string) => apiClient.delete(`/chartOfAccounts/${id}`),
     getBalances: () => apiClient.get("/chartOfAccounts/getBalances"),
+    getTemplates: () => apiClient.get("/chartOfAccounts/templates"),
+    seedStandard: (standardType = "IND_AS", currency?: string, companyId?: string) =>
+      apiClient.post("/chartOfAccounts/seed-standard", {
+        standardType,
+        defaultCurrency: currency,
+        companyId,
+      }),
   },
   journalEntries: {
     list: (page = 1, limit = 20, status?: string) => {
@@ -45,8 +57,18 @@ export const financeApi = {
   },
   bankReconciliations: {
     getAll: (page = 1, limit = 50) => apiClient.get(`/bank-reconciliations?page=${page}&limit=${limit}`),
+    getById: (id: string) => apiClient.get(`/bank-reconciliations/${id}`),
     create: (data: ApiPayload) => apiClient.post("/bank-reconciliations", data),
+    update: (id: string, data: ApiPayload) => apiClient.put(`/bank-reconciliations/${id}`, data),
     delete: (id: string) => apiClient.delete(`/bank-reconciliations/${id}`),
+  },
+  bankFeeds: {
+    parseOfx: (fileContent: string, currency = "INR") =>
+      apiClient.post("/finance/bank-feed/parse-ofx", { fileContent, currency }),
+    parseMt940: (fileContent: string, currency = "INR") =>
+      apiClient.post("/finance/bank-feed/parse-mt940", { fileContent, currency }),
+    parseCsv: (fileContent: string, currency = "INR") =>
+      apiClient.post("/finance/bank-feed/parse-csv", { fileContent, currency }),
   },
   tax: {
     calculate: (data: ApiPayload) => apiClient.post("/tax/gst/calculate", data),

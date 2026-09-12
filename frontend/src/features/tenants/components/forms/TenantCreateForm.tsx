@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { erpButtonClassName } from "@/components/workspace/styles";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCreateTenant } from "../../hooks/useTenants";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/useToast";
 
 export function TenantCreateForm() {
   const {

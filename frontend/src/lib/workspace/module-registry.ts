@@ -18,17 +18,18 @@ export type ModuleDefinition = {
 const MODULE_REGISTRY: ModuleDefinition[] = [
   {
     key: "platform",
-    label: "Platform",
-    eyebrow: "Platform / Control Center",
-    description: "Govern tenant operations, website settings, platform access, and shared operational controls.",
-    icon: "settings",
+    label: "Administration",
+    eyebrow: "Administration / Control Center",
+    description: "Enterprise system administration, organization structure, identity, configuration, security, and governance.",
+    icon: "sliders",
     shellOrder: 10,
     tier: "platform",
+    pathPrefixes: ["/administration", "/platform"],
   },
   {
     key: "superadmin",
     label: "Super Admin",
-    eyebrow: "Platform / Super Admin",
+    eyebrow: "Administration / Super Admin",
     description: "Global operator workspace for platform-wide oversight and escalation handling.",
     icon: "shield",
     shellOrder: 20,
@@ -42,18 +43,6 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: "building",
     shellOrder: 30,
     tier: "company",
-  },
-  {
-    key: "administration",
-    label: "Administration",
-    eyebrow: "Administration / Workspace",
-    description: "Shared workspace actions, approvals, notifications, documents, and user-level utilities.",
-    icon: "sliders",
-    shellOrder: 40,
-    tier: "cross-cutting",
-    sourceModuleKey: "erp",
-    pathPrefixes: ["/dashboard", "/administration"],
-    hiddenFromSidebar: true,  // Merged under Platform — not shown as separate sidebar module
   },
 
   {
@@ -165,6 +154,7 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
       "/tax-management",
       "/bank-reconciliation",
       "/accounting-periods",
+      "/compliance",
     ],
   },
   {
@@ -183,6 +173,7 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
       "/stock-movements",
       "/inventory-adjustments",
       "/inventory-transfers",
+      "/manufacturing/work-orders",
     ],
   },
   {
@@ -215,17 +206,18 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
     shellOrder: 140,
     tier: "business",
     sourceModuleKey: "erp",
-    pathPrefixes: ["/sales", "/customers", "/quotations", "/discounts", "/sales-orders", "/returns"],
+    pathPrefixes: ["/sales", "/customers", "/crm/customers", "/quotations", "/discounts", "/sales-orders", "/returns", "/portal"],
   },
   {
     key: "projects",
-    label: "Projects",
+    label: "Projects & Service",
     eyebrow: "Projects / Workspace",
-    description: "Project masters, tasks, delivery governance, timesheets, and project reporting.",
+    description: "Project masters, tasks, delivery governance, timesheets, field service, and asset depreciation.",
     icon: "folder",
     shellOrder: 150,
     tier: "business",
-    pathPrefixes: ["/projects", "/projects/tasks", "/projects/timesheets", "/platform/projects"],
+    sourceModuleKey: "erp",
+    pathPrefixes: ["/projects", "/platform/projects", "/field-service", "/assets/depreciation"],
   },
   {
     key: "assets",
@@ -235,6 +227,8 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: "monitor",
     shellOrder: 160,
     tier: "business",
+    sourceModuleKey: "erp",
+    pathPrefixes: ["/assets", "/hrms/assets"],
   },
   {
     key: "reports",

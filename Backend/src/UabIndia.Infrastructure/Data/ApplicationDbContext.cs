@@ -51,9 +51,17 @@ namespace UabIndia.Infrastructure.Data
         public DbSet<LeaveType> LeaveTypes { get; set; }
         public DbSet<LeavePolicy> LeavePolicies { get; set; }
         public DbSet<EmployeeLeave> EmployeeLeaves { get; set; }
+        public DbSet<EmployeeHierarchyTransfer> EmployeeHierarchyTransfers { get; set; }
         public DbSet<LeaveRequest> LeaveRequests { get; set; }
         public DbSet<LeavePolicyRule> LeavePolicyRules { get; set; }
         public DbSet<LeaveAllocation> LeaveAllocations { get; set; }
+        public DbSet<AttendancePolicy> AttendancePolicies { get; set; }
+        public DbSet<PayrollPolicy> PayrollPolicies { get; set; }
+        public DbSet<PolicyMaster> PolicyMasters { get; set; }
+        public DbSet<PolicyVersion> PolicyVersions { get; set; }
+        public DbSet<TravelExpensePolicy> TravelExpensePolicies { get; set; }
+        public DbSet<ProbationPolicy> ProbationPolicies { get; set; }
+        public DbSet<PolicyRuleDefinition> PolicyRuleDefinitions { get; set; }
         public DbSet<Holiday> Holidays { get; set; }
         public DbSet<PayrollStructure> PayrollStructures { get; set; }
         public DbSet<PayrollComponent> PayrollComponents { get; set; }
@@ -148,6 +156,27 @@ namespace UabIndia.Infrastructure.Data
         public DbSet<AssetAllocation> AssetAllocations { get; set; }
         public DbSet<AssetDepreciation> AssetDepreciations { get; set; }
         public DbSet<AssetMaintenance> AssetMaintenances { get; set; }
+
+        // Manufacturing & Production
+        public DbSet<WorkOrder> WorkOrders { get; set; }
+        public DbSet<WorkOrderOperation> WorkOrderOperations { get; set; }
+        public DbSet<BillOfMaterial> BillsOfMaterial { get; set; }
+        public DbSet<BomItem> BomItems { get; set; }
+
+        // Fleet Management
+        public DbSet<FleetVehicle> FleetVehicles { get; set; }
+        public DbSet<FleetMaintenance> FleetMaintenances { get; set; }
+        public DbSet<FleetFuelLog> FleetFuelLogs { get; set; }
+
+        // Field Service & Dispatch
+        public DbSet<FieldServiceTicket> FieldServiceTickets { get; set; }
+        public DbSet<FieldServiceTechnician> FieldServiceTechnicians { get; set; }
+
+        // WMS Bin Locations
+        public DbSet<WarehouseBin> WarehouseBins { get; set; }
+
+        // Cost Center Budgeting
+        public DbSet<CostCenterBudget> CostCenterBudgets { get; set; }
 
         // Performance Management & Appraisals
         public DbSet<AppraisalCycle> AppraisalCycles { get; set; }
@@ -485,6 +514,23 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<AssetDepreciation>().ToTable("AssetDepreciations");
             modelBuilder.Entity<AssetMaintenance>().ToTable("AssetMaintenances");
 
+            // Manufacturing & Production
+            modelBuilder.Entity<WorkOrder>().ToTable("WorkOrders");
+            modelBuilder.Entity<WorkOrderOperation>().ToTable("WorkOrderOperations");
+            modelBuilder.Entity<BillOfMaterial>().ToTable("BillsOfMaterial");
+            modelBuilder.Entity<BomItem>().ToTable("BomItems");
+
+            // Fleet Management
+            modelBuilder.Entity<FleetVehicle>().ToTable("FleetVehicles");
+            modelBuilder.Entity<FleetMaintenance>().ToTable("FleetMaintenances");
+            modelBuilder.Entity<FleetFuelLog>().ToTable("FleetFuelLogs");
+
+            // Field Service & WMS & Budgeting
+            modelBuilder.Entity<FieldServiceTicket>().ToTable("FieldServiceTickets");
+            modelBuilder.Entity<FieldServiceTechnician>().ToTable("FieldServiceTechnicians");
+            modelBuilder.Entity<WarehouseBin>().ToTable("WarehouseBins");
+            modelBuilder.Entity<CostCenterBudget>().ToTable("CostCenterBudgets");
+
             // Training & Development Module
             modelBuilder.Entity<TrainingCourse>().ToTable("TrainingCourses");
             modelBuilder.Entity<CourseEnrollment>().ToTable("CourseEnrollments");
@@ -703,6 +749,49 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<ComplianceReport>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<ComplianceAudit>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<BusinessIdSequence>().HasQueryFilter(e => e.TenantId == _tenantAccessor.GetTenantId());
+
+            // Manufacturing Query Filters
+            modelBuilder.Entity<WorkOrder>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<WorkOrderOperation>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<BillOfMaterial>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<BomItem>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+
+            // Fleet Query Filters
+            modelBuilder.Entity<FleetVehicle>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<FleetMaintenance>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<FleetFuelLog>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+
+            // Decimal precisions for Manufacturing & Fleet
+            modelBuilder.Entity<WorkOrder>().Property(w => w.TargetQuantity).HasPrecision(18, 4);
+            modelBuilder.Entity<WorkOrder>().Property(w => w.ProducedQuantity).HasPrecision(18, 4);
+            modelBuilder.Entity<WorkOrder>().Property(w => w.ScrappedQuantity).HasPrecision(18, 4);
+            modelBuilder.Entity<WorkOrderOperation>().Property(w => w.PlannedHours).HasPrecision(18, 2);
+            modelBuilder.Entity<WorkOrderOperation>().Property(w => w.ActualHours).HasPrecision(18, 2);
+            modelBuilder.Entity<BomItem>().Property(b => b.Quantity).HasPrecision(18, 4);
+            modelBuilder.Entity<BomItem>().Property(b => b.ScrapFactor).HasPrecision(18, 4);
+            modelBuilder.Entity<FleetVehicle>().Property(f => f.CurrentOdometer).HasPrecision(18, 2);
+            modelBuilder.Entity<FleetMaintenance>().Property(f => f.Odometer).HasPrecision(18, 2);
+            modelBuilder.Entity<FleetMaintenance>().Property(f => f.Cost).HasPrecision(18, 2);
+            modelBuilder.Entity<FleetFuelLog>().Property(f => f.Odometer).HasPrecision(18, 2);
+            modelBuilder.Entity<FleetFuelLog>().Property(f => f.Liters).HasPrecision(18, 2);
+            modelBuilder.Entity<FleetFuelLog>().Property(f => f.TotalCost).HasPrecision(18, 2);
+
+            // Field Service, WMS, and Budgeting Query Filters
+            modelBuilder.Entity<FieldServiceTicket>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<FieldServiceTechnician>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<WarehouseBin>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<CostCenterBudget>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+
+            // Precision for Field Service & WMS
+            modelBuilder.Entity<FieldServiceTechnician>().Property(t => t.CurrentLatitude).HasPrecision(10, 7);
+            modelBuilder.Entity<FieldServiceTechnician>().Property(t => t.CurrentLongitude).HasPrecision(10, 7);
+            modelBuilder.Entity<WarehouseBin>().Property(b => b.MaxWeightCapacityKg).HasPrecision(18, 2);
+            modelBuilder.Entity<WarehouseBin>().Property(b => b.CurrentWeightKg).HasPrecision(18, 2);
+            modelBuilder.Entity<WarehouseBin>().Property(b => b.MaxVolumeCapacityCbm).HasPrecision(18, 2);
+            modelBuilder.Entity<WarehouseBin>().Property(b => b.CurrentVolumeCbm).HasPrecision(18, 2);
+            modelBuilder.Entity<CostCenterBudget>().Property(b => b.AllocatedBudget).HasPrecision(18, 2);
+            modelBuilder.Entity<CostCenterBudget>().Property(b => b.ActualSpent).HasPrecision(18, 2);
+            modelBuilder.Entity<CostCenterBudget>().Property(b => b.CommittedAmount).HasPrecision(18, 2);
 
             // Decimal precision for geo coordinates to match SQL schema
             modelBuilder.Entity<AttendanceRecord>().Property(a => a.Latitude).HasPrecision(10,7);

@@ -170,7 +170,7 @@ export const publicFooterGroups = [
     title: "Support",
     links: [
       { label: "Help & Support", href: "/help-support" },
-      { label: "Book Demo", href: "/book-demo" },
+      { label: "Request a Demo", href: "/book-demo" },
       { label: "Login", href: "/login" },
       { label: "Privacy", href: "/privacy" },
       { label: "Terms", href: "/terms" },
@@ -246,58 +246,58 @@ export const solutionSignals = [
 ];
 
 export const platformHighlights = [
-  "Multi company",
-  "Multi branch",
-  "Multi tenant",
-  "Role based access",
-  "Workflow engine",
-  "Approval matrix",
-  "Document management",
-  "Face recognition attendance",
-  "Geo fencing",
-  "GPS tracking",
-  "Mobile app",
-  "Employee self service",
-  "Audit logs",
-  "Real-time dashboard",
-  "Cloud backup",
-  "Secure login",
-  "REST API",
-  "WhatsApp notifications",
-  "Email notifications",
-  "AI ready architecture",
+  "Multi-Company Architecture",
+  "Multi-Branch Governance",
+  "Dedicated Tenant Isolation",
+  "Role-Based Access Control (RBAC)",
+  "Configurable Workflow Engine",
+  "Multi-Tier Approval Matrix",
+  "Document Vault & Digital Signatures",
+  "Facial Recognition Attendance",
+  "Geofencing & Biometrics",
+  "GPS Field Workforce Tracking",
+  "Mobile PWA & App Experience",
+  "Employee Self-Service (ESS/MSS)",
+  "Immutable Regulatory Audit Logs",
+  "Real-Time Executive Dashboards",
+  "Automated Cloud Backup & DR",
+  "MFA & SSO Secure Authentication",
+  "Enterprise REST & Webhook APIs",
+  "WhatsApp & SMS Alerts",
+  "Branded Email Notifications",
+  "AI Copilot & Predictive Engine",
 ];
 
 export const implementationSteps = [
   {
     step: "01",
-    title: "Add organization",
-    description: "Set up company entities, branches, reporting structures, and approval owners.",
+    title: "Organization Setup",
+    description: "Configure legal entities, branches, fiscal calendars, and approval matrices.",
   },
   {
     step: "02",
-    title: "Create departments",
-    description: "Define operating units, access scope, and workflow ownership across locations and teams.",
+    title: "Departments & Roles",
+    description: "Define business units, cost centers, granular permissions, and hierarchy chains.",
   },
   {
     step: "03",
-    title: "Add employees",
-    description: "Import employee masters, documents, managers, payroll structures, and shift rules.",
+    title: "Workforce Onboarding",
+    description: "Import employee masters, digital documents, reporting lines, and salary structures.",
   },
   {
     step: "04",
-    title: "Track attendance",
-    description: "Connect attendance rules, biometric devices, geo checks, or mobile workforce capture.",
+    title: "Time & Attendance",
+    description: "Connect biometric hardware, GPS mobile punches, shift rosters, and holiday calendars.",
   },
   {
     step: "05",
-    title: "Run payroll",
-    description: "Process salary, statutory deductions, reimbursements, arrears, and approval checks.",
+    title: "Automated Payroll",
+    description: "Execute 1-click pay runs with PF, ESI, TDS, bonuses, arrears, and bank transfer files.",
   },
   {
     step: "06",
-    title: "View reports",
-    description: "Monitor live analytics across people, finance, procurement, inventory, and operations.",
+    title: "Unified Analytics",
+    description: "Track live operational metrics across workforce, ledger accounts, inventory, and sales.",
   },
 ];
 
@@ -936,7 +936,7 @@ export const frequentlyAskedQuestions: FaqItem[] = [
   { question: "How long does implementation take?", answer: "Implementation timelines depend on the scope, modules, migration complexity, and number of entities or branches involved." },
   { question: "Do you provide onboarding support?", answer: "Yes. Rollout planning, solution guidance, and onboarding support are part of the implementation approach." },
   { question: "Can we migrate from spreadsheets or older ERP tools?", answer: "Yes. Many deployments are designed specifically to replace spreadsheet-driven processes or fragmented legacy systems." },
-  { question: "How do we request a demo?", answer: "Use the Book Demo or Contact page and share your business context, employee size, and module priorities." },
+  { question: "How do we request a demo?", answer: "Use the Request a Demo or Contact page and share your business context, employee size, and module priorities." },
 ];
 
 export const companyValues = [

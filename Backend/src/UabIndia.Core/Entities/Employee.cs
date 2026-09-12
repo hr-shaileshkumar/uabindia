@@ -10,6 +10,11 @@ namespace UabIndia.Core.Entities
         public Guid? ProjectId { get; set; }
         public Guid? ManagerId { get; set; }
         public Guid? ReportingManagerId { get; set; }
+        public Guid? ActingManagerId { get; set; }
+        public DateTime? DelegationStartDate { get; set; }
+        public DateTime? DelegationEndDate { get; set; }
+        public string? DelegationReason { get; set; }
+        public bool IsOrganizationHead { get; set; }
         public Guid? UserId { get; set; }
         public string? Status { get; set; }
 

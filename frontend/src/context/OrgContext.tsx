@@ -217,19 +217,37 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
           : [];
         const roleCandidates = [...roles, (user as { role?: unknown }).role];
         const isSuperAdmin = roleCandidates.some((role) => isSuperAdminRole(role));
-        const companyRes = isSuperAdmin
-          ? await apiClient.get("/companies/all")
-          : await apiClient.get("/companies?page=1&limit=200");
-        const companies = Array.isArray(companyRes.data?.companies) ? companyRes.data.companies : [];
+
+        let companyRes;
+        try {
+          companyRes = isSuperAdmin
+            ? await apiClient.get("/companies/all", { headers: { "X-Silent-Error": "1" } })
+            : await apiClient.get("/companies?page=1&limit=200", { headers: { "X-Silent-Error": "1" } });
+        } catch {
+          try {
+            companyRes = await apiClient.get("/companies?page=1&limit=200", { headers: { "X-Silent-Error": "1" } });
+          } catch {
+            companyRes = null;
+          }
+        }
+
+        const rawCompanies =
+          companyRes?.data?.companies ||
+          companyRes?.data?.data ||
+          (Array.isArray(companyRes?.data) ? companyRes.data : []);
+        const companies = Array.isArray(rawCompanies) ? rawCompanies : [];
         const current = stateRef.current;
 
         if (!companyId) {
           return;
         }
 
-        const selectedCompany = companies.find((c: { id?: string; name?: string }) => c.id === companyId);
+        const normCompanyId = String(companyId).toLowerCase().trim();
+        const selectedCompany = companies.find(
+          (c: any) => String(c?.id || c?.Id || "").toLowerCase().trim() === normCompanyId
+        );
 
-        if (!selectedCompany) {
+        if (companies.length > 0 && !selectedCompany) {
           const cleared: OrgContextState = {
             companyId: null,
             companyName: null,
@@ -243,47 +261,78 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
           return;
         }
 
+        const realCompName =
+          selectedCompany?.name ||
+          selectedCompany?.Name ||
+          selectedCompany?.legalName ||
+          selectedCompany?.LegalName ||
+          selectedCompany?.companyName ||
+          selectedCompany?.CompanyName;
+
+        if (
+          selectedCompany &&
+          realCompName &&
+          (current.companyName !== realCompName || /^company\s*\d+$/i.test(current.companyName || ""))
+        ) {
+          const next: OrgContextState = {
+            ...current,
+            companyName: realCompName,
+          };
+          setState(next);
+          persistState(next);
+        }
+
         if (!projectId) {
-          if (current.companyName !== (selectedCompany.name || null)) {
+          return;
+        }
+
+        let projectsRes;
+        try {
+          projectsRes = await apiClient.get(`/projects?companyId=${companyId}`, { headers: { "X-Silent-Error": "1" } });
+        } catch {
+          projectsRes = null;
+        }
+
+        if (projectsRes) {
+          const rawProjects =
+            projectsRes.data?.projects ||
+            projectsRes.data?.data ||
+            (Array.isArray(projectsRes.data) ? projectsRes.data : []);
+          const projects = Array.isArray(rawProjects) ? rawProjects : [];
+          const normProjectId = String(projectId).toLowerCase().trim();
+          const selectedProject = projects.find(
+            (p: any) => String(p?.id || p?.Id || "").toLowerCase().trim() === normProjectId
+          );
+
+          if (projects.length > 0 && !selectedProject) {
             const next: OrgContextState = {
               ...current,
-              companyName: selectedCompany.name || null,
+              projectId: null,
+              projectName: null,
+            };
+            setState(next);
+            persistState(next);
+            return;
+          }
+
+          const realProjName =
+            selectedProject?.name ||
+            selectedProject?.Name ||
+            selectedProject?.projectName ||
+            selectedProject?.ProjectName;
+
+          if (
+            selectedProject &&
+            realProjName &&
+            (current.projectName !== realProjName || /^project\s*\d+$/i.test(current.projectName || ""))
+          ) {
+            const next: OrgContextState = {
+              ...current,
+              projectName: realProjName,
             };
             setState(next);
             persistState(next);
           }
-          return;
-        }
-
-        const projectsRes = await apiClient.get(`/projects?companyId=${companyId}`);
-        const projects = Array.isArray(projectsRes.data?.projects) ? projectsRes.data.projects : [];
-        const selectedProject = projects.find((p: { id?: string; name?: string }) => p.id === projectId);
-
-        if (!selectedProject) {
-          const next: OrgContextState = {
-            companyId,
-            companyName: selectedCompany.name || null,
-            projectId: null,
-            projectName: null,
-            financialYearKey: current.financialYearKey,
-            financialYearLabel: current.financialYearLabel,
-          };
-          setState(next);
-          persistState(next);
-          return;
-        }
-
-        if (current.companyName !== (selectedCompany.name || null) || current.projectName !== (selectedProject.name || null)) {
-          const next: OrgContextState = {
-            companyId,
-            companyName: selectedCompany.name || null,
-            projectId,
-            projectName: selectedProject.name || null,
-            financialYearKey: current.financialYearKey,
-            financialYearLabel: current.financialYearLabel,
-          };
-          setState(next);
-          persistState(next);
         }
       } catch {
         // Validation is best-effort; avoid hard-failing UX on transient network errors.

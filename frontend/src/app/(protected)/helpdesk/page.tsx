@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useMemo } from "react";
 import Link from "next/link";
@@ -11,7 +11,7 @@ import {
   erpPanelTitleClassName,
 } from "@/components/workspace/styles";
 import { ROUTES } from "@/constants/routes";
-import { mapHelpdeskTicket, useHelpdeskTickets } from "@/features/platform/hooks/useHelpdeskTickets";
+import { mapHelpdeskTicket, useHelpdeskTickets } from "@/features/administration/hooks/useHelpdeskTickets";
 import { getApiErrorMessage } from "@/lib/api-errors";
 
 const LINKS = [
@@ -51,7 +51,7 @@ export default function HelpdeskHomePage() {
         </div>
         <div className={`${erpPanelBodyClassName} space-y-2 text-sm`}>
           {isLoading ? (
-            <p className="text-slate-500">Loading…</p>
+            <p className="text-slate-500">Loading�</p>
           ) : tickets.filter((ticket) => ticket.status !== "Resolved").slice(0, 6).length === 0 ? (
             <p className="text-slate-500">No open tickets.</p>
           ) : (

@@ -64,7 +64,7 @@ public static class MigrationHistoryRepair
             .Version?
             .ToString(3) ?? "8.0.0";
 
-        await using var conn = db.Database.GetDbConnection();
+        var conn = db.Database.GetDbConnection();
         if (conn.State != System.Data.ConnectionState.Open)
         {
             await conn.OpenAsync(cancellationToken);

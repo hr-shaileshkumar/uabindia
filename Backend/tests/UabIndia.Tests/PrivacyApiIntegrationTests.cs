@@ -6,7 +6,7 @@ using Xunit;
 using UabIndia.Core.Entities;
 using UabIndia.Infrastructure.Data;
 using UabIndia.Application.Interfaces;
-using UabIndia.Api.Modules.Platform.Controllers;
+using UabIndia.Api.Modules.Administration.Controllers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using UabIndia.Core.Services;

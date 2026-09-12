@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { BookDemoLandingPage } from "@/components/public/pages/PlatformMarketingPages";
+import { BookDemoLandingPage } from "@/components/public/pages/PublicMarketingPages";
 import { buildPublicMetadata } from "@/lib/public-metadata";
 import { resolveAudienceForPath, type PublicSearchParams } from "@/lib/public-page-request";
 
 export const metadata: Metadata = buildPublicMetadata({
-  title: "Book Demo",
+  title: "Request a Demo",
   description:
-    "Book a tailored walkthrough for your ERP, HR, payroll, finance, procurement, inventory, and operations rollout.",
+    "Request a tailored walkthrough for your ERP, HR, payroll, finance, procurement, inventory, and operations rollout.",
   path: "/book-demo",
 });
 

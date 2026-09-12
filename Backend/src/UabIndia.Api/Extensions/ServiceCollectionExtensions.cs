@@ -186,6 +186,7 @@ namespace UabIndia.Api.Extensions
             services.AddScoped<IPricingEngineService, PricingEngineService>();
             services.AddScoped<IWmsService, WmsService>();
             services.AddScoped<IFieldServiceDispatchService, FieldServiceDispatchService>();
+            services.AddScoped<IFleetService, FleetService>();
 
             // Payments & Subscriptions
             services.AddScoped<IPaymentService, PaymentService>();

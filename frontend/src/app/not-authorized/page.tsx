@@ -38,8 +38,8 @@ export default function NotAuthorizedPage() {
       description={message.body}
       note={message.note}
       actions={[
-        { href: "/context", label: "Re-check workspace" },
-        { href: "/login", label: "Re-authenticate", variant: "secondary" },
+        { href: "/context", label: "Re-check Workspace" },
+        { href: "/login", label: "Sign In Again", variant: "secondary" },
       ]}
     />
   );

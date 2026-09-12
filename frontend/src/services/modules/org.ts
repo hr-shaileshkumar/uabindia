@@ -4,9 +4,9 @@ import type { ApiPayload } from "./shared";
 
 export const orgApi = {
   company: {
-    getAll: (page = 1, limit = 10, includeDeleted?: boolean) =>
-      apiClient.get<CompaniesResponse>(`/companies?page=${page}&limit=${limit}${includeDeleted ? "&includeDeleted=true" : ""}`),
-    getAllForSuperAdmin: () => apiClient.get<{
+    getAll: (page = 1, limit = 10, includeDeleted?: boolean, options?: { headers?: Record<string, string> }) =>
+      apiClient.get<CompaniesResponse>(`/companies?page=${page}&limit=${limit}${includeDeleted ? "&includeDeleted=true" : ""}`, options),
+    getAllForSuperAdmin: (options?: { headers?: Record<string, string> }) => apiClient.get<{
       companies: Array<{
         id: string;
         name: string;
@@ -15,7 +15,7 @@ export const orgApi = {
         financialYearStart?: string | null;
         financialYearEnd?: string | null;
       }>;
-    }>("/companies/all"),
+    }>("/companies/all", options),
     getById: (id: string) => apiClient.get(`/companies/${id}`),
     create: (data: ApiPayload, options?: { tenant?: string }) =>
       apiClient.post("/companies", data, options?.tenant ? { headers: { "X-Tenant": options.tenant } } : undefined),
@@ -23,16 +23,17 @@ export const orgApi = {
     delete: (id: string) => apiClient.delete(`/companies/${id}`),
   },
   project: {
-    getAll: (companyId?: string, status?: string, includeDeleted?: boolean) => {
+    getAll: (companyId?: string, status?: string, includeDeleted?: boolean, options?: { headers?: Record<string, string> }) => {
       const params = new URLSearchParams();
       if (companyId) params.append("companyId", companyId);
       if (status) params.append("status", status);
       if (includeDeleted) params.append("includeDeleted", "true");
       const qs = params.toString();
-      return apiClient.get<ProjectsResponse>(`/projects${qs ? `?${qs}` : ""}`);
+      return apiClient.get<ProjectsResponse>(`/projects${qs ? `?${qs}` : ""}`, options);
     },
     getById: (id: string) => apiClient.get(`/projects/${id}`),
-    getByCompany: (companyId: string) => apiClient.get<ProjectsResponse>(`/projects?companyId=${companyId}`),
+    getByCompany: (companyId: string, options?: { headers?: Record<string, string> }) =>
+      apiClient.get<ProjectsResponse>(`/projects?companyId=${companyId}`, options),
     restore: (id: string) => apiClient.post(`/projects/${id}/restore`, {}),
     create: (data: {
       name: string;

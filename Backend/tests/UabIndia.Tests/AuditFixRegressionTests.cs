@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using UabIndia.Api.Modules.CRM.Controllers;
-using UabIndia.Api.Modules.Platform.Controllers;
+using UabIndia.Api.Modules.Administration.Controllers;
 using UabIndia.Api.Services;
 using UabIndia.Core.Authorization;
 using UabIndia.Core.Entities;

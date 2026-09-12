@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { IndustryDetailPageClient } from "@/components/public/pages/PlatformMarketingPages";
+import { IndustryDetailPageClient } from "@/components/public/pages/PublicMarketingPages";
 import { getMarketingIndustry } from "@/lib/public-marketing";
 import { buildPublicMetadata } from "@/lib/public-metadata";
 import { resolveAudienceForPath, type PublicSearchParams } from "@/lib/public-page-request";

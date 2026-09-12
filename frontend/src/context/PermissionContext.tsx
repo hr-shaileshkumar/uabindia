@@ -121,6 +121,15 @@ export const PermissionProvider = ({ children }: { children: React.ReactNode }) 
 
       if (state.permissions.has(normalized)) return true;
 
+      // Dual alias check between administration and platform
+      if (normalized.startsWith("administration.")) {
+        const alt = "platform." + normalized.slice("administration.".length);
+        if (state.permissions.has(alt)) return true;
+      } else if (normalized.startsWith("platform.")) {
+        const alt = "administration." + normalized.slice("platform.".length);
+        if (state.permissions.has(alt)) return true;
+      }
+
       if (normalized.endsWith(".*")) {
         const prefix = normalized.slice(0, -2);
         for (const perm of state.permissions) {
@@ -133,14 +142,29 @@ export const PermissionProvider = ({ children }: { children: React.ReactNode }) 
         return false;
       }
 
-      return [
+      const altScope = moduleScope === "administration" ? "platform" : moduleScope === "platform" ? "administration" : null;
+
+      const candidates = [
         `module:${moduleScope}`,
         `${moduleScope}.*`,
         `${moduleScope}.access`,
         `${moduleScope}.view`,
         `resource:${moduleScope}.access`,
         `resource:${moduleScope}.view`,
-      ].some((candidate) => state.permissions.has(candidate));
+      ];
+
+      if (altScope) {
+        candidates.push(
+          `module:${altScope}`,
+          `${altScope}.*`,
+          `${altScope}.access`,
+          `${altScope}.view`,
+          `resource:${altScope}.access`,
+          `resource:${altScope}.view`
+        );
+      }
+
+      return candidates.some((candidate) => state.permissions.has(candidate));
     });
   };
 

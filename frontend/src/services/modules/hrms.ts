@@ -23,6 +23,45 @@ export const hrmsApi = {
       update: (id: string, data: ApiPayload) => apiClient.put(`/employees/${id}`, data),
       delete: (id: string) => apiClient.delete(`/employees/${id}`),
     },
+    organization: {
+      getTree: (rootEmployeeId?: string, departmentId?: string) => {
+        const query = new URLSearchParams();
+        if (rootEmployeeId) query.append("rootEmployeeId", rootEmployeeId);
+        if (departmentId) query.append("departmentId", departmentId);
+        const qs = query.toString() ? `?${query.toString()}` : "";
+        return apiClient.get(`/hrms/organization/tree${qs}`);
+      },
+      assignManager: (employeeId: string, payload: { reportingManagerId: string | null; reason?: string; effectiveDate?: string }) =>
+        apiClient.post(`/hrms/organization/employees/${employeeId}/assign-manager`, payload),
+      getChainOfCommand: (employeeId: string) =>
+        apiClient.get(`/hrms/organization/employees/${employeeId}/chain-of-command`),
+      getTransfers: (status?: string) => {
+        const query = status ? `?status=${encodeURIComponent(status)}` : "";
+        return apiClient.get(`/hrms/organization/transfers${query}`);
+      },
+      requestTransfer: (payload: {
+        employeeId: string;
+        proposedManagerId?: string | null;
+        proposedDepartmentId?: string | null;
+        transferType: string;
+        reason: string;
+        effectiveDate: string;
+      }) => apiClient.post("/hrms/organization/transfers", payload),
+      signOffTransfer: (id: string, payload: { role: string; decision: string; notes?: string }) =>
+        apiClient.post(`/hrms/organization/transfers/${id}/sign-off`, payload),
+      getOrphanRisks: () =>
+        apiClient.get("/hrms/organization/orphan-risks"),
+      reassignOrphans: (managerId: string, targetManagerId?: string) => {
+        const qs = targetManagerId ? `?targetManagerId=${targetManagerId}` : "";
+        return apiClient.post(`/hrms/organization/orphan-risks/${managerId}/reassign-to-skip-level${qs}`, {});
+      },
+      getDelegations: () =>
+        apiClient.get("/hrms/organization/delegations"),
+      delegateAuthority: (payload: { actingManagerId?: string | null; startDate?: string; endDate?: string; reason?: string }) =>
+        apiClient.post("/hrms/organization/delegations", payload),
+      revokeDelegation: (employeeId: string) =>
+        apiClient.delete(`/hrms/organization/delegations/${employeeId}`),
+    },
     attendance: {
       list: (page = 1, limit = 10, params?: { employeeId?: string }) => {
         const query = new URLSearchParams({ page: String(page), limit: String(limit) });
@@ -32,6 +71,30 @@ export const hrmsApi = {
       getById: (id: string) => apiClient.get(`/attendance/${id}`),
       markAttendance: (data: ApiPayload) => apiClient.post("/attendance/punch", data),
       punchMe: (data?: ApiPayload) => apiClient.post("/attendance/punch/me", data ?? {}),
+      update: (id: string, data: ApiPayload) => apiClient.put(`/attendance/${id}`, data),
+      delete: (id: string) => apiClient.delete(`/attendance/${id}`),
+      policies: {
+        list: (companyId?: string, projectId?: string) => {
+          const q = new URLSearchParams();
+          if (companyId) q.set("companyId", companyId);
+          if (projectId) q.set("projectId", projectId);
+          const qs = q.toString() ? `?${q}` : "";
+          return apiClient.get(`/attendance/policies${qs}`);
+        },
+        getSchema: (companyId?: string, projectId?: string) => {
+          const q = new URLSearchParams();
+          if (companyId) q.set("companyId", companyId);
+          if (projectId) q.set("projectId", projectId);
+          const qs = q.toString() ? `?${q}` : "";
+          return apiClient.get(`/attendance/policies/schema${qs}`);
+        },
+        getById: (id: string) => apiClient.get(`/attendance/policies/${id}`),
+        getDefault: () => apiClient.get("/attendance/policies/default"),
+        create: (data: ApiPayload) => apiClient.post("/attendance/policies", data),
+        update: (id: string, data: ApiPayload) => apiClient.put(`/attendance/policies/${id}`, data),
+        delete: (id: string) => apiClient.delete(`/attendance/policies/${id}`),
+        setDefault: (id: string) => apiClient.post(`/attendance/policies/${id}/set-default`, {}),
+      },
     },
     leave: {
       types: {
@@ -39,8 +102,26 @@ export const hrmsApi = {
         create: (data: ApiPayload) => apiClient.post("/leave/types", data),
       },
       policies: {
-        list: () => apiClient.get("/leave/policies"),
+        list: (companyId?: string, projectId?: string) => {
+          const q = new URLSearchParams();
+          if (companyId) q.set("companyId", companyId);
+          if (projectId) q.set("projectId", projectId);
+          const qs = q.toString() ? `?${q}` : "";
+          return apiClient.get(`/leave/policies${qs}`);
+        },
+        getSchema: (companyId?: string, projectId?: string) => {
+          const q = new URLSearchParams();
+          if (companyId) q.set("companyId", companyId);
+          if (projectId) q.set("projectId", projectId);
+          const qs = q.toString() ? `?${q}` : "";
+          return apiClient.get(`/leave/policies/schema${qs}`);
+        },
+        getById: (id: string) => apiClient.get(`/leave/policies/${id}`),
+        getDefault: () => apiClient.get("/leave/policies/default"),
         create: (data: ApiPayload) => apiClient.post("/leave/policies", data),
+        update: (id: string, data: ApiPayload) => apiClient.put(`/leave/policies/${id}`, data),
+        delete: (id: string) => apiClient.delete(`/leave/policies/${id}`),
+        setDefault: (id: string) => apiClient.post(`/leave/policies/${id}/set-default`, {}),
         rules: {
           list: (policyId: string) => apiClient.get(`/leave/policies/${policyId}/rules`),
           create: (policyId: string, data: ApiPayload) => apiClient.post(`/leave/policies/${policyId}/rules`, data),
@@ -109,6 +190,30 @@ export const hrmsApi = {
       statistics: {
         employee: (employeeId: string, params: { startDate: string; endDate: string }) =>
           apiClient.get(`/overtime/statistics/employee/${employeeId}?startDate=${encodeURIComponent(params.startDate)}&endDate=${encodeURIComponent(params.endDate)}`),
+      },
+    },
+    probation: {
+      policies: {
+        list: (companyId?: string, projectId?: string) => {
+          const q = new URLSearchParams();
+          if (companyId) q.set("companyId", companyId);
+          if (projectId) q.set("projectId", projectId);
+          const qs = q.toString() ? `?${q}` : "";
+          return apiClient.get(`/hrms/probation/policies${qs}`);
+        },
+        getSchema: (companyId?: string, projectId?: string) => {
+          const q = new URLSearchParams();
+          if (companyId) q.set("companyId", companyId);
+          if (projectId) q.set("projectId", projectId);
+          const qs = q.toString() ? `?${q}` : "";
+          return apiClient.get(`/hrms/probation/policies/schema${qs}`);
+        },
+        getById: (id: string) => apiClient.get(`/hrms/probation/policies/${id}`),
+        getDefault: () => apiClient.get("/hrms/probation/policies/default"),
+        create: (data: ApiPayload) => apiClient.post("/hrms/probation/policies", data),
+        update: (id: string, data: ApiPayload) => apiClient.put(`/hrms/probation/policies/${id}`, data),
+        delete: (id: string) => apiClient.delete(`/hrms/probation/policies/${id}`),
+        setDefault: (id: string) => apiClient.post(`/hrms/probation/policies/${id}/set-default`, {}),
       },
     },
   },
@@ -188,6 +293,32 @@ export const hrmsApi = {
     },
     completeTask: (id: string) => apiClient.post(`/hrms/lifecycle/tasks/${id}/complete`, {}),
     createTask: (data: ApiPayload) => apiClient.post("/hrms/lifecycle/tasks", data),
+  },
+  organization: {
+    getTree: (rootEmployeeId?: string, departmentId?: string) => {
+      const q = new URLSearchParams();
+      if (rootEmployeeId) q.set("rootEmployeeId", rootEmployeeId);
+      if (departmentId) q.set("departmentId", departmentId);
+      const qs = q.toString() ? `?${q}` : "";
+      return apiClient.get(`/hrms/organization/tree${qs}`);
+    },
+    getMyTeam: (managerId?: string) => {
+      const q = new URLSearchParams();
+      if (managerId) q.set("managerId", managerId);
+      const qs = q.toString() ? `?${q}` : "";
+      return apiClient.get(`/hrms/organization/my-team${qs}`);
+    },
+    getTransfers: () => apiClient.get("/hrms/organization/transfers"),
+    initiateTransfer: (data: ApiPayload) => apiClient.post("/hrms/organization/transfers", data),
+    signOffTransfer: (id: string, stage: string, data: ApiPayload) => apiClient.post(`/hrms/organization/transfers/${id}/sign-off/${stage}`, data),
+    getOrphanRisks: () => apiClient.get("/hrms/organization/orphan-risks"),
+    reassignOrphans: (managerId: string, targetManagerId?: string) => {
+      const q = targetManagerId ? `?targetManagerId=${targetManagerId}` : "";
+      return apiClient.post(`/hrms/organization/orphan-risks/${managerId}/reassign-to-skip-level${q}`, {});
+    },
+    getDelegations: () => apiClient.get("/hrms/organization/delegations"),
+    delegateAuthority: (data: ApiPayload) => apiClient.post("/hrms/organization/delegations", data),
+    revokeDelegation: (employeeId: string) => apiClient.delete(`/hrms/organization/delegations/${employeeId}`),
   },
   me: () => apiClient.get("/employees/me"),
 };

@@ -1,6 +1,8 @@
+using System;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using UabIndia.Infrastructure.Data;
@@ -15,7 +17,40 @@ public static class MigrationBootstrap
 {
     private const string TenantsTable = "dbo.Tenants";
     private const string InitialCleanSchemaSql = "20260324190830_InitialCleanSchema.sql";
-    private const string ExtendedSchemaVersion = "20260826-global-v5";
+    private const string ExtendedSchemaVersion = "20260911-fld-wms-v7";
+
+    public static async Task EnsureDatabaseExistsAsync(
+        string? connectionString,
+        ILogger? logger = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(connectionString)) return;
+
+        try
+        {
+            var builder = new SqlConnectionStringBuilder(connectionString);
+            var targetDbName = builder.InitialCatalog;
+            if (string.IsNullOrWhiteSpace(targetDbName)) return;
+
+            builder.InitialCatalog = "master";
+            using var conn = new SqlConnection(builder.ConnectionString);
+            await conn.OpenAsync(cancellationToken);
+
+            using var cmd = conn.CreateCommand();
+            cmd.CommandTimeout = 180;
+            cmd.CommandText = $@"
+IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = N'{targetDbName.Replace("'", "''")}')
+BEGIN
+    CREATE DATABASE [{targetDbName.Replace("]", "]]")}];
+END";
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
+            logger?.LogInformation("Ensured physical database [{DbName}] exists on SQL Server.", targetDbName);
+        }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not verify physical database via master connection.");
+        }
+    }
 
     public static async Task EnsureInitialCleanSchemaAsync(
         ApplicationDbContext db,
@@ -23,17 +58,68 @@ public static class MigrationBootstrap
         CancellationToken cancellationToken = default)
     {
         var tenantsExists = await TenantsTableExistsAsync(db, cancellationToken);
-        if (tenantsExists)
+        if (!tenantsExists)
         {
-            return;
+            logger.LogWarning(
+                "Core schema ({Table}) is missing. Applying idempotent InitialCleanSchema SQL bootstrap.",
+                TenantsTable);
+
+            await MigrationSqlHelper.ExecuteSqlFileAsync(db, InitialCleanSchemaSql, cancellationToken);
+            logger.LogInformation("InitialCleanSchema SQL bootstrap completed.");
         }
 
-        logger.LogWarning(
-            "Core schema ({Table}) is missing. Applying idempotent InitialCleanSchema SQL bootstrap.",
-            TenantsTable);
+        await EnsureBaselineMigrationsRecordedAsync(db, logger, cancellationToken);
+    }
 
-        await MigrationSqlHelper.ExecuteSqlFileAsync(db, InitialCleanSchemaSql, cancellationToken);
-        logger.LogInformation("InitialCleanSchema SQL bootstrap completed.");
+    public static async Task EnsureBaselineMigrationsRecordedAsync(
+        ApplicationDbContext db,
+        ILogger? logger = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            const string createHistorySql = @"
+IF OBJECT_ID(N'[dbo].[__EFMigrationsHistory]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[__EFMigrationsHistory] (
+        [MigrationId] nvarchar(150) NOT NULL,
+        [ProductVersion] nvarchar(32) NOT NULL,
+        CONSTRAINT [PK___EFMigrationsHistory] PRIMARY KEY ([MigrationId])
+    );
+END;";
+            await db.Database.ExecuteSqlRawAsync(createHistorySql, cancellationToken);
+
+            var baselineMigrations = new[]
+            {
+                "20260127190639_Initial",
+                "20260128045923_AddRefreshTokenRotation",
+                "20260201161904_AddLeavePolicyRules",
+                "20260201170000_AddLeaveEnhancements",
+                "20260201180000_AddLeaveTypes",
+                "20260205175739_AddContactSubmissions",
+                "20260207090000_ExpandEncryptedCompanyFields",
+                "20260209190829_AddWorkflowTables_Minimal",
+                "20260324190830_InitialCleanSchema"
+            };
+
+            var productVersion = typeof(ApplicationDbContext).Assembly
+                .GetName()
+                .Version?
+                .ToString(3) ?? "8.0.0";
+
+            foreach (var m in baselineMigrations)
+            {
+                await db.Database.ExecuteSqlRawAsync(
+                    "IF NOT EXISTS (SELECT 1 FROM [dbo].[__EFMigrationsHistory] WHERE [MigrationId] = {0}) " +
+                    "INSERT INTO [dbo].[__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES ({0}, {1});",
+                    m, productVersion);
+            }
+            logger?.LogInformation("Baseline migrations verified in __EFMigrationsHistory.");
+        }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not record baseline migrations in __EFMigrationsHistory.");
+        }
     }
 
     public static async Task EnsureCriticalUserColumnsAsync(
@@ -76,6 +162,16 @@ BEGIN
         ALTER TABLE dbo.AuditLogs ADD ProjectId UNIQUEIDENTIFIER NULL;
     IF COL_LENGTH('dbo.AuditLogs', 'BusinessId') IS NULL
         ALTER TABLE dbo.AuditLogs ADD BusinessId NVARCHAR(100) NULL;
+    IF COL_LENGTH('dbo.AuditLogs', 'PrevHash') IS NULL
+        ALTER TABLE dbo.AuditLogs ADD PrevHash NVARCHAR(128) NULL;
+    IF COL_LENGTH('dbo.AuditLogs', 'Hash') IS NULL
+        ALTER TABLE dbo.AuditLogs ADD Hash NVARCHAR(128) NULL;
+END;
+
+IF OBJECT_ID(N'dbo.SalesInvoices', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.SalesInvoices', 'Status') IS NOT NULL AND (COL_LENGTH('dbo.SalesInvoices', 'Status') = -1 OR COL_LENGTH('dbo.SalesInvoices', 'Status') > 100)
+        ALTER TABLE dbo.SalesInvoices ALTER COLUMN [Status] NVARCHAR(50) NULL;
 END;
 
 IF OBJECT_ID(N'dbo.ApprovalRequests', N'U') IS NOT NULL
@@ -133,18 +229,18 @@ END;
         ILogger? logger = null,
         CancellationToken cancellationToken = default)
     {
+        if (await IsExtendedSchemaCurrentAsync(db, cancellationToken))
+        {
+            await EnsurePerformanceIndexesAsync(db, logger, cancellationToken);
+            await EnsureEnterprisePolicyTablesAsync(db, logger, cancellationToken);
+            logger?.LogInformation("Extended schema already current ({Version}); skipping column bootstrap.", ExtendedSchemaVersion);
+            return;
+        }
+
         await EnsureCriticalUserColumnsAsync(db, logger, cancellationToken);
         await EnsureSubscriptionTablesAsync(db, logger, cancellationToken);
         await EnsureOutboxMessagesTableAsync(db, logger, cancellationToken);
         await EnsureBusinessIdColumnsAsync(db, logger, cancellationToken);
-        await EnsureOrgScopeColumnsAsync(db, logger, cancellationToken);
-
-        if (await IsExtendedSchemaCurrentAsync(db, cancellationToken))
-        {
-            await EnsurePerformanceIndexesAsync(db, logger, cancellationToken);
-            logger?.LogInformation("Extended schema already current ({Version}); skipping column bootstrap.", ExtendedSchemaVersion);
-            return;
-        }
 
         logger?.LogInformation("Ensuring multi-tenancy and extended schema columns across all database tables…");
 
@@ -181,6 +277,8 @@ END;
 
             ("AuditLogs", "CompanyId", "IF OBJECT_ID(N'dbo.AuditLogs', N'U') IS NOT NULL AND COL_LENGTH('dbo.AuditLogs', 'CompanyId') IS NULL ALTER TABLE dbo.AuditLogs ADD CompanyId UNIQUEIDENTIFIER NULL"),
             ("AuditLogs", "ProjectId", "IF OBJECT_ID(N'dbo.AuditLogs', N'U') IS NOT NULL AND COL_LENGTH('dbo.AuditLogs', 'ProjectId') IS NULL ALTER TABLE dbo.AuditLogs ADD ProjectId UNIQUEIDENTIFIER NULL"),
+            ("AuditLogs", "PrevHash", "IF OBJECT_ID(N'dbo.AuditLogs', N'U') IS NOT NULL AND COL_LENGTH('dbo.AuditLogs', 'PrevHash') IS NULL ALTER TABLE dbo.AuditLogs ADD PrevHash NVARCHAR(128) NULL"),
+            ("AuditLogs", "Hash", "IF OBJECT_ID(N'dbo.AuditLogs', N'U') IS NOT NULL AND COL_LENGTH('dbo.AuditLogs', 'Hash') IS NULL ALTER TABLE dbo.AuditLogs ADD Hash NVARCHAR(128) NULL"),
 
             // Employees
             ("Employees", "CompanyId", "IF OBJECT_ID(N'dbo.Employees', N'U') IS NOT NULL AND COL_LENGTH('dbo.Employees', 'CompanyId') IS NULL ALTER TABLE dbo.Employees ADD CompanyId UNIQUEIDENTIFIER NULL"),
@@ -193,6 +291,11 @@ END;
             ("Employees", "BankIban", "IF OBJECT_ID(N'dbo.Employees', N'U') IS NOT NULL AND COL_LENGTH('dbo.Employees', 'BankIban') IS NULL ALTER TABLE dbo.Employees ADD BankIban NVARCHAR(100) NULL"),
             ("Employees", "BankSwiftCode", "IF OBJECT_ID(N'dbo.Employees', N'U') IS NOT NULL AND COL_LENGTH('dbo.Employees', 'BankSwiftCode') IS NULL ALTER TABLE dbo.Employees ADD BankSwiftCode NVARCHAR(50) NULL"),
             ("Employees", "CountrySpecificDataJson", "IF OBJECT_ID(N'dbo.Employees', N'U') IS NOT NULL AND COL_LENGTH('dbo.Employees', 'CountrySpecificDataJson') IS NULL ALTER TABLE dbo.Employees ADD CountrySpecificDataJson NVARCHAR(MAX) NOT NULL DEFAULT ''"),
+            ("Employees", "ActingManagerId", "IF OBJECT_ID(N'dbo.Employees', N'U') IS NOT NULL AND COL_LENGTH('dbo.Employees', 'ActingManagerId') IS NULL ALTER TABLE dbo.Employees ADD ActingManagerId UNIQUEIDENTIFIER NULL"),
+            ("Employees", "DelegationStartDate", "IF OBJECT_ID(N'dbo.Employees', N'U') IS NOT NULL AND COL_LENGTH('dbo.Employees', 'DelegationStartDate') IS NULL ALTER TABLE dbo.Employees ADD DelegationStartDate DATETIME2 NULL"),
+            ("Employees", "DelegationEndDate", "IF OBJECT_ID(N'dbo.Employees', N'U') IS NOT NULL AND COL_LENGTH('dbo.Employees', 'DelegationEndDate') IS NULL ALTER TABLE dbo.Employees ADD DelegationEndDate DATETIME2 NULL"),
+            ("Employees", "DelegationReason", "IF OBJECT_ID(N'dbo.Employees', N'U') IS NOT NULL AND COL_LENGTH('dbo.Employees', 'DelegationReason') IS NULL ALTER TABLE dbo.Employees ADD DelegationReason NVARCHAR(MAX) NULL"),
+            ("Employees", "IsOrganizationHead", "IF OBJECT_ID(N'dbo.Employees', N'U') IS NOT NULL AND COL_LENGTH('dbo.Employees', 'IsOrganizationHead') IS NULL ALTER TABLE dbo.Employees ADD IsOrganizationHead BIT NOT NULL DEFAULT 0"),
 
             // Projects
             ("Projects", "CompanyId", "IF OBJECT_ID(N'dbo.Projects', N'U') IS NOT NULL AND COL_LENGTH('dbo.Projects', 'CompanyId') IS NULL ALTER TABLE dbo.Projects ADD CompanyId UNIQUEIDENTIFIER NULL"),
@@ -301,6 +404,9 @@ END;
         await EnsureDiscountSchemesAsync(db, logger, cancellationToken);
         await EnsureOrgScopeColumnsAsync(db, logger, cancellationToken);
         await EnsureOrgScopeIndexesAsync(db, logger, cancellationToken);
+        await EnsureEnterprisePolicyTablesAsync(db, logger, cancellationToken);
+        await EnsureManufacturingAndFleetTablesAsync(db, logger, cancellationToken);
+        await EnsureFieldServiceWmsAndBudgetingTablesAsync(db, logger, cancellationToken);
         await MarkExtendedSchemaCurrentAsync(db, cancellationToken);
         logger?.LogInformation("Extended schema bootstrap complete ({Version}).", ExtendedSchemaVersion);
     }
@@ -325,7 +431,16 @@ END;
                     "SELECT CASE WHEN EXISTS (SELECT 1 FROM dbo.__SchemaBootstrap WHERE [Version] = {0}) THEN 1 ELSE 0 END AS [Value]",
                     ExtendedSchemaVersion)
                 .SingleAsync(cancellationToken);
-            return result == 1;
+            if (result != 1)
+            {
+                return false;
+            }
+
+            var columnsExist = await db.Database
+                .SqlQueryRaw<int>(
+                    "SELECT CASE WHEN COL_LENGTH('dbo.Tenants', 'CountryCode') IS NOT NULL AND COL_LENGTH('dbo.Tenants', 'CompanyId') IS NOT NULL AND COL_LENGTH('dbo.Users', 'CompanyId') IS NOT NULL THEN 1 ELSE 0 END AS [Value]")
+                .SingleAsync(cancellationToken);
+            return columnsExist == 1;
         }
         catch
         {
@@ -999,6 +1114,619 @@ END;
         catch (System.Exception ex)
         {
             logger?.LogWarning(ex, "Non-critical: could not create performance indexes.");
+        }
+    }
+
+    private static async Task EnsureEnterprisePolicyTablesAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        const string sql = @"
+IF OBJECT_ID(N'dbo.PolicyMasters', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.PolicyMasters (
+        [Id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+        [TenantId] UNIQUEIDENTIFIER NOT NULL,
+        [BusinessId] NVARCHAR(100) NULL,
+        [CreatedAt] DATETIME2 NOT NULL,
+        [UpdatedAt] DATETIME2 NULL,
+        [CreatedBy] UNIQUEIDENTIFIER NULL,
+        [IsDeleted] BIT NOT NULL DEFAULT 0,
+        [Code] NVARCHAR(100) NOT NULL,
+        [Name] NVARCHAR(200) NOT NULL,
+        [Category] NVARCHAR(100) NOT NULL,
+        [Description] NVARCHAR(MAX) NULL,
+        [IsMandatoryAcknowledgment] BIT NOT NULL DEFAULT 0,
+        [IsSystemCritical] BIT NOT NULL DEFAULT 0,
+        [Priority] INT NOT NULL DEFAULT 10,
+        [Status] NVARCHAR(50) NOT NULL DEFAULT 'Active'
+    );
+    CREATE NONCLUSTERED INDEX [IX_PolicyMasters_Tenant_Category]
+    ON dbo.PolicyMasters ([TenantId], [Category], [IsDeleted]);
+END;
+
+IF OBJECT_ID(N'dbo.PolicyVersions', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.PolicyVersions (
+        [Id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+        [TenantId] UNIQUEIDENTIFIER NOT NULL,
+        [BusinessId] NVARCHAR(100) NULL,
+        [CreatedAt] DATETIME2 NOT NULL,
+        [UpdatedAt] DATETIME2 NULL,
+        [CreatedBy] UNIQUEIDENTIFIER NULL,
+        [IsDeleted] BIT NOT NULL DEFAULT 0,
+        [PolicyMasterId] UNIQUEIDENTIFIER NOT NULL,
+        [Version] NVARCHAR(50) NOT NULL,
+        [EffectiveFrom] DATETIME2 NOT NULL,
+        [EffectiveTo] DATETIME2 NULL,
+        [Status] NVARCHAR(50) NOT NULL DEFAULT 'Active',
+        [ChangeLogReason] NVARCHAR(MAX) NULL,
+        [AuthorName] NVARCHAR(200) NULL,
+        [ApprovedByName] NVARCHAR(200) NULL,
+        [ApprovedAt] DATETIME2 NULL,
+        [ApplicabilityJson] NVARCHAR(MAX) NULL,
+        [RuleConfigJson] NVARCHAR(MAX) NULL,
+        [ApprovalWorkflowJson] NVARCHAR(MAX) NULL,
+        CONSTRAINT [FK_PolicyVersions_PolicyMasters_PolicyMasterId] FOREIGN KEY ([PolicyMasterId]) REFERENCES dbo.PolicyMasters ([Id]) ON DELETE CASCADE
+    );
+    CREATE NONCLUSTERED INDEX [IX_PolicyVersions_PolicyMasterId]
+    ON dbo.PolicyVersions ([PolicyMasterId], [Status]);
+END;
+
+IF OBJECT_ID(N'dbo.AttendancePolicies', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.AttendancePolicies (
+        [Id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+        [TenantId] UNIQUEIDENTIFIER NOT NULL,
+        [BusinessId] NVARCHAR(100) NULL,
+        [CreatedAt] DATETIME2 NOT NULL,
+        [UpdatedAt] DATETIME2 NULL,
+        [CreatedBy] UNIQUEIDENTIFIER NULL,
+        [IsDeleted] BIT NOT NULL DEFAULT 0,
+        [Name] NVARCHAR(200) NOT NULL,
+        [Description] NVARCHAR(MAX) NULL,
+        [IsDefault] BIT NOT NULL DEFAULT 0,
+        [StandardShiftHours] DECIMAL(5,2) NOT NULL DEFAULT 8.0,
+        [MinHalfDayHours] DECIMAL(5,2) NOT NULL DEFAULT 4.0,
+        [GracePeriodMinutes] INT NOT NULL DEFAULT 15,
+        [OvertimeThresholdHours] DECIMAL(5,2) NOT NULL DEFAULT 8.0,
+        [MaxContinuousHours] DECIMAL(5,2) NOT NULL DEFAULT 16.0,
+        [AutoDeductBreakMinutes] INT NOT NULL DEFAULT 60,
+        [RequireGeofence] BIT NOT NULL DEFAULT 0,
+        [AllowedRadiusMeters] INT NULL DEFAULT 250,
+        [RequireFacialVerification] BIT NOT NULL DEFAULT 0,
+        [MinFacialConfidenceScore] INT NULL DEFAULT 75,
+        [AllowManualRegularization] BIT NOT NULL DEFAULT 1,
+        [MaxRegularizationsPerMonth] INT NULL DEFAULT 3,
+        [Status] NVARCHAR(50) NOT NULL DEFAULT 'Active',
+        [CompanyId] UNIQUEIDENTIFIER NULL
+    );
+    CREATE NONCLUSTERED INDEX [IX_AttendancePolicies_Tenant_Default]
+    ON dbo.AttendancePolicies ([TenantId], [IsDefault], [IsDeleted]);
+END;
+
+IF OBJECT_ID(N'dbo.PayrollPolicies', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.PayrollPolicies (
+        [Id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+        [TenantId] UNIQUEIDENTIFIER NOT NULL,
+        [BusinessId] NVARCHAR(100) NULL,
+        [CreatedAt] DATETIME2 NOT NULL,
+        [UpdatedAt] DATETIME2 NULL,
+        [CreatedBy] UNIQUEIDENTIFIER NULL,
+        [IsDeleted] BIT NOT NULL DEFAULT 0,
+        [Name] NVARCHAR(200) NOT NULL,
+        [Description] NVARCHAR(MAX) NULL,
+        [IsDefault] BIT NOT NULL DEFAULT 0,
+        [PayCycle] NVARCHAR(50) NOT NULL DEFAULT 'CalendarMonth',
+        [BasicPercentageOfGross] DECIMAL(5,2) NOT NULL DEFAULT 50.0,
+        [HraPercentageOfBasic] DECIMAL(5,2) NOT NULL DEFAULT 40.0,
+        [PfCalculationBasis] NVARCHAR(50) NOT NULL DEFAULT 'StatutoryWageCeiling',
+        [PfWageCeiling] DECIMAL(18,2) NOT NULL DEFAULT 15000.0,
+        [PfEmployeeRate] DECIMAL(5,2) NOT NULL DEFAULT 12.0,
+        [PfEmployerRate] DECIMAL(5,2) NOT NULL DEFAULT 12.0,
+        [IsEsiEnabled] BIT NOT NULL DEFAULT 1,
+        [EsiWageCeiling] DECIMAL(18,2) NOT NULL DEFAULT 21000.0,
+        [EsiEmployeeRate] DECIMAL(5,2) NOT NULL DEFAULT 0.75,
+        [EsiEmployerRate] DECIMAL(5,2) NOT NULL DEFAULT 3.25,
+        [ProfessionalTaxMonthly] DECIMAL(18,2) NOT NULL DEFAULT 200.0,
+        [PayDayOfMonth] INT NOT NULL DEFAULT 1,
+        [AllowNegativeTakeHome] BIT NOT NULL DEFAULT 0,
+        [CompanyId] UNIQUEIDENTIFIER NULL,
+        [Status] NVARCHAR(50) NOT NULL DEFAULT 'Active'
+    );
+    CREATE NONCLUSTERED INDEX [IX_PayrollPolicies_Tenant_Default]
+    ON dbo.PayrollPolicies ([TenantId], [IsDefault], [IsDeleted]);
+END;
+
+IF OBJECT_ID(N'dbo.TravelExpensePolicies', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.TravelExpensePolicies (
+        [Id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+        [TenantId] UNIQUEIDENTIFIER NOT NULL,
+        [BusinessId] NVARCHAR(100) NULL,
+        [CreatedAt] DATETIME2 NOT NULL,
+        [UpdatedAt] DATETIME2 NULL,
+        [CreatedBy] UNIQUEIDENTIFIER NULL,
+        [IsDeleted] BIT NOT NULL DEFAULT 0,
+        [Name] NVARCHAR(200) NOT NULL,
+        [Description] NVARCHAR(MAX) NULL,
+        [IsDefault] BIT NOT NULL DEFAULT 0,
+        [MaxDailyLodgingAllowance] DECIMAL(18,2) NOT NULL DEFAULT 3500.0,
+        [MaxDailyMealsAllowance] DECIMAL(18,2) NOT NULL DEFAULT 800.0,
+        [MileageRatePerKmCar] DECIMAL(5,2) NOT NULL DEFAULT 12.0,
+        [MileageRatePerKmBike] DECIMAL(5,2) NOT NULL DEFAULT 6.0,
+        [RequiresAdvanceApproval] BIT NOT NULL DEFAULT 1,
+        [ApprovalThresholdAmount] DECIMAL(18,2) NOT NULL DEFAULT 5000.0,
+        [MaxAdvancePercentage] DECIMAL(5,2) NOT NULL DEFAULT 80.0,
+        [ReceiptRequiredAboveAmount] DECIMAL(18,2) NOT NULL DEFAULT 200.0,
+        [ExpenseSubmissionWindowDays] INT NOT NULL DEFAULT 15,
+        [CompanyId] UNIQUEIDENTIFIER NULL,
+        [Status] NVARCHAR(50) NOT NULL DEFAULT 'Active'
+    );
+    CREATE NONCLUSTERED INDEX [IX_TravelExpensePolicies_Tenant_Default]
+    ON dbo.TravelExpensePolicies ([TenantId], [IsDefault], [IsDeleted]);
+END;
+
+IF OBJECT_ID(N'dbo.ProbationPolicies', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.ProbationPolicies (
+        [Id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+        [TenantId] UNIQUEIDENTIFIER NOT NULL,
+        [BusinessId] NVARCHAR(100) NULL,
+        [CreatedAt] DATETIME2 NOT NULL,
+        [UpdatedAt] DATETIME2 NULL,
+        [CreatedBy] UNIQUEIDENTIFIER NULL,
+        [IsDeleted] BIT NOT NULL DEFAULT 0,
+        [Name] NVARCHAR(200) NOT NULL,
+        [Description] NVARCHAR(MAX) NULL,
+        [IsDefault] BIT NOT NULL DEFAULT 0,
+        [DefaultProbationMonths] INT NOT NULL DEFAULT 3,
+        [MaxExtensionMonths] INT NOT NULL DEFAULT 3,
+        [NoticePeriodDaysProbation] INT NOT NULL DEFAULT 15,
+        [NoticePeriodDaysConfirmed] INT NOT NULL DEFAULT 60,
+        [EvaluationReminderDaysBeforeEnd] INT NOT NULL DEFAULT 15,
+        [RequiresManagerReview] BIT NOT NULL DEFAULT 1,
+        [RequiresHodApproval] BIT NOT NULL DEFAULT 1,
+        [AutoConfirmationAllowed] BIT NOT NULL DEFAULT 0,
+        [MinimumReviewScoreForConfirmation] INT NOT NULL DEFAULT 70,
+        [CompanyId] UNIQUEIDENTIFIER NULL,
+        [ProjectId] UNIQUEIDENTIFIER NULL,
+        [Status] NVARCHAR(50) NOT NULL DEFAULT 'Active'
+    );
+    CREATE NONCLUSTERED INDEX [IX_ProbationPolicies_Tenant_Default]
+    ON dbo.ProbationPolicies ([TenantId], [IsDefault], [IsDeleted]);
+END;
+
+IF OBJECT_ID(N'dbo.PolicyRuleDefinitions', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.PolicyRuleDefinitions (
+        [Id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+        [TenantId] UNIQUEIDENTIFIER NOT NULL,
+        [BusinessId] NVARCHAR(100) NULL,
+        [CreatedAt] DATETIME2 NOT NULL,
+        [UpdatedAt] DATETIME2 NULL,
+        [CreatedBy] UNIQUEIDENTIFIER NULL,
+        [IsDeleted] BIT NOT NULL DEFAULT 0,
+        [CompanyId] UNIQUEIDENTIFIER NULL,
+        [ProjectId] UNIQUEIDENTIFIER NULL,
+        [Category] NVARCHAR(100) NOT NULL,
+        [PolicyCode] NVARCHAR(100) NOT NULL,
+        [FieldKey] NVARCHAR(100) NOT NULL,
+        [FieldLabel] NVARCHAR(200) NOT NULL,
+        [FieldType] NVARCHAR(50) NOT NULL DEFAULT 'text',
+        [Section] NVARCHAR(100) NOT NULL DEFAULT 'General',
+        [DefaultValue] NVARCHAR(MAX) NOT NULL DEFAULT '',
+        [MinValue] DECIMAL(18,4) NULL,
+        [MaxValue] DECIMAL(18,4) NULL,
+        [Step] DECIMAL(18,4) NULL,
+        [Unit] NVARCHAR(50) NULL,
+        [OptionsJson] NVARCHAR(MAX) NULL,
+        [HelpText] NVARCHAR(MAX) NULL,
+        [IsRequired] BIT NOT NULL DEFAULT 1,
+        [IsVisible] BIT NOT NULL DEFAULT 1,
+        [IsReadOnly] BIT NOT NULL DEFAULT 0,
+        [DisplayOrder] INT NOT NULL DEFAULT 0,
+        [Status] NVARCHAR(50) NOT NULL DEFAULT 'Active'
+    );
+    CREATE NONCLUSTERED INDEX [IX_PolicyRuleDefinitions_Tenant_Cat_Comp_Proj]
+    ON dbo.PolicyRuleDefinitions ([TenantId], [Category], [CompanyId], [ProjectId], [IsDeleted]);
+END;
+
+-- Ensure CompanyId and ProjectId across all policy and structure tables
+IF OBJECT_ID(N'dbo.AttendancePolicies', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.AttendancePolicies', 'CompanyId') IS NULL
+        ALTER TABLE dbo.AttendancePolicies ADD CompanyId UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('dbo.AttendancePolicies', 'BranchId') IS NULL
+        ALTER TABLE dbo.AttendancePolicies ADD BranchId UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('dbo.AttendancePolicies', 'ProjectId') IS NULL
+        ALTER TABLE dbo.AttendancePolicies ADD ProjectId UNIQUEIDENTIFIER NULL;
+END;
+
+IF OBJECT_ID(N'dbo.PayrollPolicies', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.PayrollPolicies', 'CompanyId') IS NULL
+        ALTER TABLE dbo.PayrollPolicies ADD CompanyId UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('dbo.PayrollPolicies', 'ProjectId') IS NULL
+        ALTER TABLE dbo.PayrollPolicies ADD ProjectId UNIQUEIDENTIFIER NULL;
+END;
+
+IF OBJECT_ID(N'dbo.TravelExpensePolicies', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.TravelExpensePolicies', 'CompanyId') IS NULL
+        ALTER TABLE dbo.TravelExpensePolicies ADD CompanyId UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('dbo.TravelExpensePolicies', 'ProjectId') IS NULL
+        ALTER TABLE dbo.TravelExpensePolicies ADD ProjectId UNIQUEIDENTIFIER NULL;
+END;
+
+IF OBJECT_ID(N'dbo.ProbationPolicies', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.ProbationPolicies', 'CompanyId') IS NULL
+        ALTER TABLE dbo.ProbationPolicies ADD CompanyId UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('dbo.ProbationPolicies', 'ProjectId') IS NULL
+        ALTER TABLE dbo.ProbationPolicies ADD ProjectId UNIQUEIDENTIFIER NULL;
+END;
+
+IF OBJECT_ID(N'dbo.LeavePolicies', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.LeavePolicies', 'CompanyId') IS NULL
+        ALTER TABLE dbo.LeavePolicies ADD CompanyId UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('dbo.LeavePolicies', 'ProjectId') IS NULL
+        ALTER TABLE dbo.LeavePolicies ADD ProjectId UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('dbo.LeavePolicies', 'DepartmentId') IS NULL
+        ALTER TABLE dbo.LeavePolicies ADD DepartmentId UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('dbo.LeavePolicies', 'Description') IS NULL
+        ALTER TABLE dbo.LeavePolicies ADD Description NVARCHAR(MAX) NULL;
+    IF COL_LENGTH('dbo.LeavePolicies', 'IsDefault') IS NULL
+        ALTER TABLE dbo.LeavePolicies ADD IsDefault BIT NOT NULL DEFAULT 0;
+    IF COL_LENGTH('dbo.LeavePolicies', 'Status') IS NULL
+        ALTER TABLE dbo.LeavePolicies ADD Status NVARCHAR(50) NOT NULL DEFAULT 'Active';
+END;
+
+IF OBJECT_ID(N'dbo.PayrollStructures', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.PayrollStructures', 'CompanyId') IS NULL
+        ALTER TABLE dbo.PayrollStructures ADD CompanyId UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('dbo.PayrollStructures', 'ProjectId') IS NULL
+        ALTER TABLE dbo.PayrollStructures ADD ProjectId UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('dbo.PayrollStructures', 'Description') IS NULL
+        ALTER TABLE dbo.PayrollStructures ADD Description NVARCHAR(MAX) NULL;
+    IF COL_LENGTH('dbo.PayrollStructures', 'IsDefault') IS NULL
+        ALTER TABLE dbo.PayrollStructures ADD IsDefault BIT NOT NULL DEFAULT 0;
+END;
+";
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+            logger?.LogInformation("Ensured physical database tables for PolicyMasters, PolicyVersions, AttendancePolicies, PayrollPolicies, TravelExpensePolicies, ProbationPolicies, and PolicyRuleDefinitions.");
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure enterprise policy tables (may already exist).");
+        }
+    }
+
+    private static async Task EnsureManufacturingAndFleetTablesAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        const string sql = @"
+IF OBJECT_ID(N'[dbo].[WorkOrders]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[WorkOrders] (
+        [Id] uniqueidentifier NOT NULL PRIMARY KEY,
+        [TenantId] uniqueidentifier NOT NULL,
+        [BusinessId] nvarchar(100) NULL,
+        [WorkOrderNumber] nvarchar(100) NOT NULL,
+        [ItemId] uniqueidentifier NOT NULL,
+        [TargetQuantity] decimal(18, 4) NOT NULL DEFAULT 1,
+        [ProducedQuantity] decimal(18, 4) NOT NULL DEFAULT 0,
+        [ScrappedQuantity] decimal(18, 4) NOT NULL DEFAULT 0,
+        [Status] nvarchar(50) NOT NULL DEFAULT 'Draft',
+        [StartDate] datetime2 NOT NULL,
+        [DueDate] datetime2 NOT NULL,
+        [QualityInspectionPassed] bit NOT NULL DEFAULT 0,
+        [QualityNotes] nvarchar(max) NULL,
+        [CreatedAt] datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        [UpdatedAt] datetime2 NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [IsDeleted] bit NOT NULL DEFAULT 0
+    );
+    CREATE INDEX [IX_WorkOrders_TenantId] ON [dbo].[WorkOrders]([TenantId]);
+    CREATE INDEX [IX_WorkOrders_WorkOrderNumber] ON [dbo].[WorkOrders]([WorkOrderNumber]);
+END;
+
+IF OBJECT_ID(N'[dbo].[WorkOrderOperations]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[WorkOrderOperations] (
+        [Id] uniqueidentifier NOT NULL PRIMARY KEY,
+        [TenantId] uniqueidentifier NOT NULL,
+        [BusinessId] nvarchar(100) NULL,
+        [WorkOrderId] uniqueidentifier NOT NULL,
+        [Sequence] int NOT NULL DEFAULT 10,
+        [OperationName] nvarchar(200) NOT NULL,
+        [WorkstationName] nvarchar(200) NOT NULL,
+        [Status] nvarchar(50) NOT NULL DEFAULT 'Pending',
+        [PlannedHours] decimal(18, 2) NOT NULL DEFAULT 1,
+        [ActualHours] decimal(18, 2) NOT NULL DEFAULT 0,
+        [OperatorName] nvarchar(200) NULL,
+        [CompletedAt] datetime2 NULL,
+        [CreatedAt] datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        [UpdatedAt] datetime2 NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [IsDeleted] bit NOT NULL DEFAULT 0,
+        CONSTRAINT [FK_WorkOrderOperations_WorkOrders] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrders]([Id]) ON DELETE CASCADE
+    );
+    CREATE INDEX [IX_WorkOrderOperations_WorkOrderId] ON [dbo].[WorkOrderOperations]([WorkOrderId]);
+    CREATE INDEX [IX_WorkOrderOperations_TenantId] ON [dbo].[WorkOrderOperations]([TenantId]);
+END;
+
+IF OBJECT_ID(N'[dbo].[BillsOfMaterial]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[BillsOfMaterial] (
+        [Id] uniqueidentifier NOT NULL PRIMARY KEY,
+        [TenantId] uniqueidentifier NOT NULL,
+        [BusinessId] nvarchar(100) NULL,
+        [ParentItemId] uniqueidentifier NOT NULL,
+        [BomCode] nvarchar(100) NOT NULL,
+        [BomName] nvarchar(200) NOT NULL,
+        [Revision] nvarchar(50) NOT NULL DEFAULT '1.0',
+        [IsActive] bit NOT NULL DEFAULT 1,
+        [CreatedAt] datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        [UpdatedAt] datetime2 NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [IsDeleted] bit NOT NULL DEFAULT 0
+    );
+    CREATE INDEX [IX_BillsOfMaterial_TenantId] ON [dbo].[BillsOfMaterial]([TenantId]);
+    CREATE INDEX [IX_BillsOfMaterial_ParentItemId] ON [dbo].[BillsOfMaterial]([ParentItemId]);
+END;
+
+IF OBJECT_ID(N'[dbo].[BomItems]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[BomItems] (
+        [Id] uniqueidentifier NOT NULL PRIMARY KEY,
+        [TenantId] uniqueidentifier NOT NULL,
+        [BusinessId] nvarchar(100) NULL,
+        [BomId] uniqueidentifier NOT NULL,
+        [ComponentItemId] uniqueidentifier NOT NULL,
+        [Quantity] decimal(18, 4) NOT NULL DEFAULT 1,
+        [UnitOfMeasure] nvarchar(50) NOT NULL DEFAULT 'Nos',
+        [ScrapFactor] decimal(18, 4) NOT NULL DEFAULT 0,
+        [CreatedAt] datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        [UpdatedAt] datetime2 NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [IsDeleted] bit NOT NULL DEFAULT 0,
+        CONSTRAINT [FK_BomItems_BillsOfMaterial] FOREIGN KEY ([BomId]) REFERENCES [dbo].[BillsOfMaterial]([Id]) ON DELETE CASCADE
+    );
+    CREATE INDEX [IX_BomItems_BomId] ON [dbo].[BomItems]([BomId]);
+    CREATE INDEX [IX_BomItems_TenantId] ON [dbo].[BomItems]([TenantId]);
+END;
+
+IF OBJECT_ID(N'[dbo].[FleetVehicles]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[FleetVehicles] (
+        [Id] uniqueidentifier NOT NULL PRIMARY KEY,
+        [TenantId] uniqueidentifier NOT NULL,
+        [BusinessId] nvarchar(100) NULL,
+        [VehicleNumber] nvarchar(100) NOT NULL,
+        [Make] nvarchar(100) NOT NULL,
+        [Model] nvarchar(100) NOT NULL,
+        [Year] int NOT NULL DEFAULT 2026,
+        [Vin] nvarchar(100) NULL,
+        [AssetId] uniqueidentifier NULL,
+        [Status] nvarchar(50) NOT NULL DEFAULT 'Active',
+        [FuelType] nvarchar(50) NOT NULL DEFAULT 'Diesel',
+        [CurrentOdometer] decimal(18, 2) NOT NULL DEFAULT 0,
+        [AssignedDriverId] uniqueidentifier NULL,
+        [AssignedDriverName] nvarchar(200) NULL,
+        [InsuranceExpiryDate] datetime2 NULL,
+        [NextServiceDate] datetime2 NULL,
+        [CreatedAt] datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        [UpdatedAt] datetime2 NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [IsDeleted] bit NOT NULL DEFAULT 0
+    );
+    CREATE INDEX [IX_FleetVehicles_TenantId] ON [dbo].[FleetVehicles]([TenantId]);
+    CREATE INDEX [IX_FleetVehicles_VehicleNumber] ON [dbo].[FleetVehicles]([VehicleNumber]);
+END;
+
+IF OBJECT_ID(N'[dbo].[FleetMaintenances]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[FleetMaintenances] (
+        [Id] uniqueidentifier NOT NULL PRIMARY KEY,
+        [TenantId] uniqueidentifier NOT NULL,
+        [BusinessId] nvarchar(100) NULL,
+        [VehicleId] uniqueidentifier NOT NULL,
+        [ServiceDate] datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        [ServiceType] nvarchar(100) NOT NULL DEFAULT 'Routine',
+        [Odometer] decimal(18, 2) NOT NULL DEFAULT 0,
+        [Cost] decimal(18, 2) NOT NULL DEFAULT 0,
+        [VendorName] nvarchar(200) NULL,
+        [Notes] nvarchar(max) NULL,
+        [Status] nvarchar(50) NOT NULL DEFAULT 'Completed',
+        [CreatedAt] datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        [UpdatedAt] datetime2 NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [IsDeleted] bit NOT NULL DEFAULT 0,
+        CONSTRAINT [FK_FleetMaintenances_FleetVehicles] FOREIGN KEY ([VehicleId]) REFERENCES [dbo].[FleetVehicles]([Id]) ON DELETE CASCADE
+    );
+    CREATE INDEX [IX_FleetMaintenances_VehicleId] ON [dbo].[FleetMaintenances]([VehicleId]);
+    CREATE INDEX [IX_FleetMaintenances_TenantId] ON [dbo].[FleetMaintenances]([TenantId]);
+END;
+
+IF OBJECT_ID(N'[dbo].[FleetFuelLogs]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[FleetFuelLogs] (
+        [Id] uniqueidentifier NOT NULL PRIMARY KEY,
+        [TenantId] uniqueidentifier NOT NULL,
+        [BusinessId] nvarchar(100) NULL,
+        [VehicleId] uniqueidentifier NOT NULL,
+        [LogDate] datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        [Odometer] decimal(18, 2) NOT NULL DEFAULT 0,
+        [Liters] decimal(18, 2) NOT NULL DEFAULT 0,
+        [TotalCost] decimal(18, 2) NOT NULL DEFAULT 0,
+        [FuelStation] nvarchar(200) NULL,
+        [ReceiptNumber] nvarchar(100) NULL,
+        [CreatedAt] datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        [UpdatedAt] datetime2 NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [IsDeleted] bit NOT NULL DEFAULT 0,
+        CONSTRAINT [FK_FleetFuelLogs_FleetVehicles] FOREIGN KEY ([VehicleId]) REFERENCES [dbo].[FleetVehicles]([Id]) ON DELETE CASCADE
+    );
+    CREATE INDEX [IX_FleetFuelLogs_VehicleId] ON [dbo].[FleetFuelLogs]([VehicleId]);
+    CREATE INDEX [IX_FleetFuelLogs_TenantId] ON [dbo].[FleetFuelLogs]([TenantId]);
+END;
+";
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+            logger?.LogInformation("Ensured physical database tables for WorkOrders, WorkOrderOperations, BillsOfMaterial, BomItems, FleetVehicles, FleetMaintenances, and FleetFuelLogs.");
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure Manufacturing and Fleet tables (may already exist).");
+        }
+    }
+
+    private static async Task EnsureFieldServiceWmsAndBudgetingTablesAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        const string sql = @"
+IF OBJECT_ID(N'[dbo].[FieldServiceTickets]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[FieldServiceTickets] (
+        [Id] uniqueidentifier NOT NULL PRIMARY KEY,
+        [TenantId] uniqueidentifier NOT NULL,
+        [BusinessId] nvarchar(100) NULL,
+        [TicketNumber] nvarchar(100) NOT NULL,
+        [CustomerId] uniqueidentifier NULL,
+        [CustomerName] nvarchar(200) NOT NULL,
+        [ServiceAddress] nvarchar(500) NOT NULL,
+        [Priority] nvarchar(50) NOT NULL DEFAULT 'High',
+        [Status] nvarchar(50) NOT NULL DEFAULT 'Dispatched',
+        [ScheduledDate] datetime2 NOT NULL,
+        [AssignedTechnicianName] nvarchar(200) NOT NULL,
+        [AssignedTechnicianPhone] nvarchar(50) NOT NULL,
+        [IssueDescription] nvarchar(max) NOT NULL,
+        [ResolutionNotes] nvarchar(max) NULL,
+        [CustomerSignatureName] nvarchar(200) NULL,
+        [CompletedAt] datetime2 NULL,
+        [CreatedAt] datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        [UpdatedAt] datetime2 NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [IsDeleted] bit NOT NULL DEFAULT 0
+    );
+    CREATE INDEX [IX_FieldServiceTickets_TenantId] ON [dbo].[FieldServiceTickets]([TenantId]);
+    CREATE INDEX [IX_FieldServiceTickets_TicketNumber] ON [dbo].[FieldServiceTickets]([TicketNumber]);
+END;
+
+IF OBJECT_ID(N'[dbo].[FieldServiceTechnicians]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[FieldServiceTechnicians] (
+        [Id] uniqueidentifier NOT NULL PRIMARY KEY,
+        [TenantId] uniqueidentifier NOT NULL,
+        [BusinessId] nvarchar(100) NULL,
+        [Name] nvarchar(200) NOT NULL,
+        [Phone] nvarchar(50) NOT NULL,
+        [Email] nvarchar(200) NOT NULL,
+        [Specialty] nvarchar(200) NOT NULL DEFAULT 'General Systems',
+        [IsAvailable] bit NOT NULL DEFAULT 1,
+        [CurrentLatitude] decimal(10, 7) NULL,
+        [CurrentLongitude] decimal(10, 7) NULL,
+        [CreatedAt] datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        [UpdatedAt] datetime2 NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [IsDeleted] bit NOT NULL DEFAULT 0
+    );
+    CREATE INDEX [IX_FieldServiceTechnicians_TenantId] ON [dbo].[FieldServiceTechnicians]([TenantId]);
+END;
+
+IF OBJECT_ID(N'[dbo].[WarehouseBins]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[WarehouseBins] (
+        [Id] uniqueidentifier NOT NULL PRIMARY KEY,
+        [TenantId] uniqueidentifier NOT NULL,
+        [BusinessId] nvarchar(100) NULL,
+        [WarehouseId] uniqueidentifier NOT NULL,
+        [BinCode] nvarchar(100) NOT NULL,
+        [ZoneCode] nvarchar(50) NOT NULL DEFAULT 'Zone-A',
+        [AisleNumber] nvarchar(50) NOT NULL DEFAULT 'Aisle-01',
+        [RackNumber] nvarchar(50) NOT NULL DEFAULT 'Rack-01',
+        [ShelfLevel] nvarchar(50) NOT NULL DEFAULT 'Level-1',
+        [MaxWeightCapacityKg] decimal(18, 2) NOT NULL DEFAULT 1000,
+        [CurrentWeightKg] decimal(18, 2) NOT NULL DEFAULT 0,
+        [MaxVolumeCapacityCbm] decimal(18, 2) NOT NULL DEFAULT 5,
+        [CurrentVolumeCbm] decimal(18, 2) NOT NULL DEFAULT 0,
+        [Status] nvarchar(50) NOT NULL DEFAULT 'Available',
+        [CreatedAt] datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        [UpdatedAt] datetime2 NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [IsDeleted] bit NOT NULL DEFAULT 0
+    );
+    CREATE INDEX [IX_WarehouseBins_TenantId] ON [dbo].[WarehouseBins]([TenantId]);
+    CREATE INDEX [IX_WarehouseBins_WarehouseId] ON [dbo].[WarehouseBins]([WarehouseId]);
+    CREATE INDEX [IX_WarehouseBins_BinCode] ON [dbo].[WarehouseBins]([BinCode]);
+END;
+
+IF OBJECT_ID(N'[dbo].[CostCenterBudgets]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[CostCenterBudgets] (
+        [Id] uniqueidentifier NOT NULL PRIMARY KEY,
+        [TenantId] uniqueidentifier NOT NULL,
+        [BusinessId] nvarchar(100) NULL,
+        [CostCenterId] uniqueidentifier NOT NULL,
+        [FiscalYear] int NOT NULL DEFAULT 2026,
+        [AllocatedBudget] decimal(18, 2) NOT NULL DEFAULT 0,
+        [ActualSpent] decimal(18, 2) NOT NULL DEFAULT 0,
+        [CommittedAmount] decimal(18, 2) NOT NULL DEFAULT 0,
+        [Notes] nvarchar(max) NULL,
+        [CreatedAt] datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        [UpdatedAt] datetime2 NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [IsDeleted] bit NOT NULL DEFAULT 0
+    );
+    CREATE INDEX [IX_CostCenterBudgets_TenantId] ON [dbo].[CostCenterBudgets]([TenantId]);
+    CREATE INDEX [IX_CostCenterBudgets_CostCenterId] ON [dbo].[CostCenterBudgets]([CostCenterId]);
+END;
+
+IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Employees' AND COLUMN_NAME = 'Phone' AND CHARACTER_MAXIMUM_LENGTH < 256)
+BEGIN
+    ALTER TABLE [dbo].[Employees] ALTER COLUMN [Phone] NVARCHAR(256) NULL;
+END;
+IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Employees' AND COLUMN_NAME = 'AlternatePhone' AND CHARACTER_MAXIMUM_LENGTH < 256)
+BEGIN
+    ALTER TABLE [dbo].[Employees] ALTER COLUMN [AlternatePhone] NVARCHAR(256) NULL;
+END;
+IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Employees' AND COLUMN_NAME = 'Pan' AND CHARACTER_MAXIMUM_LENGTH < 256)
+BEGIN
+    ALTER TABLE [dbo].[Employees] ALTER COLUMN [Pan] NVARCHAR(256) NULL;
+END;
+IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Employees' AND COLUMN_NAME = 'Aadhaar' AND CHARACTER_MAXIMUM_LENGTH < 256)
+BEGIN
+    ALTER TABLE [dbo].[Employees] ALTER COLUMN [Aadhaar] NVARCHAR(256) NULL;
+END;
+IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Employees' AND COLUMN_NAME = 'BankAccountNumber' AND CHARACTER_MAXIMUM_LENGTH < 256)
+BEGIN
+    ALTER TABLE [dbo].[Employees] ALTER COLUMN [BankAccountNumber] NVARCHAR(256) NULL;
+END;
+IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Employees' AND COLUMN_NAME = 'BankIfsc' AND CHARACTER_MAXIMUM_LENGTH < 256)
+BEGIN
+    ALTER TABLE [dbo].[Employees] ALTER COLUMN [BankIfsc] NVARCHAR(256) NULL;
+END;
+";
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+            logger?.LogInformation("Ensured physical database tables for FieldServiceTickets, FieldServiceTechnicians, WarehouseBins, and CostCenterBudgets.");
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure Field Service, WMS, and Budgeting tables (may already exist).");
         }
     }
 

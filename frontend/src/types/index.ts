@@ -446,6 +446,21 @@ export interface Employee {
   managerName?: string;
   employmentType?: string;
   workLocation?: string;
+  city?: string;
+  state?: string;
+  workEmail?: string;
+  personalEmail?: string;
+  dateOfJoining?: string;
+  pan?: string;
+  uan?: string;
+  aadhaar?: string;
+  esiNumber?: string;
+  pfNumber?: string;
+  bankName?: string;
+  bankIfsc?: string;
+  bankAccountNumber?: string;
+  monthlyCtc?: number;
+  basicSalary?: number;
   createdAt?: string;
   updatedAt?: string;
 }

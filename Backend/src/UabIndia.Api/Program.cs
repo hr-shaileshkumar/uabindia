@@ -147,6 +147,13 @@ builder.Services.Configure<FormOptions>(options =>
     options.MultipartHeadersLengthLimit = 32 * 1024; // 32 KB
 });
 
+// Ensure physical database exists on SQL server before EF Core and Hangfire boot
+var defaultConnStr = configuration.GetConnectionString("DefaultConnection");
+if (!string.IsNullOrEmpty(defaultConnStr))
+{
+    UabIndia.Infrastructure.Data.Migrations.MigrationBootstrap.EnsureDatabaseExistsAsync(defaultConnStr).GetAwaiter().GetResult();
+}
+
 // Modular Enterprise Services Extensions
 builder.Services.AddEnterprisePersistence(configuration, env);
 builder.Services.AddEnterpriseCaching(configuration);
@@ -156,8 +163,10 @@ builder.Services.AddEnterpriseBackgroundJobs(configuration, env);
 builder.Services.AddEnterpriseBusinessServices();
 builder.Services.AddScoped<IBillingService, BillingService>();
 builder.Services.AddScoped<IQueryAnalyzer, QueryAnalyzer>();
-builder.Services.AddSingleton<IAuditLog, AuditLogService>();
-builder.Services.AddSingleton<IPlatformMetrics, PlatformMetrics>();
+builder.Services.AddScoped<IAuditLog, AuditLogService>();
+builder.Services.AddSingleton<SystemMetrics>();
+builder.Services.AddSingleton<ISystemMetrics>(sp => sp.GetRequiredService<SystemMetrics>());
+builder.Services.AddSingleton<IPlatformMetrics>(sp => sp.GetRequiredService<SystemMetrics>());
 builder.Services.AddScoped<IIndianEnterpriseDemoSeeder, IndianEnterpriseDemoSeeder>();
 builder.Services.AddSignalR();
 
@@ -178,7 +187,7 @@ if (!app.Environment.IsDevelopment())
 
 app.UseResponseCompression();
 app.UseCors("Strict");
-app.UseMiddleware<PlatformMetricsMiddleware>();
+app.UseMiddleware<SystemMetricsMiddleware>();
 
 // Legacy /api/* deprecation schedule
 var legacyApiSunsetDate = new DateTime(2026, 6, 30, 0, 0, 0, DateTimeKind.Utc);
@@ -314,13 +323,20 @@ if (app.Environment.IsDevelopment())
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<User>>();
         var tenantAccessor = scope.ServiceProvider.GetRequiredService<ITenantAccessor>();
+        if (db.Database.IsRelational())
+        {
+            db.Database.SetCommandTimeout(180);
+        }
 
+        await MigrationBootstrap.EnsureInitialCleanSchemaAsync(db, app.Logger);
         await MigrationBootstrap.EnsureExtendedSchemaAsync(db, app.Logger);
 
-        var tenant = db.Tenants.FirstOrDefault(t => t.Subdomain == "api") ?? db.Tenants.FirstOrDefault();
+        var tenant = db.Tenants.FirstOrDefault(t => t.Subdomain == "erp")
+            ?? db.Tenants.FirstOrDefault(t => t.Subdomain == "api")
+            ?? db.Tenants.FirstOrDefault();
         if (tenant == null)
         {
-            tenant = new Tenant { Subdomain = "api", Name = "Enterprise SaaS Tenant", IsActive = true };
+            tenant = new Tenant { Subdomain = "erp", Name = "UabIndia ERP", IsActive = true };
             db.Tenants.Add(tenant);
             db.SaveChanges();
         }

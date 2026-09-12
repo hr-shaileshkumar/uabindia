@@ -72,17 +72,38 @@ export function OrgContextSwitcher() {
   const loadCompanies = useCallback(async () => {
     try {
       setLoadingCompanies(true);
-      const response = isSuperAdmin
-        ? await orgApi.company.getAllForSuperAdmin()
-        : await orgApi.company.getAll(1, 200);
+      let response;
+      try {
+        response = isSuperAdmin
+          ? await orgApi.company.getAllForSuperAdmin({ headers: { "X-Silent-Error": "1" } })
+          : await orgApi.company.getAll(1, 200, false, { headers: { "X-Silent-Error": "1" } });
+      } catch {
+        try {
+          response = await orgApi.company.getAll(1, 200, false, { headers: { "X-Silent-Error": "1" } });
+        } catch {
+          response = null;
+        }
+      }
       const rawList =
-        (response.data as { companies?: any[] })?.companies ||
-        (response.data as { data?: any[] })?.data ||
-        (Array.isArray(response.data) ? response.data : []);
+        (response?.data as { companies?: any[] })?.companies ||
+        (response?.data as { data?: any[] })?.data ||
+        (Array.isArray(response?.data) ? response.data : []);
       const list: CompanyOption[] = Array.isArray(rawList)
         ? rawList.map((c: any, idx: number) => ({
-            id: String(c.id || c._id || c.code || `company-${idx}`),
-            name: String(c.name || c.company_name || c.title || `Company ${idx + 1}`),
+            id: String(c.id || c.Id || c._id || c.code || c.Code || `company-${idx}`),
+            name: String(
+              c.name ||
+              c.Name ||
+              c.legalName ||
+              c.LegalName ||
+              c.companyName ||
+              c.CompanyName ||
+              c.title ||
+              c.Title ||
+              c.code ||
+              c.Code ||
+              `Company ${idx + 1}`
+            ).trim(),
           }))
         : [];
       setCompanies(list);
@@ -96,18 +117,33 @@ export function OrgContextSwitcher() {
   const loadProjects = useCallback(async (activeCompanyId: string | null) => {
     try {
       setLoadingProjects(true);
-      const response = activeCompanyId
-        ? await orgApi.project.getByCompany(activeCompanyId)
-        : await orgApi.project.getAll();
+      let response;
+      try {
+        response = activeCompanyId
+          ? await orgApi.project.getByCompany(activeCompanyId, { headers: { "X-Silent-Error": "1" } })
+          : await orgApi.project.getAll(undefined, undefined, false, { headers: { "X-Silent-Error": "1" } });
+      } catch {
+        response = null;
+      }
       const rawList =
-        (response.data as { projects?: any[] })?.projects ||
-        (response.data as { data?: any[] })?.data ||
-        (Array.isArray(response.data) ? response.data : []);
+        (response?.data as { projects?: any[] })?.projects ||
+        (response?.data as { data?: any[] })?.data ||
+        (Array.isArray(response?.data) ? response.data : []);
       const list: ProjectOption[] = Array.isArray(rawList)
         ? rawList.map((p: any, idx: number) => ({
-            id: String(p.id || p._id || p.code || `project-${idx}`),
-            name: String(p.name || p.project_name || p.title || `Project ${idx + 1}`),
-            companyId: p.companyId || p.company_id || undefined,
+            id: String(p.id || p.Id || p._id || p.code || p.Code || `project-${idx}`),
+            name: String(
+              p.name ||
+              p.Name ||
+              p.projectName ||
+              p.ProjectName ||
+              p.title ||
+              p.Title ||
+              p.code ||
+              p.Code ||
+              `Project ${idx + 1}`
+            ).trim(),
+            companyId: p.companyId || p.CompanyId || p.company_id || undefined,
           }))
         : [];
       setProjects(list);
@@ -160,14 +196,40 @@ export function OrgContextSwitcher() {
   }, [user, loadCompanies, loadFinancialYears]);
 
   useEffect(() => {
+    const handleTenantChange = () => {
+      void loadCompanies();
+      void loadProjects(null);
+      void loadFinancialYears();
+    };
+
+    window.addEventListener("erp:tenant-changed", handleTenantChange);
+    return () => {
+      window.removeEventListener("erp:tenant-changed", handleTenantChange);
+    };
+  }, [loadCompanies, loadProjects, loadFinancialYears]);
+
+  useEffect(() => {
     void loadProjects(companyId);
   }, [companyId, loadProjects]);
 
+  const normCompanyId = (companyId || "").toLowerCase().trim();
+  const normProjectId = (projectId || "").toLowerCase().trim();
+
+  const matchedCompany = companies.find((c) => c.id.toLowerCase().trim() === normCompanyId);
+  const resolvedCompanyName =
+    matchedCompany?.name ||
+    (companyName && !/^company\s*\d+$/i.test(companyName.trim()) ? companyName : null);
+
+  const matchedProject = projects.find((p) => p.id.toLowerCase().trim() === normProjectId);
+  const resolvedProjectName =
+    matchedProject?.name ||
+    (projectName && !/^project\s*\d+$/i.test(projectName.trim()) ? projectName : null);
+
   const companyLabel = companyId
-    ? companyName || companies.find((c) => c.id === companyId)?.name || "Select company"
+    ? resolvedCompanyName || "Select company"
     : "All companies";
   const projectLabel = projectId
-    ? projectName || projects.find((p) => p.id === projectId)?.name || "Select project"
+    ? resolvedProjectName || "Select project"
     : "All projects";
   const isAllDates = !financialYearKey || financialYearKey === ALL_FINANCIAL_YEARS_KEY;
   const fyLabel = isAllDates
@@ -207,7 +269,7 @@ export function OrgContextSwitcher() {
             companies.map((company, index) => (
               <DropdownMenuItem
                 key={company.id ? `comp-${company.id}` : `comp-idx-${index}`}
-                className={itemClass(company.id === companyId)}
+                className={itemClass(company.id.toLowerCase().trim() === normCompanyId)}
                 onSelect={() =>
                   setContext({
                     companyId: company.id,
@@ -257,11 +319,11 @@ export function OrgContextSwitcher() {
             projects.map((project, index) => (
               <DropdownMenuItem
                 key={project.id ? `proj-${project.id}` : `proj-idx-${index}`}
-                className={itemClass(project.id === projectId)}
+                className={itemClass(project.id.toLowerCase().trim() === normProjectId)}
                 onSelect={() => {
                   const nextCompanyId = companyId || project.companyId || null;
                   const nextCompanyName = nextCompanyId
-                    ? companyName || companies.find((c) => c.id === nextCompanyId)?.name || null
+                    ? companyName || companies.find((c) => c.id.toLowerCase().trim() === nextCompanyId.toLowerCase().trim())?.name || null
                     : null;
                   setContext({
                     companyId: nextCompanyId,

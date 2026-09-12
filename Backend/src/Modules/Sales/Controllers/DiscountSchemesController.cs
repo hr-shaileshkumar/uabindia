@@ -37,7 +37,10 @@ namespace UabIndia.Api.Modules.Sales.Controllers
             if (limit < 1) limit = 50;
             if (limit > 200) limit = 200;
 
-            var query = _db.DiscountSchemes.AsNoTracking().Include(s => s.Lines).ThenInclude(l => l.Item);
+            var query = _db.DiscountSchemes.AsNoTracking()
+                .Where(s => !s.IsDeleted)
+                .Include(s => s.Lines.Where(l => !l.IsDeleted))
+                .ThenInclude(l => l.Item);
             var total = await query.CountAsync();
             var schemes = await query
                 .OrderByDescending(s => s.Priority)
@@ -54,9 +57,9 @@ namespace UabIndia.Api.Modules.Sales.Controllers
         {
             var today = DateTime.UtcNow.Date;
             var rows = await _db.DiscountSchemes.AsNoTracking()
-                .Include(s => s.Lines)
+                .Include(s => s.Lines.Where(l => !l.IsDeleted))
                 .ThenInclude(l => l.Item)
-                .Where(s => s.Status == "Active" && s.ValidFrom <= today && s.ValidTo >= today)
+                .Where(s => !s.IsDeleted && s.Status == "Active" && s.ValidFrom <= today && s.ValidTo >= today)
                 .OrderByDescending(s => s.Priority)
                 .ToListAsync();
 
@@ -69,13 +72,13 @@ namespace UabIndia.Api.Modules.Sales.Controllers
             var today = DateTime.UtcNow.Date;
             var schemes = await _db.DiscountSchemes
                 .AsNoTracking()
-                .Include(s => s.Lines)
-                .Where(s => s.Status == "Active" && s.ValidFrom <= today && s.ValidTo >= today)
+                .Include(s => s.Lines.Where(l => !l.IsDeleted))
+                .Where(s => !s.IsDeleted && s.Status == "Active" && s.ValidFrom <= today && s.ValidTo >= today)
                 .OrderByDescending(s => s.Priority)
                 .ToListAsync();
 
             var items = await _db.Items.AsNoTracking()
-                .Where(i => i.IsActive)
+                .Where(i => i.IsActive && !i.IsDeleted)
                 .OrderBy(i => i.ItemName)
                 .Take(400)
                 .ToListAsync();
@@ -106,9 +109,9 @@ namespace UabIndia.Api.Modules.Sales.Controllers
         public async Task<IActionResult> GetById(Guid id)
         {
             var scheme = await _db.DiscountSchemes.AsNoTracking()
-                .Include(s => s.Lines)
+                .Include(s => s.Lines.Where(l => !l.IsDeleted))
                 .ThenInclude(l => l.Item)
-                .FirstOrDefaultAsync(s => s.Id == id);
+                .FirstOrDefaultAsync(s => !s.IsDeleted && s.Id == id);
             if (scheme == null) return NotFound(new { success = false, error = "Discount scheme not found" });
             return Ok(new { success = true, data = MapScheme(scheme) });
         }
@@ -141,7 +144,7 @@ namespace UabIndia.Api.Modules.Sales.Controllers
         public async Task<IActionResult> Update(Guid id, [FromBody] SaveDiscountSchemeDto dto)
         {
             var tenantId = _tenantAccessor.GetTenantId();
-            var scheme = await _db.DiscountSchemes.Include(s => s.Lines).FirstOrDefaultAsync(s => s.Id == id);
+            var scheme = await _db.DiscountSchemes.Include(s => s.Lines).FirstOrDefaultAsync(s => !s.IsDeleted && s.Id == id);
             if (scheme == null) return NotFound(new { success = false, error = "Discount scheme not found" });
 
             ApplyDto(scheme, dto);
@@ -160,7 +163,7 @@ namespace UabIndia.Api.Modules.Sales.Controllers
         [Authorize(Policy = "AdminOnly")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            var scheme = await _db.DiscountSchemes.Include(s => s.Lines).FirstOrDefaultAsync(s => s.Id == id);
+            var scheme = await _db.DiscountSchemes.Include(s => s.Lines).FirstOrDefaultAsync(s => !s.IsDeleted && s.Id == id);
             if (scheme == null) return NotFound(new { success = false, error = "Discount scheme not found" });
             scheme.IsDeleted = true;
             scheme.UpdatedAt = DateTime.UtcNow;

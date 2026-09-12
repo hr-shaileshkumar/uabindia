@@ -30,5 +30,18 @@ namespace UabIndia.Api.Models
         public bool GeoValidated { get; set; }
         public string? DeviceId { get; set; }
         public string? Source { get; set; }
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
+    }
+
+    public class AttendanceUpdateDto
+    {
+        public string? PunchType { get; set; }
+        public DateTime? Timestamp { get; set; }
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
+        public string? DeviceId { get; set; }
+        public string? Source { get; set; }
+        public bool? GeoValidated { get; set; }
     }
 }

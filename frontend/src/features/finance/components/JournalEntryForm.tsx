@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import { AlertCircle, CheckCircle2, FileText, Trash2 } from "lucide-react";
@@ -26,6 +26,7 @@ import { getApiErrorMessage } from "@/lib/api-errors";
 import { useDocumentMasters } from "@/components/workspace/document-kit";
 import { formatCurrency } from "@/lib/formatters";
 import { useLocalization } from "@/context/LocalizationContext";
+import { validateJournalEntry } from "@/features/finance/journal-entries/validations/journal-entry.schema";
 
 export interface JournalLine {
   id: string;
@@ -60,6 +61,8 @@ const statusTone = (status: string) => {
       return erpStatusBadgeTone.success;
     case "Draft":
       return erpStatusBadgeTone.warning;
+    case "Voided":
+      return erpStatusBadgeTone.danger;
     default:
       return erpStatusBadgeTone.neutral;
   }
@@ -67,17 +70,20 @@ const statusTone = (status: string) => {
 
 export function JournalEntryForm() {
   const { activeCountry } = useLocalization();
-  const { accounts } = useDocumentMasters();
   const [entries, setEntries] = useState<JournalEntrySummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [saving, setSaving] = useState(false);
 
+  // Form state
   const [entryDate, setEntryDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [reference, setReference] = useState("");
   const [narration, setNarration] = useState("");
   const [lines, setLines] = useState<JournalLine[]>([emptyLine(), emptyLine()]);
+
+  // Master data
+  const { accounts } = useDocumentMasters();
 
   const load = useCallback(async () => {
     try {
@@ -85,7 +91,7 @@ export function JournalEntryForm() {
       setError(null);
       const res = await financeApi.journalEntries.list(1, 50);
       const list = Array.isArray(res.data?.data) ? res.data.data : [];
-      setEntries(list);
+      setEntries(list as JournalEntrySummary[]);
     } catch (err) {
       const message = getApiErrorMessage(err, "Failed to load journal entries.");
       setError(message);
@@ -124,31 +130,30 @@ export function JournalEntryForm() {
   };
 
   const handleSave = async () => {
-    if (!isBalanced) return;
+    const payload = {
+      entryDate,
+      referenceNumber: reference || undefined,
+      narration: narration || undefined,
+      description: narration || undefined,
+      lines: lines
+        .filter((line) => line.accountId && (Number(line.debit) > 0 || Number(line.credit) > 0))
+        .map((line) => ({
+          accountId: line.accountId,
+          debitAmount: Number(line.debit) || 0,
+          creditAmount: Number(line.credit) || 0,
+          description: line.memo || undefined,
+        })),
+    };
 
-    const payloadLines = lines
-      .filter((line) => line.accountId && (line.debit > 0 || line.credit > 0))
-      .map((line) => ({
-        accountId: line.accountId,
-        debitAmount: line.debit,
-        creditAmount: line.credit,
-        description: line.memo || undefined,
-      }));
-
-    if (payloadLines.length < 2) {
-      setError("At least two balanced lines with valid accounts are required.");
+    const validation = validateJournalEntry(payload);
+    if (!validation.success) {
+      setError(validation.error || "Journal entry validation failed.");
       return;
     }
 
     try {
       setSaving(true);
-      await financeApi.journalEntries.create({
-        entryDate,
-        referenceNumber: reference || undefined,
-        narration: narration || undefined,
-        description: narration || undefined,
-        lines: payloadLines,
-      });
+      await financeApi.journalEntries.create(validation.data!);
       notifySuccess("Journal entry saved as draft.");
       setShowForm(false);
       resetForm();

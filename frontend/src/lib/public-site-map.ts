@@ -32,7 +32,7 @@ const PUBLIC_ROUTE_DEFINITIONS: PublicRouteDefinition[] = [
   },
   {
     key: "products",
-    label: "Products",
+    label: "Product",
     href: "/products",
     audiences: ["platform"],
     placements: ["primary", "footer"],
@@ -73,13 +73,6 @@ const PUBLIC_ROUTE_DEFINITIONS: PublicRouteDefinition[] = [
     placements: ["primary", "footer"],
   },
   {
-    key: "book-demo",
-    label: "Book Demo",
-    href: "/book-demo",
-    audiences: ["platform"],
-    placements: ["primary", "footer"],
-  },
-  {
     key: "careers",
     label: "Careers",
     href: "/careers",
@@ -91,6 +84,13 @@ const PUBLIC_ROUTE_DEFINITIONS: PublicRouteDefinition[] = [
     label: "Contact",
     href: "/contact",
     audiences: ["platform", "tenant"],
+    placements: ["primary", "footer"],
+  },
+  {
+    key: "book-demo",
+    label: "Request a Demo",
+    href: "/book-demo",
+    audiences: ["platform"],
     placements: ["primary", "footer"],
   },
   {

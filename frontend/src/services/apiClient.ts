@@ -12,7 +12,7 @@ import { getTenantSubdomainFromHost, isLocalhostHostname, isPotentialCustomTenan
 
 const apiBaseUrl = getClientApiV1BaseUrl();
 const TENANT_STORAGE_KEY = "erp.tenant.subdomain";
-const RESERVED_TENANT_LABELS = new Set(["api", "app", "www"]);
+const RESERVED_TENANT_LABELS = new Set(["app", "www"]);
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: apiBaseUrl,

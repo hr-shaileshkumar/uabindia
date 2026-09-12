@@ -1,4 +1,4 @@
-﻿-- ============================================================================
+-- ============================================================================
 -- UABINDIA ENTERPRISE CLOUD ERP & PLATFORM - MASTER PRODUCTION SCHEMA V1.0.0
 -- Generated for Enterprise DBAs, Cloud Deployment Pipelines, and Azure SQL
 -- Target Engine: Microsoft SQL Server 2019+ / Azure SQL Database
@@ -4748,6 +4748,19 @@ GO
 
 -- 1. AuditLogs Composite Indexes
 IF OBJECT_ID(N'dbo.AuditLogs', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.AuditLogs', 'Hash') IS NULL
+        ALTER TABLE dbo.AuditLogs ADD Hash NVARCHAR(128) NULL;
+    IF COL_LENGTH('dbo.AuditLogs', 'PrevHash') IS NULL
+        ALTER TABLE dbo.AuditLogs ADD PrevHash NVARCHAR(128) NULL;
+    IF COL_LENGTH('dbo.AuditLogs', 'Action') IS NOT NULL AND (COL_LENGTH('dbo.AuditLogs', 'Action') = -1 OR COL_LENGTH('dbo.AuditLogs', 'Action') > 200)
+        ALTER TABLE dbo.AuditLogs ALTER COLUMN [Action] NVARCHAR(100) NULL;
+    IF COL_LENGTH('dbo.AuditLogs', 'EntityName') IS NOT NULL AND (COL_LENGTH('dbo.AuditLogs', 'EntityName') = -1 OR COL_LENGTH('dbo.AuditLogs', 'EntityName') > 200)
+        ALTER TABLE dbo.AuditLogs ALTER COLUMN [EntityName] NVARCHAR(100) NULL;
+END;
+GO
+
+IF OBJECT_ID(N'dbo.AuditLogs', N'U') IS NOT NULL
 AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AuditLogs_Tenant_CreatedAt' AND object_id = OBJECT_ID(N'dbo.AuditLogs'))
     CREATE NONCLUSTERED INDEX [IX_AuditLogs_Tenant_CreatedAt] ON dbo.AuditLogs ([TenantId], [CreatedAt] DESC);
 GO
@@ -4758,6 +4771,13 @@ AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AuditLogs_Tenant_Act
 GO
 
 -- 2. SalesInvoices Status & Date Composite Index
+IF OBJECT_ID(N'dbo.SalesInvoices', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.SalesInvoices', 'Status') IS NOT NULL AND (COL_LENGTH('dbo.SalesInvoices', 'Status') = -1 OR COL_LENGTH('dbo.SalesInvoices', 'Status') > 100)
+        ALTER TABLE dbo.SalesInvoices ALTER COLUMN [Status] NVARCHAR(50) NULL;
+END;
+GO
+
 IF OBJECT_ID(N'dbo.SalesInvoices', N'U') IS NOT NULL
 AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_SalesInvoices_Tenant_Status_Date' AND object_id = OBJECT_ID(N'dbo.SalesInvoices'))
     CREATE NONCLUSTERED INDEX [IX_SalesInvoices_Tenant_Status_Date] ON dbo.SalesInvoices ([TenantId], [Status], [InvoiceDate] DESC) WHERE [IsDeleted] = 0;

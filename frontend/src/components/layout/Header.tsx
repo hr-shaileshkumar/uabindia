@@ -16,13 +16,6 @@ import {
   UserRound,
   Users,
   ChevronRight,
-  Plus,
-  UserPlus,
-  ShoppingCart,
-  Package,
-  Receipt,
-  CreditCard,
-  FilePlus2,
   Building2,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -38,88 +31,15 @@ import {
 } from "@/lib/workspace/navigation";
 import { OrgContextSwitcher } from "@/components/layout/OrgContextSwitcher";
 import { TenantSubdomainSwitcher } from "@/components/layout/TenantSubdomainSwitcher";
+import { WorkspaceBrand } from "@/components/layout/WorkspaceBrand";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/constants/routes";
 import { useSignalRNotifications } from "@/context/SignalRNotificationContext";
-import { CurrencySwitcher } from "@/components/workspace/CurrencySwitcher";
-import { SecurityMfaModal } from "@/features/platform/components/SecurityMfaModal";
+import { SecurityMfaModal } from "@/features/administration/components/SecurityMfaModal";
 
 type HeaderProps = {
   onMenuClick?: () => void;
 };
-
-function GlobalQuickCreateDropdown() {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useClickOutside(ref, () => setOpen(false));
-
-  const quickActions = [
-    { label: "New Employee", path: "/hrms/employees", icon: UserPlus, group: "HRMS & People", badge: "HR" },
-    { label: "Apply Leave", path: "/leave-requests", icon: FilePlus2, group: "HRMS & People", badge: "ESS" },
-    { label: "New Customer", path: "/customers", icon: Users, group: "Sales & CRM", badge: "CRM" },
-    { label: "New Item / SKU", path: "/items", icon: Package, group: "Inventory & WMS", badge: "Catalog" },
-    { label: "New Vendor", path: "/vendors", icon: Building2, group: "Procurement", badge: "Supply" },
-    { label: "Purchase Request", path: "/purchase-requests", icon: ShoppingCart, group: "Procurement", badge: "PR" },
-    { label: "Expense Claim", path: "/expenses", icon: Receipt, group: "Finance", badge: "Claim" },
-    { label: "Journal Entry", path: "/finance/journal", icon: CreditCard, group: "Finance", badge: "GL" },
-  ];
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className="flex h-8 items-center gap-1.5 rounded-lg bg-blue-600 px-2.5 text-xs font-semibold text-white shadow-xs transition-all hover:bg-blue-700 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-        title="Quick Create Record"
-      >
-        <Plus className="h-4 w-4" />
-        <span className="hidden sm:inline">New</span>
-      </button>
-
-      <AnimatePresence>
-        {open ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: -4 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -4 }}
-            transition={{ duration: 0.14 }}
-            className="absolute right-0 top-full z-50 mt-1.5 w-72 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-800 dark:bg-slate-900"
-          >
-            <div className="border-b border-slate-100 px-2.5 pb-2 pt-1 text-xs font-bold text-slate-800 dark:border-slate-800 dark:text-slate-100">
-              <span>Quick Create Record</span>
-            </div>
-            <div className="mt-1 grid gap-1 max-h-80 overflow-y-auto p-1 scrollbar-thin">
-              {quickActions.map((action) => {
-                const IconComponent = action.icon;
-                return (
-                  <Link
-                    key={action.path}
-                    href={action.path}
-                    onClick={() => setOpen(false)}
-                    className="flex items-center justify-between rounded-xl px-2.5 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-blue-600 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-blue-400"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
-                        <IconComponent className="h-3.5 w-3.5" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-slate-900 dark:text-white">{action.label}</p>
-                        <p className="text-[10px] text-slate-400">{action.group}</p>
-                      </div>
-                    </div>
-                    <span className="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
-                      {action.badge}
-                    </span>
-                  </Link>
-                );
-              })}
-            </div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
-    </div>
-  );
-}
 
 function GlobalRefreshButton() {
   const [refreshing, setRefreshing] = useState(false);
@@ -495,7 +415,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         "h-14 px-3 sm:px-4 lg:px-5",
       )}
     >
-      {/* Left: Sidebar Toggle & Breadcrumb */}
+      {/* Left: Sidebar Toggle, Workspace Brand (Tenant Logo / Default) & Breadcrumb */}
       <div className="flex shrink-0 items-center gap-x-2.5 min-w-0">
         <button
           type="button"
@@ -505,6 +425,8 @@ export function Header({ onMenuClick }: HeaderProps) {
         >
           {isSidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
         </button>
+
+        <WorkspaceBrand />
 
         <div className="hidden h-4 w-px bg-slate-200 dark:bg-slate-800 sm:block" aria-hidden="true" />
         <ActiveBreadcrumb />
@@ -536,8 +458,6 @@ export function Header({ onMenuClick }: HeaderProps) {
 
       {/* Right Utility Cluster */}
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-        <GlobalQuickCreateDropdown />
-        <CurrencySwitcher />
         <TenantSubdomainSwitcher />
         <OrgContextSwitcher />
         <GlobalRefreshButton />

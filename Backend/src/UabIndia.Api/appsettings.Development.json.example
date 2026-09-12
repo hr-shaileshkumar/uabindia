@@ -1,6 +1,6 @@
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost\\YOUR_SQL_INSTANCE;Database=UabIndia_HRMS_Dev;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true;"
+    "DefaultConnection": "Server=localhost\\YOUR_SQL_INSTANCE;Database=UabIndia_ERP_Dev;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true;"
   },
   "Logging": {
     "LogLevel": {

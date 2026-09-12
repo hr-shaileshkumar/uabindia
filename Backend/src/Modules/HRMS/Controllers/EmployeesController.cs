@@ -74,6 +74,17 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             var employee = new Employee { TenantId = tenantId, CreatedAt = DateTime.UtcNow };
             Apply(employee, dto, code);
 
+            // HR Process A: Mandatory Reporting Manager for Active Status
+            var hasOtherEmployees = await _db.Employees.AnyAsync(e => e.TenantId == tenantId && !e.IsDeleted);
+            if (hasOtherEmployees && (employee.ReportingManagerId == null && employee.ManagerId == null) && !employee.IsOrganizationHead)
+            {
+                if (string.Equals(employee.Status, "Active", StringComparison.OrdinalIgnoreCase))
+                {
+                    // If no reporting manager is assigned upon onboarding, status defaults to Onboarding until manager is assigned
+                    employee.Status = "Onboarding";
+                }
+            }
+
             _db.Employees.Add(employee);
             var loginCreated = false;
             string? workEmail = dto.WorkEmail?.Trim();
@@ -389,6 +400,15 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                 ? await _db.Designations.AsNoTracking().Where(d => d.Id == emp.DesignationId).Select(d => d.Name).FirstOrDefaultAsync()
                 : null;
 
+            var mgrId = emp.ReportingManagerId ?? emp.ManagerId;
+            var mgrName = mgrId.HasValue
+                ? await _db.Employees.AsNoTracking().Where(m => m.Id == mgrId.Value).Select(m => m.FullName).FirstOrDefaultAsync()
+                : null;
+
+            var actingMgrName = emp.ActingManagerId.HasValue
+                ? await _db.Employees.AsNoTracking().Where(m => m.Id == emp.ActingManagerId.Value).Select(m => m.FullName).FirstOrDefaultAsync()
+                : null;
+
             return new EmployeeDto
             {
                 Id = emp.Id,
@@ -414,7 +434,15 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                 DepartmentName = dept,
                 DesignationId = emp.DesignationId,
                 DesignationName = desig,
-                ManagerId = emp.ManagerId,
+                ManagerId = mgrId,
+                ReportingManagerId = mgrId,
+                ReportingManagerName = mgrName,
+                ActingManagerId = emp.ActingManagerId,
+                ActingManagerName = actingMgrName,
+                DelegationStartDate = emp.DelegationStartDate,
+                DelegationEndDate = emp.DelegationEndDate,
+                DelegationReason = emp.DelegationReason,
+                IsOrganizationHead = emp.IsOrganizationHead,
                 UserId = emp.UserId,
                 Pan = emp.Pan,
                 Uan = emp.Uan,

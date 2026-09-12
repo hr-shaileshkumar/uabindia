@@ -87,10 +87,10 @@ export default function AboutPageClient({ audience }: { audience: PublicAudience
             actions={
               <>
                 <Link href={withPublicAudience("/book-demo", audience)} className={publicButtonClassName.primary}>
-                  Book demo
+                  Request a Demo
                 </Link>
                 <Link href={withPublicAudience("/contact", audience)} className={publicButtonClassName.secondary}>
-                  Contact
+                  Contact Sales
                 </Link>
               </>
             }
@@ -125,9 +125,9 @@ export default function AboutPageClient({ audience }: { audience: PublicAudience
       <CtaPanel
         title="Map where your current stack creates friction"
         description="Evaluate UabIndia ERP against the handoffs that slow payroll, approvals, reporting, or operations."
-        primaryLabel="Book demo"
+        primaryLabel="Request a Demo"
         primaryHref={withPublicAudience("/book-demo", audience)}
-        secondaryLabel="Contact"
+        secondaryLabel="Contact Sales"
         secondaryHref={withPublicAudience("/contact", audience)}
       />
     </PublicAudiencePageFrame>

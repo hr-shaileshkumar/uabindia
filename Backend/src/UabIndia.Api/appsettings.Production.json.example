@@ -1,6 +1,6 @@
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=tcp:your-sql-host,1433;Database=UabIndia_HRMS;User Id=your-user;Password=your-password;TrustServerCertificate=True;Encrypt=True;MultipleActiveResultSets=true"
+    "DefaultConnection": "Server=tcp:your-sql-host,1433;Database=UabIndia_ERP_Prod;User Id=your-user;Password=your-password;TrustServerCertificate=True;Encrypt=True;MultipleActiveResultSets=true"
   },
   "Jwt": {
     "Key": "replace-with-a-long-random-secret",

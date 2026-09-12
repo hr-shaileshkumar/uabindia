@@ -97,8 +97,17 @@ namespace UabIndia.Api.Modules.Inventory.Controllers
             if (item == null) return NotFound();
 
             if (dto.ItemName != null) item.ItemName = dto.ItemName;
+            if (dto.Category != null) item.Category = dto.Category;
+            if (dto.Description != null) item.Description = dto.Description;
+            if (dto.UnitOfMeasure != null) item.UnitOfMeasure = dto.UnitOfMeasure;
+            if (dto.HSNCode != null) item.HSNCode = dto.HSNCode;
+            if (dto.PurchasePrice.HasValue) item.PurchasePrice = dto.PurchasePrice.Value;
             if (dto.SellingPrice.HasValue) item.SellingPrice = dto.SellingPrice.Value;
+            if (dto.MRP.HasValue) item.MRP = dto.MRP.Value;
             if (dto.MinStockLevel.HasValue) item.MinStockLevel = dto.MinStockLevel.Value;
+            if (dto.MaxStockLevel.HasValue) item.MaxStockLevel = dto.MaxStockLevel.Value;
+            if (dto.ReorderLevel.HasValue) item.ReorderLevel = dto.ReorderLevel.Value;
+            if (dto.TaxRate.HasValue) item.TaxRate = dto.TaxRate.Value;
             item.UpdatedAt = DateTime.UtcNow;
 
             _db.Items.Update(item);
@@ -144,7 +153,16 @@ namespace UabIndia.Api.Modules.Inventory.Controllers
     public class UpdateItemDto
     {
         public string? ItemName { get; set; }
+        public string? Category { get; set; }
+        public string? Description { get; set; }
+        public string? UnitOfMeasure { get; set; }
+        public string? HSNCode { get; set; }
+        public decimal? PurchasePrice { get; set; }
         public decimal? SellingPrice { get; set; }
+        public decimal? MRP { get; set; }
         public decimal? MinStockLevel { get; set; }
+        public decimal? MaxStockLevel { get; set; }
+        public decimal? ReorderLevel { get; set; }
+        public decimal? TaxRate { get; set; }
     }
 }

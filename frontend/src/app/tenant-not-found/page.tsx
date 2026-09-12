@@ -8,8 +8,8 @@ export default function TenantNotFoundPage() {
       description="The subdomain or tenant path you used does not map to an active company workspace in the current environment."
       note="Check the URL, switch back to the public site, or contact the platform administrator for the correct tenant address."
       actions={[
-        { href: "/", label: "Open public site" },
-        { href: "/login", label: "Try login again", variant: "secondary" },
+        { href: "/", label: "Return to Main Website" },
+        { href: "/login", label: "Sign In to Workspace", variant: "secondary" },
       ]}
     />
   );

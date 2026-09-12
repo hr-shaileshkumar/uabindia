@@ -10,15 +10,19 @@ namespace UabIndia.Core.Authorization
         Employee = 1,
         Manager = 2,
         Admin = 3,
-        SuperAdmin = 4
+        SuperAdmin = 4,
+        HrManager = 5,
+        Accountant = 6
     }
 
     public static class RoleCatalog
     {
         public const string SuperAdminRoleName = "SuperAdmin";
         public const string AdminRoleName = "Admin";
-        public const string ManagerRoleName = "MANAGER";
-        public const string EmployeeRoleName = "EMPLOYEE";
+        public const string ManagerRoleName = "Manager";
+        public const string EmployeeRoleName = "Employee";
+        public const string HrManagerRoleName = "HR Manager";
+        public const string AccountantRoleName = "Accountant";
 
         private static readonly IReadOnlyDictionary<string, SystemRole> AliasToRole =
             new Dictionary<string, SystemRole>(StringComparer.OrdinalIgnoreCase)
@@ -46,9 +50,16 @@ namespace UabIndia.Core.Authorization
                 ["tenantowner"] = SystemRole.Admin,
                 ["companyowner"] = SystemRole.Admin,
 
-                ["hr"] = SystemRole.Manager,
-                ["finance"] = SystemRole.Manager,
-                ["auditor"] = SystemRole.Manager,
+                ["hr"] = SystemRole.HrManager,
+                ["hrmanager"] = SystemRole.HrManager,
+                ["humanresources"] = SystemRole.HrManager,
+                ["humanresourcemanager"] = SystemRole.HrManager,
+
+                ["accountant"] = SystemRole.Accountant,
+                ["accounting"] = SystemRole.Accountant,
+                ["accounts"] = SystemRole.Accountant,
+                ["finance"] = SystemRole.Accountant,
+                ["auditor"] = SystemRole.Accountant,
 
                 ["superadmin"] = SystemRole.SuperAdmin,
                 ["systemadmin"] = SystemRole.SuperAdmin,
@@ -64,6 +75,8 @@ namespace UabIndia.Core.Authorization
                 SystemRole.Admin => AdminRoleName,
                 SystemRole.Manager => ManagerRoleName,
                 SystemRole.Employee => EmployeeRoleName,
+                SystemRole.HrManager => HrManagerRoleName,
+                SystemRole.Accountant => AccountantRoleName,
                 _ => string.Empty,
             };
         }

@@ -427,7 +427,7 @@ export default function CareersPageClient({ audience }: { audience: PublicAudien
       <CtaPanel
         title="Want to work on serious enterprise software?"
         description="Share your background with the hiring team."
-        primaryLabel="Contact hiring"
+        primaryLabel="Contact Hiring Team"
         primaryHref={withPublicAudience("/contact", audience)}
       />
 

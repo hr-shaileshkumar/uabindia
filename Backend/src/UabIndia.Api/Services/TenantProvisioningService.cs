@@ -72,6 +72,8 @@ namespace UabIndia.Api.Services
         {
             (RoleCatalog.SuperAdminRoleName, "Tenant super administrator"),
             (RoleCatalog.AdminRoleName, "Company administrator"),
+            (RoleCatalog.HrManagerRoleName, "Human Resources manager"),
+            (RoleCatalog.AccountantRoleName, "Finance and accounts"),
             (RoleCatalog.ManagerRoleName, "Project manager"),
             (RoleCatalog.EmployeeRoleName, "Standard employee")
         };
@@ -2101,6 +2103,9 @@ END";
                 ? BuildTemporaryPassword()
                 : preferredPassword.Trim();
 
+            bool isTargetSystemAdmin = string.Equals(normalizedEmail, AuthUserLookup.DevAdminEmail, StringComparison.OrdinalIgnoreCase)
+                || (adminUser != null && adminUser.IsSystemAdmin);
+
             if (adminUser == null)
             {
                 adminUser = new User
@@ -2108,7 +2113,7 @@ END";
                     TenantId = tenant.Id,
                     Email = normalizedEmail,
                     FullName = normalizedName,
-                    IsSystemAdmin = false,
+                    IsSystemAdmin = isTargetSystemAdmin,
                     IsActive = true,
                     PasswordHash = _hasher.HashPassword(new User { Email = normalizedEmail }, generatedPassword)
                 };
@@ -2118,13 +2123,13 @@ END";
             {
                 adminUser.Email = normalizedEmail;
                 adminUser.FullName = normalizedName;
-                adminUser.IsSystemAdmin = false;
+                adminUser.IsSystemAdmin = isTargetSystemAdmin;
                 adminUser.IsActive = true;
             }
 
             foreach (var otherUser in users.Where(u => adminUser == null || u.Id != adminUser.Id))
             {
-                if (otherUser.IsSystemAdmin)
+                if (otherUser.IsSystemAdmin && !string.Equals(otherUser.Email, AuthUserLookup.DevAdminEmail, StringComparison.OrdinalIgnoreCase))
                 {
                     otherUser.IsSystemAdmin = false;
                     otherUser.UpdatedAt = DateTime.UtcNow;

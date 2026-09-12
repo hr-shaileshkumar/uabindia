@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -15,9 +14,6 @@ namespace UabIndia.Infrastructure.Services
     {
         private readonly ApplicationDbContext _db;
 
-        // In-memory thread-safe state container for warehouse bin topologies (isolated per tenant)
-        private static readonly ConcurrentDictionary<Guid, List<WarehouseBinLocationDto>> _tenantBinLocations = new();
-
         public WmsService(ApplicationDbContext db)
         {
             _db = db;
@@ -28,19 +24,24 @@ namespace UabIndia.Infrastructure.Services
             Guid? warehouseId = null,
             CancellationToken ct = default)
         {
-            EnsureSeededBinTopology(tenantId);
+            await EnsureSeededBinTopologyAsync(tenantId, ct);
 
-            if (_tenantBinLocations.TryGetValue(tenantId, out var bins))
+            var query = _db.WarehouseBins
+                .Where(b => b.TenantId == tenantId && !b.IsDeleted);
+
+            if (warehouseId.HasValue && warehouseId.Value != Guid.Empty)
             {
-                var query = bins.AsEnumerable();
-                if (warehouseId.HasValue && warehouseId.Value != Guid.Empty)
-                {
-                    query = query.Where(b => b.WarehouseId == warehouseId.Value);
-                }
-                return await Task.FromResult(query.OrderBy(b => b.BinCode).ToList());
+                query = query.Where(b => b.WarehouseId == warehouseId.Value);
             }
 
-            return await Task.FromResult(new List<WarehouseBinLocationDto>());
+            var bins = await query.OrderBy(b => b.BinCode).ToListAsync(ct);
+
+            var warehouseIds = bins.Select(b => b.WarehouseId).Distinct().ToList();
+            var warehouses = await _db.Warehouses
+                .Where(w => warehouseIds.Contains(w.Id) && w.TenantId == tenantId)
+                .ToDictionaryAsync(w => w.Id, ct);
+
+            return bins.Select(b => MapToDto(b, warehouses.GetValueOrDefault(b.WarehouseId))).ToList();
         }
 
         public async Task<ScanResultDto> ExecutePutAwayScanAsync(
@@ -48,18 +49,18 @@ namespace UabIndia.Infrastructure.Services
             ScanBarcodePutAwayRequest req,
             CancellationToken ct = default)
         {
-            EnsureSeededBinTopology(tenantId);
+            await EnsureSeededBinTopologyAsync(tenantId, ct);
 
-            var item = await _db.Items.IgnoreQueryFilters()
+            var item = await _db.Items
                 .FirstOrDefaultAsync(i => (i.Barcode == req.Barcode || i.ItemCode == req.Barcode || i.ItemName.Contains(req.Barcode))
                     && i.TenantId == tenantId && !i.IsDeleted, ct);
 
             string itemCode = item?.ItemCode ?? (!string.IsNullOrWhiteSpace(req.Barcode) ? req.Barcode.ToUpperInvariant() : "SKU-MOT-100");
             string itemName = !string.IsNullOrWhiteSpace(item?.ItemName) ? item.ItemName : "Industrial Electric Motor (7.5 kW)";
 
-            var bins = _tenantBinLocations.GetOrAdd(tenantId, _ => new List<WarehouseBinLocationDto>());
-            var bin = bins.FirstOrDefault(b => b.BinCode.Equals(req.TargetBinCode, StringComparison.OrdinalIgnoreCase))
-                ?? bins.FirstOrDefault();
+            var bin = await _db.WarehouseBins
+                .FirstOrDefaultAsync(b => b.BinCode == req.TargetBinCode && b.TenantId == tenantId && !b.IsDeleted, ct)
+                ?? await _db.WarehouseBins.FirstOrDefaultAsync(b => b.TenantId == tenantId && !b.IsDeleted, ct);
 
             if (bin == null)
             {
@@ -70,31 +71,14 @@ namespace UabIndia.Infrastructure.Services
                 };
             }
 
-            var existing = bin.StoredItems.FirstOrDefault(s => s.ItemCode == itemCode);
-            if (existing != null)
-            {
-                existing.Quantity += req.Quantity;
-                existing.WeightKg += req.Quantity * 12.5m;
-            }
-            else
-            {
-                bin.StoredItems.Add(new BinStoredItemDto
-                {
-                    ItemId = item?.Id ?? Guid.NewGuid(),
-                    ItemCode = itemCode,
-                    ItemName = itemName,
-                    BatchNumber = req.BatchNumber ?? "LOT-2026-A1",
-                    Quantity = req.Quantity,
-                    WeightKg = req.Quantity * 12.5m
-                });
-            }
-
-            bin.CurrentWeightKg = bin.StoredItems.Sum(s => s.WeightKg);
-            bin.UtilizationPercent = bin.MaxWeightCapacityKg > 0
+            bin.CurrentWeightKg += req.Quantity * 12.5m;
+            var utilPercent = bin.MaxWeightCapacityKg > 0
                 ? Math.Min(100.0, Math.Round((double)(bin.CurrentWeightKg / bin.MaxWeightCapacityKg) * 100.0, 1))
                 : 50.0;
 
-            bin.Status = bin.UtilizationPercent >= 95.0 ? "Full" : (bin.UtilizationPercent > 0 ? "PartiallyOccupied" : "Available");
+            bin.Status = utilPercent >= 95.0 ? "Full" : (utilPercent > 0 ? "PartiallyOccupied" : "Available");
+            bin.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync(ct);
 
             return new ScanResultDto
             {
@@ -103,7 +87,7 @@ namespace UabIndia.Infrastructure.Services
                 ItemName = itemName,
                 BinCode = bin.BinCode,
                 QuantityProcessed = req.Quantity,
-                UpdatedBinUtilizationPercent = (decimal)bin.UtilizationPercent,
+                UpdatedBinUtilizationPercent = (decimal)utilPercent,
                 Message = $"Put-away verified. {req.Quantity} units of {itemCode} stowed into Bin {bin.BinCode}."
             };
         }
@@ -113,139 +97,133 @@ namespace UabIndia.Infrastructure.Services
             ScanBarcodePickPackRequest req,
             CancellationToken ct = default)
         {
-            EnsureSeededBinTopology(tenantId);
+            await EnsureSeededBinTopologyAsync(tenantId, ct);
 
-            var bins = _tenantBinLocations.GetOrAdd(tenantId, _ => new List<WarehouseBinLocationDto>());
-            var bin = bins.FirstOrDefault(b => b.BinCode.Equals(req.FromBinCode, StringComparison.OrdinalIgnoreCase))
-                ?? bins.FirstOrDefault(b => b.StoredItems.Any(s => s.ItemCode.Equals(req.ScannedBarcode, StringComparison.OrdinalIgnoreCase)));
+            var bin = await _db.WarehouseBins
+                .FirstOrDefaultAsync(b => b.BinCode == req.FromBinCode && b.TenantId == tenantId && !b.IsDeleted, ct)
+                ?? await _db.WarehouseBins.FirstOrDefaultAsync(b => b.TenantId == tenantId && !b.IsDeleted, ct);
 
             if (bin != null)
             {
-                var stored = bin.StoredItems.FirstOrDefault(s => s.ItemCode.Equals(req.ScannedBarcode, StringComparison.OrdinalIgnoreCase));
-                if (stored != null)
+                decimal pickQty = req.QuantityPicked > 0 ? req.QuantityPicked : 1;
+                bin.CurrentWeightKg = Math.Max(0, bin.CurrentWeightKg - (pickQty * 12.5m));
+                var utilPercent = bin.MaxWeightCapacityKg > 0
+                    ? Math.Min(100.0, Math.Round((double)(bin.CurrentWeightKg / bin.MaxWeightCapacityKg) * 100.0, 1))
+                    : 0.0;
+
+                bin.Status = utilPercent >= 95.0 ? "Full" : (utilPercent > 0 ? "PartiallyOccupied" : "Available");
+                bin.UpdatedAt = DateTime.UtcNow;
+                await _db.SaveChangesAsync(ct);
+
+                return new ScanResultDto
                 {
-                    decimal pickQty = Math.Min(stored.Quantity, req.QuantityPicked > 0 ? req.QuantityPicked : 1);
-                    stored.Quantity -= pickQty;
-                    stored.WeightKg = Math.Max(0, stored.Quantity * 12.5m);
-
-                    if (stored.Quantity <= 0)
-                    {
-                        bin.StoredItems.Remove(stored);
-                    }
-
-                    bin.CurrentWeightKg = bin.StoredItems.Sum(s => s.WeightKg);
-                    bin.UtilizationPercent = bin.MaxWeightCapacityKg > 0
-                        ? Math.Min(100.0, Math.Round((double)(bin.CurrentWeightKg / bin.MaxWeightCapacityKg) * 100.0, 1))
-                        : 0.0;
-
-                    bin.Status = bin.UtilizationPercent >= 95.0 ? "Full" : (bin.UtilizationPercent > 0 ? "PartiallyOccupied" : "Available");
-
-                    return new ScanResultDto
-                    {
-                        Success = true,
-                        ItemCode = stored.ItemCode,
-                        ItemName = stored.ItemName,
-                        BinCode = bin.BinCode,
-                        QuantityProcessed = pickQty,
-                        UpdatedBinUtilizationPercent = (decimal)bin.UtilizationPercent,
-                        Message = $"Pick-Pack verified. {pickQty} units picked from {bin.BinCode} and packed into {req.PackNumber} for Order {req.OrderNumber}."
-                    };
-                }
+                    Success = true,
+                    ItemCode = req.ScannedBarcode,
+                    ItemName = "Warehouse Pick Item",
+                    BinCode = bin.BinCode,
+                    QuantityProcessed = pickQty,
+                    UpdatedBinUtilizationPercent = (decimal)utilPercent,
+                    Message = $"Pick & Pack confirmed. {pickQty} units picked from Bin {bin.BinCode} into Pack {req.PackNumber}."
+                };
             }
 
             return new ScanResultDto
             {
-                Success = true,
-                ItemCode = req.ScannedBarcode,
-                ItemName = "Scanned Inventory Item",
-                BinCode = req.FromBinCode,
-                QuantityProcessed = req.QuantityPicked,
-                UpdatedBinUtilizationPercent = 45m,
-                Message = $"Verified barcode scan: {req.ScannedBarcode} packed into {req.PackNumber}."
+                Success = false,
+                Message = $"Target bin '{req.FromBinCode}' could not be located."
             };
         }
 
-        private static void EnsureSeededBinTopology(Guid tenantId)
+        private async Task EnsureSeededBinTopologyAsync(Guid tenantId, CancellationToken ct)
         {
-            _tenantBinLocations.GetOrAdd(tenantId, tid => new List<WarehouseBinLocationDto>
+            var exists = await _db.WarehouseBins.AnyAsync(b => b.TenantId == tenantId && !b.IsDeleted, ct);
+            if (exists) return;
+
+            var warehouse = await _db.Warehouses.FirstOrDefaultAsync(w => w.TenantId == tenantId && !w.IsDeleted, ct);
+            var whId = warehouse?.Id ?? Guid.NewGuid();
+
+            var b1 = new WarehouseBin
             {
-                new()
-                {
-                    BinId = Guid.Parse("77777777-7777-7777-7777-777777777701"),
-                    WarehouseId = Guid.Parse("00000000-0000-0000-0000-000000000001"),
-                    WarehouseName = "Central Logistics Hub",
-                    ZoneCode = "Zone-A (Fast Movers)",
-                    AisleNumber = "Aisle-01",
-                    RackNumber = "Rack-01",
-                    ShelfLevel = "Level-1",
-                    BinCode = "ZA-A01-R01-B01",
-                    MaxWeightCapacityKg = 1000m,
-                    CurrentWeightKg = 375m,
-                    MaxVolumeCapacityCbm = 5m,
-                    CurrentVolumeCbm = 1.8m,
-                    UtilizationPercent = 37.5,
-                    Status = "PartiallyOccupied",
-                    StoredItems = new List<BinStoredItemDto>
-                    {
-                        new()
-                        {
-                            ItemId = Guid.Parse("00000000-0000-0000-0000-000000000001"),
-                            ItemCode = "SKU-MOT-100",
-                            ItemName = "Industrial Electric Motor (7.5 kW)",
-                            BatchNumber = "LOT-2026-A1",
-                            Quantity = 30,
-                            WeightKg = 375m
-                        }
-                    }
-                },
-                new()
-                {
-                    BinId = Guid.Parse("77777777-7777-7777-7777-777777777702"),
-                    WarehouseId = Guid.Parse("00000000-0000-0000-0000-000000000001"),
-                    WarehouseName = "Central Logistics Hub",
-                    ZoneCode = "Zone-A (Fast Movers)",
-                    AisleNumber = "Aisle-01",
-                    RackNumber = "Rack-01",
-                    ShelfLevel = "Level-2",
-                    BinCode = "ZA-A01-R01-B02",
-                    MaxWeightCapacityKg = 800m,
-                    CurrentWeightKg = 640m,
-                    MaxVolumeCapacityCbm = 4m,
-                    CurrentVolumeCbm = 3.2m,
-                    UtilizationPercent = 80.0,
-                    Status = "PartiallyOccupied",
-                    StoredItems = new List<BinStoredItemDto>
-                    {
-                        new()
-                        {
-                            ItemId = Guid.Parse("00000000-0000-0000-0000-000000000002"),
-                            ItemCode = "SKU-PMP-200",
-                            ItemName = "High-Pressure Hydraulic Pump 250 Bar",
-                            BatchNumber = "LOT-2026-B8",
-                            Quantity = 40,
-                            WeightKg = 640m
-                        }
-                    }
-                },
-                new()
-                {
-                    BinId = Guid.Parse("77777777-7777-7777-7777-777777777703"),
-                    WarehouseId = Guid.Parse("00000000-0000-0000-0000-000000000001"),
-                    WarehouseName = "Central Logistics Hub",
-                    ZoneCode = "Zone-B (Heavy Bulk)",
-                    AisleNumber = "Aisle-03",
-                    RackNumber = "Rack-04",
-                    ShelfLevel = "Level-1",
-                    BinCode = "ZB-A03-R04-B01",
-                    MaxWeightCapacityKg = 2500m,
-                    CurrentWeightKg = 0m,
-                    MaxVolumeCapacityCbm = 12m,
-                    CurrentVolumeCbm = 0m,
-                    UtilizationPercent = 0.0,
-                    Status = "Available",
-                    StoredItems = new List<BinStoredItemDto>()
-                }
-            });
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                WarehouseId = whId,
+                ZoneCode = "Zone-A (Fast Movers)",
+                AisleNumber = "Aisle-01",
+                RackNumber = "Rack-01",
+                ShelfLevel = "Level-1",
+                BinCode = "ZA-A01-R01-B01",
+                MaxWeightCapacityKg = 1000m,
+                CurrentWeightKg = 375m,
+                MaxVolumeCapacityCbm = 5m,
+                CurrentVolumeCbm = 1.8m,
+                Status = "PartiallyOccupied",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var b2 = new WarehouseBin
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                WarehouseId = whId,
+                ZoneCode = "Zone-A (Fast Movers)",
+                AisleNumber = "Aisle-01",
+                RackNumber = "Rack-01",
+                ShelfLevel = "Level-2",
+                BinCode = "ZA-A01-R01-B02",
+                MaxWeightCapacityKg = 800m,
+                CurrentWeightKg = 640m,
+                MaxVolumeCapacityCbm = 4m,
+                CurrentVolumeCbm = 3.2m,
+                Status = "PartiallyOccupied",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var b3 = new WarehouseBin
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                WarehouseId = whId,
+                ZoneCode = "Zone-B (Heavy Bulk)",
+                AisleNumber = "Aisle-03",
+                RackNumber = "Rack-04",
+                ShelfLevel = "Level-1",
+                BinCode = "ZB-A03-R04-B01",
+                MaxWeightCapacityKg = 2500m,
+                CurrentWeightKg = 0m,
+                MaxVolumeCapacityCbm = 12m,
+                CurrentVolumeCbm = 0m,
+                Status = "Available",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _db.WarehouseBins.AddRange(b1, b2, b3);
+            await _db.SaveChangesAsync(ct);
+        }
+
+        private static WarehouseBinLocationDto MapToDto(WarehouseBin b, Warehouse? w)
+        {
+            var utilPercent = b.MaxWeightCapacityKg > 0
+                ? Math.Min(100.0, Math.Round((double)(b.CurrentWeightKg / b.MaxWeightCapacityKg) * 100.0, 1))
+                : 0.0;
+
+            return new WarehouseBinLocationDto
+            {
+                BinId = b.Id,
+                WarehouseId = b.WarehouseId,
+                WarehouseName = w?.WarehouseName ?? "Central Logistics Hub",
+                ZoneCode = b.ZoneCode,
+                AisleNumber = b.AisleNumber,
+                RackNumber = b.RackNumber,
+                ShelfLevel = b.ShelfLevel,
+                BinCode = b.BinCode,
+                MaxWeightCapacityKg = b.MaxWeightCapacityKg,
+                CurrentWeightKg = b.CurrentWeightKg,
+                MaxVolumeCapacityCbm = b.MaxVolumeCapacityCbm,
+                CurrentVolumeCbm = b.CurrentVolumeCbm,
+                UtilizationPercent = utilPercent,
+                Status = b.Status,
+                StoredItems = new List<BinStoredItemDto>()
+            };
         }
     }
 }

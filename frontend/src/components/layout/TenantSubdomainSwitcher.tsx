@@ -17,12 +17,14 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
+import { useOrgContext } from "@/context/OrgContext";
 import {
   getTenantSubdomain,
   persistTenantSubdomain,
   clearTenantSubdomain,
 } from "@/services/apiClient";
-import { platformApi } from "@/services/modules/platform";
+import { platformApi } from "@/services/modules/administration";
+import { tenantApi } from "@/features/tenants/services/tenant.api";
 import { notifySuccess, notifyError } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
 
@@ -34,10 +36,12 @@ export interface TenantSummary {
   subdomain: string;
   subscriptionPlan?: string;
   isActive?: boolean;
+  logoUrl?: string;
 }
 
 export function TenantSubdomainSwitcher() {
-  const { user: _user } = useAuth();
+  const { user, isSuperAdmin, loading: authLoading } = useAuth();
+  const { clearContext } = useOrgContext();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [activeSubdomain, setActiveSubdomain] = useState<string | null>(null);
@@ -78,14 +82,54 @@ export function TenantSubdomainSwitcher() {
     };
   }, [syncActiveSubdomain]);
 
+  // If user has a specific tenant subdomain and activeSubdomain is not set, initialize it
+  useEffect(() => {
+    if (!activeSubdomain && (user as any)?.tenantSubdomain) {
+      const sub = String((user as any).tenantSubdomain).toLowerCase().trim();
+      if (sub) {
+        persistTenantSubdomain(sub);
+        setActiveSubdomain(sub);
+      }
+    }
+  }, [user, activeSubdomain]);
+
   const loadTenants = useCallback(async () => {
+    if (!user) return;
     try {
       setLoadingTenants(true);
       setLoadError(null);
-      
-      // Attempt to load from platform superadmin endpoint
-      const res = await platformApi.superadmin.tenants(1, 200);
-      const dataList = res.data?.data || res.data?.tenants || [];
+
+      // Non-superadmin users are bound strictly to their authenticated tenant
+      if (!isSuperAdmin) {
+        const currentSubdomain = getTenantSubdomain() || (user as { tenantSubdomain?: string })?.tenantSubdomain || "";
+        const userTenantId = (user as { tenantId?: string })?.tenantId || "";
+        const userTenantName = (user as { tenantName?: string })?.tenantName || (currentSubdomain ? `Tenant (${currentSubdomain})` : "Organization");
+        setTenants([
+          {
+            id: userTenantId || "current-tenant",
+            name: userTenantName,
+            subdomain: currentSubdomain,
+            subscriptionPlan: "Standard",
+            isActive: true,
+          },
+        ]);
+        return;
+      }
+
+      let dataList: Record<string, unknown>[] = [];
+      try {
+        const res = await platformApi.superadmin.tenants(1, 200);
+        dataList = (res.data?.data || res.data?.tenants || []) as Record<string, unknown>[];
+      } catch {
+        try {
+          const fallbackRes = await tenantApi.getTenants({ page: 1, limit: 100 });
+          const raw = fallbackRes as unknown as { data?: Record<string, unknown>[]; tenants?: Record<string, unknown>[] };
+          dataList = (raw?.data || raw?.tenants || []) as Record<string, unknown>[];
+        } catch {
+          dataList = [];
+        }
+      }
+
       if (Array.isArray(dataList) && dataList.length > 0) {
         const mapped: TenantSummary[] = dataList.map((item: Record<string, unknown>, idx: number) => ({
           id: String(item.id || item.tenantId || item._id || `tenant-${idx}`),
@@ -93,6 +137,7 @@ export function TenantSubdomainSwitcher() {
           subdomain: String(item.subdomain || "").toLowerCase(),
           subscriptionPlan: String(item.subscriptionPlan || item.planTier || "Enterprise"),
           isActive: typeof item.isActive === "boolean" ? item.isActive : item.status === "active",
+          logoUrl: typeof item.logoUrl === "string" ? item.logoUrl : (typeof item.LogoUrl === "string" ? item.LogoUrl : undefined),
         })).filter((t) => Boolean(t.subdomain));
 
         if (mapped.length > 0) {
@@ -107,49 +152,36 @@ export function TenantSubdomainSwitcher() {
           return;
         }
       }
-    } catch {
-      // Fallback: Try admin tenants endpoint
-      try {
-        const fallbackRes = await platformApi.admin.tenants();
-        const fallbackList = Array.isArray(fallbackRes.data)
-          ? fallbackRes.data
-          : fallbackRes.data?.tenants || fallbackRes.data?.data || [];
-        if (Array.isArray(fallbackList) && fallbackList.length > 0) {
-          const mapped: TenantSummary[] = fallbackList.map((item: Record<string, unknown>, idx: number) => ({
-            id: String(item.id || item._id || `tenant-${idx}`),
-            name: String(item.name || item.subdomain || `Tenant ${idx + 1}`),
-            subdomain: String(item.subdomain || "").toLowerCase(),
-            subscriptionPlan: String(item.subscriptionPlan || "Enterprise"),
-            isActive: true,
-          })).filter((t) => Boolean(t.subdomain));
 
-          setTenants(mapped);
-          if (typeof window !== "undefined") {
-            try {
-              window.localStorage.setItem(TENANT_CACHE_KEY, JSON.stringify(mapped));
-            } catch {
-              // ignore
-            }
-          }
-          return;
-        }
-      } catch {
-        // If both failed, retain any existing cached tenants
-        if (tenants.length === 0) {
-          setLoadError("Could not reach tenant registry.");
-        }
+      // Fallback if superadmin tenant query returned no rows
+      const fallbackSub = (user as { tenantSubdomain?: string })?.tenantSubdomain;
+      if (fallbackSub) {
+        setTenants([
+          {
+            id: (user as { tenantId?: string })?.tenantId || "user-tenant",
+            name: (user as { tenantName?: string })?.tenantName || fallbackSub,
+            subdomain: fallbackSub.toLowerCase(),
+            subscriptionPlan: "Enterprise",
+            isActive: true,
+          },
+        ]);
+      }
+    } catch {
+      if (tenants.length === 0) {
+        setLoadError("Could not reach tenant registry.");
       }
     } finally {
       setLoadingTenants(false);
     }
-  }, [tenants.length]);
+  }, [user, isSuperAdmin, tenants.length]);
 
-  // Load tenants on initial mount or when dropdown opens
+  // Load tenants on initial mount or when dropdown opens, only if user is authenticated
   useEffect(() => {
+    if (!user || authLoading) return;
     if (open || tenants.length === 0) {
       void loadTenants();
     }
-  }, [open, loadTenants, tenants.length]);
+  }, [open, loadTenants, tenants.length, user, authLoading]);
 
   // Click outside to close
   useEffect(() => {
@@ -163,6 +195,16 @@ export function TenantSubdomainSwitcher() {
   }, []);
 
   const handleSelectTenant = (subdomain: string | null, tenantName?: string) => {
+    // 1. Clear org context and storage first so stale IDs don't conflict with the new tenant
+    clearContext();
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("activeCompanyId");
+      window.localStorage.removeItem("activeCompanyName");
+      window.localStorage.removeItem("activeProjectId");
+      window.localStorage.removeItem("activeProjectName");
+    }
+
+    // 2. Persist new tenant and dispatch 'erp:tenant-changed'
     if (subdomain) {
       const clean = subdomain.trim().toLowerCase();
       persistTenantSubdomain(clean);
@@ -172,15 +214,8 @@ export function TenantSubdomainSwitcher() {
       notifySuccess("Tenant scope reset to Default / Platform.");
     }
 
-    // Clear stale company and project context in storage so stale IDs do not fail queries
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem("activeCompanyId");
-      window.localStorage.removeItem("activeCompanyName");
-      window.localStorage.removeItem("activeProjectId");
-      window.localStorage.removeItem("activeProjectName");
-    }
-
-    void queryClient.invalidateQueries({ refetchType: "active" });
+    // 3. Invalidate active queries
+    void queryClient.invalidateQueries();
     setOpen(false);
     setSearch("");
     setCustomSubdomainInput("");
@@ -188,9 +223,13 @@ export function TenantSubdomainSwitcher() {
 
   const handleCustomSubdomainSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmed = customSubdomainInput.trim().toLowerCase();
-    if (!trimmed) return;
-    
+    if (!customSubdomainInput.trim()) return;
+    const trimmed = customSubdomainInput.trim().toLowerCase().replace(/[^a-z0-9-]/g, "");
+    if (!trimmed) {
+      notifyError("Please enter a valid subdomain (letters, numbers, hyphens).");
+      return;
+    }
+
     // Check if known
     const match = tenants.find((t) => t.subdomain.toLowerCase() === trimmed);
     handleSelectTenant(trimmed, match?.name);
@@ -214,13 +253,20 @@ export function TenantSubdomainSwitcher() {
     );
   }, [tenants, search]);
 
-  const displayLabel = activeTenantObj?.name || activeSubdomain || "Default Tenant";
+  const userTenantName = (user as any)?.tenantName?.trim();
+  const displayLabel =
+    activeTenantObj?.name ||
+    (userTenantName && userTenantName.length > 0 ? userTenantName : null) ||
+    (activeSubdomain ? `Tenant (${activeSubdomain})` : null) ||
+    "UabIndia Workspace";
 
   return (
     <div ref={ref} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((prev) => !prev)}
+        onClick={() => {
+          setOpen((prev) => !prev);
+        }}
         className={cn(
           "inline-flex h-8 max-w-[8.5rem] sm:max-w-[10rem] lg:max-w-[12rem] items-center gap-1.5 rounded-lg border px-2 py-1 text-xs font-medium outline-none transition cursor-pointer",
           "focus-visible:ring-2 focus-visible:ring-blue-500",
@@ -230,19 +276,27 @@ export function TenantSubdomainSwitcher() {
         )}
         title={
           activeSubdomain
-            ? `Active Subdomain: ${activeSubdomain} (Click to switch tenant)`
-            : "Platform Default Tenant Scope (Click to switch)"
+            ? `Active Organization: ${displayLabel} (${activeSubdomain})`
+            : `Organization: ${displayLabel}`
         }
-        aria-label="Switch Tenant Subdomain"
+        aria-label="Tenant Scope"
       >
-        <Globe
-          className={cn(
-            "h-3.5 w-3.5 shrink-0",
-            activeSubdomain
-              ? "text-blue-600 dark:text-blue-400"
-              : "text-slate-500 dark:text-slate-400"
-          )}
-        />
+        {activeTenantObj?.logoUrl ? (
+          <img
+            src={activeTenantObj.logoUrl}
+            alt=""
+            className="h-3.5 w-3.5 rounded-xs object-contain"
+          />
+        ) : (
+          <Globe
+            className={cn(
+              "h-3.5 w-3.5 shrink-0",
+              activeSubdomain
+                ? "text-blue-600 dark:text-blue-400"
+                : "text-slate-500 dark:text-slate-400"
+            )}
+          />
+        )}
         <span className="truncate font-medium">{displayLabel}</span>
         {activeSubdomain ? (
           <span className="hidden xl:inline-block rounded bg-blue-100 px-1 py-0.2 text-[9px] font-bold text-blue-700 dark:bg-blue-900/60 dark:text-blue-300">
@@ -272,179 +326,212 @@ export function TenantSubdomainSwitcher() {
                     Tenant & Subdomain
                   </p>
                   <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                    Switch tenant database & schema scope
+                    Switch company workspace context
                   </p>
                 </div>
               </div>
 
-              {activeSubdomain ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                  <span className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-pulse" />
-                  {activeSubdomain}
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-                  Default / Root
-                </span>
+              {activeSubdomain && (
+                <button
+                  type="button"
+                  onClick={() => handleSelectTenant(null)}
+                  className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  Clear Scope
+                </button>
               )}
             </div>
 
-            {/* Custom Subdomain Input Field */}
-            <form
-              onSubmit={handleCustomSubdomainSubmit}
-              className="mt-2.5 flex items-center gap-1.5"
-            >
-              <div className="relative flex-1">
-                <input
-                  type="text"
-                  value={customSubdomainInput}
-                  onChange={(e) => setCustomSubdomainInput(e.target.value)}
-                  placeholder="Enter subdomain (e.g. acme, demo)..."
-                  className="h-8 w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={!customSubdomainInput.trim()}
-                className="inline-flex h-8 items-center gap-1 rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white shadow-xs transition hover:bg-blue-700 disabled:opacity-40 cursor-pointer"
-              >
-                <span>Set</span>
-                <ArrowRight className="h-3 w-3" />
-              </button>
-            </form>
-
-            {/* Quick Filter */}
-            {tenants.length > 0 && (
-              <div className="mt-2 relative">
-                <Search className="absolute left-2.5 top-2.5 h-3 w-3 text-slate-400" />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search registered tenants..."
-                  className="h-7 w-full rounded-md border border-slate-100 bg-slate-50/70 pl-7 pr-2 text-[11px] text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-200"
-                />
-              </div>
-            )}
-
-            {/* Default / Platform Option */}
-            <div className="mt-2 space-y-1">
-              <button
-                type="button"
-                onClick={() => handleSelectTenant(null)}
-                className={cn(
-                  "flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-left text-xs transition cursor-pointer",
-                  !activeSubdomain
-                    ? "bg-blue-50 font-bold text-blue-700 dark:bg-blue-950/60 dark:text-blue-300"
-                    : "text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
-                )}
-              >
-                <div className="flex items-center gap-2">
-                  <RotateCcw className="h-3.5 w-3.5 text-slate-400" />
-                  <div>
-                    <p className="font-semibold">Platform Scope (Default)</p>
-                    <p className="text-[10px] text-slate-400">All tenants / standard root host</p>
+            {!isSuperAdmin ? (
+              <div className="mt-2.5 space-y-2">
+                <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-3 dark:border-blue-900/50 dark:bg-blue-950/30">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white font-bold text-sm">
+                      {displayLabel.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{displayLabel}</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        {activeSubdomain ? `${activeSubdomain}.uabindia.com` : "Enterprise Workspace"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-2.5 flex items-center justify-between border-t border-blue-100/80 pt-2 text-[10px] text-slate-500 dark:border-blue-900/40 dark:text-slate-400">
+                    <span>Scope: <strong className="text-slate-700 dark:text-slate-200">Organization Bound</strong></span>
+                    <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
+                      <Check className="h-3 w-3" /> Active
+                    </span>
                   </div>
                 </div>
-                {!activeSubdomain && <Check className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />}
-              </button>
-            </div>
-
-            {/* Tenant Registry List */}
-            <div className="mt-1 border-t border-slate-100 pt-1 dark:border-slate-800">
-              <div className="flex items-center justify-between px-1 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                <span>Available Tenants ({tenants.length})</span>
-                <button
-                  type="button"
-                  onClick={() => void loadTenants()}
-                  title="Reload tenants list"
-                  className="hover:text-slate-700 dark:hover:text-slate-200 transition cursor-pointer"
-                >
-                  <RefreshCw className={cn("h-3 w-3", loadingTenants && "animate-spin text-blue-600")} />
-                </button>
+                <p className="text-[10px] text-slate-400 text-center">
+                  Your account is securely bound to this organization workspace.
+                </p>
               </div>
-
-              <div className="max-h-52 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 scrollbar-thin">
-                {loadingTenants && tenants.length === 0 ? (
-                  <div className="p-3 text-center text-xs text-slate-400 flex items-center justify-center gap-1.5">
-                    <RefreshCw className="h-3.5 w-3.5 animate-spin text-blue-600" />
-                    <span>Loading tenants…</span>
+            ) : (
+              <>
+                {/* Subdomain Input Form */}
+                <form onSubmit={handleCustomSubdomainSubmit} className="mt-2.5">
+                  <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                    Direct Subdomain Navigation
+                  </label>
+                  <div className="mt-1 flex gap-1.5">
+                    <div className="relative flex-1">
+                      <input
+                        type="text"
+                        value={customSubdomainInput}
+                        onChange={(e) => setCustomSubdomainInput(e.target.value)}
+                        placeholder="e.g. acme, globex"
+                        className="h-8 w-full rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="inline-flex h-8 items-center gap-1 rounded-lg bg-blue-600 px-2.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-500 transition cursor-pointer"
+                    >
+                      <span>Go</span>
+                      <ArrowRight className="h-3 w-3" />
+                    </button>
                   </div>
-                ) : filteredTenants.length === 0 ? (
-                  <div className="p-3 text-center text-xs text-slate-400 space-y-1">
-                    <p>{search ? "No tenants match your search." : "No registered tenants found in registry."}</p>
-                    {activeSubdomain && (
-                      <button
-                        type="button"
-                        onClick={() => handleSelectTenant(null)}
-                        className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-                      >
-                        Reset to Default Scope
-                      </button>
+                </form>
+
+                {/* Filter Search */}
+                {tenants.length > 5 && (
+                  <div className="relative mt-2">
+                    <Search className="absolute left-2 top-2 h-3.5 w-3.5 text-slate-400" />
+                    <input
+                      type="text"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Search registered tenants..."
+                      className="h-7 w-full rounded-md border border-slate-100 bg-slate-50/70 pl-7 pr-2 text-[11px] text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-200"
+                    />
+                  </div>
+                )}
+
+                {/* Default / Platform Option */}
+                <div className="mt-2 space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectTenant(null)}
+                    className={cn(
+                      "flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-left text-xs transition cursor-pointer",
+                      !activeSubdomain
+                        ? "bg-blue-50 font-bold text-blue-700 dark:bg-blue-950/60 dark:text-blue-300"
+                        : "text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
                     )}
-                  </div>
-                ) : (
-                  filteredTenants.map((t) => {
-                    const isSelected =
-                      activeSubdomain?.toLowerCase() === t.subdomain.toLowerCase();
+                  >
+                    <div className="flex items-center gap-2">
+                      <RotateCcw className="h-3.5 w-3.5 text-slate-400" />
+                      <div>
+                        <p className="font-semibold">Platform Scope (Default)</p>
+                        <p className="text-[10px] text-slate-400">All tenants / standard root host</p>
+                      </div>
+                    </div>
+                    {!activeSubdomain && <Check className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />}
+                  </button>
+                </div>
 
-                    return (
-                      <div
-                        key={t.id || t.subdomain}
-                        className={cn(
-                          "group flex items-center justify-between rounded-xl px-2.5 py-2 text-xs transition",
-                          isSelected
-                            ? "bg-blue-50 font-semibold text-blue-900 dark:bg-blue-950/60 dark:text-blue-200"
-                            : "text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
+                {/* Tenant Registry List */}
+                <div className="mt-1 border-t border-slate-100 pt-1 dark:border-slate-800">
+                  <div className="flex items-center justify-between px-1 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    <span>Available Tenants ({tenants.length})</span>
+                    <button
+                      type="button"
+                      onClick={() => void loadTenants()}
+                      title="Reload tenants list"
+                      className="hover:text-slate-700 dark:hover:text-slate-200 transition cursor-pointer"
+                    >
+                      <RefreshCw className={cn("h-3 w-3", loadingTenants && "animate-spin text-blue-600")} />
+                    </button>
+                  </div>
+
+                  <div className="max-h-52 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 scrollbar-thin">
+                    {loadingTenants && tenants.length === 0 ? (
+                      <div className="p-3 text-center text-xs text-slate-400 flex items-center justify-center gap-1.5">
+                        <RefreshCw className="h-3.5 w-3.5 animate-spin text-blue-600" />
+                        <span>Loading tenants…</span>
+                      </div>
+                    ) : filteredTenants.length === 0 ? (
+                      <div className="p-3 text-center text-xs text-slate-400 space-y-1">
+                        <p>{search ? "No tenants match your search." : "No registered tenants found in registry."}</p>
+                        {activeSubdomain && (
+                          <button
+                            type="button"
+                            onClick={() => handleSelectTenant(null)}
+                            className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                          >
+                            Reset to Default Scope
+                          </button>
                         )}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => handleSelectTenant(t.subdomain, t.name)}
-                          className="flex flex-1 items-center gap-2 text-left cursor-pointer min-w-0"
-                        >
-                          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                            <Sparkles className="h-3 w-3" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5">
-                              <p className="truncate font-semibold text-slate-900 dark:text-white">
-                                {t.name}
-                              </p>
-                              {t.subscriptionPlan && (
-                                <span className="rounded bg-slate-100 px-1 py-0.2 text-[9px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-                                  {t.subscriptionPlan}
-                                </span>
+                      </div>
+                    ) : (
+                      filteredTenants.map((t) => {
+                        const isSelected =
+                          activeSubdomain?.toLowerCase() === t.subdomain.toLowerCase();
+
+                        return (
+                          <div
+                            key={t.id || t.subdomain}
+                            className={cn(
+                              "group flex items-center justify-between rounded-xl px-2.5 py-2 text-xs transition",
+                              isSelected
+                                ? "bg-blue-50 font-semibold text-blue-900 dark:bg-blue-950/60 dark:text-blue-200"
+                                : "text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
+                            )}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => handleSelectTenant(t.subdomain, t.name)}
+                              className="flex flex-1 items-center gap-2 text-left cursor-pointer min-w-0"
+                            >
+                              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 overflow-hidden">
+                                {t.logoUrl ? (
+                                  <img src={t.logoUrl} alt="" className="h-5 w-5 object-contain" />
+                                ) : (
+                                  <Sparkles className="h-3 w-3" />
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5">
+                                  <p className="truncate font-semibold text-slate-900 dark:text-white">
+                                    {t.name}
+                                  </p>
+                                  {t.subscriptionPlan && (
+                                    <span className="rounded bg-slate-100 px-1 py-0.2 text-[9px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                                      {t.subscriptionPlan}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[10px] text-slate-400">
+                                  {t.subdomain}.uabindia.com
+                                </p>
+                              </div>
+                            </button>
+
+                            <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                              {isSelected && (
+                                <Check className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                              )}
+                              {typeof window !== "undefined" && (
+                                <a
+                                  href={`${window.location.protocol}//${t.subdomain}.${window.location.host.split(".").slice(-2).join(".") || "localhost:3000"}${window.location.pathname}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  title={`Open ${t.subdomain} directly`}
+                                  className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-slate-700 dark:hover:text-white transition"
+                                >
+                                  <ExternalLink className="h-3 w-3" />
+                                </a>
                               )}
                             </div>
-                            <p className="font-mono text-[10px] text-slate-400 truncate">
-                              subdomain: {t.subdomain}
-                            </p>
                           </div>
-                        </button>
-
-                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                          {isSelected && (
-                            <Check className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                          )}
-                          {typeof window !== "undefined" && (
-                            <a
-                              href={`${window.location.protocol}//${t.subdomain}.${window.location.host.split(".").slice(-2).join(".") || "localhost:3000"}${window.location.pathname}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              title={`Open ${t.subdomain} directly`}
-                              className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-slate-700 dark:hover:text-white transition"
-                            >
-                              <ExternalLink className="h-3 w-3" />
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Footer Notice */}
             <div className="mt-2 border-t border-slate-100 pt-2 text-[10px] text-slate-400 dark:border-slate-800 dark:text-slate-500 flex items-center justify-between">

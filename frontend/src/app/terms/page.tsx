@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { LegalPublicPage } from "@/components/public/pages/PlatformMarketingPages";
+import { LegalPublicPage } from "@/components/public/pages/PublicMarketingPages";
 import { buildPublicMetadata } from "@/lib/public-metadata";
 import { resolveAudienceForPath, type PublicSearchParams } from "@/lib/public-page-request";
 
 export const metadata: Metadata = buildPublicMetadata({
-  title: "Terms",
+  title: "Terms of Service",
   description:
     "Public website terms summary for visitors, product evaluation teams, and demo enquiries.",
   path: "/terms",
@@ -20,8 +20,8 @@ export default async function TermsPage({
   return (
     <LegalPublicPage
       audience={audience}
-      title="Terms"
-      eyebrow="Terms summary"
+      title="Terms of Service"
+      eyebrow="Terms & Legal Conditions"
       path="/terms"
       body={[
         {

@@ -1,4 +1,4 @@
-ï»¿"use client";
+"use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -18,7 +18,7 @@ import { useErpListView } from "@/components/workspace/list-view";
 import { appApi } from "@/services/modules";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { notifyError, notifySuccess } from "@/lib/notifications";
-import { mapDocumentRecord, useDocuments, documentsQueryKey } from "@/features/platform/hooks/useDocuments";
+import { mapDocumentRecord, useDocuments, documentsQueryKey } from "@/features/administration/hooks/useDocuments";
 
 export default function DocumentVaultPage() {
   const queryClient = useQueryClient();
@@ -157,7 +157,7 @@ export default function DocumentVaultPage() {
       }
       filters={
         <>
-          <ErpSearchFilter value={search} onChange={setSearch} placeholder="Filter title, category, or moduleâ€¦" />
+          <ErpSearchFilter value={search} onChange={setSearch} placeholder="Filter title, category, or module…" />
           {list.filterBar}
         </>
       }
@@ -207,7 +207,7 @@ export default function DocumentVaultPage() {
           </div>
           <div className="erp-field md:col-span-2">
             <label className="erp-label">Tags</label>
-            <input className="erp-input" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="policy, hr, â€¦" />
+            <input className="erp-input" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="policy, hr, …" />
           </div>
           <p className="md:col-span-2 flex items-center gap-2 text-xs text-slate-500">
             <Upload className="h-3.5 w-3.5" /> Max 10 MB per file.

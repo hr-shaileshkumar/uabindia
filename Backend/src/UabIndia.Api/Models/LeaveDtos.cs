@@ -28,6 +28,11 @@ namespace UabIndia.Api.Models
     {
         [Required]
         public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public bool IsDefault { get; set; } = false;
+        public Guid? CompanyId { get; set; }
+        public Guid? ProjectId { get; set; }
+        public Guid? DepartmentId { get; set; }
         [Required]
         public string Type { get; set; } = string.Empty;
         [Required]
@@ -37,12 +42,18 @@ namespace UabIndia.Api.Models
         public string AllocationFrequency { get; set; } = "Yearly";
         public bool EnableProration { get; set; } = true;
         public bool AutoAllocate { get; set; } = false;
+        public string Status { get; set; } = "Active";
     }
 
     public class LeavePolicyDto
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public bool IsDefault { get; set; } = false;
+        public Guid? CompanyId { get; set; }
+        public Guid? ProjectId { get; set; }
+        public Guid? DepartmentId { get; set; }
         public string Type { get; set; } = string.Empty;
         public decimal EntitlementPerYear { get; set; }
         public bool CarryForwardAllowed { get; set; }
@@ -50,6 +61,7 @@ namespace UabIndia.Api.Models
         public string AllocationFrequency { get; set; } = "Yearly";
         public bool EnableProration { get; set; } = true;
         public bool AutoAllocate { get; set; } = false;
+        public string Status { get; set; } = "Active";
     }
 
     public class CreateLeaveRequestDto
@@ -74,6 +86,7 @@ namespace UabIndia.Api.Models
         public Guid EmployeeId { get; set; }
         public string? EmployeeName { get; set; }
         public Guid LeavePolicyId { get; set; }
+        public string? LeavePolicyName { get; set; }
         public DateTime FromDate { get; set; }
         public DateTime ToDate { get; set; }
         public decimal Days { get; set; }
@@ -83,6 +96,7 @@ namespace UabIndia.Api.Models
         public string? ApprovedByName { get; set; }
         public DateTime? ApprovedAt { get; set; }
         public string? Reason { get; set; }
+        public DateTime CreatedAt { get; set; }
     }
 
     public class CreateLeavePolicyRuleDto

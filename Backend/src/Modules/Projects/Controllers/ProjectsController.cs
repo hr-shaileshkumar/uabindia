@@ -15,7 +15,6 @@ namespace UabIndia.Api.Modules.Projects.Controllers
     [ApiController]
     [Route("api/v1/[controller]")]
     [Authorize]
-    [Authorize(Policy = "Module:platform")]
     public class ProjectsController : ControllerBase
     {
         private readonly ApplicationDbContext _db;

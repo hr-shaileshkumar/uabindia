@@ -4,7 +4,6 @@ import { getServerApiV1BaseUrl } from "@/lib/api-base-url";
 import { AUTH_PATH_PREFIXES, BUSINESS_PATH_PREFIXES, OWNER_PATH_PREFIXES, matchesAnyPrefix } from "@/lib/workspace/route-config";
 import { isPlatformOnlyPath, TENANT_PUBLIC_HOME } from "@/lib/workspace/public-routing";
 import { hasTenantScopedHost, isLocalhostHostname } from "@/lib/tenant-host";
-import crypto from "crypto";
 
 const API_BASE_URL = getServerApiV1BaseUrl();
 const PROTECTED_PREFIXES = [...BUSINESS_PATH_PREFIXES, ...OWNER_PATH_PREFIXES, "/context"];
@@ -19,15 +18,6 @@ const resolveSafeNextPath = (value: string | null): string | null => {
   if (matchesAnyPrefix(value, AUTH_PATH_PREFIXES)) return null;
   return value;
 };
-
-/** Administration module merged into Platform — redirect old routes */
-const ADMINISTRATION_REDIRECTS: [string, string][] = [
-  ["/administration/approvals", "/platform/permissions"],
-  ["/administration/notifications", "/platform/notification-templates"],
-  ["/administration/documents", "/documents"],
-  ["/administration/profile", "/profile"],
-  ["/administration", "/platform/settings"],
-];
 
 interface TenantHostCacheEntry {
   exists: boolean;
@@ -45,11 +35,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // ── Administration → Platform redirects (longest prefix first) ───────
-  for (const [from, to] of ADMINISTRATION_REDIRECTS) {
-    if (pathname === from || pathname.startsWith(from + "/")) {
-      return NextResponse.redirect(new URL(`${to}${request.nextUrl.search}`, request.url));
-    }
+  // ── Backward Compatibility: Redirect legacy /platform routes to /administration ──
+  if (pathname === "/platform" || pathname.startsWith("/platform/")) {
+    const suffix = pathname.slice("/platform".length);
+    return NextResponse.redirect(new URL(`/administration${suffix}${request.nextUrl.search}`, request.url));
   }
 
   if (matchesAnyPrefix(pathname, AUTH_PATH_PREFIXES) && hasAccessToken) {
@@ -102,10 +91,21 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Generate CSP nonce and set security headers
-  const nonce = crypto.randomBytes(16).toString("base64");
+  // Generate CSP nonce and set security headers using Edge-compatible Web Crypto
+  const nonceBytes = new Uint8Array(16);
+  crypto.getRandomValues(nonceBytes);
+  const nonce = btoa(String.fromCharCode(...nonceBytes));
   const csp = `default-src 'self'; script-src 'self' 'nonce-${nonce}' https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`;
-  const response = NextResponse.next();
+
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", csp);
+
+  const response = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
   response.headers.set("Content-Security-Policy", csp);
   response.headers.set("X-Content-Nonce", nonce);
   return response;
