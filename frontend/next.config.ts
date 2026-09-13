@@ -103,6 +103,7 @@ const nextConfig: NextConfig = {
       { source: "/projects", destination: "/administration/projects", permanent: false },
       { source: "/security/sessions", destination: "/administration/security/sessions", permanent: false },
       { source: "/security/devices", destination: "/administration/security/sessions", permanent: false },
+      { source: "/administration/licensing", destination: "/licensing", permanent: false },
       { source: "/customers", destination: "/crm/customers", permanent: false },
       { source: "/customers/:path*", destination: "/crm/customers/:path*", permanent: false },
 

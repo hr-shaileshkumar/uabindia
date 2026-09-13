@@ -15,7 +15,7 @@ import {
   Download,
   SlidersHorizontal,
 } from "lucide-react";
-import StandardPageLayout from "@/components/erp/StandardPageLayout";
+import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { SideDrawer } from "@/components/ui/side-drawer";
 import { useErpListView } from "@/components/workspace/list-view";
 import type { ErpListBulkAction, ErpListColumn } from "@/lib/workspace/list-view";
