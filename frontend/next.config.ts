@@ -105,6 +105,27 @@ const nextConfig: NextConfig = {
       { source: "/security/devices", destination: "/administration/security/sessions", permanent: false },
       { source: "/customers", destination: "/crm/customers", permanent: false },
       { source: "/customers/:path*", destination: "/crm/customers/:path*", permanent: false },
+
+      // Finance Module Canonical Redirects
+      { source: "/chart-of-accounts", destination: "/finance/chart-of-accounts", permanent: false },
+      { source: "/journal-entries", destination: "/finance/journal-entries", permanent: false },
+      { source: "/bank-reconciliation", destination: "/finance/bank-reconciliation", permanent: false },
+
+      // Inventory Module Canonical Redirects
+      { source: "/items", destination: "/inventory/items", permanent: false },
+      { source: "/warehouses", destination: "/inventory/warehouses", permanent: false },
+
+      // Procurement Module Canonical Redirects
+      { source: "/vendors", destination: "/procurement/vendors", permanent: false },
+      { source: "/purchase-orders", destination: "/procurement/purchase-orders", permanent: false },
+      { source: "/purchase-requests", destination: "/procurement/purchase-requests", permanent: false },
+      { source: "/grn", destination: "/procurement/grn", permanent: false },
+
+      // Sales Module Canonical Redirects
+      { source: "/quotations", destination: "/sales/quotations", permanent: false },
+      { source: "/discounts", destination: "/sales/discounts", permanent: false },
+      { source: "/sales-orders", destination: "/sales/orders", permanent: false },
+      { source: "/returns", destination: "/sales/returns", permanent: false },
     ];
   },
 };
