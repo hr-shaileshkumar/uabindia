@@ -6,4 +6,8 @@ export * from "./components/AttendanceStreamTable";
 export * from "./components/AttendanceDailyRegisterTable";
 export * from "./components/AttendanceInspectorDrawer";
 export * from "./components/AttendancePunchDrawer";
+export * from "./components/AttendanceOccupancyRadarModal";
+export * from "./components/BiometricHardwareGatewayModal";
+export * from "./components/BradfordFactorModal";
+export * from "./components/WebCheckInModal";
 export * from "./types/attendance.types";

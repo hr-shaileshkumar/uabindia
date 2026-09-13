@@ -73,6 +73,25 @@ export const hrmsApi = {
       punchMe: (data?: ApiPayload) => apiClient.post("/attendance/punch/me", data ?? {}),
       update: (id: string, data: ApiPayload) => apiClient.put(`/attendance/${id}`, data),
       delete: (id: string) => apiClient.delete(`/attendance/${id}`),
+      getOccupancyRadar: () => apiClient.get("/attendance/analytics/occupancy"),
+      getBradfordScores: () => apiClient.get("/attendance/analytics/bradford"),
+      webCheckIn: (payload: { punchType?: string; latitude?: number | null; longitude?: number | null; deviceInfo?: string }) =>
+        apiClient.post("/attendance/web-checkin", payload),
+      biometric: {
+        getDevices: () => apiClient.get("/hrms/biometric/devices"),
+        heartbeat: (payload: { deviceId: string; firmwareVersion?: string; ipAddress?: string }) =>
+          apiClient.post("/hrms/biometric/heartbeat", payload),
+        pushPunches: (payload: {
+          deviceId: string;
+          punches: Array<{
+            employeeCode?: string;
+            enrollmentId?: string;
+            timestamp: string;
+            punchType?: string;
+            deviceId?: string;
+          }>;
+        }) => apiClient.post("/hrms/biometric/push", payload),
+      },
       policies: {
         list: (companyId?: string, projectId?: string) => {
           const q = new URLSearchParams();

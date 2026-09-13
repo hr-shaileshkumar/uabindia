@@ -8,7 +8,7 @@ import { getApiErrorMessage } from "@/lib/api-errors";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { usePermissions } from "@/context/PermissionContext";
 import { hrmsApi, orgApi } from "@/services/modules";
-import { Clock, Layers, Plus, ShieldCheck } from "lucide-react";
+import { Clock, Layers, Plus, ShieldCheck, Radio, Cpu, AlertTriangle, Smartphone } from "lucide-react";
 
 import {
   GLOBAL_REGIONS,
@@ -26,6 +26,10 @@ import { AttendanceDailyRegisterTable } from "./AttendanceDailyRegisterTable";
 import { AttendanceInspectorDrawer } from "./AttendanceInspectorDrawer";
 import { AttendancePunchDrawer } from "./AttendancePunchDrawer";
 import { AttendancePolicyDrawer } from "./AttendancePolicyDrawer";
+import { AttendanceOccupancyRadarModal } from "./AttendanceOccupancyRadarModal";
+import { BiometricHardwareGatewayModal } from "./BiometricHardwareGatewayModal";
+import { BradfordFactorModal } from "./BradfordFactorModal";
+import { WebCheckInModal } from "./WebCheckInModal";
 import { useAttendancePolicy } from "../hooks/useAttendancePolicy";
 import { evaluateAttendanceStatus } from "../utils/attendance-calculator";
 
@@ -56,6 +60,10 @@ export function AttendanceList({ fetchAttendance, employeeId }: AttendanceListPr
 
   const policyHook = useAttendancePolicy(companyFilter || undefined, projectFilter || undefined);
   const [isPolicyDrawerOpen, setIsPolicyDrawerOpen] = useState(false);
+  const [isOccupancyOpen, setIsOccupancyOpen] = useState(false);
+  const [isBiometricGatewayOpen, setIsBiometricGatewayOpen] = useState(false);
+  const [isBradfordOpen, setIsBradfordOpen] = useState(false);
+  const [isWebCheckInOpen, setIsWebCheckInOpen] = useState(false);
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [employees, setEmployees] = useState<EmployeeOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -669,6 +677,26 @@ export function AttendanceList({ fetchAttendance, employeeId }: AttendanceListPr
       }
       secondaryActions={[
         {
+          label: "1-Tap Web Check-In",
+          icon: <Smartphone className="h-4 w-4 text-cyan-500" />,
+          onClick: () => setIsWebCheckInOpen(true),
+        },
+        {
+          label: "Floor Occupancy Radar",
+          icon: <Radio className="h-4 w-4 text-emerald-500 animate-pulse" />,
+          onClick: () => setIsOccupancyOpen(true),
+        },
+        {
+          label: "Biometric Hardware Fleet",
+          icon: <Cpu className="h-4 w-4 text-indigo-500" />,
+          onClick: () => setIsBiometricGatewayOpen(true),
+        },
+        {
+          label: "Bradford Index",
+          icon: <AlertTriangle className="h-4 w-4 text-amber-500" />,
+          onClick: () => setIsBradfordOpen(true),
+        },
+        {
           label: viewMode === "stream" ? "Daily Register Rollup" : "Live Stream View",
           icon: viewMode === "stream" ? <Layers className="h-4 w-4" /> : <Clock className="h-4 w-4" />,
           onClick: () => setViewMode((v) => (v === "stream" ? "daily" : "stream")),
@@ -821,6 +849,32 @@ export function AttendanceList({ fetchAttendance, employeeId }: AttendanceListPr
           id ? policyHook.updatePolicy(id, input) : policyHook.createPolicy(input)
         }
         onSetDefault={policyHook.setDefaultPolicy}
+      />
+
+      {/* Live Floor Occupancy Radar Modal */}
+      <AttendanceOccupancyRadarModal
+        open={isOccupancyOpen}
+        onOpenChange={setIsOccupancyOpen}
+      />
+
+      {/* Biometric IoT Hardware Gateway Modal */}
+      <BiometricHardwareGatewayModal
+        open={isBiometricGatewayOpen}
+        onOpenChange={setIsBiometricGatewayOpen}
+        onPunchesIngested={() => void loadRecords()}
+      />
+
+      {/* Bradford Factor Absenteeism Index Modal */}
+      <BradfordFactorModal
+        open={isBradfordOpen}
+        onOpenChange={setIsBradfordOpen}
+      />
+
+      {/* 1-Tap Geolocation Web Check-In Modal */}
+      <WebCheckInModal
+        open={isWebCheckInOpen}
+        onOpenChange={setIsWebCheckInOpen}
+        onSuccess={() => void loadRecords()}
       />
 
       {/* Universal Delete Dialog */}
