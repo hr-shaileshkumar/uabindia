@@ -125,7 +125,7 @@ export default function ModuleMappingPage() {
                 {m.displayName || m.name}
               </span>
             </td>
-            <td className="erp-td font-mono text-xs">{m.basePath || "—"}</td>
+            <td className="erp-td font-mono text-xs">{m.basePath || "â€”"}</td>
             <td className="erp-td">
               <Badge variant={m.isEnabled ? "default" : "secondary"}>
                 {m.isEnabled ? "Enabled" : "Disabled"}
@@ -142,7 +142,7 @@ export default function ModuleMappingPage() {
                     }
                     className={`${erpButtonClassName.secondary} h-8 px-2 text-xs`}
                   >
-                    {busy ? "Saving…" : m.isEnabled ? "Disable" : "Enable"}
+                    {busy ? "Savingâ€¦" : m.isEnabled ? "Disable" : "Enable"}
                   </button>
                 }
               />

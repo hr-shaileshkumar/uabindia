@@ -157,7 +157,7 @@ export default function DocumentVaultPage() {
       }
       filters={
         <>
-          <ErpSearchFilter value={search} onChange={setSearch} placeholder="Filter title, category, or module…" />
+          <ErpSearchFilter value={search} onChange={setSearch} placeholder="Filter title, category, or moduleâ€¦" />
           {list.filterBar}
         </>
       }
@@ -207,7 +207,7 @@ export default function DocumentVaultPage() {
           </div>
           <div className="erp-field md:col-span-2">
             <label className="erp-label">Tags</label>
-            <input className="erp-input" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="policy, hr, …" />
+            <input className="erp-input" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="policy, hr, â€¦" />
           </div>
           <p className="md:col-span-2 flex items-center gap-2 text-xs text-slate-500">
             <Upload className="h-3.5 w-3.5" /> Max 10 MB per file.

@@ -233,6 +233,7 @@ END;
         {
             await EnsurePerformanceIndexesAsync(db, logger, cancellationToken);
             await EnsureEnterprisePolicyTablesAsync(db, logger, cancellationToken);
+            await EnsureTenantWebhooksTablesAsync(db, logger, cancellationToken);
             logger?.LogInformation("Extended schema already current ({Version}); skipping column bootstrap.", ExtendedSchemaVersion);
             return;
         }
@@ -241,6 +242,7 @@ END;
         await EnsureSubscriptionTablesAsync(db, logger, cancellationToken);
         await EnsureOutboxMessagesTableAsync(db, logger, cancellationToken);
         await EnsureBusinessIdColumnsAsync(db, logger, cancellationToken);
+        await EnsureTenantWebhooksTablesAsync(db, logger, cancellationToken);
 
         logger?.LogInformation("Ensuring multi-tenancy and extended schema columns across all database tables…");
 
@@ -1405,6 +1407,75 @@ END;
         catch (System.Exception ex)
         {
             logger?.LogWarning(ex, "Could not ensure enterprise policy tables (may already exist).");
+        }
+    }
+
+    private static async Task EnsureTenantWebhooksTablesAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        const string sql = @"
+IF OBJECT_ID(N'dbo.TenantWebhooks', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.TenantWebhooks (
+        [Id] UNIQUEIDENTIFIER NOT NULL CONSTRAINT [PK_TenantWebhooks] PRIMARY KEY,
+        [TenantId] UNIQUEIDENTIFIER NOT NULL,
+        [BusinessId] NVARCHAR(64) NULL,
+        [Name] NVARCHAR(128) NOT NULL,
+        [TargetUrl] NVARCHAR(1024) NOT NULL,
+        [SecretKey] NVARCHAR(256) NOT NULL,
+        [EventsJson] NVARCHAR(MAX) NOT NULL CONSTRAINT [DF_TenantWebhooks_EventsJson] DEFAULT N'[""*\""]',
+        [IsActive] BIT NOT NULL CONSTRAINT [DF_TenantWebhooks_IsActive] DEFAULT 1,
+        [LastTriggeredAt] DATETIME2 NULL,
+        [FailureCount] INT NOT NULL CONSTRAINT [DF_TenantWebhooks_FailureCount] DEFAULT 0,
+        [LastError] NVARCHAR(MAX) NULL,
+        [CreatedAt] DATETIME2 NOT NULL CONSTRAINT [DF_TenantWebhooks_CreatedAt] DEFAULT SYSUTCDATETIME(),
+        [UpdatedAt] DATETIME2 NULL,
+        [CreatedBy] UNIQUEIDENTIFIER NULL,
+        [IsDeleted] BIT NOT NULL CONSTRAINT [DF_TenantWebhooks_IsDeleted] DEFAULT 0
+    );
+
+    CREATE NONCLUSTERED INDEX [IX_TenantWebhooks_Tenant_Active]
+    ON dbo.TenantWebhooks ([TenantId], [IsActive], [IsDeleted]);
+END;
+
+IF OBJECT_ID(N'dbo.WebhookDeliveryLogs', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.WebhookDeliveryLogs (
+        [Id] UNIQUEIDENTIFIER NOT NULL CONSTRAINT [PK_WebhookDeliveryLogs] PRIMARY KEY,
+        [TenantId] UNIQUEIDENTIFIER NOT NULL,
+        [BusinessId] NVARCHAR(64) NULL,
+        [WebhookId] UNIQUEIDENTIFIER NOT NULL,
+        [EventType] NVARCHAR(128) NOT NULL,
+        [TargetUrl] NVARCHAR(1024) NOT NULL,
+        [PayloadJson] NVARCHAR(MAX) NOT NULL,
+        [ResponseStatusCode] INT NOT NULL,
+        [ResponseBody] NVARCHAR(MAX) NULL,
+        [Status] NVARCHAR(64) NOT NULL CONSTRAINT [DF_WebhookDeliveryLogs_Status] DEFAULT N'Success',
+        [DurationMs] BIGINT NOT NULL CONSTRAINT [DF_WebhookDeliveryLogs_DurationMs] DEFAULT 0,
+        [AttemptedAt] DATETIME2 NOT NULL CONSTRAINT [DF_WebhookDeliveryLogs_AttemptedAt] DEFAULT SYSUTCDATETIME(),
+        [CreatedAt] DATETIME2 NOT NULL CONSTRAINT [DF_WebhookDeliveryLogs_CreatedAt] DEFAULT SYSUTCDATETIME(),
+        [UpdatedAt] DATETIME2 NULL,
+        [CreatedBy] UNIQUEIDENTIFIER NULL,
+        [IsDeleted] BIT NOT NULL CONSTRAINT [DF_WebhookDeliveryLogs_IsDeleted] DEFAULT 0
+    );
+
+    CREATE NONCLUSTERED INDEX [IX_WebhookDeliveryLogs_WebhookId_AttemptedAt]
+    ON dbo.WebhookDeliveryLogs ([WebhookId], [AttemptedAt] DESC);
+
+    CREATE NONCLUSTERED INDEX [IX_WebhookDeliveryLogs_Tenant_AttemptedAt]
+    ON dbo.WebhookDeliveryLogs ([TenantId], [AttemptedAt] DESC);
+END;
+";
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+            logger?.LogInformation("Ensured physical database tables for TenantWebhooks and WebhookDeliveryLogs.");
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure tenant webhook tables.");
         }
     }
 

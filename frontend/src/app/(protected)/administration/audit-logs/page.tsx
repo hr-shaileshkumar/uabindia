@@ -219,7 +219,7 @@ export default function AuditLogsPage() {
         isInspectorOpen={!!selectedLog}
         onInspectorClose={() => setSelectedLog(null)}
         inspectorTitle={`Audit Event: ${selectedLog?.entityName} (${selectedLog?.action})`}
-        inspectorSubTitle={`Event ID #${selectedLog?.id} • Timestamp: ${selectedLog ? new Date(selectedLog.performedAt).toLocaleString() : ""}`}
+        inspectorSubTitle={`Event ID #${selectedLog?.id} â€¢ Timestamp: ${selectedLog ? new Date(selectedLog.performedAt).toLocaleString() : ""}`}
         inspectorContent={
           selectedLog && (
             <div className="space-y-4 text-xs">

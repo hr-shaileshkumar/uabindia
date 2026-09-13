@@ -261,7 +261,7 @@ export function OrgStructurePage({
           <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">Status</h3>
           <label className="flex items-center gap-2 text-xs">
             <input type="checkbox" className="h-4 w-4 rounded border-slate-300 accent-indigo-600" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
-            <span className="font-medium text-slate-700">Active — visible in all selectors</span>
+            <span className="font-medium text-slate-700">Active â€” visible in all selectors</span>
           </label>
         </div>
       )}
@@ -294,7 +294,7 @@ export function OrgStructurePage({
         kpiMetrics={kpis}
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder={`Search ${nameLabel.toLowerCase()} name or code…`}
+        searchPlaceholder={`Search ${nameLabel.toLowerCase()} name or codeâ€¦`}
         filterOptions={[
           {
             key: "status",
@@ -338,7 +338,7 @@ export function OrgStructurePage({
                 </div>
               </div>
             </td>
-            <td className="erp-td font-mono text-xs text-slate-600">{row.code || "—"}</td>
+            <td className="erp-td font-mono text-xs text-slate-600">{row.code || "â€”"}</td>
             {showLocationFields ? (
               <td className="erp-td">
                 {(row.city || row.state) ? (
@@ -347,7 +347,7 @@ export function OrgStructurePage({
                     {[row.city, row.state].filter(Boolean).join(", ")}
                     {row.isWarehouse ? <span className="ml-1 erp-chip erp-chip-info">Warehouse</span> : null}
                   </div>
-                ) : <span className="text-xs text-slate-400">—</span>}
+                ) : <span className="text-xs text-slate-400">â€”</span>}
               </td>
             ) : null}
             {showGradeFields ? (
@@ -355,7 +355,7 @@ export function OrgStructurePage({
                 <div className="space-y-0.5">
                   {row.grade && <div className="text-xs font-medium text-slate-700">{row.grade}</div>}
                   {row.level && <div className="text-xs text-slate-500">{row.level}</div>}
-                  {!row.grade && !row.level && <span className="text-xs text-slate-400">—</span>}
+                  {!row.grade && !row.level && <span className="text-xs text-slate-400">â€”</span>}
                 </div>
               </td>
             ) : null}
@@ -363,7 +363,7 @@ export function OrgStructurePage({
               <td className="erp-td">
                 {row.costCenterType
                   ? <span className="erp-chip erp-chip-neutral">{row.costCenterType}</span>
-                  : <span className="text-xs text-slate-400">—</span>}
+                  : <span className="text-xs text-slate-400">â€”</span>}
               </td>
             ) : null}
             <td className="erp-td">

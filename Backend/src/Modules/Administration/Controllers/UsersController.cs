@@ -402,8 +402,10 @@ namespace UabIndia.Api.Modules.Administration.Controllers
         public async Task<IActionResult> GetMyPermissions()
         {
             var tenantId = _tenantAccessor.GetTenantId();
-            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/sub"));
-            if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+            var raw = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+                      ?? User.FindFirst("sub")?.Value 
+                      ?? User.Claims.FirstOrDefault(c => c.Type.EndsWith("/nameidentifier") || c.Type.EndsWith("/sub"))?.Value;
+            if (string.IsNullOrWhiteSpace(raw) || !Guid.TryParse(raw, out var userId))
             {
                 return Unauthorized();
             }

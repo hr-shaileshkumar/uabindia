@@ -115,7 +115,7 @@ export function IntegrationHubManager() {
         type="search"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search integration or provider…"
+        placeholder="Search integration or providerâ€¦"
         className="erp-input h-8 w-56 sm:w-64"
       />
     ),
@@ -129,7 +129,7 @@ export function IntegrationHubManager() {
             {conn.status}
           </span>
         </td>
-        <td className="erp-td text-xs text-slate-500">{conn.lastSyncAt ? new Date(conn.lastSyncAt).toLocaleString() : "—"}</td>
+        <td className="erp-td text-xs text-slate-500">{conn.lastSyncAt ? new Date(conn.lastSyncAt).toLocaleString() : "â€”"}</td>
         <td className="erp-td">
           <div className="flex flex-wrap gap-2">
             <button type="button" className={`${erpButtonClassName.ghost} h-8 gap-1 px-2 text-xs`} disabled={busy} onClick={() => void onSync(conn.id)}>
@@ -186,7 +186,7 @@ export function IntegrationHubManager() {
           setShowLogs(false);
         }}
         title={selected ? selected.name : "Connector"}
-        subtitle={selected ? `${selected.provider} · ${selected.connectorKey}` : undefined}
+        subtitle={selected ? `${selected.provider} Â· ${selected.connectorKey}` : undefined}
         width="lg"
         footer={
           <div className="flex flex-wrap justify-end gap-2">
@@ -242,12 +242,12 @@ export function IntegrationHubManager() {
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-medium">{log.operation}</span>
                         <span className={log.status?.toLowerCase() === "success" ? "erp-chip erp-chip-success" : "erp-chip erp-chip-danger"}>
-                          {log.status ?? "—"}
+                          {log.status ?? "â€”"}
                         </span>
                       </div>
                       <p className="mt-1 text-slate-600">{log.message}</p>
                       <p className="mt-1 text-[11px] text-slate-400">
-                        {log.startedAt ? new Date(log.startedAt).toLocaleString() : ""} · {log.recordsProcessed ?? 0} records
+                        {log.startedAt ? new Date(log.startedAt).toLocaleString() : ""} Â· {log.recordsProcessed ?? 0} records
                       </p>
                     </li>
                   ))}

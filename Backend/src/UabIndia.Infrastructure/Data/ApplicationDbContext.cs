@@ -341,6 +341,18 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<CustomReport>().ToTable("CustomReports");
             modelBuilder.Entity<LicenseInvoice>().ToTable("LicenseInvoices");
             modelBuilder.Entity<BusinessIdSequence>().ToTable("BusinessIdSequences");
+            modelBuilder.Entity<TenantWebhook>().ToTable("TenantWebhooks");
+            modelBuilder.Entity<WebhookDeliveryLog>().ToTable("WebhookDeliveryLogs");
+
+            modelBuilder.Entity<PolicyMaster>().ToTable("PolicyMasters");
+            modelBuilder.Entity<PolicyVersion>(b =>
+            {
+                b.ToTable("PolicyVersions");
+                b.HasOne(v => v.Policy)
+                    .WithMany(p => p.Versions)
+                    .HasForeignKey(v => v.PolicyId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
 
             // Performance Management
             modelBuilder.Entity<AppraisalCycle>().ToTable("AppraisalCycles");

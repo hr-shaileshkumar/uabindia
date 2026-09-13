@@ -212,7 +212,7 @@ export function SuperadminTenantsManager() {
         kpiMetrics={kpis}
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Filter organization, subdomain, admin email…"
+        searchPlaceholder="Filter organization, subdomain, admin emailâ€¦"
         onClearFilters={() => {
           setSearch("");
           setStatusFilter("all");
@@ -269,7 +269,7 @@ export function SuperadminTenantsManager() {
                 </div>
                 <div>
                   <div className="text-sm font-semibold text-slate-900">{tenant.name}</div>
-                  <div className="font-mono text-xs text-slate-400">{tenant.id.slice(0, 8)}…</div>
+                  <div className="font-mono text-xs text-slate-400">{tenant.id.slice(0, 8)}â€¦</div>
                 </div>
               </div>
             </td>

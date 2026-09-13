@@ -51,7 +51,7 @@ export default function HelpdeskHomePage() {
         </div>
         <div className={`${erpPanelBodyClassName} space-y-2 text-sm`}>
           {isLoading ? (
-            <p className="text-slate-500">Loading…</p>
+            <p className="text-slate-500">Loadingâ€¦</p>
           ) : tickets.filter((ticket) => ticket.status !== "Resolved").slice(0, 6).length === 0 ? (
             <p className="text-slate-500">No open tickets.</p>
           ) : (

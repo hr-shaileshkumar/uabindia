@@ -113,7 +113,7 @@ export default function ContactSubmissionsPage() {
           </td>
           <td className="erp-td">
             <div className="font-mono text-xs text-slate-900 dark:text-slate-100">{l.email}</div>
-            <div className="font-mono text-[11px] text-muted-foreground">{l.phone || "—"}</div>
+            <div className="font-mono text-[11px] text-muted-foreground">{l.phone || "â€”"}</div>
           </td>
           <td className="erp-td text-xs text-muted-foreground max-w-xs truncate">{l.message}</td>
           <td className="erp-td text-xs text-muted-foreground">{l.createdAt}</td>
@@ -147,7 +147,7 @@ export default function ContactSubmissionsPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Phone:</span>
-                <span className="font-mono">{selectedLead.phone || "—"}</span>
+                <span className="font-mono">{selectedLead.phone || "â€”"}</span>
               </div>
               <div>
                 <span className="text-muted-foreground block mb-1">Message:</span>

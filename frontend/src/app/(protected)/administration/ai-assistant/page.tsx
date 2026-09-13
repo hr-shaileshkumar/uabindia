@@ -113,7 +113,7 @@ export default function AiAssistantPage() {
       ]}
       searchValue={search}
       onSearchChange={setSearch}
-      searchPlaceholder="Filter agent name or key…"
+      searchPlaceholder="Filter agent name or keyâ€¦"
       filterOptions={[
         {
           key: "status",
@@ -158,7 +158,7 @@ export default function AiAssistantPage() {
             <div className="font-mono text-[11px] text-slate-500">{row.key}</div>
           </td>
           <td className="erp-td text-xs">
-            {row.provider} · {row.model}
+            {row.provider} Â· {row.model}
           </td>
           <td className="erp-td text-xs">{row.category}</td>
           <td className="erp-td">

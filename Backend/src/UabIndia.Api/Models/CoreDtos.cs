@@ -263,9 +263,15 @@ namespace UabIndia.Api.Models
         public string? State { get; set; }
         public string? PostalCode { get; set; }
         public string? Country { get; set; }
+        public string CountryCode { get; set; } = "IND";
+        public string FunctionalCurrencyCode { get; set; } = "INR";
+        public Guid? ParentCompanyId { get; set; }
         public string? BankAccountNumber { get; set; }
         public string? BankName { get; set; }
         public string? BankBranch { get; set; }
+        public string? BankRoutingCode { get; set; }
+        public string? BankIban { get; set; }
+        public string? BankSwiftCode { get; set; }
         public string? IFSCCode { get; set; }
         public string? FinancialYearStart { get; set; }
         public string? FinancialYearEnd { get; set; }
@@ -300,9 +306,15 @@ namespace UabIndia.Api.Models
         public string? State { get; set; }
         public string? PostalCode { get; set; }
         public string? Country { get; set; }
+        public string CountryCode { get; set; } = "IND";
+        public string FunctionalCurrencyCode { get; set; } = "INR";
+        public Guid? ParentCompanyId { get; set; }
         public string? BankAccountNumber { get; set; }
         public string? BankName { get; set; }
         public string? BankBranch { get; set; }
+        public string? BankRoutingCode { get; set; }
+        public string? BankIban { get; set; }
+        public string? BankSwiftCode { get; set; }
         public string? IFSCCode { get; set; }
         public string? FinancialYearStart { get; set; }
         public string? FinancialYearEnd { get; set; }
@@ -335,9 +347,15 @@ namespace UabIndia.Api.Models
         public string? State { get; set; }
         public string? PostalCode { get; set; }
         public string? Country { get; set; }
+        public string? CountryCode { get; set; }
+        public string? FunctionalCurrencyCode { get; set; }
+        public Guid? ParentCompanyId { get; set; }
         public string? BankAccountNumber { get; set; }
         public string? BankName { get; set; }
         public string? BankBranch { get; set; }
+        public string? BankRoutingCode { get; set; }
+        public string? BankIban { get; set; }
+        public string? BankSwiftCode { get; set; }
         public string? IFSCCode { get; set; }
         public string? FinancialYearStart { get; set; }
         public string? FinancialYearEnd { get; set; }

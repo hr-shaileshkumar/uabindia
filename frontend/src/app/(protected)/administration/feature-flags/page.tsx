@@ -116,7 +116,7 @@ export default function FeatureFlagsPage() {
       kpiMetrics={kpis}
       searchValue={search}
       onSearchChange={setSearch}
-      searchPlaceholder="Search flag key or description…"
+      searchPlaceholder="Search flag key or descriptionâ€¦"
       filterOptions={[
         {
           key: "status", label: "All Flags", value: statusFilter, onChange: setStatusFilter,
@@ -159,7 +159,7 @@ export default function FeatureFlagsPage() {
                 cat.tone === "info" ? "erp-chip-info" : "erp-chip-neutral"
               }`}>{cat.label}</span>
             </td>
-            <td className="erp-td text-xs text-slate-500">{flag.description || "—"}</td>
+            <td className="erp-td text-xs text-slate-500">{flag.description || "â€”"}</td>
             <td className="erp-td">
               <Switch
                 checked={flag.isEnabled}

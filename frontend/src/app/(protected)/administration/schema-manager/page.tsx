@@ -118,7 +118,7 @@ export default function SchemaManagerPage() {
         ]}
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Filter entity or field…"
+        searchPlaceholder="Filter entity or fieldâ€¦"
         filterOptions={[
           {
             key: "entity",
