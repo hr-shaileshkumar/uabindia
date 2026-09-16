@@ -8,7 +8,6 @@ import {
   ChevronRight,
   LayoutDashboard,
   LifeBuoy,
-  Search,
   X,
   Building2,
   Bell,
@@ -235,7 +234,6 @@ type SidebarProps = {
 export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname() || "";
   const isCollapsed = useNavigationStore((state) => state.isSidebarCollapsed);
-  const setSearchOpen = useNavigationStore((state) => state.setSearchOpen);
   const favorites = useNavigationStore((state) => state.favorites);
   const removeFavorite = useNavigationStore((state) => state.removeFavorite);
   const { navigation: schemaNav, enabledModules } = useUiSchema();
@@ -249,23 +247,6 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
   const renderNav = (collapsed: boolean) => (
     <div className={cn("flex flex-1 flex-col min-h-0", collapsed ? "pt-2" : "pt-2")}>
-
-      {/* Quick Search Shortcut */}
-      {!collapsed && (
-        <div className="px-3 pt-2.5 pb-1">
-          <button
-            type="button"
-            onClick={() => setSearchOpen(true)}
-            className="flex w-full items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-1.5 text-xs text-slate-400 transition-all hover:border-slate-300 hover:bg-white hover:text-slate-600 hover:shadow-2xs dark:border-slate-800 dark:bg-slate-900/60"
-          >
-            <Search className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-            <span className="truncate">Search modules…</span>
-            <kbd className="ml-auto inline-flex items-center rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[9px] font-bold text-slate-400 font-mono">
-              Ctrl K
-            </kbd>
-          </button>
-        </div>
-      )}
 
       {/* Nav list */}
       <nav className="flex flex-1 flex-col overflow-y-auto px-2.5 py-2 scrollbar-thin">
