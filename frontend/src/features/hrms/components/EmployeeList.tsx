@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   KeyRound,
   FileSpreadsheet,
+  Fingerprint,
 } from "lucide-react";
 import {
   AdministrationGlobalPageShell,
@@ -44,34 +45,36 @@ type OptionItem = { id: string; name: string };
 
 const EMPLOYMENT_TYPES = [
   "Permanent",
-  "Probation",
   "Contract",
   "Intern",
-  "Temporary",
+  "Trainee",
   "Consultant",
+  "Probationary",
 ];
+
+const GENDER_OPTIONS = ["Male", "Female", "Other"];
 
 const emptyEmployeeForm = () => ({
   fullName: "",
   employeeCode: "",
+  companyId: "",
+  status: "Active" as any,
   workEmail: "",
   personalEmail: "",
   phone: "",
-  gender: "Male",
+  gender: "",
   dateOfBirth: "",
-  companyId: "",
+  dateOfJoining: "",
+  employmentType: "Permanent",
   departmentId: "",
   departmentName: "",
   designationId: "",
   designationName: "",
-  employmentType: "Permanent",
-  dateOfJoining: "",
   workLocation: "",
   city: "",
   state: "",
-  status: "Active",
   createLogin: false,
-  loginRole: "EMPLOYEE",
+  loginRole: "Employee",
   initialPassword: "",
   pan: "",
   aadhaar: "",
@@ -82,6 +85,18 @@ const emptyEmployeeForm = () => ({
   bankIfsc: "",
   monthlyCtc: "",
   basicSalary: "",
+  // Geofence & Attendance Validation
+  validateGeofenceOnAttendance: true,
+  allowAnyLocationCheckIn: false,
+  baseOperationalLocationId: "",
+  baseLocationLatitude: "",
+  baseLocationLongitude: "",
+  baseLocationRadiusMeters: "150",
+  // Shift & Biometric Hardware Mapping
+  biometricEnrollmentId: "",
+  biometricCardNumber: "",
+  assignedShiftId: "",
+  attendancePolicyId: "",
 });
 
 export default function EmployeeList() {
@@ -102,17 +117,20 @@ export default function EmployeeList() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [employmentTypeFilter, setEmploymentTypeFilter] = useState("all");
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
 
-  // Metadata options
+  // Options catalogs
   const [companies, setCompanies] = useState<OptionItem[]>([]);
   const [departments, setDepartments] = useState<OptionItem[]>([]);
   const [designations, setDesignations] = useState<OptionItem[]>([]);
+  const [operationalLocations, setOperationalLocations] = useState<any[]>([]);
+  const [shifts, setShifts] = useState<OptionItem[]>([]);
+  const [attendancePolicies, setAttendancePolicies] = useState<OptionItem[]>([]);
 
   // Drawer modal states
   const [mode, setMode] = useState<"closed" | "create" | "edit">("closed");
@@ -142,6 +160,27 @@ export default function EmployeeList() {
         }
       } catch {
         if (isMounted) setCompanies([]);
+      }
+
+      try {
+        const [shiftsRes, policiesRes] = await Promise.allSettled([
+          hrmsApi.hrms.shifts.list(),
+          hrmsApi.hrms.attendance.policies.list(),
+        ]);
+        if (isMounted && shiftsRes.status === "fulfilled") {
+          const list = Array.isArray(shiftsRes.value?.data?.items)
+            ? shiftsRes.value.data.items
+            : Array.isArray(shiftsRes.value?.data)
+              ? shiftsRes.value.data
+              : [];
+          setShifts(list.map((s: any) => ({ id: s.id, name: s.name + (s.code ? ` (${s.code})` : "") })));
+        }
+        if (isMounted && policiesRes.status === "fulfilled") {
+          const list = Array.isArray(policiesRes.value?.data) ? policiesRes.value.data : [];
+          setAttendancePolicies(list.map((p: any) => ({ id: p.id, name: p.name + (p.isDefault ? " (Default)" : "") })));
+        }
+      } catch {
+        // Fallback
       }
     };
     void loadCatalogs();
@@ -186,9 +225,10 @@ export default function EmployeeList() {
     let isMounted = true;
     const loadStructure = async () => {
       try {
-        const [deptRes, desigRes] = await Promise.allSettled([
+        const [deptRes, desigRes, locRes] = await Promise.allSettled([
           orgApi.orgStructure.departments.list(targetCompId),
           orgApi.orgStructure.designations.list(targetCompId),
+          orgApi.orgStructure.operationalLocations.list(targetCompId),
         ]);
 
         if (isMounted && deptRes.status === "fulfilled") {
@@ -198,6 +238,10 @@ export default function EmployeeList() {
         if (isMounted && desigRes.status === "fulfilled") {
           const list = Array.isArray(desigRes.value.data) ? desigRes.value.data : [];
           setDesignations(list.map((d: any) => ({ id: d.id, name: d.name })));
+        }
+        if (isMounted && locRes.status === "fulfilled") {
+          const list = Array.isArray(locRes.value.data) ? locRes.value.data : [];
+          setOperationalLocations(list);
         }
       } catch {
         // Fallback gracefully
@@ -342,6 +386,16 @@ export default function EmployeeList() {
       bankIfsc: (emp as any).bankIfsc || "",
       monthlyCtc: emp.monthlyCtc ? String(emp.monthlyCtc) : "",
       basicSalary: emp.basicSalary ? String(emp.basicSalary) : "",
+      validateGeofenceOnAttendance: (emp as any).validateGeofenceOnAttendance ?? true,
+      allowAnyLocationCheckIn: (emp as any).allowAnyLocationCheckIn ?? false,
+      baseOperationalLocationId: (emp as any).baseOperationalLocationId || "",
+      baseLocationLatitude: (emp as any).baseLocationLatitude != null ? String((emp as any).baseLocationLatitude) : "",
+      baseLocationLongitude: (emp as any).baseLocationLongitude != null ? String((emp as any).baseLocationLongitude) : "",
+      baseLocationRadiusMeters: (emp as any).baseLocationRadiusMeters != null ? String((emp as any).baseLocationRadiusMeters) : "150",
+      biometricEnrollmentId: (emp as any).biometricEnrollmentId || "",
+      biometricCardNumber: (emp as any).biometricCardNumber || "",
+      assignedShiftId: (emp as any).assignedShiftId || "",
+      attendancePolicyId: (emp as any).attendancePolicyId || "",
     });
     setActiveTab("basic");
     setMode("edit");
@@ -375,6 +429,16 @@ export default function EmployeeList() {
       workLocation: form.workLocation.trim() || undefined,
       city: form.city.trim() || undefined,
       state: form.state.trim() || undefined,
+      validateGeofenceOnAttendance: form.validateGeofenceOnAttendance,
+      allowAnyLocationCheckIn: form.allowAnyLocationCheckIn,
+      baseOperationalLocationId: form.baseOperationalLocationId || undefined,
+      baseLocationLatitude: form.baseLocationLatitude ? Number(form.baseLocationLatitude) : undefined,
+      baseLocationLongitude: form.baseLocationLongitude ? Number(form.baseLocationLongitude) : undefined,
+      baseLocationRadiusMeters: form.baseLocationRadiusMeters ? Number(form.baseLocationRadiusMeters) : 150,
+      biometricEnrollmentId: form.biometricEnrollmentId.trim() || undefined,
+      biometricCardNumber: form.biometricCardNumber.trim() || undefined,
+      assignedShiftId: form.assignedShiftId || undefined,
+      attendancePolicyId: form.attendancePolicyId || undefined,
       pan: form.pan.trim().toUpperCase() || undefined,
       aadhaar: form.aadhaar.trim() || undefined,
       uan: form.uan.trim() || undefined,
@@ -826,6 +890,231 @@ export default function EmployeeList() {
               placeholder="e.g. Maharashtra, Karnataka"
               onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))}
             />
+          </div>
+
+          {/* Geofencing & Attendance Policy Configuration */}
+          <div className="md:col-span-2 rounded-2xl border border-sky-200 bg-sky-50/40 p-4 dark:border-sky-900/50 dark:bg-sky-950/20 space-y-4">
+            <div className="flex items-center justify-between border-b border-sky-100 dark:border-sky-900/50 pb-2.5">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-sky-100 dark:bg-sky-900/60 text-sky-700 dark:text-sky-300">
+                  <MapPin className="h-4 w-4" />
+                </span>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    Geofencing & Attendance Policy
+                  </h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Configure GPS check-in boundaries and multi-site roaming attendance validation.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Validation Toggles */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <label className="flex items-start gap-2.5 p-3 rounded-xl border border-slate-200/80 bg-white dark:border-slate-800 dark:bg-slate-900 cursor-pointer hover:border-sky-300 transition-colors">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 rounded border-slate-300 accent-sky-600"
+                  checked={form.validateGeofenceOnAttendance}
+                  onChange={(e) => setForm((f) => ({ ...f, validateGeofenceOnAttendance: e.target.checked }))}
+                />
+                <div>
+                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block">
+                    Validate Geofence on Check-In
+                  </span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">
+                    Enforces GPS boundary checks during punch. Uncheck to allow remote/exempt bypass.
+                  </span>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-2.5 p-3 rounded-xl border border-slate-200/80 bg-white dark:border-slate-800 dark:bg-slate-900 cursor-pointer hover:border-sky-300 transition-colors">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 rounded border-slate-300 accent-sky-600"
+                  checked={form.allowAnyLocationCheckIn}
+                  onChange={(e) => setForm((f) => ({ ...f, allowAnyLocationCheckIn: e.target.checked }))}
+                />
+                <div>
+                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block">
+                    Allow Roaming at ANY Company Site
+                  </span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">
+                    Employee can punch from any registered facility. When unchecked, strictly requires assigned base.
+                  </span>
+                </div>
+              </label>
+            </div>
+
+            {/* Base Location Configuration */}
+            {form.validateGeofenceOnAttendance && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                <div className="sm:col-span-3">
+                  <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Assigned Base Operational Location / Center
+                  </label>
+                  <select
+                    className="erp-input h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                    value={form.baseOperationalLocationId}
+                    onChange={(e) => {
+                      const locId = e.target.value;
+                      const loc = operationalLocations.find((l: any) => l.id === locId);
+                      setForm((f) => ({
+                        ...f,
+                        baseOperationalLocationId: locId,
+                        baseLocationLatitude: loc?.latitude != null ? String(loc.latitude) : f.baseLocationLatitude,
+                        baseLocationLongitude: loc?.longitude != null ? String(loc.longitude) : f.baseLocationLongitude,
+                        baseLocationRadiusMeters: loc?.geofenceRadiusMeters != null ? String(loc.geofenceRadiusMeters) : f.baseLocationRadiusMeters,
+                      }));
+                    }}
+                  >
+                    <option value="">Select Base Operational Location (Optional)</option>
+                    {operationalLocations.map((loc: any) => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.name} {loc.code ? `(${loc.code})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Base Latitude
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    className="erp-input h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                    value={form.baseLocationLatitude}
+                    placeholder="e.g. 28.6139"
+                    onChange={(e) => setForm((f) => ({ ...f, baseLocationLatitude: e.target.value }))}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Base Longitude
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    className="erp-input h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                    value={form.baseLocationLongitude}
+                    placeholder="e.g. 77.2090"
+                    onChange={(e) => setForm((f) => ({ ...f, baseLocationLongitude: e.target.value }))}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Allowed Radius (Meters)
+                  </label>
+                  <input
+                    type="number"
+                    min="10"
+                    max="50000"
+                    className="erp-input h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                    value={form.baseLocationRadiusMeters}
+                    placeholder="150"
+                    onChange={(e) => setForm((f) => ({ ...f, baseLocationRadiusMeters: e.target.value }))}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Shift & Biometric Hardware Mapping */}
+          <div className="md:col-span-2 rounded-2xl border border-purple-200 bg-purple-50/40 p-4 dark:border-purple-900/50 dark:bg-purple-950/20 space-y-4">
+            <div className="flex items-center justify-between border-b border-purple-100 dark:border-purple-900/50 pb-2.5">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300">
+                  <Fingerprint className="h-4 w-4" />
+                </span>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    Shift &amp; Biometric Hardware Integration
+                  </h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Map employee to enterprise shift roster and physical biometric terminals (ZKTeco, eSSL, Realtime, Hikvision).
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Assigned Shift (Working Hours &amp; Tolerances)
+                </label>
+                <select
+                  className="erp-input h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  value={form.assignedShiftId}
+                  onChange={(e) => setForm((f) => ({ ...f, assignedShiftId: e.target.value }))}
+                >
+                  <option value="">-- Inherit Company / Department Default Shift --</option>
+                  {shifts.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Controls overnight midnight rollover, split-shift windows, and grace periods.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Attendance Policy (Punch &amp; Deduction Rules)
+                </label>
+                <select
+                  className="erp-input h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  value={form.attendancePolicyId}
+                  onChange={(e) => setForm((f) => ({ ...f, attendancePolicyId: e.target.value }))}
+                >
+                  <option value="">-- Inherit Organization Default Policy --</option>
+                  {attendancePolicies.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Determines 2-Punch vs Multi-Punch Pairwise calculation &amp; break deductions.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Biometric Machine Enrollment ID (Device User ID)
+                </label>
+                <input
+                  className="erp-input h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  value={form.biometricEnrollmentId}
+                  placeholder="e.g. 10042 (User ID enrolled on fingerprint / face terminal)"
+                  onChange={(e) => setForm((f) => ({ ...f, biometricEnrollmentId: e.target.value }))}
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Raw device numeric ID sent in push webhooks from ZKTeco/Hikvision/eSSL.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  RFID / Smart Card Number (Access Badge)
+                </label>
+                <input
+                  className="erp-input h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  value={form.biometricCardNumber}
+                  placeholder="e.g. CARD-8849102"
+                  onChange={(e) => setForm((f) => ({ ...f, biometricCardNumber: e.target.value }))}
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Proximity or MiFare RFID card number linked to turnsiles and gates.
+                </p>
+              </div>
+            </div>
           </div>
 
           {mode === "create" && (

@@ -1,5 +1,7 @@
 "use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+
 import React, { useState } from "react";
 import Link from "next/link";
 import {
@@ -114,7 +116,7 @@ const DATA_REGISTRIES = [
   },
 ];
 
-export default function DataManagementPage() {
+function LegacyDataManagementPage() {
   const [search, setSearch] = useState("");
 
   const filteredRegistries = DATA_REGISTRIES.filter((r) =>
@@ -216,5 +218,15 @@ export default function DataManagementPage() {
         </div>
       </div>
     </AdministrationGlobalPageShell>
+  );
+}
+
+export default function DataManagementPage() {
+  return (
+    <DynamicPage
+      pageKey="administration.data-management"
+      fallback={<LegacyDataManagementPage />}
+      renderMode="auto"
+    />
   );
 }

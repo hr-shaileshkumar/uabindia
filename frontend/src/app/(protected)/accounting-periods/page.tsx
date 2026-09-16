@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
 import { ErpRefreshButton } from "@/components/workspace/page-kit";
@@ -32,7 +33,7 @@ type PeriodListRow = {
   periodYear: number;
 };
 
-export default function AccountingPeriodsPage() {
+function LegacyAccountingPeriodsView() {
   const now = new Date();
   const defaultYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
   const [year, setYear] = useState(defaultYear);
@@ -183,5 +184,15 @@ export default function AccountingPeriodsPage() {
 
       <CrudCard>{list.table}</CrudCard>
     </StandardPageLayout>
+  );
+}
+
+export default function AccountingPeriodsPage() {
+  return (
+    <DynamicPage
+      pageKey="finance.accounting-periods"
+      fallback={<LegacyAccountingPeriodsView />}
+      renderMode="auto"
+    />
   );
 }

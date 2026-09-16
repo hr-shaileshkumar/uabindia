@@ -150,7 +150,7 @@ export default function RegisterPage() {
       setProvisionProgress("Seeding default Indian Chart of Accounts and GST configuration...");
       await new Promise((r) => setTimeout(r, 600));
 
-      notifySuccess("Company workspace created successfully! Welcome to UabIndia ERP.");
+      notifySuccess("Company workspace created successfully! Welcome to your enterprise workspace.");
       router.push("/dashboard");
     } catch (err) {
       notifyError(getApiErrorMessage(err, "Registration failed. Please check details."));
@@ -161,7 +161,7 @@ export default function RegisterPage() {
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    name: "Sign Up & Start Free Trial | UabIndia ERP",
+    name: "Sign Up & Start Free Trial | Enterprise Platform",
     url: `${publicSiteUrl}/register`,
     description: "Create your cloud ERP workspace with a 14-day free trial. No credit card required.",
   };

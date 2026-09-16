@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+﻿
 import { useCallback, useEffect, useMemo, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import HeaderSummary from "@/components/layout/HeaderSummary";
@@ -12,7 +14,7 @@ const formatCurrency = (v?: number) => (v != null ? `Rs${v.toLocaleString("en-IN
 
 type TabKey = "balances" | "journals" | "statements";
 
-export default function FinancialReportsPage() {
+function LegacyFinancialReportsPage() {
   const [accounts, setAccounts] = useState<
     { id: string; name?: string; accountType?: string; balance?: number }[]
   >([]);
@@ -282,5 +284,15 @@ export default function FinancialReportsPage() {
         </CrudCard>
       </ErpTabPanel>
     </StandardPageLayout>
+  );
+}
+
+export default function FinancialReportsPage() {
+  return (
+    <DynamicPage
+      pageKey="reports.financial"
+      fallback={<LegacyFinancialReportsPage />}
+      renderMode="auto"
+    />
   );
 }

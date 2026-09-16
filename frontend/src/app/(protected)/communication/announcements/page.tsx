@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+﻿
 import { useCallback, useEffect, useMemo, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
@@ -69,7 +71,7 @@ const mapRow = (item: Record<string, unknown>, index: number): AnnouncementRecor
           : undefined,
 });
 
-export default function AnnouncementsPage() {
+function LegacyAnnouncementsPage() {
   const [announcements, setAnnouncements] = useState<AnnouncementRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -342,5 +344,15 @@ export default function AnnouncementsPage() {
         loading={deleting}
       />
     </>
+  );
+}
+
+export default function AnnouncementsPage() {
+  return (
+    <DynamicPage
+      pageKey="communication.announcements"
+      fallback={<LegacyAnnouncementsPage />}
+      renderMode="auto"
+    />
   );
 }

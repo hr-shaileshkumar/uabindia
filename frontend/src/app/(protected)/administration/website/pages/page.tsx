@@ -1,4 +1,7 @@
-"use client";
+"use client";
+
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+
 
 import React, { useMemo, useState } from "react";
 import { AdministrationGlobalPageShell } from "@/components/administration/AdministrationGlobalPageShell";
@@ -9,7 +12,7 @@ import { mapWebsitePage, useWebsitePageMutations, useWebsitePages } from "@/feat
 
 type PageRow = ReturnType<typeof mapWebsitePage>;
 
-export default function WebsiteCMSPagesPage() {
+function LegacyWebsiteCMSPagesPage() {
   const { data = [], isLoading, isError, error, refetch } = useWebsitePages();
   const { updatePage, publishPage, unpublishPage } = useWebsitePageMutations();
   const [search, setSearch] = useState("");
@@ -161,4 +164,14 @@ export default function WebsiteCMSPagesPage() {
       }
     />
   );
-}
+}
+
+export default function WebsiteCMSPagesPage() {
+  return (
+    <DynamicPage
+      pageKey="administration.website.pages"
+      fallback={<LegacyWebsiteCMSPagesPage />}
+      renderMode="auto"
+    />
+  );
+}

@@ -1,12 +1,14 @@
 "use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+
 import React, { useMemo, useState } from "react";
 import { Menu, Layers } from "lucide-react";
 import { AdministrationGlobalPageShell, KpiMetricItem } from "@/components/administration/AdministrationGlobalPageShell";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { flattenNavigationItems, useUiShellNavigation } from "@/features/administration/hooks/useUiShellNavigation";
 
-export default function MenuBuilderPage() {
+function LegacyMenuBuilderPage() {
   const { data, isLoading, isError, error, refetch } = useUiShellNavigation();
   const [search, setSearch] = useState("");
 
@@ -67,5 +69,15 @@ export default function MenuBuilderPage() {
         </table>
       </div>
     </AdministrationGlobalPageShell>
+  );
+}
+
+export default function MenuBuilderPage() {
+  return (
+    <DynamicPage
+      pageKey="administration.menu-builder"
+      fallback={<LegacyMenuBuilderPage />}
+      renderMode="auto"
+    />
   );
 }

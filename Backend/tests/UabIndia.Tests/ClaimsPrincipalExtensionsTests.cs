@@ -62,11 +62,28 @@ public sealed class RoleCatalogAdminScopeTests
     }
 
     [Theory]
-    [InlineData("hr")]
-    [InlineData("finance")]
-    [InlineData("auditor")]
-    public void Parse_MapsFunctionalRolesToManager(string roleName)
+    [InlineData("manager")]
+    [InlineData("supervisor")]
+    [InlineData("projectmanager")]
+    public void Parse_MapsManagerAliasesToManager(string roleName)
     {
         Assert.Equal(SystemRole.Manager, RoleCatalog.Parse(roleName));
+    }
+
+    [Theory]
+    [InlineData("hr")]
+    [InlineData("hrmanager")]
+    public void Parse_MapsHrAliasesToHrManager(string roleName)
+    {
+        Assert.Equal(SystemRole.HrManager, RoleCatalog.Parse(roleName));
+    }
+
+    [Theory]
+    [InlineData("finance")]
+    [InlineData("auditor")]
+    [InlineData("accountant")]
+    public void Parse_MapsFinanceAliasesToAccountant(string roleName)
+    {
+        Assert.Equal(SystemRole.Accountant, RoleCatalog.Parse(roleName));
     }
 }

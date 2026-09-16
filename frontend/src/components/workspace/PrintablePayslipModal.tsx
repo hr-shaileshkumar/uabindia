@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useCurrency } from "@/context/CurrencyContext";
+import { useOrgContext } from "@/context/OrgContext";
 
 export type PayslipData = {
   payslipId: string;
@@ -47,6 +48,7 @@ type Props = {
 
 export function PrintablePayslipModal({ open, onOpenChange, data }: Props) {
   const { formatMoney } = useCurrency();
+  const { companyName } = useOrgContext();
   const printRef = useRef<HTMLDivElement>(null);
 
   const sample: PayslipData = data || {
@@ -122,17 +124,14 @@ export function PrintablePayslipModal({ open, onOpenChange, data }: Props) {
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white font-black text-xs">
-                    UAB
+                    {(companyName || "ERP").slice(0, 3).toUpperCase()}
                   </div>
                   <h2 className="text-lg font-black tracking-tight text-slate-900">
-                    UabIndia Technologies Private Limited
+                    {companyName || "Corporate Workspace"}
                   </h2>
                 </div>
                 <p className="text-xs text-slate-500">
-                  Global Operations Hub · Corporate Registration: U72200DL2024PTC123456
-                </p>
-                <p className="text-xs text-slate-500">
-                  Tax / GSTIN: 07AABCU1234F1Z5 · support@uabindia.com
+                  Global Operations Hub · Registered Corporate Entity
                 </p>
               </div>
 

@@ -169,6 +169,10 @@ export function SuperadminTenantsManager() {
       notifyError("Organization name, subdomain, and admin email are required.");
       return;
     }
+    if (mode === "create" && (!form.adminPassword || form.adminPassword.trim().length < 8)) {
+      notifyError("Initial admin password is required and must be at least 8 characters.");
+      return;
+    }
 
     try {
       setSubmitting(true);
@@ -178,7 +182,7 @@ export function SuperadminTenantsManager() {
           subdomain: form.subdomain.trim().toLowerCase(),
           adminEmail: form.adminEmail.trim().toLowerCase(),
           adminName: form.adminName.trim() || `${form.name} Admin`,
-          adminPassword: form.adminPassword || "Admin@123456",
+          adminPassword: form.adminPassword.trim(),
           subscriptionPlan: form.subscriptionPlan,
           status: form.status,
           selectedModules: ["platform", "hrms", "finance", "inventory", "procurement", "crm", "projects"],
@@ -403,13 +407,16 @@ export function SuperadminTenantsManager() {
 
             {mode === "create" && (
               <div className="erp-field md:col-span-2">
-                <label className="erp-label">Initial admin password</label>
+                <label className="erp-label">
+                  Initial admin password <span className="text-red-500">*</span>
+                </label>
                 <input
                   className="erp-input"
                   type="password"
-                  placeholder="Defaults to Admin@123456 if left empty"
+                  placeholder="Minimum 8 characters (Required)"
                   value={form.adminPassword}
                   onChange={(e) => setForm((f) => ({ ...f, adminPassword: e.target.value }))}
+                  required
                 />
               </div>
             )}

@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+﻿
 import { useCallback, useEffect, useMemo, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import HeaderSummary from "@/components/layout/HeaderSummary";
@@ -30,7 +32,7 @@ type DataQuality = {
 
 type TabKey = "audit" | "quality";
 
-export default function ComplianceReportsPage() {
+function LegacyComplianceReportsPage() {
   const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
   const [dataQuality, setDataQuality] = useState<DataQuality | null>(null);
   const [loading, setLoading] = useState(true);
@@ -191,5 +193,15 @@ export default function ComplianceReportsPage() {
         <CrudCard>{qualityList.table}</CrudCard>
       </ErpTabPanel>
     </StandardPageLayout>
+  );
+}
+
+export default function ComplianceReportsPage() {
+  return (
+    <DynamicPage
+      pageKey="reports.compliance"
+      fallback={<LegacyComplianceReportsPage />}
+      renderMode="auto"
+    />
   );
 }

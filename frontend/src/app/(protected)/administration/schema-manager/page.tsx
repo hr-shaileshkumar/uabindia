@@ -1,5 +1,7 @@
 "use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+
 import React, { useMemo, useState } from "react";
 import { AdministrationGlobalPageShell } from "@/components/administration/AdministrationGlobalPageShell";
 import { ErpDrawerFooter, ErpRowActions } from "@/components/workspace/page-kit";
@@ -23,7 +25,7 @@ const emptyForm = () => ({
   section: "General",
 });
 
-export default function SchemaManagerPage() {
+function LegacySchemaManagerPage() {
   const { data = [], isLoading, isError, error, refetch } = useEntityFieldDefinitions();
   const { createDefinition, updateDefinition, deleteDefinition } = useEntityFieldMutations();
   const [search, setSearch] = useState("");
@@ -236,5 +238,15 @@ export default function SchemaManagerPage() {
         loading={deleteDefinition.isPending}
       />
     </>
+  );
+}
+
+export default function SchemaManagerPage() {
+  return (
+    <DynamicPage
+      pageKey="administration.schema-manager"
+      fallback={<LegacySchemaManagerPage />}
+      renderMode="auto"
+    />
   );
 }

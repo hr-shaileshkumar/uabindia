@@ -1,3 +1,4 @@
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
 import OrgChartView from "@/features/hrms/components/OrgChartView";
 
 export const metadata = {
@@ -6,5 +7,12 @@ export const metadata = {
 };
 
 export default function OrgChartPage() {
-  return <OrgChartView />;
+  return (
+    <DynamicPage
+      pageKey="hrms.org-chart"
+      fallback={<OrgChartView />}
+      renderMode="auto"
+    />
+  );
 }
+

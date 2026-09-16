@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+﻿
 import { useCallback, useEffect, useMemo, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
@@ -22,7 +24,7 @@ type NotificationRow = {
   status?: string;
 };
 
-export default function NotificationsInboxPage() {
+function LegacyNotificationsInboxPage() {
   const [rows, setRows] = useState<NotificationRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -205,5 +207,15 @@ export default function NotificationsInboxPage() {
         ) : null}
       </SideDrawer>
     </StandardPageLayout>
+  );
+}
+
+export default function NotificationsInboxPage() {
+  return (
+    <DynamicPage
+      pageKey="notifications.inbox"
+      fallback={<LegacyNotificationsInboxPage />}
+      renderMode="auto"
+    />
   );
 }

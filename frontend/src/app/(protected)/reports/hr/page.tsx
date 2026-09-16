@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+﻿
 import { useCallback, useEffect, useMemo, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import HeaderSummary from "@/components/layout/HeaderSummary";
@@ -37,7 +39,7 @@ type TurnoverSummary = {
 
 type TabKey = "headcount" | "attendance" | "leave" | "turnover";
 
-export default function HrReportsPage() {
+function LegacyHrReportsPage() {
   const [headcount, setHeadcount] = useState<HeadcountRow[]>([]);
   const [attendance, setAttendance] = useState<AttendanceSummary | null>(null);
   const [leaveSummary, setLeaveSummary] = useState<LeaveSummary | null>(null);
@@ -284,5 +286,15 @@ export default function HrReportsPage() {
         </CrudCard>
       </ErpTabPanel>
     </StandardPageLayout>
+  );
+}
+
+export default function HrReportsPage() {
+  return (
+    <DynamicPage
+      pageKey="reports.hr"
+      fallback={<LegacyHrReportsPage />}
+      renderMode="auto"
+    />
   );
 }

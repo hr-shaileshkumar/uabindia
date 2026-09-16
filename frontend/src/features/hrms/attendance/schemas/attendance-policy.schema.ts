@@ -38,10 +38,40 @@ export const attendancePolicySchema = z
     minFacialConfidenceScore: z.number().min(50).max(100).default(75),
     allowManualRegularization: z.boolean().default(true),
     maxRegularizationsPerMonth: z.number().min(0).max(31).default(3),
+    punchMode: z.enum(["TwoPunchFirstInLastOut", "MultiPunchPairwise", "SplitShiftFourPunch", "ContinuousRoaming"]).default("TwoPunchFirstInLastOut"),
+    minPunchesRequiredPerDay: z.number().min(1).max(20).default(2),
+    maxPunchesAllowedPerDay: z.number().min(1).max(50).optional(),
+    earlyExitToleranceMinutes: z.number().min(0).max(120).default(15),
+    missingPunchPenalty: z.string().default("HalfDay"),
+    missingPunchGraceDays: z.number().min(0).max(30).default(3),
+    defaultShiftId: z.string().optional(),
     status: z.enum(["Active", "Draft", "Archived"]).default("Active"),
     companyId: z.string().optional(),
     projectId: z.string().optional(),
     branchId: z.string().optional(),
+    countryId: z.string().optional(),
+
+    // Dynamic Deduction Basis & Late Slabs
+    deductionBasis: z.enum(["HourlyPayAsYouGo", "MonthlyAccumulatedSlabs", "HybridBoth"]).default("MonthlyAccumulatedSlabs"),
+    allowDailyShortfallOffsetWithOt: z.boolean().default(false),
+    monthlyFreeLateDays: z.number().min(0).max(31).default(3),
+    latePenaltyStepFrequency: z.number().min(1).max(10).default(1),
+    latePenaltyAction: z.enum(["QuarterDay", "HalfDay", "FullDay"]).default("HalfDay"),
+    minorLateWindowMinutes: z.number().min(0).max(120).default(15),
+    majorLateThresholdMinutes: z.number().min(0).max(300).default(45),
+
+    // Early Exit Thresholds
+    earlyExitThresholdMinutes: z.number().min(0).max(300).default(60),
+    earlyExitPenaltyAction: z.enum(["QuarterDay", "HalfDay", "FullDay"]).default("HalfDay"),
+
+    // Overtime & Multipliers
+    minMinutesForOvertime: z.number().min(0).max(300).default(30),
+    requireOvertimeApproval: z.boolean().default(false),
+    normalDayOtMultiplier: z.number().min(1.0).max(5.0).default(1.5),
+    weekendOtMultiplier: z.number().min(1.0).max(5.0).default(2.0),
+    holidayOtMultiplier: z.number().min(1.0).max(5.0).default(2.5),
+    allowCompOffInsteadOfPay: z.boolean().default(true),
+    weekOffPattern: z.enum(["SundayOnly", "AlternateSaturdaySunday", "AllSaturdaysSunday", "Custom"]).default("SundayOnly"),
   })
   .refine(
     (policy) => policy.minHalfDayHours < policy.standardShiftHours,

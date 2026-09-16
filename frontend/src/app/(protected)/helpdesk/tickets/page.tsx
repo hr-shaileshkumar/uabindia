@@ -1,5 +1,15 @@
-﻿import { HelpdeskQueuePage } from "@/components/workspace/helpdesk-queue-page";
+"use client";
+
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+import { HelpdeskQueuePage } from "@/components/workspace/helpdesk-queue-page";
 
 export default function HelpdeskTicketsPage() {
-  return <HelpdeskQueuePage />;
+  return (
+    <DynamicPage
+      pageKey="helpdesk.tickets"
+      fallback={<HelpdeskQueuePage />}
+      renderMode="auto"
+    />
+  );
 }
+

@@ -1,5 +1,7 @@
 "use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+
 import React, { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdministrationGlobalPageShell } from "@/components/administration/AdministrationGlobalPageShell";
@@ -9,7 +11,7 @@ import { notifyError, notifySuccess } from "@/lib/notifications";
 import { aiApi } from "@/services/modules/ai";
 import { mapAiAgent, useAiAgents } from "@/features/administration/hooks/useAiAgents";
 
-export default function AiAssistantPage() {
+function LegacyAiAssistantPage() {
   const queryClient = useQueryClient();
   const { data, isLoading, isError, error, refetch } = useAiAgents(1, 50);
   const [search, setSearch] = useState("");
@@ -260,6 +262,16 @@ export default function AiAssistantPage() {
           </div>
         )
       }
+    />
+  );
+}
+
+export default function AiAssistantPage() {
+  return (
+    <DynamicPage
+      pageKey="administration.ai-assistant"
+      fallback={<LegacyAiAssistantPage />}
+      renderMode="auto"
     />
   );
 }

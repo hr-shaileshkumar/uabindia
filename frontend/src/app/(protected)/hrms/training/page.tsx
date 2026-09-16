@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+﻿
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { GraduationCap } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
@@ -74,7 +76,7 @@ function mapCourseStatus(status?: string): TrainingRow["status"] {
 const statusChipClass = (status: TrainingRow["status"]) =>
   status === "Completed" ? "erp-chip-neutral" : status === "Upcoming" ? "erp-chip-warning" : "erp-chip-success";
 
-export default function TrainingLearningPage() {
+function LegacyTrainingLearningPage() {
   const [trainings, setTrainings] = useState<TrainingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -304,5 +306,15 @@ export default function TrainingLearningPage() {
         </div>
       </SideDrawer>
     </StandardPageLayout>
+  );
+}
+
+export default function TrainingLearningPage() {
+  return (
+    <DynamicPage
+      pageKey="hrms.training"
+      fallback={<LegacyTrainingLearningPage />}
+      renderMode="auto"
+    />
   );
 }

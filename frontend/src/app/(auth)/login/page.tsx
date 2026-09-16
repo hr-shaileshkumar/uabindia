@@ -114,7 +114,7 @@ export default function LoginPage() {
     }
   };
 
-  const brandName = profile.brandName || profile.companyName || "UabIndia ERP";
+  const brandName = profile.brandName || profile.companyName || process.env.NEXT_PUBLIC_APP_NAME || "Enterprise ERP";
   const homeHref = withPublicAudience("/", audience);
   const busy = isSubmitting || !csrfReady;
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+
 import { useMemo, useState } from "react";
 import { Mail, CheckCircle2, Clock, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,7 +17,7 @@ import {
 
 type LeadRow = ReturnType<typeof mapContactSubmission>;
 
-export default function ContactSubmissionsPage() {
+function LegacyContactSubmissionsPage() {
   const [page] = useState(1);
   const { data, isLoading, isError, error, refetch } = useContactSubmissions(page, 50);
   const { updateResolved } = useContactSubmissionMutations();
@@ -181,6 +183,16 @@ export default function ContactSubmissionsPage() {
           </div>
         )
       }
+    />
+  );
+}
+
+export default function ContactSubmissionsPage() {
+  return (
+    <DynamicPage
+      pageKey="administration.contact-submissions"
+      fallback={<LegacyContactSubmissionsPage />}
+      renderMode="auto"
     />
   );
 }

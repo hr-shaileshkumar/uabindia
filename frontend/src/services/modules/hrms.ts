@@ -22,6 +22,8 @@ export const hrmsApi = {
       create: (data: ApiPayload) => apiClient.post("/employees", data),
       update: (id: string, data: ApiPayload) => apiClient.put(`/employees/${id}`, data),
       delete: (id: string) => apiClient.delete(`/employees/${id}`),
+      getPostings: (id: string) => apiClient.get(`/hrms/employees/${id}/postings`),
+      createPosting: (id: string, data: ApiPayload) => apiClient.post(`/hrms/employees/${id}/postings`, data),
     },
     organization: {
       getTree: (rootEmployeeId?: string, departmentId?: string) => {
@@ -79,6 +81,9 @@ export const hrmsApi = {
         apiClient.post("/attendance/web-checkin", payload),
       biometric: {
         getDevices: () => apiClient.get("/hrms/biometric/devices"),
+        registerDevice: (data: ApiPayload) => apiClient.post("/hrms/biometric/devices", data),
+        updateDevice: (id: string, data: ApiPayload) => apiClient.put(`/hrms/biometric/devices/${id}`, data),
+        deleteDevice: (id: string) => apiClient.delete(`/hrms/biometric/devices/${id}`),
         heartbeat: (payload: { deviceId: string; firmwareVersion?: string; ipAddress?: string }) =>
           apiClient.post("/hrms/biometric/heartbeat", payload),
         pushPunches: (payload: {
@@ -86,11 +91,24 @@ export const hrmsApi = {
           punches: Array<{
             employeeCode?: string;
             enrollmentId?: string;
+            cardNumber?: string;
             timestamp: string;
             punchType?: string;
             deviceId?: string;
           }>;
         }) => apiClient.post("/hrms/biometric/push", payload),
+      },
+      getDailySynthesis: (employeeId: string, date?: string) => {
+        const qs = date ? `?employeeId=${employeeId}&date=${date}` : `?employeeId=${employeeId}`;
+        return apiClient.get(`/attendance/summary/daily-synthesis${qs}`);
+      },
+      getDailySynthesisBatch: (date?: string, departmentId?: string, projectId?: string) => {
+        const q = new URLSearchParams();
+        if (date) q.set("date", date);
+        if (departmentId) q.set("departmentId", departmentId);
+        if (projectId) q.set("projectId", projectId);
+        const qs = q.toString() ? `?${q}` : "";
+        return apiClient.get(`/attendance/summary/daily-synthesis-batch${qs}`);
       },
       policies: {
         list: (companyId?: string, projectId?: string) => {
@@ -114,6 +132,27 @@ export const hrmsApi = {
         delete: (id: string) => apiClient.delete(`/attendance/policies/${id}`),
         setDefault: (id: string) => apiClient.post(`/attendance/policies/${id}/set-default`, {}),
       },
+      regularization: {
+        list: (params?: { employeeId?: string; status?: string; fromDate?: string; toDate?: string }) => {
+          const q = new URLSearchParams();
+          if (params?.employeeId) q.set("employeeId", params.employeeId);
+          if (params?.status) q.set("status", params.status);
+          if (params?.fromDate) q.set("fromDate", params.fromDate);
+          if (params?.toDate) q.set("toDate", params.toDate);
+          const qs = q.toString() ? `?${q}` : "";
+          return apiClient.get(`/attendance/regularization${qs}`);
+        },
+        create: (data: ApiPayload) => apiClient.post("/attendance/regularization", data),
+        approve: (id: string, data?: ApiPayload) => apiClient.post(`/attendance/regularization/${id}/approve`, data ?? {}),
+        reject: (id: string, data?: ApiPayload) => apiClient.post(`/attendance/regularization/${id}/reject`, data ?? {}),
+      },
+    },
+    shifts: {
+      list: (skip = 0, take = 100) => apiClient.get(`/hrms/shifts?skip=${skip}&take=${take}`),
+      getById: (id: string) => apiClient.get(`/hrms/shifts/${id}`),
+      create: (data: ApiPayload) => apiClient.post("/hrms/shifts", data),
+      update: (id: string, data: ApiPayload) => apiClient.put(`/hrms/shifts/${id}`, data),
+      delete: (id: string) => apiClient.delete(`/hrms/shifts/${id}`),
     },
     leave: {
       types: {

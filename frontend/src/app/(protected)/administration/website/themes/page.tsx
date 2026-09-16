@@ -1,5 +1,7 @@
 "use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+
 import React, { useMemo, useState } from "react";
 import { Globe, Palette, CheckCircle2 } from "lucide-react";
 import { AdministrationGlobalPageShell, KpiMetricItem } from "@/components/administration/AdministrationGlobalPageShell";
@@ -12,7 +14,7 @@ type ThemeRow = {
   publishedCount: number;
 };
 
-export default function WebsiteThemesPage() {
+function LegacyWebsiteThemesPage() {
   const { data = [], isLoading, isError, error, refetch } = useWebsitePages();
   const [search, setSearch] = useState("");
 
@@ -87,5 +89,15 @@ export default function WebsiteThemesPage() {
         </table>
       </div>
     </AdministrationGlobalPageShell>
+  );
+}
+
+export default function WebsiteThemesPage() {
+  return (
+    <DynamicPage
+      pageKey="administration.website.themes"
+      fallback={<LegacyWebsiteThemesPage />}
+      renderMode="auto"
+    />
   );
 }

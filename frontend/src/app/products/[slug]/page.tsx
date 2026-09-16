@@ -16,7 +16,7 @@ export async function generateMetadata({
   if (!productModule) {
     return buildPublicMetadata({
       title: "Product",
-      description: "UabIndia ERP product detail page.",
+      description: "Product detail page.",
       path: "/products",
     });
   }

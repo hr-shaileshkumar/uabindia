@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+﻿
 import { useEffect, useState, useCallback } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
@@ -33,7 +35,7 @@ const emptyForm = () => ({
   status: "Active",
 });
 
-export default function CommunicationSmsTemplatesPage() {
+function LegacyCommunicationSmsTemplatesPage() {
   const [records, setRecords] = useState<SmsTemplateRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -212,5 +214,15 @@ export default function CommunicationSmsTemplatesPage() {
         </div>
       </SideDrawer>
     </>
+  );
+}
+
+export default function CommunicationSmsTemplatesPage() {
+  return (
+    <DynamicPage
+      pageKey="communication.sms-templates"
+      fallback={<LegacyCommunicationSmsTemplatesPage />}
+      renderMode="auto"
+    />
   );
 }

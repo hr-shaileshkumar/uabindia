@@ -54,6 +54,7 @@ export const FRONTEND_MODULE_MAP: FrontendModuleDefinition[] = [
           { label: "Companies", route: ROUTES.ADMINISTRATION_COMPANIES, purpose: "Manage legal company entities and corporate records.", display: "directory", status: "implemented" },
           { label: "Projects", route: ROUTES.ADMINISTRATION_PROJECTS, purpose: "Project register for shared workspace context.", display: "directory", status: "implemented" },
           { label: "Branches", route: ROUTES.ADMINISTRATION_BRANCHES, purpose: "Branch and location operational units.", display: "directory", status: "implemented" },
+          { label: "Geography & Hierarchy", route: ROUTES.ADMINISTRATION_GEOGRAPHY_HIERARCHY, purpose: "Multi-dimensional business zones, regions, facilities, and MVU posting units.", display: "directory", status: "implemented" },
           { label: "Business Units", route: ROUTES.ADMINISTRATION_BUSINESS_UNITS, purpose: "Strategic business unit divisions.", display: "directory", status: "implemented" },
           { label: "Departments", route: ROUTES.ADMINISTRATION_DEPARTMENTS, purpose: "Departmental hierarchy and cost assignments.", display: "directory", status: "implemented" },
           { label: "Designations", route: ROUTES.ADMINISTRATION_DESIGNATIONS, purpose: "Job titles, bands, and designation hierarchy.", display: "directory", status: "implemented" },
@@ -141,7 +142,7 @@ export const FRONTEND_MODULE_MAP: FrontendModuleDefinition[] = [
           { label: "Websites", route: ROUTES.ADMINISTRATION_WEBSITE_PAGES, purpose: "Manage tenant website pages, themes, and branding.", display: "directory", status: "implemented" },
           { label: "Developer Center", route: ROUTES.ADMINISTRATION_DEVELOPER_CENTER, purpose: "API keys, Swagger UI documentation, and quickstarts.", display: "settings", status: "implemented" },
           { label: "Webhooks", route: ROUTES.ADMINISTRATION_WEBHOOKS, purpose: "Real-time webhook subscriptions and delivery logs.", display: "settings", status: "implemented" },
-          { label: "EDI X12 Studio", route: ROUTES.ADMINISTRATION_EDI, purpose: "EDI X12 transaction interchange and mapper.", display: "settings", status: "implemented" },
+          { label: "Electronic Data Interchange (EDI X12) Studio", route: ROUTES.ADMINISTRATION_EDI, purpose: "EDI X12 transaction interchange and mapper.", display: "settings", status: "implemented" },
           { label: "Contact Submissions", route: ROUTES.ADMINISTRATION_CONTACT_SUBMISSIONS, purpose: "Review inbound web contact form submissions.", display: "directory", status: "implemented" },
         ],
       },
@@ -221,6 +222,15 @@ export const FRONTEND_MODULE_MAP: FrontendModuleDefinition[] = [
         pages: [
           { label: "Travel", route: ROUTES.TRAVEL, purpose: "Employee travel requests.", display: "workflow", status: "implemented" },
           { label: "HR Payroll", route: ROUTES.HR_PAYROLL, purpose: "Redirect into payroll runs.", display: "workflow", status: "implemented" },
+        ],
+      },
+      {
+        key: "self-service",
+        label: "Self-Service Portals",
+        purpose: "Manager and employee personal workspace.",
+        pages: [
+          { label: "Manager Self-Service", route: "/manager-self-service", purpose: "Team directory, direct report monitoring, and approvals.", display: "workflow", status: "implemented" },
+          { label: "Employee Self-Service", route: "/employee-self-service", purpose: "Personal profile, leave applications, and payslips.", display: "workflow", status: "implemented" },
         ],
       },
     ],
@@ -339,7 +349,7 @@ export const FRONTEND_MODULE_MAP: FrontendModuleDefinition[] = [
           { label: "Inventory Dashboard", route: ROUTES.INVENTORY_HOME, purpose: "Inventory workspace landing and stock valuation summary.", display: "dashboard", status: "implemented" },
           { label: "Item Catalog", route: ROUTES.ITEMS, purpose: "Manage item SKUs, barcodes, and pricing.", display: "directory", status: "implemented" },
           { label: "Warehouses", route: ROUTES.WAREHOUSES, purpose: "Manage multi-site storage locations.", display: "directory", status: "implemented" },
-          { label: "WMS & Bin Locations", route: ROUTES.INVENTORY_WMS, purpose: "Zone, rack, shelf bin capacities and barcode scanner.", display: "settings", status: "implemented" },
+          { label: "Warehouse Management System (WMS) & Bin Locations", route: ROUTES.INVENTORY_WMS, purpose: "Zone, rack, shelf bin capacities and barcode scanner.", display: "settings", status: "implemented" },
         ],
       },
       {
@@ -378,7 +388,7 @@ export const FRONTEND_MODULE_MAP: FrontendModuleDefinition[] = [
         pages: [
           { label: "Purchase Requests", route: ROUTES.PURCHASE_REQUESTS, purpose: "Create and approve departmental purchase requests.", display: "workflow", status: "implemented" },
           { label: "Purchase Orders", route: ROUTES.PURCHASE_ORDERS, purpose: "Issue and track supplier purchase orders.", display: "workflow", status: "implemented" },
-          { label: "Goods Receipt (GRN)", route: ROUTES.GRN, purpose: "Receive goods, inspect quality, and record GRN.", display: "workflow", status: "implemented" },
+          { label: "Goods Receipt Notes (GRN)", route: ROUTES.GRN, purpose: "Receive goods, inspect quality, and record GRN.", display: "workflow", status: "implemented" },
           { label: "Vendor Bills", route: ROUTES.VENDOR_BILLS, purpose: "Record supplier invoices and 3-way match against PO.", display: "workflow", status: "implemented" },
         ],
       },
@@ -625,8 +635,8 @@ export const FRONTEND_MODULE_MAP: FrontendModuleDefinition[] = [
         label: "Authentication",
         purpose: "Identity verification and sign-in controls.",
         pages: [
-          { label: "MFA", route: ROUTES.SECURITY_MFA, purpose: "Manage multi-factor authentication.", display: "settings", status: "implemented" },
-          { label: "SSO", route: ROUTES.SECURITY_SSO, purpose: "Manage SSO providers.", display: "settings", status: "implemented" },
+          { label: "Multi-Factor Authentication (MFA)", route: ROUTES.SECURITY_MFA, purpose: "Manage multi-factor authentication.", display: "settings", status: "implemented" },
+          { label: "Single Sign-On (SSO)", route: ROUTES.SECURITY_SSO, purpose: "Manage SSO providers.", display: "settings", status: "implemented" },
         ],
       },
       {

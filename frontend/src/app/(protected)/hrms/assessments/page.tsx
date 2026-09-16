@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+﻿
 import { useCallback, useEffect, useState } from "react";
 import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
 import {
@@ -30,7 +32,7 @@ type AssessmentRow = {
   reviewDate: string | null;
 };
 
-export default function AssessmentsPage() {
+function LegacyAssessmentsPage() {
   const [rows, setRows] = useState<AssessmentRow[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -282,5 +284,15 @@ export default function AssessmentsPage() {
         ) : null}
       </SideDrawer>
     </StandardPageLayout>
+  );
+}
+
+export default function AssessmentsPage() {
+  return (
+    <DynamicPage
+      pageKey="hrms.assessments"
+      fallback={<LegacyAssessmentsPage />}
+      renderMode="auto"
+    />
   );
 }

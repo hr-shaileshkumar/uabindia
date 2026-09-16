@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+﻿
 import { useEffect, useState, useCallback } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
@@ -34,7 +36,7 @@ const emptyForm = () => ({
   status: "Active",
 });
 
-export default function CommunicationEmailTemplatesPage() {
+function LegacyCommunicationEmailTemplatesPage() {
   const [records, setRecords] = useState<EmailTemplateRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -223,5 +225,15 @@ export default function CommunicationEmailTemplatesPage() {
         </div>
       </SideDrawer>
     </>
+  );
+}
+
+export default function CommunicationEmailTemplatesPage() {
+  return (
+    <DynamicPage
+      pageKey="communication.email-templates"
+      fallback={<LegacyCommunicationEmailTemplatesPage />}
+      renderMode="auto"
+    />
   );
 }

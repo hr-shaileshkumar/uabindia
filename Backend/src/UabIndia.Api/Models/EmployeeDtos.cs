@@ -34,6 +34,21 @@ namespace UabIndia.Api.Models
         public DateTime? ExitDate { get; set; }
         public string? EmploymentType { get; set; }
         public string? WorkLocation { get; set; }
+
+        // Geofencing & Base Location Attendance Validation
+        public bool ValidateGeofenceOnAttendance { get; set; } = true;
+        public bool AllowAnyLocationCheckIn { get; set; } = false;
+        public Guid? BaseOperationalLocationId { get; set; }
+        public double? BaseLocationLatitude { get; set; }
+        public double? BaseLocationLongitude { get; set; }
+        public int? BaseLocationRadiusMeters { get; set; } = 150;
+
+        // Biometric Hardware & Shift Policy
+        public string? BiometricEnrollmentId { get; set; }
+        public string? BiometricCardNumber { get; set; }
+        public Guid? AssignedShiftId { get; set; }
+        public Guid? AttendancePolicyId { get; set; }
+
         public Guid? DepartmentId { get; set; }
         public Guid? DesignationId { get; set; }
         public Guid? BranchId { get; set; }
@@ -80,6 +95,24 @@ namespace UabIndia.Api.Models
         public DateTime? ExitDate { get; set; }
         public string? EmploymentType { get; set; }
         public string? WorkLocation { get; set; }
+
+        // Geofencing & Base Location Attendance Validation
+        public bool ValidateGeofenceOnAttendance { get; set; } = true;
+        public bool AllowAnyLocationCheckIn { get; set; } = false;
+        public Guid? BaseOperationalLocationId { get; set; }
+        public string? BaseOperationalLocationName { get; set; }
+        public double? BaseLocationLatitude { get; set; }
+        public double? BaseLocationLongitude { get; set; }
+        public int? BaseLocationRadiusMeters { get; set; } = 150;
+
+        // Biometric Hardware & Shift Policy
+        public string? BiometricEnrollmentId { get; set; }
+        public string? BiometricCardNumber { get; set; }
+        public Guid? AssignedShiftId { get; set; }
+        public string? AssignedShiftName { get; set; }
+        public Guid? AttendancePolicyId { get; set; }
+        public string? AttendancePolicyName { get; set; }
+
         public Guid? DepartmentId { get; set; }
         public string? DepartmentName { get; set; }
         public Guid? DesignationId { get; set; }

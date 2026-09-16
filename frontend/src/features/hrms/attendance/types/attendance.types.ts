@@ -20,6 +20,11 @@ export type AttendanceRecord = {
   latitude?: number;
   longitude?: number;
   frsConfidence?: number;
+  distanceFromLocationMeters?: number;
+  matchedLocationId?: string;
+  matchedLocationName?: string;
+  isGeofenceBreached?: boolean;
+  geofenceValidationMessage?: string;
 };
 
 export type AttendanceListProps = {

@@ -32,6 +32,11 @@ namespace UabIndia.Api.Models
         public string? Source { get; set; }
         public decimal? Latitude { get; set; }
         public decimal? Longitude { get; set; }
+        public double? DistanceFromLocationMeters { get; set; }
+        public Guid? MatchedLocationId { get; set; }
+        public string? MatchedLocationName { get; set; }
+        public bool IsGeofenceBreached { get; set; }
+        public string? GeofenceValidationMessage { get; set; }
     }
 
     public class AttendanceUpdateDto
@@ -43,5 +48,26 @@ namespace UabIndia.Api.Models
         public string? DeviceId { get; set; }
         public string? Source { get; set; }
         public bool? GeoValidated { get; set; }
+    }
+
+    public class CreateRegularizationDto
+    {
+        [Required]
+        public Guid EmployeeId { get; set; }
+        [Required]
+        public DateTime Date { get; set; }
+        [Required]
+        public string RequestType { get; set; } = "MissingPunch"; // MissingPunch, OnDuty, WorkFromHome
+        [Required]
+        public string Reason { get; set; } = string.Empty;
+        public TimeSpan? ProposedInTime { get; set; }
+        public TimeSpan? ProposedOutTime { get; set; }
+    }
+
+    public class RegularizationApprovalDto
+    {
+        public TimeSpan? ApprovedInTime { get; set; }
+        public TimeSpan? ApprovedOutTime { get; set; }
+        public string? ManagerRemarks { get; set; }
     }
 }

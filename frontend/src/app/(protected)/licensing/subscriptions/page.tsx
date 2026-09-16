@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+﻿
 import { useCallback, useEffect, useState } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
 import { CrudHeaderStats } from "@/components/workspace/crud-workspace";
@@ -15,7 +17,7 @@ type SubscriptionRow = {
   isEnabled: boolean;
 };
 
-export default function SubscriptionsPage() {
+function LegacySubscriptionsPage() {
   const { refresh: refreshUiSchema } = useUiSchema();
   const [subs, setSubs] = useState<SubscriptionRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,6 +120,16 @@ export default function SubscriptionsPage() {
           </td>
         </tr>
       )}
+    />
+  );
+}
+
+export default function SubscriptionsPage() {
+  return (
+    <DynamicPage
+      pageKey="licensing.subscriptions"
+      fallback={<LegacySubscriptionsPage />}
+      renderMode="auto"
     />
   );
 }

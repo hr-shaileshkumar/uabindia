@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
+import { WorkspaceBreadcrumb } from "@/components/layout/WorkspaceBreadcrumb";
 import { GlobalSearchCommand } from "@/components/workspace/global-search-command";
 import { KeyboardShortcutsHandler } from "@/components/layout/KeyboardShortcutsHandler";
 import { AiCopilotDrawer } from "@/components/ai/AiCopilotDrawer";
@@ -424,6 +425,7 @@ export function ProtectedWorkspaceShell({ children }: { children: ReactNode }) {
         <Sidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
         <main id="erp-workspace-content" className="relative isolate min-h-0 flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6 scrollbar-thin">
           <div className="mx-auto w-full max-w-[1600px]">
+            <WorkspaceBreadcrumb className="mb-3 sm:mb-4" />
             <div key={workspaceScopeKey}>{children}</div>
           </div>
         </main>

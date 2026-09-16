@@ -1,5 +1,7 @@
 "use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+
 import React, { useEffect, useState } from "react";
 import {
   ShieldCheck,
@@ -27,7 +29,7 @@ import { getApiErrorMessage } from "@/lib/api-errors";
 
 type TabKey = "rights" | "retention" | "policy";
 
-export default function PlatformPrivacyPage() {
+function LegacyPlatformPrivacyPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("rights");
   const [loading, setLoading] = useState(false);
   const [policyData, setPolicyData] = useState<{
@@ -78,8 +80,8 @@ export default function PlatformPrivacyPage() {
           "Right to Data Portability (JSON Machine-Readable Package)",
         ],
         dataProcessingPurpose: "Enterprise Human Resources, Statutory Payroll, Invoicing & Corporate Operations",
-        dataController: "UabIndia Enterprise Platform",
-        contactEmail: "privacy@uabindia.in",
+        dataController: process.env.NEXT_PUBLIC_APP_NAME ? `${process.env.NEXT_PUBLIC_APP_NAME} Enterprise Platform` : "Enterprise Platform",
+        contactEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "privacy@enterprise.internal",
       });
     } finally {
       setLoading(false);
@@ -397,7 +399,7 @@ export default function PlatformPrivacyPage() {
             <div className="space-y-2">
               <h3 className="text-base font-bold text-slate-900">Digital Personal Data Protection (DPDP) Act 2023 Baseline</h3>
               <p className="text-slate-600">
-                UABIndia processes corporate enterprise data on behalf of your organization under strict multi-tenant
+                The platform processes corporate enterprise data on behalf of your organization under strict multi-tenant
                 isolation. As the Data Fiduciary/Controller, your organization determines the grounds of processing.
               </p>
             </div>
@@ -423,10 +425,10 @@ export default function PlatformPrivacyPage() {
                   <div>
                     <span className="font-semibold text-slate-700">Grievance / Privacy Email:</span>{" "}
                     <a
-                      href={`mailto:${policyData?.contactEmail || "privacy@uabindia.in"}`}
+                      href={`mailto:${policyData?.contactEmail || process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "privacy@enterprise.internal"}`}
                       className="text-indigo-600 underline"
                     >
-                      {policyData?.contactEmail || "privacy@uabindia.in"}
+                      {policyData?.contactEmail || process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "privacy@enterprise.internal"}
                     </a>
                   </div>
                   <div>
@@ -541,5 +543,15 @@ export default function PlatformPrivacyPage() {
         </form>
       </SideDrawer>
     </StandardPageLayout>
+  );
+}
+
+export default function PlatformPrivacyPage() {
+  return (
+    <DynamicPage
+      pageKey="administration.privacy"
+      fallback={<LegacyPlatformPrivacyPage />}
+      renderMode="auto"
+    />
   );
 }

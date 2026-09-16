@@ -1,5 +1,7 @@
 "use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+
 import React, { useMemo, useState } from "react";
 import { Bell, Mail, MessageSquare, CheckCircle2, Plus, Sparkles, Eye, Trash2 } from "lucide-react";
 import { AdministrationGlobalPageShell, type KpiMetricItem } from "@/components/administration/AdministrationGlobalPageShell";
@@ -19,7 +21,7 @@ const VARIABLE_TAGS = [
   "{{date}}",
 ];
 
-export default function NotificationTemplatesPage() {
+function LegacyNotificationTemplatesPage() {
   const { templates, isLoading, isError, error, refetch, total } = useNotificationTemplates(1, 100);
   const { createTemplate, deleteTemplate } = useTemplateMutations();
   const { confirm, confirmDialog } = useConfirmDialog();
@@ -336,5 +338,15 @@ export default function NotificationTemplatesPage() {
       </AdministrationGlobalPageShell>
       {confirmDialog}
     </>
+  );
+}
+
+export default function NotificationTemplatesPage() {
+  return (
+    <DynamicPage
+      pageKey="administration.notification-templates"
+      fallback={<LegacyNotificationTemplatesPage />}
+      renderMode="auto"
+    />
   );
 }

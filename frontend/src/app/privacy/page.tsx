@@ -6,7 +6,7 @@ import { resolveAudienceForPath, type PublicSearchParams } from "@/lib/public-pa
 export const metadata: Metadata = buildPublicMetadata({
   title: "Privacy Policy",
   description:
-    "Privacy summary for public website visitors, contact requests, and demo enquiries handled by UabIndia ERP.",
+    "Privacy summary for public website visitors, contact requests, and demo enquiries.",
   path: "/privacy",
 });
 
@@ -26,7 +26,7 @@ export default async function PrivacyPage({
       body={[
         {
           heading: "Public enquiry data",
-          text: "When visitors submit contact or demo forms, UabIndia ERP uses the provided name, email, phone, company details, and requirement notes to respond to the enquiry and route it to the appropriate team.",
+          text: "When visitors submit contact or demo forms, the platform uses the provided name, email, phone, company details, and requirement notes to respond to the enquiry and route it to the appropriate team.",
         },
         {
           heading: "Operational relevance",

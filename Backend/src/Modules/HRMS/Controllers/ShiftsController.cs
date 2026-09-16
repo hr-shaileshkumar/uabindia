@@ -43,6 +43,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
         /// <summary>
         /// Get all shifts (cached, paginated)
         /// </summary>
+        [HttpGet]
         [HttpGet("shifts")]
         [Authorize(Roles = "Admin,HR,Manager")]
         public async Task<ActionResult<IEnumerable<ShiftDto>>> GetAllShifts([FromQuery] int skip = 0, [FromQuery] int take = 20)
@@ -174,6 +175,25 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                     ShiftType = dto.ShiftType,
                     ApplicableDays = dto.ApplicableDays,
                     IsNightShift = dto.IsNightShift,
+                    AllowOvernightCrossMidnight = dto.AllowOvernightCrossMidnight,
+                    EarlyExitToleranceMinutes = dto.EarlyExitToleranceMinutes,
+                    SplitSlot1StartTime = dto.SplitSlot1StartTime,
+                    SplitSlot1EndTime = dto.SplitSlot1EndTime,
+                    SplitSlot2StartTime = dto.SplitSlot2StartTime,
+                    SplitSlot2EndTime = dto.SplitSlot2EndTime,
+                    IsFlexiShift = dto.IsFlexiShift,
+                    CoreStartTime = dto.CoreStartTime,
+                    CoreEndTime = dto.CoreEndTime,
+                    FlexiWindowStart = dto.FlexiWindowStart,
+                    FlexiWindowEnd = dto.FlexiWindowEnd,
+                    Is24HourShift = dto.Is24HourShift,
+                    MandatoryRestHoursAfterShift = dto.MandatoryRestHoursAfterShift,
+                    IsOnCallStandby = dto.IsOnCallStandby,
+                    StandbyRateMultiplier = dto.StandbyRateMultiplier,
+                    CountryId = dto.CountryId,
+                    CompanyId = dto.CompanyId,
+                    ProjectId = dto.ProjectId,
+                    OperationalLocationId = dto.OperationalLocationId,
                     NightShiftAllowance = dto.NightShiftAllowance,
                     IsActive = dto.IsActive,
                     MinEmployeesRequired = dto.MinEmployeesRequired,
@@ -222,6 +242,25 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                 shift.GracePeriodMinutes = dto.GracePeriodMinutes;
                 shift.BreakDurationMinutes = dto.BreakDurationMinutes;
                 shift.IsNightShift = dto.IsNightShift;
+                shift.AllowOvernightCrossMidnight = dto.AllowOvernightCrossMidnight;
+                shift.EarlyExitToleranceMinutes = dto.EarlyExitToleranceMinutes;
+                shift.SplitSlot1StartTime = dto.SplitSlot1StartTime;
+                shift.SplitSlot1EndTime = dto.SplitSlot1EndTime;
+                shift.SplitSlot2StartTime = dto.SplitSlot2StartTime;
+                shift.SplitSlot2EndTime = dto.SplitSlot2EndTime;
+                shift.IsFlexiShift = dto.IsFlexiShift;
+                shift.CoreStartTime = dto.CoreStartTime;
+                shift.CoreEndTime = dto.CoreEndTime;
+                shift.FlexiWindowStart = dto.FlexiWindowStart;
+                shift.FlexiWindowEnd = dto.FlexiWindowEnd;
+                shift.Is24HourShift = dto.Is24HourShift;
+                shift.MandatoryRestHoursAfterShift = dto.MandatoryRestHoursAfterShift;
+                shift.IsOnCallStandby = dto.IsOnCallStandby;
+                shift.StandbyRateMultiplier = dto.StandbyRateMultiplier;
+                shift.CountryId = dto.CountryId;
+                shift.CompanyId = dto.CompanyId;
+                shift.ProjectId = dto.ProjectId;
+                shift.OperationalLocationId = dto.OperationalLocationId;
                 shift.NightShiftAllowance = dto.NightShiftAllowance;
                 shift.IsActive = dto.IsActive;
                 shift.MinEmployeesRequired = dto.MinEmployeesRequired;
@@ -714,6 +753,25 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                 ShiftType = shift.ShiftType,
                 ApplicableDays = shift.ApplicableDays,
                 IsNightShift = shift.IsNightShift,
+                AllowOvernightCrossMidnight = shift.AllowOvernightCrossMidnight,
+                EarlyExitToleranceMinutes = shift.EarlyExitToleranceMinutes,
+                SplitSlot1StartTime = shift.SplitSlot1StartTime,
+                SplitSlot1EndTime = shift.SplitSlot1EndTime,
+                SplitSlot2StartTime = shift.SplitSlot2StartTime,
+                SplitSlot2EndTime = shift.SplitSlot2EndTime,
+                IsFlexiShift = shift.IsFlexiShift,
+                CoreStartTime = shift.CoreStartTime,
+                CoreEndTime = shift.CoreEndTime,
+                FlexiWindowStart = shift.FlexiWindowStart,
+                FlexiWindowEnd = shift.FlexiWindowEnd,
+                Is24HourShift = shift.Is24HourShift,
+                MandatoryRestHoursAfterShift = shift.MandatoryRestHoursAfterShift ?? 24,
+                IsOnCallStandby = shift.IsOnCallStandby,
+                StandbyRateMultiplier = shift.StandbyRateMultiplier,
+                CountryId = shift.CountryId,
+                CompanyId = shift.CompanyId,
+                ProjectId = shift.ProjectId,
+                OperationalLocationId = shift.OperationalLocationId,
                 NightShiftAllowance = shift.NightShiftAllowance,
                 IsActive = shift.IsActive,
                 MinEmployeesRequired = shift.MinEmployeesRequired,

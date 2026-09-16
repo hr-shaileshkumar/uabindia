@@ -125,6 +125,8 @@ namespace UabIndia.Api.Extensions
             services.AddScoped<TenantResolutionService>();
             services.AddScoped<TenantEmailService>();
             services.AddScoped<IUiSchemaService, UiSchemaService>();
+            services.AddScoped<IEntityMetadataService, EntityMetadataService>();
+            services.AddScoped<ILookupService, LookupService>();
             services.AddScoped<IWebsiteContentService, WebsiteContentService>();
             services.AddSingleton<RoleMappingResolver>();
             services.AddScoped<InputSanitizer>();
@@ -199,6 +201,7 @@ namespace UabIndia.Api.Extensions
             services.AddScoped<ILeaveRequestService, LeaveRequestService>();
             services.AddScoped<ITimesheetService, TimesheetService>();
             services.AddScoped<IAttendanceVerificationService, AttendanceVerificationService>();
+            services.AddScoped<IAttendanceSynthesisService, AttendanceSynthesisService>();
             services.AddScoped<IOvertimeApprovalService, OvertimeApprovalService>();
             services.AddScoped<IOvertimeRequestService, OvertimeRequestService>();
             services.AddScoped<IAppraisalCycleService, AppraisalCycleService>();

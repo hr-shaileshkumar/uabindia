@@ -13,5 +13,12 @@ namespace UabIndia.Core.Entities
         public string? DeviceId { get; set; }
         public string? Source { get; set; }
         public bool GeoValidated { get; set; }
+
+        // Geofence Validation Audit
+        public double? DistanceFromLocationMeters { get; set; }
+        public Guid? MatchedLocationId { get; set; }
+        public string? MatchedLocationName { get; set; }
+        public bool IsGeofenceBreached { get; set; }
+        public string? GeofenceValidationMessage { get; set; }
     }
 }

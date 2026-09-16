@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -13,6 +13,7 @@ import {
   erpPanelTitleClassName,
 } from "@/components/workspace/styles";
 import { hrmsApi, orgApi } from "@/services/modules";
+import { fetchBatchLookups } from "@/services/lookup";
 import { ROUTES } from "@/constants/routes";
 import { DynamicCustomFieldsForm } from "@/components/workspace/DynamicCustomFieldsForm";
 import { useOrgContext } from "@/context/OrgContext";
@@ -166,24 +167,48 @@ export default function EmployeeForm({ initialValues, employeeId, title }: Emplo
     const load = async () => {
       try {
         setLoadingProjects(true);
-        const res = await orgApi.project.getByCompany(values.companyId);
+        // Unified batch lookup: retrieves projects, departments, and designations in 1 call
+        const batch = await fetchBatchLookups(["projects", "departments", "designations"], values.companyId);
         if (isMounted) {
-          setProjects(asOptionRows(res.data?.projects ?? res.data));
-        }
-        try {
-          const dept = await orgApi.orgStructure.departments.list(values.companyId);
-          if (isMounted) setDepartments(asOptionRows(dept.data));
-        } catch {
-          if (isMounted) setDepartments([]);
-        }
-        try {
-          const des = await orgApi.orgStructure.designations.list(values.companyId);
-          if (isMounted) setDesignations(asOptionRows(des.data));
-        } catch {
-          if (isMounted) setDesignations([]);
+          if (batch.projects && batch.projects.length > 0) {
+            setProjects(batch.projects.map((p) => ({ id: p.id, name: p.name })));
+          } else {
+            try {
+              const res = await orgApi.project.getByCompany(values.companyId);
+              setProjects(asOptionRows(res.data?.projects ?? res.data));
+            } catch {
+              setProjects([]);
+            }
+          }
+
+          if (batch.departments && batch.departments.length > 0) {
+            setDepartments(batch.departments.map((d) => ({ id: d.id, name: d.name })));
+          } else {
+            try {
+              const dept = await orgApi.orgStructure.departments.list(values.companyId);
+              setDepartments(asOptionRows(dept.data));
+            } catch {
+              setDepartments([]);
+            }
+          }
+
+          if (batch.designations && batch.designations.length > 0) {
+            setDesignations(batch.designations.map((d) => ({ id: d.id, name: d.name })));
+          } else {
+            try {
+              const des = await orgApi.orgStructure.designations.list(values.companyId);
+              setDesignations(asOptionRows(des.data));
+            } catch {
+              setDesignations([]);
+            }
+          }
         }
       } catch {
-        if (isMounted) setProjects([]);
+        if (isMounted) {
+          setProjects([]);
+          setDepartments([]);
+          setDesignations([]);
+        }
       } finally {
         if (isMounted) setLoadingProjects(false);
       }

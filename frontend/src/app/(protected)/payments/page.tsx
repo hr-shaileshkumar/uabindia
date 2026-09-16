@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
 import { financeApi, procurementApi, salesApi } from "@/services/modules";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
@@ -28,7 +29,7 @@ type OpenDoc = {
   number: string;
 };
 
-export default function PaymentsPage() {
+function LegacyPaymentsView() {
   const { customers, vendors } = useDocumentMasters();
   const [rows, setRows] = useState<PaymentRow[]>([]);
   const [invoices, setInvoices] = useState<OpenDoc[]>([]);
@@ -287,5 +288,15 @@ export default function PaymentsPage() {
         </div>
       </SideDrawer>
     </StandardPageLayout>
+  );
+}
+
+export default function PaymentsPage() {
+  return (
+    <DynamicPage
+      pageKey="finance.payments"
+      fallback={<LegacyPaymentsView />}
+      renderMode="auto"
+    />
   );
 }

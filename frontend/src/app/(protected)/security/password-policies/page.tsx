@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+﻿
 import { useCallback, useEffect, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { CrudHeaderStats } from "@/components/workspace/crud-workspace";
@@ -42,7 +44,7 @@ const defaultPolicy: PasswordPolicy = {
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-export default function PasswordPoliciesPage() {
+function LegacyPasswordPoliciesPage() {
   const [policy, setPolicy] = useState<PasswordPolicy>(defaultPolicy);
   const [savedSnapshot, setSavedSnapshot] = useState<string>(JSON.stringify(defaultPolicy));
   const [loading, setLoading] = useState(true);
@@ -242,5 +244,15 @@ export default function PasswordPoliciesPage() {
         </section>
       </div>
     </StandardPageLayout>
+  );
+}
+
+export default function PasswordPoliciesPage() {
+  return (
+    <DynamicPage
+      pageKey="security.password-policies"
+      fallback={<LegacyPasswordPoliciesPage />}
+      renderMode="auto"
+    />
   );
 }

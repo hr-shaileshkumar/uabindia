@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+﻿
 import { useEffect, useState, useCallback } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
 import { CrudHeaderStats } from "@/components/workspace/crud-workspace";
@@ -28,7 +30,7 @@ type TicketOption = { id: string; ticketNumber?: string; subject?: string };
 
 const emptyForm = () => ({ ticketId: "", reason: "", slaBreached: false });
 
-export default function HelpdeskEscalationsPage() {
+function LegacyHelpdeskEscalationsPage() {
   const [records, setRecords] = useState<EscalationRow[]>([]);
   const [tickets, setTickets] = useState<TicketOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -202,5 +204,15 @@ export default function HelpdeskEscalationsPage() {
         </div>
       </SideDrawer>
     </>
+  );
+}
+
+export default function HelpdeskEscalationsPage() {
+  return (
+    <DynamicPage
+      pageKey="helpdesk.escalations"
+      fallback={<LegacyHelpdeskEscalationsPage />}
+      renderMode="auto"
+    />
   );
 }

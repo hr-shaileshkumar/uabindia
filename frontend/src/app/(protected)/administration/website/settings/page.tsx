@@ -1,4 +1,7 @@
-"use client";
+"use client";
+
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { AdministrationGlobalPageShell } from "@/components/administration/AdministrationGlobalPageShell";
@@ -31,14 +34,14 @@ interface VisualBrandingState {
 }
 
 const defaultVisualBranding: VisualBrandingState = {
-  brandName: "UabIndia ERP",
+  brandName: process.env.NEXT_PUBLIC_APP_NAME || "Enterprise ERP",
   logoUrl: "/logo.png",
   faviconUrl: "/favicon.ico",
   primaryColor: "#4f46e5",
-  supportEmail: "support@uabindia.in",
-  supportPhone: "+91 98765 43210",
+  supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "support@enterprise.internal",
+  supportPhone: process.env.NEXT_PUBLIC_SUPPORT_PHONE || "",
   customDomain: "",
-  footerText: "© 2026 UabIndia. All rights reserved.",
+  footerText: `© ${new Date().getFullYear()} ${process.env.NEXT_PUBLIC_APP_NAME || "Enterprise ERP"}. All rights reserved.`,
 };
 
 const emptyConfig = (): TenantConfigPayload => ({
@@ -61,7 +64,7 @@ const readConfig = (raw: Record<string, unknown> | null | undefined): TenantConf
   };
 };
 
-export default function WebsiteSettingsPage() {
+function LegacyWebsiteSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("branding");
@@ -149,7 +152,7 @@ export default function WebsiteSettingsPage() {
       categoryTag="Platform / CMS"
       icon="globe"
       kpiMetrics={[
-        { label: "Brand entity", value: visual.brandName || "UabIndia", tone: "info", icon: <Building2 className="h-3.5 w-3.5" /> },
+        { label: "Brand entity", value: visual.brandName || process.env.NEXT_PUBLIC_APP_NAME || "Enterprise ERP", tone: "info", icon: <Building2 className="h-3.5 w-3.5" /> },
         { label: "Theme color", value: visual.primaryColor, tone: "positive", icon: <Palette className="h-3.5 w-3.5" /> },
         { label: "CMS Status", value: "Live Synced", tone: "positive", icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
       ]}
@@ -356,4 +359,14 @@ export default function WebsiteSettingsPage() {
       </div>
     </AdministrationGlobalPageShell>
   );
-}
+}
+
+export default function WebsiteSettingsPage() {
+  return (
+    <DynamicPage
+      pageKey="administration.website.settings"
+      fallback={<LegacyWebsiteSettingsPage />}
+      renderMode="auto"
+    />
+  );
+}

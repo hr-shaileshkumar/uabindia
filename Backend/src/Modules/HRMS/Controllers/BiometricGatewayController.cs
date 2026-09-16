@@ -91,20 +91,46 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                 return Unauthorized(new { success = false, message = "Tenant context could not be resolved." });
             }
 
-            // Preload active employees for fast mapping
-            var empCodes = request.Punches
-                .Select(p => p.EmployeeCode ?? p.EnrollmentId)
+            // Preload active employees matching by EmployeeCode OR BiometricEnrollmentId OR BiometricCardNumber
+            var identifiers = request.Punches
+                .SelectMany(p => new[] { p.EmployeeCode, p.EnrollmentId, p.CardNumber })
                 .Where(c => !string.IsNullOrWhiteSpace(c))
+                .Select(c => c!.Trim())
                 .Distinct()
                 .ToList();
 
             var empList = await _db.Employees
-                .Where(e => e.TenantId == tenantId && !e.IsDeleted && e.EmployeeCode != null && empCodes.Contains(e.EmployeeCode))
+                .Where(e => e.TenantId == tenantId && !e.IsDeleted &&
+                           ((e.EmployeeCode != null && identifiers.Contains(e.EmployeeCode)) ||
+                            (e.BiometricEnrollmentId != null && identifiers.Contains(e.BiometricEnrollmentId)) ||
+                            (e.BiometricCardNumber != null && identifiers.Contains(e.BiometricCardNumber))))
                 .ToListAsync();
 
-            var employees = empList
-                .Where(e => !string.IsNullOrEmpty(e.EmployeeCode))
-                .ToDictionary(e => e.EmployeeCode!, StringComparer.OrdinalIgnoreCase);
+            var employeeMap = new Dictionary<string, Employee>(StringComparer.OrdinalIgnoreCase);
+            foreach (var emp in empList)
+            {
+                if (!string.IsNullOrWhiteSpace(emp.EmployeeCode)) employeeMap[emp.EmployeeCode] = emp;
+                if (!string.IsNullOrWhiteSpace(emp.BiometricEnrollmentId)) employeeMap[emp.BiometricEnrollmentId] = emp;
+                if (!string.IsNullOrWhiteSpace(emp.BiometricCardNumber)) employeeMap[emp.BiometricCardNumber] = emp;
+            }
+
+            var deviceSerial = request.DeviceSerialNumber ?? request.DeviceId;
+            BiometricDevice? registeredDevice = null;
+            string? deviceLocationName = null;
+            if (!string.IsNullOrWhiteSpace(deviceSerial))
+            {
+                registeredDevice = await _db.BiometricDevices
+                    .FirstOrDefaultAsync(d => d.TenantId == tenantId && !d.IsDeleted &&
+                                             (d.DeviceSerialNumber == deviceSerial || d.DeviceName == deviceSerial));
+
+                if (registeredDevice?.OperationalLocationId.HasValue == true)
+                {
+                    deviceLocationName = await _db.OperationalLocations
+                        .Where(l => l.Id == registeredDevice.OperationalLocationId.Value)
+                        .Select(l => l.Name)
+                        .FirstOrDefaultAsync();
+                }
+            }
 
             var createdRecords = new List<AttendanceRecord>();
             int processedCount = 0;
@@ -112,10 +138,10 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
 
             foreach (var punch in request.Punches)
             {
-                var identifier = punch.EmployeeCode ?? punch.EnrollmentId;
+                var identifier = punch.EnrollmentId ?? punch.EmployeeCode ?? punch.CardNumber;
                 if (string.IsNullOrWhiteSpace(identifier)) continue;
 
-                if (!employees.TryGetValue(identifier, out var employee))
+                if (!employeeMap.TryGetValue(identifier.Trim(), out var employee))
                 {
                     unmatchedCount++;
                     continue;
@@ -129,11 +155,17 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                     Id = Guid.NewGuid(),
                     TenantId = tenantId,
                     EmployeeId = employee.Id,
+                    ProjectId = employee.ProjectId,
                     PunchType = punchTypeClean,
                     Timestamp = punchTime,
-                    DeviceId = punch.DeviceId ?? request.DeviceId ?? "BIOMETRIC_GW",
+                    DeviceId = punch.DeviceId ?? request.DeviceId ?? registeredDevice?.DeviceSerialNumber ?? "BIOMETRIC_GW",
                     Source = "Biometric_Hardware",
-                    GeoValidated = false,
+                    GeoValidated = registeredDevice != null,
+                    MatchedLocationId = registeredDevice?.OperationalLocationId,
+                    MatchedLocationName = deviceLocationName ?? request.DeviceLocation,
+                    GeofenceValidationMessage = registeredDevice != null
+                        ? $"Logged via terminal {registeredDevice.DeviceName} ({registeredDevice.DeviceSerialNumber})"
+                        : "Logged via biometric cloud push",
                     CreatedAt = DateTime.UtcNow
                 };
 
@@ -144,6 +176,14 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             if (createdRecords.Count > 0)
             {
                 _db.AttendanceRecords.AddRange(createdRecords);
+
+                if (registeredDevice != null)
+                {
+                    registeredDevice.TotalPunchesLogged += processedCount;
+                    registeredDevice.LastHeartbeatAt = DateTime.UtcNow;
+                    registeredDevice.Status = "Online";
+                }
+
                 await _db.SaveChangesAsync();
             }
 
@@ -162,8 +202,24 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
         /// </summary>
         [HttpPost("heartbeat")]
         [AllowAnonymous]
-        public IActionResult DeviceHeartbeat([FromBody] BiometricHeartbeatRequest hb)
+        public async Task<IActionResult> DeviceHeartbeat([FromBody] BiometricHeartbeatRequest hb)
         {
+            var deviceIdentifier = hb.DeviceSerialNumber ?? hb.DeviceId;
+            if (!string.IsNullOrWhiteSpace(deviceIdentifier))
+            {
+                var device = await _db.BiometricDevices
+                    .FirstOrDefaultAsync(d => !d.IsDeleted && (d.DeviceSerialNumber == deviceIdentifier || d.DeviceName == deviceIdentifier));
+
+                if (device != null)
+                {
+                    device.LastHeartbeatAt = DateTime.UtcNow;
+                    device.Status = "Online";
+                    if (!string.IsNullOrWhiteSpace(hb.FirmwareVersion)) device.FirmwareVersion = hb.FirmwareVersion;
+                    if (!string.IsNullOrWhiteSpace(hb.IpAddress)) device.IpAddress = hb.IpAddress;
+                    await _db.SaveChangesAsync();
+                }
+            }
+
             return Ok(new
             {
                 success = true,
@@ -183,26 +239,91 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
         {
             var tenantId = _tenantAccessor.GetTenantId();
 
-            var devices = await _db.AttendanceRecords
+            var persistentDevices = await _db.BiometricDevices
                 .AsNoTracking()
-                .Where(a => a.TenantId == tenantId && !a.IsDeleted && a.Source != null && a.Source.StartsWith("Biometric"))
-                .GroupBy(a => a.DeviceId)
-                .Select(g => new
+                .Where(d => d.TenantId == tenantId && !d.IsDeleted)
+                .OrderBy(d => d.DeviceName)
+                .Select(d => new
                 {
-                    DeviceId = g.Key ?? "BIOMETRIC_GW",
-                    TotalPunches = g.Count(),
-                    LastActive = g.Max(a => a.Timestamp),
-                    Status = "Active"
+                    id = d.Id,
+                    deviceId = d.DeviceSerialNumber,
+                    deviceName = d.DeviceName,
+                    deviceBrand = d.DeviceBrand,
+                    modelNumber = d.ModelNumber,
+                    ipAddress = d.IpAddress,
+                    port = d.Port,
+                    operationalLocationId = d.OperationalLocationId,
+                    directionMode = d.DirectionMode,
+                    status = d.Status,
+                    lastActive = d.LastHeartbeatAt,
+                    totalPunches = d.TotalPunchesLogged,
+                    isActive = d.IsActive
                 })
                 .ToListAsync();
 
             return Ok(new
             {
                 success = true,
-                devices = devices,
-                gatewayVersion = "2.4.0-Enterprise",
-                supportedProtocols = new[] { "ZKTeco Pull/Push", "eSSL CAMS", "Suprema BioStar", "MQTT JSON" }
+                devices = persistentDevices,
+                gatewayVersion = "3.0.0-Enterprise",
+                supportedProtocols = new[] { "ZKTeco ADMS/Push", "eSSL CAMS Cloud", "Hikvision ISUP", "MQTT JSON" }
             });
+        }
+
+        [HttpPost("devices")]
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<IActionResult> RegisterDevice([FromBody] BiometricDevice model)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            model.Id = Guid.NewGuid();
+            model.TenantId = tenantId;
+            model.Status = "Online";
+            model.LastHeartbeatAt = DateTime.UtcNow;
+            model.CreatedAt = DateTime.UtcNow;
+
+            _db.BiometricDevices.Add(model);
+            await _db.SaveChangesAsync();
+
+            return Ok(model);
+        }
+
+        [HttpPut("devices/{id:guid}")]
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<IActionResult> UpdateDevice(Guid id, [FromBody] BiometricDevice model)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var device = await _db.BiometricDevices.FirstOrDefaultAsync(d => d.Id == id && d.TenantId == tenantId && !d.IsDeleted);
+            if (device == null) return NotFound();
+
+            device.DeviceName = model.DeviceName;
+            device.DeviceSerialNumber = model.DeviceSerialNumber;
+            device.DeviceBrand = model.DeviceBrand;
+            device.ModelNumber = model.ModelNumber;
+            device.IpAddress = model.IpAddress;
+            device.Port = model.Port;
+            device.OperationalLocationId = model.OperationalLocationId;
+            device.DirectionMode = model.DirectionMode;
+            device.Status = model.Status;
+            device.IsActive = model.IsActive;
+            device.UpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync();
+            return Ok(device);
+        }
+
+        [HttpDelete("devices/{id:guid}")]
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<IActionResult> DeleteDevice(Guid id)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var device = await _db.BiometricDevices.FirstOrDefaultAsync(d => d.Id == id && d.TenantId == tenantId && !d.IsDeleted);
+            if (device == null) return NotFound();
+
+            device.IsDeleted = true;
+            device.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+
+            return NoContent();
         }
     }
 }

@@ -1789,11 +1789,462 @@ IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Employee
 BEGIN
     ALTER TABLE [dbo].[Employees] ALTER COLUMN [BankIfsc] NVARCHAR(256) NULL;
 END;
+
+-- ── Geography & Business Hierarchy & Posting Tables ──
+IF OBJECT_ID(N'[dbo].[GeoCountries]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[GeoCountries] (
+        [Id] uniqueidentifier NOT NULL PRIMARY KEY,
+        [TenantId] uniqueidentifier NOT NULL,
+        [BusinessId] nvarchar(100) NULL,
+        [Code] nvarchar(10) NOT NULL,
+        [Iso2Code] nvarchar(10) NOT NULL,
+        [Name] nvarchar(200) NOT NULL,
+        [CurrencyCode] nvarchar(10) NOT NULL,
+        [PhoneCode] nvarchar(10) NOT NULL,
+        [IsActive] bit NOT NULL DEFAULT 1,
+        [CreatedAt] datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        [UpdatedAt] datetime2 NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [IsDeleted] bit NOT NULL DEFAULT 0
+    );
+END;
+
+IF OBJECT_ID(N'[dbo].[GeoStates]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[GeoStates] (
+        [Id] uniqueidentifier NOT NULL PRIMARY KEY,
+        [TenantId] uniqueidentifier NOT NULL,
+        [BusinessId] nvarchar(100) NULL,
+        [CountryId] uniqueidentifier NOT NULL,
+        [StateCode] nvarchar(50) NOT NULL,
+        [Name] nvarchar(200) NOT NULL,
+        [CapitalCity] nvarchar(200) NULL,
+        [IsActive] bit NOT NULL DEFAULT 1,
+        [CreatedAt] datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        [UpdatedAt] datetime2 NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [IsDeleted] bit NOT NULL DEFAULT 0
+    );
+    CREATE INDEX [IX_GeoStates_CountryId] ON [dbo].[GeoStates]([CountryId]);
+END;
+
+IF OBJECT_ID(N'[dbo].[GeoDistricts]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[GeoDistricts] (
+        [Id] uniqueidentifier NOT NULL PRIMARY KEY,
+        [TenantId] uniqueidentifier NOT NULL,
+        [BusinessId] nvarchar(100) NULL,
+        [StateId] uniqueidentifier NOT NULL,
+        [Name] nvarchar(200) NOT NULL,
+        [DistrictCode] nvarchar(50) NULL,
+        [IsActive] bit NOT NULL DEFAULT 1,
+        [CreatedAt] datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        [UpdatedAt] datetime2 NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [IsDeleted] bit NOT NULL DEFAULT 0
+    );
+    CREATE INDEX [IX_GeoDistricts_StateId] ON [dbo].[GeoDistricts]([StateId]);
+END;
+
+IF OBJECT_ID(N'[dbo].[GeoCities]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[GeoCities] (
+        [Id] uniqueidentifier NOT NULL PRIMARY KEY,
+        [TenantId] uniqueidentifier NOT NULL,
+        [BusinessId] nvarchar(100) NULL,
+        [DistrictId] uniqueidentifier NOT NULL,
+        [Name] nvarchar(200) NOT NULL,
+        [PostalCode] nvarchar(50) NULL,
+        [IsActive] bit NOT NULL DEFAULT 1,
+        [CreatedAt] datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        [UpdatedAt] datetime2 NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [IsDeleted] bit NOT NULL DEFAULT 0
+    );
+    CREATE INDEX [IX_GeoCities_DistrictId] ON [dbo].[GeoCities]([DistrictId]);
+END;
+
+IF OBJECT_ID(N'[dbo].[BusinessZones]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[BusinessZones] (
+        [Id] uniqueidentifier NOT NULL PRIMARY KEY,
+        [TenantId] uniqueidentifier NOT NULL,
+        [CompanyId] uniqueidentifier NOT NULL,
+        [BusinessId] nvarchar(100) NULL,
+        [Code] nvarchar(64) NOT NULL,
+        [Name] nvarchar(200) NOT NULL,
+        [Description] nvarchar(max) NULL,
+        [IsActive] bit NOT NULL DEFAULT 1,
+        [HeadEmployeeId] uniqueidentifier NULL,
+        [HeadEmployeeName] nvarchar(200) NULL,
+        [CreatedAt] datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        [UpdatedAt] datetime2 NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [IsDeleted] bit NOT NULL DEFAULT 0
+    );
+    CREATE INDEX [IX_BusinessZones_TenantId_CompanyId] ON [dbo].[BusinessZones]([TenantId], [CompanyId]);
+END;
+
+IF OBJECT_ID(N'[dbo].[BusinessRegions]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[BusinessRegions] (
+        [Id] uniqueidentifier NOT NULL PRIMARY KEY,
+        [TenantId] uniqueidentifier NOT NULL,
+        [CompanyId] uniqueidentifier NOT NULL,
+        [ZoneId] uniqueidentifier NOT NULL,
+        [BusinessId] nvarchar(100) NULL,
+        [Code] nvarchar(64) NOT NULL,
+        [Name] nvarchar(200) NOT NULL,
+        [Description] nvarchar(max) NULL,
+        [IsActive] bit NOT NULL DEFAULT 1,
+        [HeadEmployeeId] uniqueidentifier NULL,
+        [HeadEmployeeName] nvarchar(200) NULL,
+        [CreatedAt] datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        [UpdatedAt] datetime2 NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [IsDeleted] bit NOT NULL DEFAULT 0
+    );
+    CREATE INDEX [IX_BusinessRegions_ZoneId] ON [dbo].[BusinessRegions]([ZoneId]);
+END;
+
+IF OBJECT_ID(N'[dbo].[BusinessClusters]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[BusinessClusters] (
+        [Id] uniqueidentifier NOT NULL PRIMARY KEY,
+        [TenantId] uniqueidentifier NOT NULL,
+        [CompanyId] uniqueidentifier NOT NULL,
+        [RegionId] uniqueidentifier NOT NULL,
+        [BusinessId] nvarchar(100) NULL,
+        [Code] nvarchar(64) NOT NULL,
+        [Name] nvarchar(200) NOT NULL,
+        [Description] nvarchar(max) NULL,
+        [IsActive] bit NOT NULL DEFAULT 1,
+        [HeadEmployeeId] uniqueidentifier NULL,
+        [HeadEmployeeName] nvarchar(200) NULL,
+        [CreatedAt] datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        [UpdatedAt] datetime2 NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [IsDeleted] bit NOT NULL DEFAULT 0
+    );
+    CREATE INDEX [IX_BusinessClusters_RegionId] ON [dbo].[BusinessClusters]([RegionId]);
+END;
+
+IF OBJECT_ID(N'[dbo].[OperationalLocations]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[OperationalLocations] (
+        [Id] uniqueidentifier NOT NULL PRIMARY KEY,
+        [TenantId] uniqueidentifier NOT NULL,
+        [CompanyId] uniqueidentifier NOT NULL,
+        [BusinessId] nvarchar(100) NULL,
+        [Code] nvarchar(64) NOT NULL,
+        [Name] nvarchar(200) NOT NULL,
+        [Description] nvarchar(max) NULL,
+        [IsActive] bit NOT NULL DEFAULT 1,
+        [Type] int NOT NULL DEFAULT 2,
+        [DistrictId] uniqueidentifier NULL,
+        [CityId] uniqueidentifier NULL,
+        [Address] nvarchar(max) NULL,
+        [PostalCode] nvarchar(50) NULL,
+        [Latitude] float NOT NULL DEFAULT 0,
+        [Longitude] float NOT NULL DEFAULT 0,
+        [GeofenceRadiusMeters] int NOT NULL DEFAULT 150,
+        [BusinessClusterId] uniqueidentifier NULL,
+        [ContactPersonName] nvarchar(200) NULL,
+        [ContactPhone] nvarchar(100) NULL,
+        [CreatedAt] datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        [UpdatedAt] datetime2 NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [IsDeleted] bit NOT NULL DEFAULT 0
+    );
+    CREATE INDEX [IX_OperationalLocations_TenantId_CompanyId] ON [dbo].[OperationalLocations]([TenantId], [CompanyId]);
+END;
+
+IF OBJECT_ID(N'[dbo].[PostingUnits]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[PostingUnits] (
+        [Id] uniqueidentifier NOT NULL PRIMARY KEY,
+        [TenantId] uniqueidentifier NOT NULL,
+        [CompanyId] uniqueidentifier NOT NULL,
+        [BusinessId] nvarchar(100) NULL,
+        [Code] nvarchar(64) NOT NULL,
+        [Name] nvarchar(200) NOT NULL,
+        [Description] nvarchar(max) NULL,
+        [IsActive] bit NOT NULL DEFAULT 1,
+        [TargetType] int NOT NULL DEFAULT 1,
+        [ParentLocationId] uniqueidentifier NULL,
+        [VehicleRegistrationNumber] nvarchar(100) NULL,
+        [ImeiOrGpsDeviceId] nvarchar(100) NULL,
+        [ChasisOrAssetNumber] nvarchar(100) NULL,
+        [OperationalRoute] nvarchar(max) NULL,
+        [CreatedAt] datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        [UpdatedAt] datetime2 NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [IsDeleted] bit NOT NULL DEFAULT 0
+    );
+    CREATE INDEX [IX_PostingUnits_ParentLocationId] ON [dbo].[PostingUnits]([ParentLocationId]);
+END;
+
+IF OBJECT_ID(N'[dbo].[EmployeePostingAssignments]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[EmployeePostingAssignments] (
+        [Id] uniqueidentifier NOT NULL PRIMARY KEY,
+        [TenantId] uniqueidentifier NOT NULL,
+        [BusinessId] nvarchar(100) NULL,
+        [EmployeeId] uniqueidentifier NOT NULL,
+        [ProjectId] uniqueidentifier NULL,
+        [BusinessClusterId] uniqueidentifier NULL,
+        [OperationalLocationId] uniqueidentifier NULL,
+        [PostingUnitId] uniqueidentifier NULL,
+        [StateId] uniqueidentifier NULL,
+        [DistrictId] uniqueidentifier NULL,
+        [EffectiveFrom] datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        [EffectiveTo] datetime2 NULL,
+        [IsPrimary] bit NOT NULL DEFAULT 1,
+        [AssignmentType] nvarchar(100) NOT NULL DEFAULT 'Permanent',
+        [Status] nvarchar(50) NOT NULL DEFAULT 'Active',
+        [Remarks] nvarchar(max) NULL,
+        [CreatedAt] datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        [UpdatedAt] datetime2 NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [IsDeleted] bit NOT NULL DEFAULT 0
+    );
+    CREATE INDEX [IX_EmployeePostingAssignments_EmployeeId] ON [dbo].[EmployeePostingAssignments]([EmployeeId]);
+    CREATE INDEX [IX_EmployeePostingAssignments_PostingUnitId] ON [dbo].[EmployeePostingAssignments]([PostingUnitId]);
+END;
+
+IF OBJECT_ID(N'[dbo].[UserPermissions]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[UserPermissions] (
+        [Id] uniqueidentifier NOT NULL PRIMARY KEY,
+        [TenantId] uniqueidentifier NOT NULL,
+        [CompanyId] uniqueidentifier NULL,
+        [BusinessId] nvarchar(100) NULL,
+        [UserId] uniqueidentifier NOT NULL,
+        [Module] nvarchar(100) NOT NULL,
+        [PageKey] nvarchar(100) NOT NULL,
+        [Action] nvarchar(100) NOT NULL,
+        [IsGranted] bit NOT NULL DEFAULT 1,
+        [CreatedAt] datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        [UpdatedAt] datetime2 NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [IsDeleted] bit NOT NULL DEFAULT 0
+    );
+    CREATE INDEX [IX_UserPermissions_Tenant_User] ON [dbo].[UserPermissions]([TenantId], [UserId]);
+    CREATE INDEX [IX_UserPermissions_Module_Page] ON [dbo].[UserPermissions]([Module], [PageKey], [Action]);
+END;
+
+-- Employees geofencing fields
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Employees' AND COLUMN_NAME = 'ValidateGeofenceOnAttendance')
+BEGIN
+    ALTER TABLE [dbo].[Employees] ADD [ValidateGeofenceOnAttendance] bit NOT NULL DEFAULT 1;
+END;
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Employees' AND COLUMN_NAME = 'AllowAnyLocationCheckIn')
+BEGIN
+    ALTER TABLE [dbo].[Employees] ADD [AllowAnyLocationCheckIn] bit NOT NULL DEFAULT 0;
+END;
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Employees' AND COLUMN_NAME = 'BaseOperationalLocationId')
+BEGIN
+    ALTER TABLE [dbo].[Employees] ADD [BaseOperationalLocationId] uniqueidentifier NULL;
+END;
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Employees' AND COLUMN_NAME = 'BaseLocationLatitude')
+BEGIN
+    ALTER TABLE [dbo].[Employees] ADD [BaseLocationLatitude] float NULL;
+END;
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Employees' AND COLUMN_NAME = 'BaseLocationLongitude')
+BEGIN
+    ALTER TABLE [dbo].[Employees] ADD [BaseLocationLongitude] float NULL;
+END;
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Employees' AND COLUMN_NAME = 'BaseLocationRadiusMeters')
+BEGIN
+    ALTER TABLE [dbo].[Employees] ADD [BaseLocationRadiusMeters] int NULL DEFAULT 150;
+END;
+
+-- AttendanceRecords geofencing fields
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'AttendanceRecords' AND COLUMN_NAME = 'DistanceFromLocationMeters')
+BEGIN
+    ALTER TABLE [dbo].[AttendanceRecords] ADD [DistanceFromLocationMeters] float NULL;
+END;
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'AttendanceRecords' AND COLUMN_NAME = 'MatchedLocationId')
+BEGIN
+    ALTER TABLE [dbo].[AttendanceRecords] ADD [MatchedLocationId] uniqueidentifier NULL;
+END;
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'AttendanceRecords' AND COLUMN_NAME = 'MatchedLocationName')
+BEGIN
+    ALTER TABLE [dbo].[AttendanceRecords] ADD [MatchedLocationName] nvarchar(200) NULL;
+END;
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'AttendanceRecords' AND COLUMN_NAME = 'IsGeofenceBreached')
+BEGIN
+    ALTER TABLE [dbo].[AttendanceRecords] ADD [IsGeofenceBreached] bit NOT NULL DEFAULT 0;
+END;
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'AttendanceRecords' AND COLUMN_NAME = 'GeofenceValidationMessage')
+BEGIN
+    ALTER TABLE [dbo].[AttendanceRecords] ADD [GeofenceValidationMessage] nvarchar(max) NULL;
+END;
+
+-- AttendancePolicies multi-punch & shift enforcement fields
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'AttendancePolicies' AND COLUMN_NAME = 'PunchMode')
+BEGIN
+    ALTER TABLE [dbo].[AttendancePolicies] ADD [PunchMode] int NOT NULL DEFAULT 1;
+END;
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'AttendancePolicies' AND COLUMN_NAME = 'MinPunchesRequiredPerDay')
+BEGIN
+    ALTER TABLE [dbo].[AttendancePolicies] ADD [MinPunchesRequiredPerDay] int NOT NULL DEFAULT 2;
+END;
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'AttendancePolicies' AND COLUMN_NAME = 'MaxPunchesAllowedPerDay')
+BEGIN
+    ALTER TABLE [dbo].[AttendancePolicies] ADD [MaxPunchesAllowedPerDay] int NULL;
+END;
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'AttendancePolicies' AND COLUMN_NAME = 'EarlyExitToleranceMinutes')
+BEGIN
+    ALTER TABLE [dbo].[AttendancePolicies] ADD [EarlyExitToleranceMinutes] int NOT NULL DEFAULT 15;
+END;
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'AttendancePolicies' AND COLUMN_NAME = 'MissingPunchPenalty')
+BEGIN
+    ALTER TABLE [dbo].[AttendancePolicies] ADD [MissingPunchPenalty] nvarchar(50) NOT NULL DEFAULT 'FlagForRegularization';
+END;
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'AttendancePolicies' AND COLUMN_NAME = 'DefaultShiftId')
+BEGIN
+    ALTER TABLE [dbo].[AttendancePolicies] ADD [DefaultShiftId] uniqueidentifier NULL;
+END;
+
+-- Shifts split-shift and overnight fields
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Shifts' AND COLUMN_NAME = 'AllowOvernightCrossMidnight')
+BEGIN
+    ALTER TABLE [dbo].[Shifts] ADD [AllowOvernightCrossMidnight] bit NOT NULL DEFAULT 0;
+END;
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Shifts' AND COLUMN_NAME = 'EarlyExitToleranceMinutes')
+BEGIN
+    ALTER TABLE [dbo].[Shifts] ADD [EarlyExitToleranceMinutes] int NOT NULL DEFAULT 15;
+END;
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Shifts' AND COLUMN_NAME = 'SplitSlot1StartTime')
+BEGIN
+    ALTER TABLE [dbo].[Shifts] ADD [SplitSlot1StartTime] time NULL;
+END;
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Shifts' AND COLUMN_NAME = 'SplitSlot1EndTime')
+BEGIN
+    ALTER TABLE [dbo].[Shifts] ADD [SplitSlot1EndTime] time NULL;
+END;
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Shifts' AND COLUMN_NAME = 'SplitSlot2StartTime')
+BEGIN
+    ALTER TABLE [dbo].[Shifts] ADD [SplitSlot2StartTime] time NULL;
+END;
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Shifts' AND COLUMN_NAME = 'SplitSlot2EndTime')
+BEGIN
+    ALTER TABLE [dbo].[Shifts] ADD [SplitSlot2EndTime] time NULL;
+END;
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Shifts' AND COLUMN_NAME = 'IsFlexiShift')
+BEGIN
+    ALTER TABLE [dbo].[Shifts] ADD [IsFlexiShift] bit NOT NULL DEFAULT 0;
+    ALTER TABLE [dbo].[Shifts] ADD [CoreStartTime] time NULL;
+    ALTER TABLE [dbo].[Shifts] ADD [CoreEndTime] time NULL;
+    ALTER TABLE [dbo].[Shifts] ADD [FlexiWindowStart] time NULL;
+    ALTER TABLE [dbo].[Shifts] ADD [FlexiWindowEnd] time NULL;
+    ALTER TABLE [dbo].[Shifts] ADD [Is24HourShift] bit NOT NULL DEFAULT 0;
+    ALTER TABLE [dbo].[Shifts] ADD [MandatoryRestHoursAfterShift] int NULL DEFAULT 24;
+    ALTER TABLE [dbo].[Shifts] ADD [IsOnCallStandby] bit NOT NULL DEFAULT 0;
+    ALTER TABLE [dbo].[Shifts] ADD [StandbyRateMultiplier] decimal(5,2) NOT NULL DEFAULT 1.0;
+    ALTER TABLE [dbo].[Shifts] ADD [CountryId] uniqueidentifier NULL;
+    ALTER TABLE [dbo].[Shifts] ADD [CompanyId] uniqueidentifier NULL;
+    ALTER TABLE [dbo].[Shifts] ADD [ProjectId] uniqueidentifier NULL;
+    ALTER TABLE [dbo].[Shifts] ADD [OperationalLocationId] uniqueidentifier NULL;
+END;
+
+-- AttendancePolicies Penalty Slabs, Overtime, and Deduction Basis
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'AttendancePolicies' AND COLUMN_NAME = 'DeductionBasis')
+BEGIN
+    ALTER TABLE [dbo].[AttendancePolicies] ADD [DeductionBasis] int NOT NULL DEFAULT 2;
+    ALTER TABLE [dbo].[AttendancePolicies] ADD [AllowDailyShortfallOffsetWithOt] bit NOT NULL DEFAULT 0;
+    ALTER TABLE [dbo].[AttendancePolicies] ADD [MonthlyFreeLateDays] int NOT NULL DEFAULT 3;
+    ALTER TABLE [dbo].[AttendancePolicies] ADD [LatePenaltyStepFrequency] int NOT NULL DEFAULT 3;
+    ALTER TABLE [dbo].[AttendancePolicies] ADD [LatePenaltyAction] nvarchar(50) NOT NULL DEFAULT 'HalfDayLop';
+    ALTER TABLE [dbo].[AttendancePolicies] ADD [MinorLateWindowMinutes] int NOT NULL DEFAULT 45;
+    ALTER TABLE [dbo].[AttendancePolicies] ADD [MajorLateThresholdMinutes] int NOT NULL DEFAULT 120;
+    ALTER TABLE [dbo].[AttendancePolicies] ADD [EarlyExitThresholdMinutes] int NOT NULL DEFAULT 60;
+    ALTER TABLE [dbo].[AttendancePolicies] ADD [EarlyExitPenaltyAction] nvarchar(50) NOT NULL DEFAULT 'HalfDay';
+    ALTER TABLE [dbo].[AttendancePolicies] ADD [MinMinutesForOvertime] int NOT NULL DEFAULT 60;
+    ALTER TABLE [dbo].[AttendancePolicies] ADD [RequireOvertimeApproval] bit NOT NULL DEFAULT 0;
+    ALTER TABLE [dbo].[AttendancePolicies] ADD [NormalDayOtMultiplier] decimal(5,2) NOT NULL DEFAULT 1.5;
+    ALTER TABLE [dbo].[AttendancePolicies] ADD [WeekendOtMultiplier] decimal(5,2) NOT NULL DEFAULT 2.0;
+    ALTER TABLE [dbo].[AttendancePolicies] ADD [HolidayOtMultiplier] decimal(5,2) NOT NULL DEFAULT 2.5;
+    ALTER TABLE [dbo].[AttendancePolicies] ADD [AllowCompOffInsteadOfPay] bit NOT NULL DEFAULT 1;
+    ALTER TABLE [dbo].[AttendancePolicies] ADD [WeekOffPattern] nvarchar(50) NOT NULL DEFAULT 'SaturdaySunday';
+END;
+
+-- Employees biometric hardware & shift mapping fields
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Employees' AND COLUMN_NAME = 'BiometricEnrollmentId')
+BEGIN
+    ALTER TABLE [dbo].[Employees] ADD [BiometricEnrollmentId] nvarchar(100) NULL;
+END;
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Employees' AND COLUMN_NAME = 'BiometricCardNumber')
+BEGIN
+    ALTER TABLE [dbo].[Employees] ADD [BiometricCardNumber] nvarchar(100) NULL;
+END;
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Employees' AND COLUMN_NAME = 'AssignedShiftId')
+BEGIN
+    ALTER TABLE [dbo].[Employees] ADD [AssignedShiftId] uniqueidentifier NULL;
+END;
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Employees' AND COLUMN_NAME = 'AttendancePolicyId')
+BEGIN
+    ALTER TABLE [dbo].[Employees] ADD [AttendancePolicyId] uniqueidentifier NULL;
+END;
+
+-- BiometricDevices table
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = 'BiometricDevices')
+BEGIN
+    CREATE TABLE [dbo].[BiometricDevices] (
+        [Id] uniqueidentifier NOT NULL PRIMARY KEY DEFAULT NEWID(),
+        [TenantId] uniqueidentifier NOT NULL,
+        [DeviceName] nvarchar(100) NOT NULL,
+        [DeviceSerialNumber] nvarchar(100) NOT NULL,
+        [DeviceBrand] nvarchar(50) NOT NULL DEFAULT 'ZKTeco',
+        [ModelNumber] nvarchar(100) NULL,
+        [IpAddress] nvarchar(50) NULL,
+        [Port] int NOT NULL DEFAULT 4370,
+        [OperationalLocationId] uniqueidentifier NULL,
+        [DirectionMode] nvarchar(20) NOT NULL DEFAULT 'AUTO',
+        [Status] nvarchar(50) NOT NULL DEFAULT 'Online',
+        [LastHeartbeatAt] datetime2 NULL,
+        [FirmwareVersion] nvarchar(50) NULL,
+        [TotalPunchesLogged] int NOT NULL DEFAULT 0,
+        [ApiSecretKey] nvarchar(200) NULL,
+        [IsActive] bit NOT NULL DEFAULT 1,
+        [CreatedAt] datetime2 NOT NULL DEFAULT GETUTCDATE(),
+        [UpdatedAt] datetime2 NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [IsDeleted] bit NOT NULL DEFAULT 0
+    );
+    CREATE INDEX [IX_BiometricDevices_Tenant_Serial] ON [dbo].[BiometricDevices]([TenantId], [DeviceSerialNumber]);
+END;
+
+-- AttendanceRegularizationRequests table
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = 'AttendanceRegularizationRequests')
+BEGIN
+    CREATE TABLE [dbo].[AttendanceRegularizationRequests] (
+        [Id] uniqueidentifier NOT NULL PRIMARY KEY DEFAULT NEWID(),
+        [TenantId] uniqueidentifier NOT NULL,
+        [EmployeeId] uniqueidentifier NOT NULL,
+        [AttendanceDate] datetime2 NOT NULL,
+        [RequestType] nvarchar(50) NOT NULL DEFAULT 'MissingPunch',
+        [CorrectedInTime] time NULL,
+        [CorrectedOutTime] time NULL,
+        [Reason] nvarchar(500) NOT NULL,
+        [Status] nvarchar(50) NOT NULL DEFAULT 'Pending',
+        [ApprovedBy] uniqueidentifier NULL,
+        [ApprovedAt] datetime2 NULL,
+        [ReviewNotes] nvarchar(500) NULL,
+        [CreatedAt] datetime2 NOT NULL DEFAULT GETUTCDATE(),
+        [UpdatedAt] datetime2 NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [IsDeleted] bit NOT NULL DEFAULT 0
+    );
+    CREATE INDEX [IX_AttendanceReg_EmpDate] ON [dbo].[AttendanceRegularizationRequests]([TenantId], [EmployeeId], [AttendanceDate]);
+END;
 ";
         try
         {
             await db.Database.ExecuteSqlRawAsync(sql, cancellationToken);
-            logger?.LogInformation("Ensured physical database tables for FieldServiceTickets, FieldServiceTechnicians, WarehouseBins, and CostCenterBudgets.");
+            logger?.LogInformation("Ensured physical database tables and columns for Multi-Punch, Shifts, Biometrics, and BiometricDevices.");
         }
         catch (System.Exception ex)
         {

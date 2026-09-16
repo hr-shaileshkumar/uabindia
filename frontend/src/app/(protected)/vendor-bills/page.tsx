@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
 import { SideDrawer } from "@/components/ui/side-drawer";
@@ -39,7 +40,7 @@ type BillRow = {
   status?: string;
 };
 
-export default function VendorBillsPage() {
+function LegacyVendorBillsView() {
   const { vendors, items } = useDocumentMasters();
   const [records, setRecords] = useState<BillRow[]>([]);
   const [purchaseOrders, setPurchaseOrders] = useState<Array<{ id: string; poNumber: string; vendorId: string }>>([]);
@@ -332,5 +333,15 @@ export default function VendorBillsPage() {
         </div>
       </SideDrawer>
     </StandardPageLayout>
+  );
+}
+
+export default function VendorBillsPage() {
+  return (
+    <DynamicPage
+      pageKey="procurement.vendor-bills"
+      fallback={<LegacyVendorBillsView />}
+      renderMode="auto"
+    />
   );
 }

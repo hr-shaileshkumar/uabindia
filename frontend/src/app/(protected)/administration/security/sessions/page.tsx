@@ -1,5 +1,7 @@
 "use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+
 import React, { useMemo, useState } from "react";
 import { ShieldCheck, Lock, Laptop, Globe, Smartphone, ShieldAlert, LogOut, CheckCircle2 } from "lucide-react";
 import { AdministrationGlobalPageShell, type KpiMetricItem } from "@/components/administration/AdministrationGlobalPageShell";
@@ -9,7 +11,7 @@ import { notifyError, notifySuccess } from "@/lib/notifications";
 import { mapDeviceSession, useDeviceSessions } from "@/features/administration/hooks/useDeviceSessions";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 
-export default function SecuritySessionsPage() {
+function LegacySecuritySessionsPage() {
   const { user } = useAuth();
   const userEmail = user?.email ?? "Current user";
   const { data = [], isLoading, isError, error, refetch } = useDeviceSessions();
@@ -160,5 +162,15 @@ export default function SecuritySessionsPage() {
       </AdministrationGlobalPageShell>
       {confirmDialog}
     </>
+  );
+}
+
+export default function SecuritySessionsPage() {
+  return (
+    <DynamicPage
+      pageKey="administration.security-sessions"
+      fallback={<LegacySecuritySessionsPage />}
+      renderMode="auto"
+    />
   );
 }

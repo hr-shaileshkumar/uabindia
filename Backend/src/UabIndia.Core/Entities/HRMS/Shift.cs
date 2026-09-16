@@ -53,11 +53,42 @@ namespace UabIndia.Core.Entities
         /// Whether this is a night shift (for allowance purposes)
         /// </summary>
         public bool IsNightShift { get; set; }
+        public bool AllowOvernightCrossMidnight { get; set; } = false;
 
         /// <summary>
         /// Night shift allowance percentage
         /// </summary>
         public decimal NightShiftAllowance { get; set; }
+
+        /// <summary>
+        /// Early exit tolerance in minutes before shift end
+        /// </summary>
+        public int EarlyExitToleranceMinutes { get; set; } = 15;
+
+        // Split Shift Configuration (Applicable when ShiftType == ShiftType.Split)
+        public TimeSpan? SplitSlot1StartTime { get; set; }
+        public TimeSpan? SplitSlot1EndTime { get; set; }
+        public TimeSpan? SplitSlot2StartTime { get; set; }
+        public TimeSpan? SplitSlot2EndTime { get; set; }
+
+        // Flexi Shift Core & Flexible Windows
+        public bool IsFlexiShift { get; set; } = false;
+        public TimeSpan? CoreStartTime { get; set; }
+        public TimeSpan? CoreEndTime { get; set; }
+        public TimeSpan? FlexiWindowStart { get; set; }
+        public TimeSpan? FlexiWindowEnd { get; set; }
+
+        // Extended 24-Hour & On-Call Emergency Shifts
+        public bool Is24HourShift { get; set; } = false;
+        public int? MandatoryRestHoursAfterShift { get; set; } = 24;
+        public bool IsOnCallStandby { get; set; } = false;
+        public decimal StandbyRateMultiplier { get; set; } = 1.0m;
+
+        // Scoping Hierarchy (Multi-Country, Multi-Company, Multi-Project)
+        public Guid? CountryId { get; set; }
+        public Guid? CompanyId { get; set; }
+        public Guid? ProjectId { get; set; }
+        public Guid? OperationalLocationId { get; set; }
 
         /// <summary>
         /// Whether this shift is currently active
@@ -289,7 +320,9 @@ namespace UabIndia.Core.Entities
         Night,
         General,
         Flexible,
-        Split
+        Split,
+        Extended24Hour,
+        OnCallStandby
     }
 
     public enum AssignmentType

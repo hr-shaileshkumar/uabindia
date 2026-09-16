@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
 import { SideDrawer } from "@/components/ui/side-drawer";
@@ -22,7 +23,7 @@ type MovementRow = {
 type ItemOption = { id: string; itemCode: string; itemName: string };
 type WarehouseOption = { id: string; warehouseName: string };
 
-export default function StockMovementsPage() {
+function LegacyStockMovementsView() {
   const [rows, setRows] = useState<MovementRow[]>([]);
   const [items, setItems] = useState<ItemOption[]>([]);
   const [warehouses, setWarehouses] = useState<WarehouseOption[]>([]);
@@ -252,5 +253,15 @@ export default function StockMovementsPage() {
         </div>
       </SideDrawer>
     </StandardPageLayout>
+  );
+}
+
+export default function StockMovementsPage() {
+  return (
+    <DynamicPage
+      pageKey="inventory.stock-movements"
+      fallback={<LegacyStockMovementsView />}
+      renderMode="auto"
+    />
   );
 }

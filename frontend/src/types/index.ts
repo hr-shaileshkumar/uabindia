@@ -461,6 +461,21 @@ export interface Employee {
   bankAccountNumber?: string;
   monthlyCtc?: number;
   basicSalary?: number;
+  // Geofencing & Base Location Validation
+  validateGeofenceOnAttendance?: boolean;
+  allowAnyLocationCheckIn?: boolean;
+  baseOperationalLocationId?: string;
+  baseOperationalLocationName?: string;
+  baseLocationLatitude?: number;
+  baseLocationLongitude?: number;
+  baseLocationRadiusMeters?: number;
+  // Biometric Hardware & Shift Mapping
+  biometricEnrollmentId?: string;
+  biometricCardNumber?: string;
+  assignedShiftId?: string;
+  assignedShiftName?: string;
+  attendancePolicyId?: string;
+  attendancePolicyName?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -495,6 +510,11 @@ export interface AttendanceRecord {
   status?: "Present" | "Absent" | "HalfDay" | "Late" | "Holiday" | "WeekOff";
   hoursWorked?: number;
   remarks?: string;
+  distanceFromLocationMeters?: number;
+  matchedLocationId?: string;
+  matchedLocationName?: string;
+  isGeofenceBreached?: boolean;
+  geofenceValidationMessage?: string;
 }
 
 export interface Shift {

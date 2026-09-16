@@ -1,14 +1,16 @@
+const appName = process.env.NEXT_PUBLIC_APP_NAME || "Enterprise Platform";
+
 export const clientProfile = {
-  companyName: "Uabindia ERP",
-  brandName: "Uabindia ERP",
-  industry: "Advanced SaaS ERP",
-  headquarters: "Tenant-configured headquarters",
+  companyName: appName,
+  brandName: appName,
+  industry: "Enterprise Cloud ERP",
+  headquarters: "Corporate Operations Hub",
   employeeCount: "",
-  supportEmail: "operations@uabindia.com",
-  supportPhone: "+91 9798490879",
+  supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "support@enterprise.internal",
+  supportPhone: process.env.NEXT_PUBLIC_SUPPORT_PHONE || "",
   supportHours: "Mon-Sat | 9:00 AM - 6:30 PM",
-  supportTier: "Premium support",
-  implementationPartner: "Uabindia ERP",
+  supportTier: "Enterprise support",
+  implementationPartner: appName,
   heroTitle: "Your company workspace",
   heroSubtitle:
     "Secure login, employee self-service, support, and company updates from one portal.",
@@ -25,10 +27,10 @@ export const clientProfile = {
     },
     {
       title: "Client Careers",
-      body: "Share current openings for client teams and the ERP, operations, or SAP-style skills required to join them.",
+      body: "Share current openings for client teams and the operations or functional skills required to join them.",
     },
   ],
-  servicesInUse: ["Uabindia ERP Core", "HRMS", "Payroll", "Finance", "Inventory", "SaaS Platform", "SAP Workflow"],
+  servicesInUse: ["ERP Core", "HRMS", "Payroll", "Finance", "Inventory", "SaaS Platform"],
   overview:
     "This profile is designed for client companies to present their details, service coverage, SaaS platform capabilities, and ERP ownership for internal teams and stakeholders.",
   cultureNote:

@@ -124,5 +124,67 @@ export const orgApi = {
       update: (id: string, data: ApiPayload) => apiClient.put(`/org/business-units/${id}`, data),
       delete: (id: string) => apiClient.delete(`/org/business-units/${id}`),
     },
+    zones: {
+      list: (companyId?: string) =>
+        apiClient.get(`/org/zones${companyId ? `?companyId=${companyId}` : ""}`),
+      create: (data: ApiPayload) => apiClient.post("/org/zones", data),
+      update: (id: string, data: ApiPayload) => apiClient.put(`/org/zones/${id}`, data),
+      delete: (id: string) => apiClient.delete(`/org/zones/${id}`),
+    },
+    regions: {
+      list: (companyId?: string, zoneId?: string) => {
+        const params = new URLSearchParams();
+        if (companyId) params.append("companyId", companyId);
+        if (zoneId) params.append("zoneId", zoneId);
+        const qs = params.toString();
+        return apiClient.get(`/org/regions${qs ? `?${qs}` : ""}`);
+      },
+      create: (data: ApiPayload) => apiClient.post("/org/regions", data),
+      update: (id: string, data: ApiPayload) => apiClient.put(`/org/regions/${id}`, data),
+      delete: (id: string) => apiClient.delete(`/org/regions/${id}`),
+    },
+    clusters: {
+      list: (companyId?: string, regionId?: string) => {
+        const params = new URLSearchParams();
+        if (companyId) params.append("companyId", companyId);
+        if (regionId) params.append("regionId", regionId);
+        const qs = params.toString();
+        return apiClient.get(`/org/clusters${qs ? `?${qs}` : ""}`);
+      },
+      create: (data: ApiPayload) => apiClient.post("/org/clusters", data),
+      update: (id: string, data: ApiPayload) => apiClient.put(`/org/clusters/${id}`, data),
+      delete: (id: string) => apiClient.delete(`/org/clusters/${id}`),
+    },
+    operationalLocations: {
+      list: (companyId?: string, districtId?: string) => {
+        const params = new URLSearchParams();
+        if (companyId) params.append("companyId", companyId);
+        if (districtId) params.append("districtId", districtId);
+        const qs = params.toString();
+        return apiClient.get(`/org/operational-locations${qs ? `?${qs}` : ""}`);
+      },
+      create: (data: ApiPayload) => apiClient.post("/org/operational-locations", data),
+      update: (id: string, data: ApiPayload) => apiClient.put(`/org/operational-locations/${id}`, data),
+      delete: (id: string) => apiClient.delete(`/org/operational-locations/${id}`),
+    },
+    postingUnits: {
+      list: (companyId?: string, parentLocationId?: string) => {
+        const params = new URLSearchParams();
+        if (companyId) params.append("companyId", companyId);
+        if (parentLocationId) params.append("parentLocationId", parentLocationId);
+        const qs = params.toString();
+        return apiClient.get(`/org/posting-units${qs ? `?${qs}` : ""}`);
+      },
+      create: (data: ApiPayload) => apiClient.post("/org/posting-units", data),
+      update: (id: string, data: ApiPayload) => apiClient.put(`/org/posting-units/${id}`, data),
+      delete: (id: string) => apiClient.delete(`/org/posting-units/${id}`),
+    },
+  },
+  geography: {
+    countries: () => apiClient.get("/geo/countries"),
+    states: (countryId?: string) => apiClient.get(`/geo/states${countryId ? `?countryId=${countryId}` : ""}`),
+    districts: (stateId?: string) => apiClient.get(`/geo/districts${stateId ? `?stateId=${stateId}` : ""}`),
+    cities: (districtId?: string) => apiClient.get(`/geo/cities${districtId ? `?districtId=${districtId}` : ""}`),
+    seedIndia: () => apiClient.post("/geo/seed-india", {}),
   },
 };

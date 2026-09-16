@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+﻿
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Copy } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
@@ -32,7 +34,7 @@ type ApiKeyRow = {
 
 const statusOf = (row: ApiKeyRow) => row.status || (row.isActive ? "Active" : "Revoked");
 
-export default function IntegrationsApiKeysPage() {
+function LegacyIntegrationsApiKeysPage() {
   const [records, setRecords] = useState<ApiKeyRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -297,5 +299,15 @@ export default function IntegrationsApiKeysPage() {
         loading={revoking}
       />
     </>
+  );
+}
+
+export default function IntegrationsApiKeysPage() {
+  return (
+    <DynamicPage
+      pageKey="integrations.api-keys"
+      fallback={<LegacyIntegrationsApiKeysPage />}
+      renderMode="auto"
+    />
   );
 }

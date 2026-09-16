@@ -1,7 +1,15 @@
 "use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
 import { BonusManager } from "@/features/payroll/components/BonusManager";
 
 export default function PayrollBonusPage() {
-  return <BonusManager />;
+  return (
+    <DynamicPage
+      pageKey="payroll.bonus"
+      fallback={<BonusManager />}
+      renderMode="auto"
+    />
+  );
 }
+

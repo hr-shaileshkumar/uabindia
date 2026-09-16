@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+﻿
 import { useCallback, useEffect, useMemo, useState } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
 import { CrudHeaderStats } from "@/components/workspace/crud-workspace";
@@ -34,7 +36,7 @@ const asList = (raw: unknown): IpRule[] => {
   return [];
 };
 
-export default function IpRestrictionsPage() {
+function LegacyIpRestrictionsPage() {
   const [records, setRecords] = useState<IpRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -234,5 +236,15 @@ export default function IpRestrictionsPage() {
         </div>
       </SideDrawer>
     </>
+  );
+}
+
+export default function IpRestrictionsPage() {
+  return (
+    <DynamicPage
+      pageKey="security.ip-restrictions"
+      fallback={<LegacyIpRestrictionsPage />}
+      renderMode="auto"
+    />
   );
 }

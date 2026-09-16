@@ -1,5 +1,7 @@
 "use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+
 import React, { useMemo, useState } from "react";
 import { GitBranch, CheckCircle2, ShieldCheck, Plus, Edit2, Play, Check } from "lucide-react";
 import { AdministrationGlobalPageShell, KpiMetricItem } from "@/components/administration/AdministrationGlobalPageShell";
@@ -17,7 +19,7 @@ import {
   useWorkflowMutations,
 } from "@/features/administration/hooks/useWorkflowDefinitions";
 
-export default function WorkflowConfigPage() {
+function LegacyWorkflowConfigPage() {
   const { data = [], isLoading, isError, error, refetch } = useWorkflowDefinitions();
   const { upsertWorkflow } = useWorkflowMutations();
   const [search, setSearch] = useState("");
@@ -280,5 +282,15 @@ export default function WorkflowConfigPage() {
         </form>
       </SideDrawer>
     </>
+  );
+}
+
+export default function WorkflowConfigPage() {
+  return (
+    <DynamicPage
+      pageKey="administration.workflow-config"
+      fallback={<LegacyWorkflowConfigPage />}
+      renderMode="auto"
+    />
   );
 }

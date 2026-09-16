@@ -187,12 +187,16 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                 
                 var deptIds = employees.Where(e => e.DepartmentId.HasValue).Select(e => e.DepartmentId!.Value).Distinct().ToList();
                 var desigIds = employees.Where(e => e.DesignationId.HasValue).Select(e => e.DesignationId!.Value).Distinct().ToList();
+                var baseLocIds = employees.Where(e => e.BaseOperationalLocationId.HasValue).Select(e => e.BaseOperationalLocationId!.Value).Distinct().ToList();
 
                 var depts = deptIds.Count > 0
                     ? await _db.Departments.AsNoTracking().Where(d => deptIds.Contains(d.Id)).ToDictionaryAsync(d => d.Id, d => d.Name)
                     : new System.Collections.Generic.Dictionary<Guid, string>();
                 var desigs = desigIds.Count > 0
                     ? await _db.Designations.AsNoTracking().Where(d => desigIds.Contains(d.Id)).ToDictionaryAsync(d => d.Id, d => d.Name)
+                    : new System.Collections.Generic.Dictionary<Guid, string>();
+                var baseLocs = baseLocIds.Count > 0
+                    ? await _db.OperationalLocations.AsNoTracking().Where(l => baseLocIds.Contains(l.Id)).ToDictionaryAsync(l => l.Id, l => l.Name)
                     : new System.Collections.Generic.Dictionary<Guid, string>();
 
                 var data = employees.Select(emp => new EmployeeDto
@@ -216,6 +220,17 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                     ExitDate = emp.ExitDate,
                     EmploymentType = emp.EmploymentType,
                     WorkLocation = emp.WorkLocation,
+                    ValidateGeofenceOnAttendance = emp.ValidateGeofenceOnAttendance,
+                    AllowAnyLocationCheckIn = emp.AllowAnyLocationCheckIn,
+                    BaseOperationalLocationId = emp.BaseOperationalLocationId,
+                    BaseOperationalLocationName = emp.BaseOperationalLocationId.HasValue && baseLocs.TryGetValue(emp.BaseOperationalLocationId.Value, out var blName) ? blName : null,
+                    BaseLocationLatitude = emp.BaseLocationLatitude,
+                    BaseLocationLongitude = emp.BaseLocationLongitude,
+                    BaseLocationRadiusMeters = emp.BaseLocationRadiusMeters,
+                    BiometricEnrollmentId = emp.BiometricEnrollmentId,
+                    BiometricCardNumber = emp.BiometricCardNumber,
+                    AssignedShiftId = emp.AssignedShiftId,
+                    AttendancePolicyId = emp.AttendancePolicyId,
                     DepartmentId = emp.DepartmentId,
                     DepartmentName = emp.DepartmentId.HasValue && depts.TryGetValue(emp.DepartmentId.Value, out var dName) ? dName : null,
                     DesignationId = emp.DesignationId,
@@ -338,6 +353,16 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             employee.ExitDate = dto.ExitDate ?? employee.ExitDate;
             employee.EmploymentType = dto.EmploymentType ?? employee.EmploymentType ?? "Permanent";
             employee.WorkLocation = dto.WorkLocation ?? employee.WorkLocation;
+            employee.ValidateGeofenceOnAttendance = dto.ValidateGeofenceOnAttendance;
+            employee.AllowAnyLocationCheckIn = dto.AllowAnyLocationCheckIn;
+            employee.BaseOperationalLocationId = dto.BaseOperationalLocationId;
+            employee.BaseLocationLatitude = dto.BaseLocationLatitude;
+            employee.BaseLocationLongitude = dto.BaseLocationLongitude;
+            employee.BaseLocationRadiusMeters = dto.BaseLocationRadiusMeters ?? 150;
+            employee.BiometricEnrollmentId = dto.BiometricEnrollmentId ?? employee.BiometricEnrollmentId;
+            employee.BiometricCardNumber = dto.BiometricCardNumber ?? employee.BiometricCardNumber;
+            employee.AssignedShiftId = dto.AssignedShiftId ?? employee.AssignedShiftId;
+            employee.AttendancePolicyId = dto.AttendancePolicyId ?? employee.AttendancePolicyId;
             employee.DepartmentId = dto.DepartmentId ?? employee.DepartmentId;
             employee.DesignationId = dto.DesignationId ?? employee.DesignationId;
             employee.BranchId = dto.BranchId ?? employee.BranchId;
@@ -409,6 +434,18 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                 ? await _db.Employees.AsNoTracking().Where(m => m.Id == emp.ActingManagerId.Value).Select(m => m.FullName).FirstOrDefaultAsync()
                 : null;
 
+            var baseLocName = emp.BaseOperationalLocationId.HasValue
+                ? await _db.OperationalLocations.AsNoTracking().Where(l => l.Id == emp.BaseOperationalLocationId.Value).Select(l => l.Name).FirstOrDefaultAsync()
+                : null;
+
+            var shiftName = emp.AssignedShiftId.HasValue
+                ? await _db.Set<Shift>().AsNoTracking().Where(s => s.Id == emp.AssignedShiftId.Value).Select(s => s.ShiftName).FirstOrDefaultAsync()
+                : null;
+
+            var policyName = emp.AttendancePolicyId.HasValue
+                ? await _db.AttendancePolicies.AsNoTracking().Where(p => p.Id == emp.AttendancePolicyId.Value).Select(p => p.Name).FirstOrDefaultAsync()
+                : null;
+
             return new EmployeeDto
             {
                 Id = emp.Id,
@@ -430,6 +467,19 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                 ExitDate = emp.ExitDate,
                 EmploymentType = emp.EmploymentType,
                 WorkLocation = emp.WorkLocation,
+                ValidateGeofenceOnAttendance = emp.ValidateGeofenceOnAttendance,
+                AllowAnyLocationCheckIn = emp.AllowAnyLocationCheckIn,
+                BaseOperationalLocationId = emp.BaseOperationalLocationId,
+                BaseOperationalLocationName = baseLocName,
+                BaseLocationLatitude = emp.BaseLocationLatitude,
+                BaseLocationLongitude = emp.BaseLocationLongitude,
+                BaseLocationRadiusMeters = emp.BaseLocationRadiusMeters,
+                BiometricEnrollmentId = emp.BiometricEnrollmentId,
+                BiometricCardNumber = emp.BiometricCardNumber,
+                AssignedShiftId = emp.AssignedShiftId,
+                AssignedShiftName = shiftName,
+                AttendancePolicyId = emp.AttendancePolicyId,
+                AttendancePolicyName = policyName,
                 DepartmentId = emp.DepartmentId,
                 DepartmentName = dept,
                 DesignationId = emp.DesignationId,

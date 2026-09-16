@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+﻿
 import { useCallback, useEffect, useMemo, useState } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
 import { CrudHeaderStats } from "@/components/workspace/crud-workspace";
@@ -68,7 +70,7 @@ const formatPeriod = (period?: string) => {
   return Number.isNaN(d.getTime()) ? period : d.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
 };
 
-export default function PayrollArrearsPage() {
+function LegacyPayrollArrearsPage() {
   const [records, setRecords] = useState<ArrearsRecord[]>([]);
   const [employees, setEmployees] = useState<EmployeeOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -275,5 +277,15 @@ export default function PayrollArrearsPage() {
         </div>
       </SideDrawer>
     </>
+  );
+}
+
+export default function PayrollArrearsPage() {
+  return (
+    <DynamicPage
+      pageKey="payroll.arrears"
+      fallback={<LegacyPayrollArrearsPage />}
+      renderMode="auto"
+    />
   );
 }

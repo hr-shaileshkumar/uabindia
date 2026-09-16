@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import AttendanceList, { type AttendanceRecord } from "@/features/hrms/attendance";
 import { hrmsApi } from "@/services/modules";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+
 export default function AttendancePage() {
   const searchParams = useSearchParams();
   const employeeId = searchParams?.get("employeeId")?.trim() || undefined;
@@ -59,5 +61,10 @@ export default function AttendancePage() {
     }));
   }, [employeeId]);
 
-  return <AttendanceList fetchAttendance={fetchAttendance} employeeId={employeeId} />;
+  return (
+    <DynamicPage
+      pageKey="hrms.attendance"
+      fallback={<AttendanceList fetchAttendance={fetchAttendance} employeeId={employeeId} />}
+    />
+  );
 }

@@ -1,0 +1,2690 @@
+[
+  {
+    "pageKey": ".forgot-password",
+    "route": "//forgot-password",
+    "pageType": "TYPE C — Form page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 45,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".login",
+    "route": "//login",
+    "pageType": "TYPE C — Form page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 45,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".otp-verification",
+    "route": "//otp-verification",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".register",
+    "route": "//register",
+    "pageType": "TYPE C — Form page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 45,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".reset-password",
+    "route": "//reset-password",
+    "pageType": "TYPE C — Form page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 45,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".accounting-periods",
+    "route": "//accounting-periods",
+    "pageType": "TYPE D — Table/list page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 95,
+    "metadataReadiness": 65,
+    "candidateFeatures": {
+      "dynamicTable": true,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.ai-assistant",
+    "route": "//administration/ai-assistant",
+    "pageType": "TYPE C — Form page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 95,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.audit-logs",
+    "route": "//administration/audit-logs",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 65,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.backup",
+    "route": "//administration/backup",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 80,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.branches",
+    "route": "//administration/branches",
+    "pageType": "TYPE G — Master-data page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.business-units",
+    "route": "//administration/business-units",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.companies",
+    "route": "//administration/companies",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.contact-submissions",
+    "route": "//administration/contact-submissions",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 80,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.cost-centers",
+    "route": "//administration/cost-centers",
+    "pageType": "TYPE G — Master-data page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.data-management",
+    "route": "//administration/data-management",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 65,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.departments",
+    "route": "//administration/departments",
+    "pageType": "TYPE G — Master-data page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.designations",
+    "route": "//administration/designations",
+    "pageType": "TYPE G — Master-data page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.developer-center",
+    "route": "//administration/developer-center",
+    "pageType": "TYPE C — Form page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 95,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.electronic-data-interchange",
+    "route": "//administration/electronic-data-interchange",
+    "pageType": "TYPE C — Form page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 80,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.entity-builder",
+    "route": "//administration/entity-builder",
+    "pageType": "TYPE J — Configuration page",
+    "migrationPriority": "P0",
+    "hardcodingScore": 80,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.feature-flags",
+    "route": "//administration/feature-flags",
+    "pageType": "TYPE C — Form page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 80,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.geography-hierarchy",
+    "route": "//administration/geography-hierarchy",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.holiday-calendar",
+    "route": "//administration/holiday-calendar",
+    "pageType": "TYPE C — Form page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 80,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.integrations.connectors",
+    "route": "//administration/integrations/connectors",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 65,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.integrations",
+    "route": "//administration/integrations",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.master-data",
+    "route": "//administration/master-data",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.menu-builder",
+    "route": "//administration/menu-builder",
+    "pageType": "TYPE J — Configuration page",
+    "migrationPriority": "P0",
+    "hardcodingScore": 65,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.migration-dashboard",
+    "route": "//administration/migration-dashboard",
+    "pageType": "TYPE E — Dashboard",
+    "migrationPriority": "P1",
+    "hardcodingScore": 80,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.module-mapping",
+    "route": "//administration/module-mapping",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 65,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.notification-templates",
+    "route": "//administration/notification-templates",
+    "pageType": "TYPE C — Form page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 80,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.org-chart",
+    "route": "//administration/org-chart",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 65,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.page-builder",
+    "route": "//administration/page-builder",
+    "pageType": "TYPE J — Configuration page",
+    "migrationPriority": "P0",
+    "hardcodingScore": 95,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration",
+    "route": "//administration",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.permissions",
+    "route": "//administration/permissions",
+    "pageType": "TYPE K — Security page",
+    "migrationPriority": "P0",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.policies",
+    "route": "//administration/policies",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.privacy",
+    "route": "//administration/privacy",
+    "pageType": "TYPE C — Form page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 80,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.projects",
+    "route": "//administration/projects",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.recycle-bin",
+    "route": "//administration/recycle-bin",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 65,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.roles",
+    "route": "//administration/roles",
+    "pageType": "TYPE K — Security page",
+    "migrationPriority": "P0",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.schema-manager",
+    "route": "//administration/schema-manager",
+    "pageType": "TYPE J — Configuration page",
+    "migrationPriority": "P0",
+    "hardcodingScore": 80,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.security.sessions",
+    "route": "//administration/security/sessions",
+    "pageType": "TYPE K — Security page",
+    "migrationPriority": "P0",
+    "hardcodingScore": 65,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.settings",
+    "route": "//administration/settings",
+    "pageType": "TYPE J — Configuration page",
+    "migrationPriority": "P0",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.support",
+    "route": "//administration/support",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.system-health",
+    "route": "//administration/system-health",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.tenants.create",
+    "route": "//administration/tenants/create",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 65,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.tenants",
+    "route": "//administration/tenants",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.tenants.[id].edit",
+    "route": "//administration/tenants/[id]/edit",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.tenants.[id]",
+    "route": "//administration/tenants/[id]",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 80,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.users",
+    "route": "//administration/users",
+    "pageType": "TYPE K — Security page",
+    "migrationPriority": "P0",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.webhooks",
+    "route": "//administration/webhooks",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.website.pages",
+    "route": "//administration/website/pages",
+    "pageType": "TYPE C — Form page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 80,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.website.settings",
+    "route": "//administration/website/settings",
+    "pageType": "TYPE J — Configuration page",
+    "migrationPriority": "P0",
+    "hardcodingScore": 80,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.website.templates",
+    "route": "//administration/website/templates",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 65,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.website.themes",
+    "route": "//administration/website/themes",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 65,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".administration.workflow-config",
+    "route": "//administration/workflow-config",
+    "pageType": "TYPE F — Workflow page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 95,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".ai",
+    "route": "//ai",
+    "pageType": "TYPE C — Form page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 80,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".approvals",
+    "route": "//approvals",
+    "pageType": "TYPE F — Workflow page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".assets.depreciation",
+    "route": "//assets/depreciation",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".communication.announcements",
+    "route": "//communication/announcements",
+    "pageType": "TYPE D — Table/list page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 80,
+    "metadataReadiness": 65,
+    "candidateFeatures": {
+      "dynamicTable": true,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".communication.email-templates",
+    "route": "//communication/email-templates",
+    "pageType": "TYPE C — Form page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 95,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".communication",
+    "route": "//communication",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".communication.sms-templates",
+    "route": "//communication/sms-templates",
+    "pageType": "TYPE C — Form page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 95,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".compliance",
+    "route": "//compliance",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".context",
+    "route": "//context",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".crm.contacts",
+    "route": "//crm/contacts",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".crm.customers",
+    "route": "//crm/customers",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".crm.leads",
+    "route": "//crm/leads",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".crm",
+    "route": "//crm",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 65,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".crm.pipeline",
+    "route": "//crm/pipeline",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".dashboard",
+    "route": "//dashboard",
+    "pageType": "TYPE E — Dashboard",
+    "migrationPriority": "P1",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".documents",
+    "route": "//documents",
+    "pageType": "TYPE D — Table/list page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 80,
+    "metadataReadiness": 65,
+    "candidateFeatures": {
+      "dynamicTable": true,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".employee-self-service",
+    "route": "//employee-self-service",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".expenses",
+    "route": "//expenses",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".field-service",
+    "route": "//field-service",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".finance.bank-reconciliation",
+    "route": "//finance/bank-reconciliation",
+    "pageType": "TYPE H — Transaction page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".finance.budgeting",
+    "route": "//finance/budgeting",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".finance.chart-of-accounts",
+    "route": "//finance/chart-of-accounts",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".finance.consolidation",
+    "route": "//finance/consolidation",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".finance.journal-entries",
+    "route": "//finance/journal-entries",
+    "pageType": "TYPE H — Transaction page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".finance",
+    "route": "//finance",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 65,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".fleet",
+    "route": "//fleet",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".helpdesk.escalations",
+    "route": "//helpdesk/escalations",
+    "pageType": "TYPE C — Form page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 95,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".helpdesk.faq",
+    "route": "//helpdesk/faq",
+    "pageType": "TYPE C — Form page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 95,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".helpdesk",
+    "route": "//helpdesk",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 65,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".helpdesk.tickets",
+    "route": "//helpdesk/tickets",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".hrms.assessments",
+    "route": "//hrms/assessments",
+    "pageType": "TYPE C — Form page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 80,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".hrms.assets",
+    "route": "//hrms/assets",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".hrms.attendance",
+    "route": "//hrms/attendance",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 45,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".hrms.certificates",
+    "route": "//hrms/certificates",
+    "pageType": "TYPE C — Form page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 80,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".hrms.employees.new",
+    "route": "//hrms/employees/new",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P1",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".hrms.employees",
+    "route": "//hrms/employees",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P1",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".hrms.employees.[id]",
+    "route": "//hrms/employees/[id]",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P1",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".hrms.leave",
+    "route": "//hrms/leave",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".hrms.lifecycle",
+    "route": "//hrms/lifecycle",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".hrms.offboarding",
+    "route": "//hrms/offboarding",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".hrms.onboarding",
+    "route": "//hrms/onboarding",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".hrms.org-chart",
+    "route": "//hrms/org-chart",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".hrms.overtime",
+    "route": "//hrms/overtime",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".hrms",
+    "route": "//hrms",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 65,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".hrms.performance",
+    "route": "//hrms/performance",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".hrms.probation",
+    "route": "//hrms/probation",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".hrms.recruitment",
+    "route": "//hrms/recruitment",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".hrms.screening-results",
+    "route": "//hrms/screening-results",
+    "pageType": "TYPE C — Form page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 80,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".hrms.screening-schedule",
+    "route": "//hrms/screening-schedule",
+    "pageType": "TYPE C — Form page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 80,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".hrms.shifts",
+    "route": "//hrms/shifts",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".hrms.training",
+    "route": "//hrms/training",
+    "pageType": "TYPE D — Table/list page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 95,
+    "metadataReadiness": 65,
+    "candidateFeatures": {
+      "dynamicTable": true,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".hrms.travel",
+    "route": "//hrms/travel",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".integrations.api-keys",
+    "route": "//integrations/api-keys",
+    "pageType": "TYPE D — Table/list page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 95,
+    "metadataReadiness": 65,
+    "candidateFeatures": {
+      "dynamicTable": true,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".integrations.apps",
+    "route": "//integrations/apps",
+    "pageType": "TYPE D — Table/list page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 65,
+    "metadataReadiness": 65,
+    "candidateFeatures": {
+      "dynamicTable": true,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".integrations.logs",
+    "route": "//integrations/logs",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 65,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".integrations",
+    "route": "//integrations",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".integrations.webhooks",
+    "route": "//integrations/webhooks",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".inventory.items",
+    "route": "//inventory/items",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P1",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".inventory",
+    "route": "//inventory",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P1",
+    "hardcodingScore": 65,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".inventory.warehouse-management",
+    "route": "//inventory/warehouse-management",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P1",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".inventory.warehouses",
+    "route": "//inventory/warehouses",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P1",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".inventory-adjustments",
+    "route": "//inventory-adjustments",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P1",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".inventory-transfers",
+    "route": "//inventory-transfers",
+    "pageType": "TYPE H — Transaction page",
+    "migrationPriority": "P1",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".invoices",
+    "route": "//invoices",
+    "pageType": "TYPE H — Transaction page",
+    "migrationPriority": "P1",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".licensing.billing-history",
+    "route": "//licensing/billing-history",
+    "pageType": "TYPE C — Form page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 95,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".licensing.catalog",
+    "route": "//licensing/catalog",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 65,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".licensing.integrations",
+    "route": "//licensing/integrations",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 80,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".licensing",
+    "route": "//licensing",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 65,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".licensing.subscriptions",
+    "route": "//licensing/subscriptions",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 65,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".licensing.usage",
+    "route": "//licensing/usage",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 65,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".manager-self-service",
+    "route": "//manager-self-service",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 80,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".manufacturing",
+    "route": "//manufacturing",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".manufacturing.work-orders",
+    "route": "//manufacturing/work-orders",
+    "pageType": "TYPE H — Transaction page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".notifications",
+    "route": "//notifications",
+    "pageType": "TYPE D — Table/list page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 80,
+    "metadataReadiness": 65,
+    "candidateFeatures": {
+      "dynamicTable": true,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".payments",
+    "route": "//payments",
+    "pageType": "TYPE H — Transaction page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 80,
+    "metadataReadiness": 65,
+    "candidateFeatures": {
+      "dynamicTable": true,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".payroll.arrears",
+    "route": "//payroll/arrears",
+    "pageType": "TYPE H — Transaction page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 95,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".payroll.bonus",
+    "route": "//payroll/bonus",
+    "pageType": "TYPE H — Transaction page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".payroll.components",
+    "route": "//payroll/components",
+    "pageType": "TYPE H — Transaction page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".payroll.final-settlement",
+    "route": "//payroll/final-settlement",
+    "pageType": "TYPE H — Transaction page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".payroll.loans",
+    "route": "//payroll/loans",
+    "pageType": "TYPE H — Transaction page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".payroll",
+    "route": "//payroll",
+    "pageType": "TYPE H — Transaction page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 65,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".payroll.payslips",
+    "route": "//payroll/payslips",
+    "pageType": "TYPE H — Transaction page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".payroll.reimbursements",
+    "route": "//payroll/reimbursements",
+    "pageType": "TYPE H — Transaction page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 95,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".payroll.runs",
+    "route": "//payroll/runs",
+    "pageType": "TYPE H — Transaction page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".payroll.statutory",
+    "route": "//payroll/statutory",
+    "pageType": "TYPE H — Transaction page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 95,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".payroll.structures",
+    "route": "//payroll/structures",
+    "pageType": "TYPE H — Transaction page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".payroll.tax-declarations",
+    "route": "//payroll/tax-declarations",
+    "pageType": "TYPE H — Transaction page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".portal",
+    "route": "//portal",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".procurement.goods-receipt-notes",
+    "route": "//procurement/goods-receipt-notes",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".procurement",
+    "route": "//procurement",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 80,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".procurement.purchase-orders",
+    "route": "//procurement/purchase-orders",
+    "pageType": "TYPE H — Transaction page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".procurement.purchase-requests",
+    "route": "//procurement/purchase-requests",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".procurement.vendors",
+    "route": "//procurement/vendors",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".profile",
+    "route": "//profile",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".projects",
+    "route": "//projects",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 65,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".projects.tasks",
+    "route": "//projects/tasks",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".projects.timesheets",
+    "route": "//projects/timesheets",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".reports.builder",
+    "route": "//reports/builder",
+    "pageType": "TYPE J — Configuration page",
+    "migrationPriority": "P0",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".reports.compliance",
+    "route": "//reports/compliance",
+    "pageType": "TYPE I — Report/Analytics",
+    "migrationPriority": "P2",
+    "hardcodingScore": 65,
+    "metadataReadiness": 65,
+    "candidateFeatures": {
+      "dynamicTable": true,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".reports.custom",
+    "route": "//reports/custom",
+    "pageType": "TYPE I — Report/Analytics",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".reports.financial",
+    "route": "//reports/financial",
+    "pageType": "TYPE I — Report/Analytics",
+    "migrationPriority": "P2",
+    "hardcodingScore": 80,
+    "metadataReadiness": 65,
+    "candidateFeatures": {
+      "dynamicTable": true,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".reports.hr",
+    "route": "//reports/hr",
+    "pageType": "TYPE I — Report/Analytics",
+    "migrationPriority": "P2",
+    "hardcodingScore": 65,
+    "metadataReadiness": 65,
+    "candidateFeatures": {
+      "dynamicTable": true,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".reports.operations",
+    "route": "//reports/operations",
+    "pageType": "TYPE I — Report/Analytics",
+    "migrationPriority": "P2",
+    "hardcodingScore": 65,
+    "metadataReadiness": 65,
+    "candidateFeatures": {
+      "dynamicTable": true,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".reports",
+    "route": "//reports",
+    "pageType": "TYPE I — Report/Analytics",
+    "migrationPriority": "P2",
+    "hardcodingScore": 65,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".reports.payroll",
+    "route": "//reports/payroll",
+    "pageType": "TYPE I — Report/Analytics",
+    "migrationPriority": "P2",
+    "hardcodingScore": 80,
+    "metadataReadiness": 65,
+    "candidateFeatures": {
+      "dynamicTable": true,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".sales.discounts",
+    "route": "//sales/discounts",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".sales.orders",
+    "route": "//sales/orders",
+    "pageType": "TYPE H — Transaction page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".sales",
+    "route": "//sales",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 80,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".sales.pricing",
+    "route": "//sales/pricing",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".sales.quotations",
+    "route": "//sales/quotations",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".sales.returns",
+    "route": "//sales/returns",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".security.access-logs",
+    "route": "//security/access-logs",
+    "pageType": "TYPE K — Security page",
+    "migrationPriority": "P0",
+    "hardcodingScore": 65,
+    "metadataReadiness": 65,
+    "candidateFeatures": {
+      "dynamicTable": true,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".security.ip-restrictions",
+    "route": "//security/ip-restrictions",
+    "pageType": "TYPE K — Security page",
+    "migrationPriority": "P0",
+    "hardcodingScore": 80,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".security.multi-factor-authentication",
+    "route": "//security/multi-factor-authentication",
+    "pageType": "TYPE K — Security page",
+    "migrationPriority": "P0",
+    "hardcodingScore": 95,
+    "metadataReadiness": 65,
+    "candidateFeatures": {
+      "dynamicTable": true,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".security",
+    "route": "//security",
+    "pageType": "TYPE K — Security page",
+    "migrationPriority": "P0",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".security.password-policies",
+    "route": "//security/password-policies",
+    "pageType": "TYPE K — Security page",
+    "migrationPriority": "P0",
+    "hardcodingScore": 80,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".security.single-sign-on",
+    "route": "//security/single-sign-on",
+    "pageType": "TYPE K — Security page",
+    "migrationPriority": "P0",
+    "hardcodingScore": 95,
+    "metadataReadiness": 35,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".stock-movements",
+    "route": "//stock-movements",
+    "pageType": "TYPE D — Table/list page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 80,
+    "metadataReadiness": 65,
+    "candidateFeatures": {
+      "dynamicTable": true,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".superadmin.dashboard",
+    "route": "//superadmin/dashboard",
+    "pageType": "TYPE E — Dashboard",
+    "migrationPriority": "P1",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".tax-management",
+    "route": "//tax-management",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".vendor-bills",
+    "route": "//vendor-bills",
+    "pageType": "TYPE D — Table/list page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 95,
+    "metadataReadiness": 65,
+    "candidateFeatures": {
+      "dynamicTable": true,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".about",
+    "route": "//about",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".book-demo",
+    "route": "//book-demo",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".careers",
+    "route": "//careers",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".contact",
+    "route": "//contact",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".help-support",
+    "route": "//help-support",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".industries",
+    "route": "//industries",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".industries.[slug]",
+    "route": "//industries/[slug]",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".not-authorized",
+    "route": "//not-authorized",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".",
+    "route": "//",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".pricing",
+    "route": "//pricing",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".privacy",
+    "route": "//privacy",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".products",
+    "route": "//products",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".products.[slug]",
+    "route": "//products/[slug]",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".resources",
+    "route": "//resources",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".tenant-not-found",
+    "route": "//tenant-not-found",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  },
+  {
+    "pageKey": ".terms",
+    "route": "//terms",
+    "pageType": "TYPE B — CRUD page",
+    "migrationPriority": "P2",
+    "hardcodingScore": 30,
+    "metadataReadiness": 50,
+    "candidateFeatures": {
+      "dynamicTable": false,
+      "dynamicForm": true,
+      "dynamicFilter": true,
+      "dynamicActions": true
+    }
+  }
+]

@@ -1,5 +1,7 @@
 "use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
@@ -28,7 +30,7 @@ type PurchaseOrderRow = {
 
 type TabKey = "sales" | "purchase" | "quick";
 
-export default function BusinessOperationsReportsPage() {
+function LegacyBusinessOperationsReportsPage() {
   const [customers, setCustomers] = useState(0);
   const [vendors, setVendors] = useState(0);
   const [items, setItems] = useState(0);
@@ -213,5 +215,15 @@ export default function BusinessOperationsReportsPage() {
         </CrudCard>
       </TabPanel>
     </StandardPageLayout>
+  );
+}
+
+export default function BusinessOperationsReportsPage() {
+  return (
+    <DynamicPage
+      pageKey="reports.operations"
+      fallback={<LegacyBusinessOperationsReportsPage />}
+      renderMode="auto"
+    />
   );
 }

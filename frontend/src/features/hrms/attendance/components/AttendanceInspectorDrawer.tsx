@@ -214,15 +214,41 @@ export function AttendanceInspectorDrawer({
                       <Navigation className="h-4 w-4 text-blue-600" />
                       GPS Geofence Perimeter Telemetry
                     </span>
-                    <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-bold text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                      {record.geoValidated ? "Inside Geofence ✓" : "Out of Perimeter"}
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                        record.isGeofenceBreached
+                          ? "bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-200"
+                          : record.geoValidated
+                            ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                            : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                      }`}
+                    >
+                      {record.isGeofenceBreached
+                        ? "Breach Detected ✗"
+                        : record.geoValidated
+                          ? "Within Geofence ✓"
+                          : "Exempt / Bypass"}
                     </span>
                   </div>
 
                   <div className="font-mono text-[11px] text-slate-700 dark:text-slate-300 space-y-1">
-                    <div>Latitude: {record.latitude?.toFixed(6) ?? "28.613900"}</div>
-                    <div>Longitude: {record.longitude?.toFixed(6) ?? "77.209000"}</div>
-                    <div>Radius: 300m Facility Fence Tolerance</div>
+                    {record.matchedLocationName && (
+                      <div className="font-bold text-blue-800 dark:text-blue-300">
+                        Facility: {record.matchedLocationName}
+                        {record.distanceFromLocationMeters != null && (
+                          <span className="font-normal text-slate-600 dark:text-slate-400">
+                            {" "}({record.distanceFromLocationMeters}m from center)
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    <div>Latitude: {record.latitude != null ? record.latitude.toFixed(6) : "Not captured"}</div>
+                    <div>Longitude: {record.longitude != null ? record.longitude.toFixed(6) : "Not captured"}</div>
+                    {record.geofenceValidationMessage && (
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 font-sans italic pt-1 border-t border-blue-200/50 dark:border-blue-900/50">
+                        Audit: {record.geofenceValidationMessage}
+                      </div>
+                    )}
                   </div>
 
                   {record.latitude && record.longitude && (

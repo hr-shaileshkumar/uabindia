@@ -40,14 +40,27 @@ namespace UabIndia.Infrastructure.Data
         public DbSet<Branch> Branches { get; set; }
         public DbSet<CostCenter> CostCenters { get; set; }
         public DbSet<BusinessUnit> BusinessUnits { get; set; }
+        public DbSet<GeoCountry> GeoCountries { get; set; }
+        public DbSet<GeoState> GeoStates { get; set; }
+        public DbSet<GeoDistrict> GeoDistricts { get; set; }
+        public DbSet<GeoCity> GeoCities { get; set; }
+        public DbSet<BusinessZone> BusinessZones { get; set; }
+        public DbSet<BusinessRegion> BusinessRegions { get; set; }
+        public DbSet<BusinessCluster> BusinessClusters { get; set; }
+        public DbSet<OperationalLocation> OperationalLocations { get; set; }
+        public DbSet<PostingUnit> PostingUnits { get; set; }
+        public DbSet<EmployeePostingAssignment> EmployeePostingAssignments { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<Role> Roles { get; set; }
         public DbSet<UserRole> UserRoles { get; set; }
         public DbSet<Permission> Permissions { get; set; }
         public DbSet<RolePermission> RolePermissions { get; set; }
+        public DbSet<UserPermission> UserPermissions { get; set; }
         public DbSet<Employee> Employees { get; set; }
         public DbSet<AttendanceRecord> AttendanceRecords { get; set; }
+        public DbSet<BiometricDevice> BiometricDevices { get; set; }
         public DbSet<AttendanceCorrection> AttendanceCorrections { get; set; }
+        public DbSet<AttendanceRegularizationRequest> AttendanceRegularizationRequests { get; set; }
         public DbSet<LeaveType> LeaveTypes { get; set; }
         public DbSet<LeavePolicy> LeavePolicies { get; set; }
         public DbSet<EmployeeLeave> EmployeeLeaves { get; set; }
@@ -87,6 +100,8 @@ namespace UabIndia.Infrastructure.Data
         public DbSet<ContactSubmission> ContactSubmissions { get; set; }
         public DbSet<EntityFieldDefinition> EntityFieldDefinitions { get; set; }
         public DbSet<EntityFieldValue> EntityFieldValues { get; set; }
+        public DbSet<UiPageDefinition> UiPageDefinitions { get; set; }
+        public DbSet<UiPageVersion> UiPageVersions { get; set; }
         public DbSet<DocumentRecord> DocumentRecords { get; set; }
         public DbSet<NotificationMessage> NotificationMessages { get; set; }
         public DbSet<CommunicationTemplate> CommunicationTemplates { get; set; }
@@ -275,9 +290,22 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<Branch>().ToTable("Branches");
             modelBuilder.Entity<CostCenter>().ToTable("CostCenters");
             modelBuilder.Entity<BusinessUnit>().ToTable("BusinessUnits");
+            modelBuilder.Entity<GeoCountry>().ToTable("GeoCountries");
+            modelBuilder.Entity<GeoState>().ToTable("GeoStates");
+            modelBuilder.Entity<GeoDistrict>().ToTable("GeoDistricts");
+            modelBuilder.Entity<GeoCity>().ToTable("GeoCities");
+            modelBuilder.Entity<BusinessZone>().ToTable("BusinessZones");
+            modelBuilder.Entity<BusinessRegion>().ToTable("BusinessRegions");
+            modelBuilder.Entity<BusinessCluster>().ToTable("BusinessClusters");
+            modelBuilder.Entity<OperationalLocation>().ToTable("OperationalLocations");
+            modelBuilder.Entity<PostingUnit>().ToTable("PostingUnits");
+            modelBuilder.Entity<EmployeePostingAssignment>().ToTable("EmployeePostingAssignments");
             modelBuilder.Entity<User>().ToTable("Users");
 
-            foreach (var orgType in new[] { typeof(Department), typeof(Designation), typeof(Branch), typeof(CostCenter), typeof(BusinessUnit) })
+            foreach (var orgType in new[] { 
+                typeof(Department), typeof(Designation), typeof(Branch), typeof(CostCenter), typeof(BusinessUnit),
+                typeof(BusinessZone), typeof(BusinessRegion), typeof(BusinessCluster), typeof(OperationalLocation), typeof(PostingUnit)
+            })
             {
                 modelBuilder.Entity(orgType).HasIndex("TenantId", "CompanyId", "Code").IsUnique();
             }
@@ -292,8 +320,25 @@ namespace UabIndia.Infrastructure.Data
                 .HasOne<Company>().WithMany().HasForeignKey(d => d.CompanyId).OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<BusinessUnit>()
                 .HasOne<Company>().WithMany().HasForeignKey(d => d.CompanyId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<BusinessZone>()
+                .HasOne<Company>().WithMany().HasForeignKey(d => d.CompanyId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<BusinessRegion>()
+                .HasOne<Company>().WithMany().HasForeignKey(d => d.CompanyId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<BusinessCluster>()
+                .HasOne<Company>().WithMany().HasForeignKey(d => d.CompanyId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<OperationalLocation>()
+                .HasOne<Company>().WithMany().HasForeignKey(d => d.CompanyId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<PostingUnit>()
+                .HasOne<Company>().WithMany().HasForeignKey(d => d.CompanyId).OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<EmployeePostingAssignment>()
+                .HasOne<Employee>().WithMany().HasForeignKey(d => d.EmployeeId).OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<Role>().ToTable("Roles");
             modelBuilder.Entity<UserRole>().ToTable("UserRoles");
+            modelBuilder.Entity<Permission>().ToTable("Permissions");
+            modelBuilder.Entity<RolePermission>().ToTable("RolePermissions");
+            modelBuilder.Entity<UserPermission>().ToTable("UserPermissions");
+            modelBuilder.Entity<UserPermission>().HasIndex("TenantId", "UserId", "Module", "PageKey", "Action");
             modelBuilder.Entity<Employee>().ToTable("Employees");
             modelBuilder.Entity<AttendanceRecord>().ToTable("AttendanceRecords");
             modelBuilder.Entity<AttendanceCorrection>().ToTable("AttendanceCorrections");
@@ -321,6 +366,8 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<ContactSubmission>().ToTable("ContactSubmissions");
             modelBuilder.Entity<EntityFieldDefinition>().ToTable("EntityFieldDefinitions");
             modelBuilder.Entity<EntityFieldValue>().ToTable("EntityFieldValues");
+            modelBuilder.Entity<UiPageDefinition>().ToTable("UiPageDefinitions");
+            modelBuilder.Entity<UiPageVersion>().ToTable("UiPageVersions");
             modelBuilder.Entity<DocumentRecord>().ToTable("DocumentRecords");
             modelBuilder.Entity<NotificationMessage>().ToTable("NotificationMessages");
             modelBuilder.Entity<CommunicationTemplate>().ToTable("CommunicationTemplates");
@@ -343,6 +390,14 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<BusinessIdSequence>().ToTable("BusinessIdSequences");
             modelBuilder.Entity<TenantWebhook>().ToTable("TenantWebhooks");
             modelBuilder.Entity<WebhookDeliveryLog>().ToTable("WebhookDeliveryLogs");
+            modelBuilder.Entity<AttendanceRegularizationRequest>().ToTable("AttendanceRegularizationRequests");
+            modelBuilder.Entity<AttendanceRegularizationRequest>()
+                .HasOne(r => r.Employee)
+                .WithMany()
+                .HasForeignKey(r => r.EmployeeId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<BiometricDevice>().ToTable("BiometricDevices");
 
             modelBuilder.Entity<PolicyMaster>().ToTable("PolicyMasters");
             modelBuilder.Entity<PolicyVersion>(b =>
@@ -630,6 +685,8 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<ContactSubmission>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<EntityFieldDefinition>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<EntityFieldValue>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<UiPageDefinition>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<UiPageVersion>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<DocumentRecord>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == null || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
             modelBuilder.Entity<NotificationMessage>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == null || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()));
             modelBuilder.Entity<HelpdeskTicket>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == null || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
@@ -652,6 +709,8 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<Employee>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
             modelBuilder.Entity<AttendanceRecord>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<AttendanceCorrection>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<AttendanceRegularizationRequest>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<BiometricDevice>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<LeaveType>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<LeavePolicy>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<EmployeeLeave>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
@@ -761,6 +820,20 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<ComplianceReport>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<ComplianceAudit>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<BusinessIdSequence>().HasQueryFilter(e => e.TenantId == _tenantAccessor.GetTenantId());
+
+            // Geography & Business Hierarchy Query Filters
+            modelBuilder.Entity<GeoCountry>().HasQueryFilter(e => !e.IsDeleted && (_tenantAccessor.IncludeAllTenants() || e.TenantId == _tenantAccessor.GetTenantId() || e.TenantId == Guid.Empty));
+            modelBuilder.Entity<GeoState>().HasQueryFilter(e => !e.IsDeleted && (_tenantAccessor.IncludeAllTenants() || e.TenantId == _tenantAccessor.GetTenantId() || e.TenantId == Guid.Empty));
+            modelBuilder.Entity<GeoDistrict>().HasQueryFilter(e => !e.IsDeleted && (_tenantAccessor.IncludeAllTenants() || e.TenantId == _tenantAccessor.GetTenantId() || e.TenantId == Guid.Empty));
+            modelBuilder.Entity<GeoCity>().HasQueryFilter(e => !e.IsDeleted && (_tenantAccessor.IncludeAllTenants() || e.TenantId == _tenantAccessor.GetTenantId() || e.TenantId == Guid.Empty));
+
+            modelBuilder.Entity<BusinessZone>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()));
+            modelBuilder.Entity<BusinessRegion>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()));
+            modelBuilder.Entity<BusinessCluster>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()));
+            modelBuilder.Entity<OperationalLocation>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()));
+            modelBuilder.Entity<PostingUnit>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()));
+            modelBuilder.Entity<EmployeePostingAssignment>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<UserPermission>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
 
             // Manufacturing Query Filters
             modelBuilder.Entity<WorkOrder>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());

@@ -1,4 +1,7 @@
-"use client";
+"use client";
+
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
@@ -12,7 +15,7 @@ import { getApiErrorMessage } from "@/lib/api-errors";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { mapIntegration, useIntegrationMutations, useIntegrations } from "@/features/administration/hooks/useIntegrations";
 
-export default function IntegrationsAppsPage() {
+function LegacyIntegrationsAppsPage() {
   const { data = [], isLoading, isError, error, refetch } = useIntegrations();
   const { sync, testConnection } = useIntegrationMutations();
   const [search, setSearch] = useState("");
@@ -184,4 +187,14 @@ export default function IntegrationsAppsPage() {
       <CrudCard>{list.table}</CrudCard>
     </StandardPageLayout>
   );
-}
+}
+
+export default function IntegrationsAppsPage() {
+  return (
+    <DynamicPage
+      pageKey="integrations.apps"
+      fallback={<LegacyIntegrationsAppsPage />}
+      renderMode="auto"
+    />
+  );
+}

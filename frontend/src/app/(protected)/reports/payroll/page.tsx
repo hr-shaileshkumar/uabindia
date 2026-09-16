@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+﻿
 import { useCallback, useEffect, useState } from "react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import HeaderSummary from "@/components/layout/HeaderSummary";
@@ -30,7 +32,7 @@ type MonthlyRow = {
 
 const formatCurrency = (v?: number) => (v != null ? `Rs${v.toLocaleString("en-IN")}` : "-");
 
-export default function PayrollReportsPage() {
+function LegacyPayrollReportsPage() {
   const [overview, setOverview] = useState<PayrollOverview | null>(null);
   const [monthly, setMonthly] = useState<MonthlyRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -144,5 +146,15 @@ export default function PayrollReportsPage() {
         {monthlyList.table}
       </CrudCard>
     </StandardPageLayout>
+  );
+}
+
+export default function PayrollReportsPage() {
+  return (
+    <DynamicPage
+      pageKey="reports.payroll"
+      fallback={<LegacyPayrollReportsPage />}
+      renderMode="auto"
+    />
   );
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { Users, ShieldCheck, Award, Building2, ChevronDown, ChevronRight, UserCheck } from "lucide-react";
@@ -16,7 +18,7 @@ function employeeName(e: Employee) {
   return e.fullName || [e.firstName, e.lastName].filter(Boolean).join(" ") || e.employeeCode || "Employee";
 }
 
-export default function OrgChartPage() {
+function LegacyOrgChartPage() {
   const { companyId, companyName } = useOrgContext();
   const departments = useOrgStructureList("departments", companyId);
   const designations = useOrgStructureList("designations", companyId);
@@ -215,5 +217,15 @@ export default function OrgChartPage() {
         </div>
       </div>
     </AdministrationGlobalPageShell>
+  );
+}
+
+export default function OrgChartPage() {
+  return (
+    <DynamicPage
+      pageKey="administration.org-chart"
+      fallback={<LegacyOrgChartPage />}
+      renderMode="auto"
+    />
   );
 }

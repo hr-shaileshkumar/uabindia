@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+﻿
 import { useCallback, useEffect, useMemo, useState } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
 import { CrudHeaderStats } from "@/components/workspace/crud-workspace";
@@ -43,7 +45,7 @@ const asList = (raw: unknown): BillingRow[] => {
   return [];
 };
 
-export default function LicensingBillingHistoryPage() {
+function LegacyLicensingBillingHistoryPage() {
   const [records, setRecords] = useState<BillingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -254,5 +256,15 @@ export default function LicensingBillingHistoryPage() {
         </div>
       </SideDrawer>
     </>
+  );
+}
+
+export default function LicensingBillingHistoryPage() {
+  return (
+    <DynamicPage
+      pageKey="licensing.billing-history"
+      fallback={<LegacyLicensingBillingHistoryPage />}
+      renderMode="auto"
+    />
   );
 }

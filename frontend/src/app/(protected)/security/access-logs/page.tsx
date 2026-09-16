@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+﻿
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
@@ -19,7 +21,7 @@ type AuditRow = {
   ip?: string | null;
 };
 
-export default function AccessLogsPage() {
+function LegacyAccessLogsPage() {
   const [logs, setLogs] = useState<AuditRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -105,5 +107,15 @@ export default function AccessLogsPage() {
       {error ? <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
       <CrudCard>{list.table}</CrudCard>
     </StandardPageLayout>
+  );
+}
+
+export default function AccessLogsPage() {
+  return (
+    <DynamicPage
+      pageKey="security.access-logs"
+      fallback={<LegacyAccessLogsPage />}
+      renderMode="auto"
+    />
   );
 }

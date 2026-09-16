@@ -1,5 +1,7 @@
 "use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Download, Upload } from "lucide-react";
@@ -20,7 +22,7 @@ import { getApiErrorMessage } from "@/lib/api-errors";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { mapDocumentRecord, useDocuments, documentsQueryKey } from "@/features/administration/hooks/useDocuments";
 
-export default function DocumentVaultPage() {
+function LegacyDocumentVaultPage() {
   const queryClient = useQueryClient();
   const { data = [], isLoading, isError, error, refetch } = useDocuments();
   const [search, setSearch] = useState("");
@@ -226,5 +228,15 @@ export default function DocumentVaultPage() {
         loading={remove.isPending}
       />
     </StandardPageLayout>
+  );
+}
+
+export default function DocumentVaultPage() {
+  return (
+    <DynamicPage
+      pageKey="documents.vault"
+      fallback={<LegacyDocumentVaultPage />}
+      renderMode="auto"
+    />
   );
 }

@@ -15,27 +15,19 @@ import {
   Sun,
   UserRound,
   Users,
-  ChevronRight,
-  Building2,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigationStore } from "@/store/navigationStore";
-import { useUiSchema } from "@/context/UiSchemaContext";
-import {
-  buildWorkspaceModules,
-  findWorkspaceModuleByPath,
-  findWorkspacePageByPath,
-} from "@/lib/workspace/navigation";
 import { OrgContextSwitcher } from "@/components/layout/OrgContextSwitcher";
 import { TenantSubdomainSwitcher } from "@/components/layout/TenantSubdomainSwitcher";
 import { WorkspaceBrand } from "@/components/layout/WorkspaceBrand";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/constants/routes";
 import { useSignalRNotifications } from "@/context/SignalRNotificationContext";
-import { SecurityMfaModal } from "@/features/administration/components/SecurityMfaModal";
+import { SecurityMultiFactorAuthModal } from "@/features/administration/components/SecurityMultiFactorAuthModal";
 
 type HeaderProps = {
   onMenuClick?: () => void;
@@ -75,44 +67,7 @@ function useClickOutside(ref: React.RefObject<HTMLElement | null>, onClose: () =
   }, [onClose, ref]);
 }
 
-function ActiveBreadcrumb() {
-  const pathname = usePathname() || "";
-  const { navigation: schemaNav, enabledModules } = useUiSchema();
-  const modules = buildWorkspaceModules(schemaNav.modules, enabledModules);
-  const page = findWorkspacePageByPath(modules, pathname);
-  const matched = page?.module ?? findWorkspaceModuleByPath(modules, pathname);
 
-  if (pathname === ROUTES.DASHBOARD) {
-    return (
-      <nav aria-label="Breadcrumb" className="hidden min-w-0 items-center gap-1.5 text-xs font-semibold text-slate-900 dark:text-slate-100 sm:flex">
-        <span>Dashboard</span>
-      </nav>
-    );
-  }
-
-  const rawCrumb = page?.item.name
-    ?? pathname.split("/").filter(Boolean).at(-1)?.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
-
-  if (!rawCrumb) return null;
-
-  return (
-    <nav aria-label="Breadcrumb" className="hidden min-w-0 items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 sm:flex">
-      <Link href={ROUTES.DASHBOARD} className="text-slate-400 hover:text-slate-700 transition-colors dark:text-slate-400 dark:hover:text-slate-200">
-        Home
-      </Link>
-      <ChevronRight className="h-3 w-3 shrink-0 text-slate-300 dark:text-slate-600" />
-      {matched && matched.homeHref !== pathname ? (
-        <>
-          <Link href={matched.homeHref || ROUTES.DASHBOARD} className="max-w-[8rem] truncate hover:text-slate-800 transition-colors dark:hover:text-slate-200">
-            {matched.label}
-          </Link>
-          <ChevronRight className="h-3 w-3 shrink-0 text-slate-300 dark:text-slate-600" />
-        </>
-      ) : null}
-      <span className="max-w-[14rem] truncate font-semibold text-slate-900 dark:text-slate-100">{rawCrumb}</span>
-    </nav>
-  );
-}
 
 function NotificationBell() {
   const {
@@ -345,12 +300,20 @@ function ProfileDropdown() {
                 <span>My Profile</span>
               </Link>
               <Link
-                href={ROUTES.ESS_HOME}
+                href={ROUTES.EMPLOYEE_SELF_SERVICE}
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-3 px-4 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 <Users className="h-3.5 w-3.5 text-slate-500" />
-                <span>Self-Service (ESS)</span>
+                <span>Employee Self-Service</span>
+              </Link>
+              <Link
+                href={ROUTES.MANAGER_SELF_SERVICE}
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 px-4 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
+              >
+                <Users className="h-3.5 w-3.5 text-indigo-500" />
+                <span>Manager Self-Service</span>
               </Link>
               <button
                 type="button"
@@ -398,7 +361,7 @@ function ProfileDropdown() {
         ) : null}
       </AnimatePresence>
 
-      <SecurityMfaModal open={mfaOpen} onOpenChange={setMfaOpen} />
+      <SecurityMultiFactorAuthModal open={mfaOpen} onOpenChange={setMfaOpen} />
     </div>
   );
 }
@@ -415,7 +378,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         "h-14 px-3 sm:px-4 lg:px-5",
       )}
     >
-      {/* Left: Sidebar Toggle, Workspace Brand (Tenant Logo / Default) & Breadcrumb */}
+      {/* Left: Sidebar Toggle & Workspace Brand (Tenant Logo / Default) */}
       <div className="flex shrink-0 items-center gap-x-2.5 min-w-0">
         <button
           type="button"
@@ -427,9 +390,6 @@ export function Header({ onMenuClick }: HeaderProps) {
         </button>
 
         <WorkspaceBrand />
-
-        <div className="hidden h-4 w-px bg-slate-200 dark:bg-slate-800 sm:block" aria-hidden="true" />
-        <ActiveBreadcrumb />
       </div>
 
       {/* Center: Command Palette Search */}

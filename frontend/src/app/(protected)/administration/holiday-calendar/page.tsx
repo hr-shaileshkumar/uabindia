@@ -1,5 +1,7 @@
 "use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+
 import React, { useMemo, useState } from "react";
 import { AdministrationGlobalPageShell } from "@/components/administration/AdministrationGlobalPageShell";
 import { ErpDrawerFooter } from "@/components/workspace/page-kit";
@@ -11,7 +13,7 @@ import {
   useAdministrationHolidays as useAdministrationHolidays,
 } from "@/features/administration/hooks/useAdministrationHolidays";
 
-export default function HolidayCalendarPage() {
+function LegacyHolidayCalendarPage() {
   const currentYear = new Date().getFullYear();
   const { data = [], isLoading, isError, error, refetch } = useAdministrationHolidays(currentYear);
   const { createHoliday } = useHolidayMutations();
@@ -157,6 +159,16 @@ export default function HolidayCalendarPage() {
           </div>
         </div>
       }
+    />
+  );
+}
+
+export default function HolidayCalendarPage() {
+  return (
+    <DynamicPage
+      pageKey="administration.holiday-calendar"
+      fallback={<LegacyHolidayCalendarPage />}
+      renderMode="auto"
     />
   );
 }

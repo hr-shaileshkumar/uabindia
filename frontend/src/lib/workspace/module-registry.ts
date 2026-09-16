@@ -71,6 +71,7 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: "user",
     shellOrder: 45,
     tier: "business",
+    pathPrefixes: ["/employee-self-service", "/ess"],
   },
   {
     key: "mss",
@@ -80,6 +81,7 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: "users",
     shellOrder: 46,
     tier: "business",
+    pathPrefixes: ["/manager-self-service", "/mss"],
   },
   {
     key: "hrms",

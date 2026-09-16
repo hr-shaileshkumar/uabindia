@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+﻿
 import { useCallback, useEffect, useState } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
 import { CrudHeaderStats } from "@/components/workspace/crud-workspace";
@@ -34,7 +36,7 @@ const asText = (value: unknown) => {
   return String(value);
 };
 
-export default function PayrollStatutoryPage() {
+function LegacyPayrollStatutoryPage() {
   const [month, setMonth] = useState(currentMonthValue);
   const [statutory, setStatutory] = useState<StatutoryRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -260,5 +262,15 @@ export default function PayrollStatutoryPage() {
         )}
       </SideDrawer>
     </>
+  );
+}
+
+export default function PayrollStatutoryPage() {
+  return (
+    <DynamicPage
+      pageKey="payroll.statutory"
+      fallback={<LegacyPayrollStatutoryPage />}
+      renderMode="auto"
+    />
   );
 }

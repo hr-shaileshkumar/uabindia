@@ -4,17 +4,30 @@ import { useState, useEffect } from "react";
 import { SideDrawer } from "@/components/ui/side-drawer";
 import { ErpDrawerFooter } from "@/components/workspace/page-kit";
 import {
-  erpButtonClassName,
   erpFormInputClassName,
   erpFormLabelClassName,
-  erpPanelBodyClassName,
-  erpPanelClassName,
 } from "@/components/workspace/styles";
 import { Switch } from "@/components/ui/switch";
-import { ShieldCheck, Plus, CheckCircle2, Clock, MapPin, Sparkles } from "lucide-react";
+import {
+  ShieldCheck,
+  Plus,
+  Clock,
+  MapPin,
+  ArrowLeftRight,
+  TrendingDown,
+  CalendarDays,
+  Zap,
+  CheckCircle2,
+} from "lucide-react";
 import { hrmsApi } from "@/services/modules";
 import { orgApi } from "@/services/modules/org";
-import type { AttendancePolicy } from "../types/attendance-policy.types";
+import type {
+  AttendancePolicy,
+  PunchPolicyMode,
+  DeductionBasis,
+  LatePenaltyAction,
+  WeekOffPattern,
+} from "../types/attendance-policy.types";
 import type { AttendancePolicyInput } from "../schemas/attendance-policy.schema";
 
 interface AttendancePolicyDrawerProps {
@@ -44,14 +57,22 @@ export function AttendancePolicyDrawer({
   const [projectId, setProjectId] = useState<string>("");
   const [companiesList, setCompaniesList] = useState<Array<{ id: string; name: string }>>([]);
   const [projectsList, setProjectsList] = useState<Array<{ id: string; name: string }>>([]);
+  const [shiftsList, setShiftsList] = useState<Array<{ id: string; name: string; code?: string }>>([]);
 
-  // Load companies on open
+  // Load companies & shifts on open
   useEffect(() => {
     if (!open) return;
     orgApi.company.getAll(1, 100)
       .then((res: any) => {
         const comps = res?.data?.items || res?.data?.companies || [];
         setCompaniesList(comps.map((c: any) => ({ id: c.id, name: c.name })));
+      })
+      .catch(() => {});
+
+    hrmsApi.hrms.shifts.list()
+      .then((res: any) => {
+        const shifts = res?.data?.items || res?.data || [];
+        setShiftsList(shifts.map((s: any) => ({ id: s.id, name: s.name, code: s.code })));
       })
       .catch(() => {});
   }, [open]);
@@ -67,7 +88,7 @@ export function AttendancePolicyDrawer({
       .catch(() => {});
   }, [open, companyId]);
 
-  // Form State (initialized from activePolicy or backend statutory defaults)
+  // ── Form State ──
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [standardShiftHours, setStandardShiftHours] = useState(8);
@@ -82,9 +103,37 @@ export function AttendancePolicyDrawer({
   const [minFacialConfidenceScore, setMinFacialConfidenceScore] = useState(75);
   const [allowManualRegularization, setAllowManualRegularization] = useState(true);
   const [maxRegularizationsPerMonth, setMaxRegularizationsPerMonth] = useState(3);
+  const [punchMode, setPunchMode] = useState<PunchPolicyMode>("TwoPunchFirstInLastOut");
+  const [minPunchesRequiredPerDay, setMinPunchesRequiredPerDay] = useState(2);
+  const [earlyExitToleranceMinutes, setEarlyExitToleranceMinutes] = useState(15);
+  const [missingPunchPenalty, setMissingPunchPenalty] = useState("HalfDay");
+  const [missingPunchGraceDays, setMissingPunchGraceDays] = useState(3);
+  const [defaultShiftId, setDefaultShiftId] = useState<string>("");
   const [isDefault, setIsDefault] = useState(false);
 
-  // Fetch backend UI schema & statutory defaults on open or scope change
+  // Dynamic Deduction & Late Matrices
+  const [deductionBasis, setDeductionBasis] = useState<DeductionBasis>("MonthlyAccumulatedSlabs");
+  const [allowDailyShortfallOffsetWithOt, setAllowDailyShortfallOffsetWithOt] = useState(false);
+  const [monthlyFreeLateDays, setMonthlyFreeLateDays] = useState(3);
+  const [latePenaltyStepFrequency, setLatePenaltyStepFrequency] = useState(1);
+  const [latePenaltyAction, setLatePenaltyAction] = useState<LatePenaltyAction>("HalfDay");
+  const [minorLateWindowMinutes, setMinorLateWindowMinutes] = useState(15);
+  const [majorLateThresholdMinutes, setMajorLateThresholdMinutes] = useState(45);
+
+  // Early Exit
+  const [earlyExitThresholdMinutes, setEarlyExitThresholdMinutes] = useState(60);
+  const [earlyExitPenaltyAction, setEarlyExitPenaltyAction] = useState<LatePenaltyAction>("HalfDay");
+
+  // Overtime & Week-Off
+  const [minMinutesForOvertime, setMinMinutesForOvertime] = useState(30);
+  const [requireOvertimeApproval, setRequireOvertimeApproval] = useState(false);
+  const [normalDayOtMultiplier, setNormalDayOtMultiplier] = useState(1.5);
+  const [weekendOtMultiplier, setWeekendOtMultiplier] = useState(2.0);
+  const [holidayOtMultiplier, setHolidayOtMultiplier] = useState(2.5);
+  const [allowCompOffInsteadOfPay, setAllowCompOffInsteadOfPay] = useState(true);
+  const [weekOffPattern, setWeekOffPattern] = useState<WeekOffPattern>("SundayOnly");
+
+  // Fetch statutory defaults on open or scope change
   useEffect(() => {
     if (!open) return;
     void hrmsApi.hrms.attendance.policies.getSchema(companyId || undefined, projectId || undefined)
@@ -93,9 +142,7 @@ export function AttendancePolicyDrawer({
           setSchemaDefaults(res.data.defaults);
         }
       })
-      .catch(() => {
-        // Fallback gracefully if offline
-      });
+      .catch(() => {});
   }, [open, companyId, projectId]);
 
   const loadPolicyIntoForm = (policy: AttendancePolicy) => {
@@ -115,7 +162,31 @@ export function AttendancePolicyDrawer({
     setMinFacialConfidenceScore(policy.minFacialConfidenceScore ?? 75);
     setAllowManualRegularization(policy.allowManualRegularization);
     setMaxRegularizationsPerMonth(policy.maxRegularizationsPerMonth ?? 3);
+    setPunchMode(policy.punchMode ?? "TwoPunchFirstInLastOut");
+    setMinPunchesRequiredPerDay(policy.minPunchesRequiredPerDay ?? 2);
+    setEarlyExitToleranceMinutes(policy.earlyExitToleranceMinutes ?? 15);
+    setMissingPunchPenalty(policy.missingPunchPenalty ?? "HalfDay");
+    setMissingPunchGraceDays(policy.missingPunchGraceDays ?? 3);
+    setDefaultShiftId(policy.defaultShiftId ?? "");
     setIsDefault(policy.isDefault);
+
+    // New Dynamic Policy Fields
+    setDeductionBasis(policy.deductionBasis ?? "MonthlyAccumulatedSlabs");
+    setAllowDailyShortfallOffsetWithOt(policy.allowDailyShortfallOffsetWithOt ?? false);
+    setMonthlyFreeLateDays(policy.monthlyFreeLateDays ?? 3);
+    setLatePenaltyStepFrequency(policy.latePenaltyStepFrequency ?? 1);
+    setLatePenaltyAction(policy.latePenaltyAction ?? "HalfDay");
+    setMinorLateWindowMinutes(policy.minorLateWindowMinutes ?? 15);
+    setMajorLateThresholdMinutes(policy.majorLateThresholdMinutes ?? 45);
+    setEarlyExitThresholdMinutes(policy.earlyExitThresholdMinutes ?? 60);
+    setEarlyExitPenaltyAction(policy.earlyExitPenaltyAction ?? "HalfDay");
+    setMinMinutesForOvertime(policy.minMinutesForOvertime ?? 30);
+    setRequireOvertimeApproval(policy.requireOvertimeApproval ?? false);
+    setNormalDayOtMultiplier(policy.normalDayOtMultiplier ?? 1.5);
+    setWeekendOtMultiplier(policy.weekendOtMultiplier ?? 2.0);
+    setHolidayOtMultiplier(policy.holidayOtMultiplier ?? 2.5);
+    setAllowCompOffInsteadOfPay(policy.allowCompOffInsteadOfPay ?? true);
+    setWeekOffPattern(policy.weekOffPattern ?? "SundayOnly");
   };
 
   useEffect(() => {
@@ -139,8 +210,8 @@ export function AttendancePolicyDrawer({
     setSelectedPolicyId("");
     setCompanyId("");
     setProjectId("");
-    setName(schemaDefaults?.name || "Standard Hospital Shift Policy");
-    setDescription(schemaDefaults?.description || "Configurable shift timings and geofencing governed by backend rules.");
+    setName(schemaDefaults?.name || "Standard Organization Policy");
+    setDescription(schemaDefaults?.description || "Dynamic database-stored attendance calculation policy.");
     setStandardShiftHours(schemaDefaults?.standardShiftHours ?? 8.0);
     setMinHalfDayHours(schemaDefaults?.minHalfDayHours ?? 4.0);
     setGracePeriodMinutes(schemaDefaults?.gracePeriodMinutes ?? 15);
@@ -153,7 +224,29 @@ export function AttendancePolicyDrawer({
     setMinFacialConfidenceScore(schemaDefaults?.minFacialConfidenceScore ?? 75);
     setAllowManualRegularization(schemaDefaults?.allowManualRegularization ?? true);
     setMaxRegularizationsPerMonth(schemaDefaults?.maxRegularizationsPerMonth ?? 3);
+    setPunchMode("TwoPunchFirstInLastOut");
+    setMinPunchesRequiredPerDay(2);
+    setEarlyExitToleranceMinutes(15);
+    setMissingPunchPenalty("HalfDay");
+    setMissingPunchGraceDays(3);
+    setDefaultShiftId("");
     setIsDefault(false);
+    setDeductionBasis("MonthlyAccumulatedSlabs");
+    setAllowDailyShortfallOffsetWithOt(false);
+    setMonthlyFreeLateDays(3);
+    setLatePenaltyStepFrequency(1);
+    setLatePenaltyAction("HalfDay");
+    setMinorLateWindowMinutes(15);
+    setMajorLateThresholdMinutes(45);
+    setEarlyExitThresholdMinutes(60);
+    setEarlyExitPenaltyAction("HalfDay");
+    setMinMinutesForOvertime(30);
+    setRequireOvertimeApproval(false);
+    setNormalDayOtMultiplier(1.5);
+    setWeekendOtMultiplier(2.0);
+    setHolidayOtMultiplier(2.5);
+    setAllowCompOffInsteadOfPay(true);
+    setWeekOffPattern("SundayOnly");
   };
 
   const handleSubmit = async () => {
@@ -174,8 +267,32 @@ export function AttendancePolicyDrawer({
       minFacialConfidenceScore: Number(minFacialConfidenceScore),
       allowManualRegularization,
       maxRegularizationsPerMonth: Number(maxRegularizationsPerMonth),
+      punchMode,
+      minPunchesRequiredPerDay: Number(minPunchesRequiredPerDay),
+      earlyExitToleranceMinutes: Number(earlyExitToleranceMinutes),
+      missingPunchPenalty,
+      missingPunchGraceDays: Number(missingPunchGraceDays),
+      defaultShiftId: defaultShiftId || undefined,
       isDefault,
       status: "Active",
+
+      // Dynamic Deduction & Late Matrices
+      deductionBasis,
+      allowDailyShortfallOffsetWithOt,
+      monthlyFreeLateDays: Number(monthlyFreeLateDays),
+      latePenaltyStepFrequency: Number(latePenaltyStepFrequency),
+      latePenaltyAction,
+      minorLateWindowMinutes: Number(minorLateWindowMinutes),
+      majorLateThresholdMinutes: Number(majorLateThresholdMinutes),
+      earlyExitThresholdMinutes: Number(earlyExitThresholdMinutes),
+      earlyExitPenaltyAction,
+      minMinutesForOvertime: Number(minMinutesForOvertime),
+      requireOvertimeApproval,
+      normalDayOtMultiplier: Number(normalDayOtMultiplier),
+      weekendOtMultiplier: Number(weekendOtMultiplier),
+      holidayOtMultiplier: Number(holidayOtMultiplier),
+      allowCompOffInsteadOfPay,
+      weekOffPattern,
     };
 
     const ok = await onSave(payload, isCreatingNew ? undefined : selectedPolicyId);
@@ -189,12 +306,12 @@ export function AttendancePolicyDrawer({
       open={open}
       onClose={() => onOpenChange(false)}
       title="Attendance & Shift Policy Studio"
-      subtitle="Administrator configuration saved to backend database"
+      subtitle="Enterprise policy configuration dynamically stored in and verified from the database"
       width="lg"
       footer={
         <ErpDrawerFooter
           onCancel={() => onOpenChange(false)}
-          saveLabel={saving ? "Saving to Database..." : isCreatingNew ? "Save Policy in Database" : "Update Database Policy"}
+          saveLabel={saving ? "Saving to Database..." : isCreatingNew ? "Save Policy to Database" : "Update Database Policy"}
           onSave={handleSubmit}
           saving={saving}
         />
@@ -204,7 +321,7 @@ export function AttendancePolicyDrawer({
         {/* Policy Selector & Creation Bar */}
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold text-slate-900">Configured Policies in Database</span>
+            <span className="text-xs font-bold text-slate-900">Database Policies</span>
             <button
               type="button"
               onClick={handleStartCreateNew}
@@ -240,9 +357,9 @@ export function AttendancePolicyDrawer({
           </div>
         </div>
 
-        {/* Policy Details Form */}
-        <div className="space-y-4">
-          {/* Scope Hierarchy (Tenant -> Company -> Project) */}
+        {/* Form Container */}
+        <div className="space-y-5">
+          {/* Scope Hierarchy */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 rounded-xl border border-blue-100 bg-blue-50/50 p-3">
             <div>
               <label className={erpFormLabelClassName}>Applicable Company (Optional)</label>
@@ -287,7 +404,7 @@ export function AttendancePolicyDrawer({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className={erpFormInputClassName}
-                placeholder="e.g. Standard General Shift"
+                placeholder="e.g. Standard 8h Shift Policy"
               />
             </div>
             <div>
@@ -302,84 +419,318 @@ export function AttendancePolicyDrawer({
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-200 p-4 space-y-4">
+          {/* Section 1: Deduction Basis Engine */}
+          <div className="rounded-xl border border-rose-200 bg-rose-50/20 p-4 space-y-4">
             <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5 text-blue-600" />
-              Working Hours & Overtime Rules
+              <TrendingDown className="h-3.5 w-3.5 text-rose-600" />
+              Deduction Basis &amp; Shortfall Calculation Engine
             </h4>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <p className="text-[11px] text-slate-500">
+              Determines how check-in shortfalls and late arrivals are penalized mathematically in the database.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                {
+                  id: "HourlyPayAsYouGo",
+                  title: "Hourly Pay-As-You-Go",
+                  desc: "Deduct salary per minute/hour worked below shift target (no step penalty)",
+                },
+                {
+                  id: "MonthlyAccumulatedSlabs",
+                  title: "Monthly Slabs (Default)",
+                  desc: "3 Free grace days. 4th late = 0.5 Day cut. 7th late = 0.5 Day cut.",
+                },
+                {
+                  id: "HybridBoth",
+                  title: "Hybrid (Both)",
+                  desc: "Daily hourly shortfall tracking combined with recurring late marks escalation.",
+                },
+              ].map((opt) => (
+                <label
+                  key={opt.id}
+                  className={`flex flex-col p-3 rounded-xl border cursor-pointer transition-all ${
+                    deductionBasis === opt.id
+                      ? "border-rose-600 bg-white ring-2 ring-rose-500/20 shadow-sm"
+                      : "border-slate-200 bg-white/60 hover:bg-white"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold text-slate-900">{opt.title}</span>
+                    <input
+                      type="radio"
+                      name="deductionBasis"
+                      value={opt.id}
+                      checked={deductionBasis === opt.id}
+                      onChange={() => setDeductionBasis(opt.id as DeductionBasis)}
+                      className="text-rose-600 focus:ring-rose-500 h-3.5 w-3.5"
+                    />
+                  </div>
+                  <span className="text-[10px] text-slate-500 leading-tight">{opt.desc}</span>
+                </label>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-between py-2 border-t border-rose-100">
               <div>
-                <label className={erpFormLabelClassName}>Standard Shift (Hours)</label>
+                <p className="text-xs font-semibold text-slate-800">Daily Shortfall Offset with Overtime</p>
+                <p className="text-[11px] text-slate-500">Allow employee to compensate late arrival or early exit with overtime on the same day</p>
+              </div>
+              <Switch checked={allowDailyShortfallOffsetWithOt} onCheckedChange={setAllowDailyShortfallOffsetWithOt} />
+            </div>
+          </div>
+
+          {/* Section 2: Progressive Late Coming & Early Departure Matrix */}
+          <div className="rounded-xl border border-amber-200 bg-amber-50/20 p-4 space-y-4">
+            <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5 text-amber-600" />
+              Late Coming &amp; Early Exit Penalty Matrix
+            </h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className={erpFormLabelClassName}>Monthly Free Late Days</label>
                 <input
                   type="number"
-                  step="0.5"
-                  value={standardShiftHours}
-                  onChange={(e) => setStandardShiftHours(Number(e.target.value))}
+                  min={0}
+                  max={31}
+                  value={monthlyFreeLateDays}
+                  onChange={(e) => setMonthlyFreeLateDays(Number(e.target.value))}
                   className={erpFormInputClassName}
                 />
+                <span className="text-[10px] text-slate-400">e.g. 1st to 3rd late: 0 penalty</span>
               </div>
               <div>
-                <label className={erpFormLabelClassName}>Half-Day Minimum (Hours)</label>
+                <label className={erpFormLabelClassName}>Penalty Step Frequency</label>
                 <input
                   type="number"
-                  step="0.5"
-                  value={minHalfDayHours}
-                  onChange={(e) => setMinHalfDayHours(Number(e.target.value))}
+                  min={1}
+                  max={10}
+                  value={latePenaltyStepFrequency}
+                  onChange={(e) => setLatePenaltyStepFrequency(Number(e.target.value))}
                   className={erpFormInputClassName}
                 />
+                <span className="text-[10px] text-slate-400">e.g. Every 1 or 3 lates thereafter</span>
               </div>
               <div>
-                <label className={erpFormLabelClassName}>Late Punch Grace (Mins)</label>
-                <input
-                  type="number"
-                  value={gracePeriodMinutes}
-                  onChange={(e) => setGracePeriodMinutes(Number(e.target.value))}
+                <label className={erpFormLabelClassName}>Late Penalty Action</label>
+                <select
+                  value={latePenaltyAction}
+                  onChange={(e) => setLatePenaltyAction(e.target.value as LatePenaltyAction)}
                   className={erpFormInputClassName}
-                />
+                >
+                  <option value="QuarterDay">0.25 Day Cut (Quarter-Day)</option>
+                  <option value="HalfDay">0.50 Day Cut (Half-Day)</option>
+                  <option value="FullDay">1.00 Day Cut (Full-Day LOP)</option>
+                </select>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-amber-100">
               <div>
-                <label className={erpFormLabelClassName}>Overtime Starts After (Hours)</label>
+                <label className={erpFormLabelClassName}>Minor Late Window (Mins)</label>
                 <input
                   type="number"
-                  step="0.5"
-                  value={overtimeThresholdHours}
-                  onChange={(e) => setOvertimeThresholdHours(Number(e.target.value))}
+                  value={minorLateWindowMinutes}
+                  onChange={(e) => setMinorLateWindowMinutes(Number(e.target.value))}
                   className={erpFormInputClassName}
                 />
+                <span className="text-[10px] text-slate-400">e.g. 15m grace</span>
               </div>
               <div>
-                <label className={erpFormLabelClassName}>Auto Break Deduction (Mins)</label>
+                <label className={erpFormLabelClassName}>Major Late Cutoff (Mins)</label>
                 <input
                   type="number"
-                  value={autoDeductBreakMinutes}
-                  onChange={(e) => setAutoDeductBreakMinutes(Number(e.target.value))}
+                  value={majorLateThresholdMinutes}
+                  onChange={(e) => setMajorLateThresholdMinutes(Number(e.target.value))}
                   className={erpFormInputClassName}
                 />
+                <span className="text-[10px] text-slate-400">&gt;45m = Half-Day; &gt;120m = Absent</span>
               </div>
               <div>
-                <label className={erpFormLabelClassName}>Max Shift Anomaly Limit (Hours)</label>
+                <label className={erpFormLabelClassName}>Early Exit Cutoff (Mins)</label>
                 <input
                   type="number"
-                  value={maxContinuousHours}
-                  onChange={(e) => setMaxContinuousHours(Number(e.target.value))}
+                  value={earlyExitThresholdMinutes}
+                  onChange={(e) => setEarlyExitThresholdMinutes(Number(e.target.value))}
                   className={erpFormInputClassName}
                 />
+                <span className="text-[10px] text-slate-400">&gt;60m early triggers penalty</span>
               </div>
             </div>
           </div>
 
+          {/* Section 3: Overtime Multipliers & Week-Off Rules */}
+          <div className="rounded-xl border border-purple-200 bg-purple-50/20 p-4 space-y-4">
+            <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+              <Zap className="h-3.5 w-3.5 text-purple-600" />
+              Overtime Multipliers &amp; Weekly-Off Pattern
+            </h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className={erpFormLabelClassName}>Normal Working Day OT Rate</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={normalDayOtMultiplier}
+                  onChange={(e) => setNormalDayOtMultiplier(Number(e.target.value))}
+                  className={erpFormInputClassName}
+                />
+                <span className="text-[10px] text-slate-400">Standard statutory 1.5x</span>
+              </div>
+              <div>
+                <label className={erpFormLabelClassName}>Weekend / Rest Day OT Rate</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={weekendOtMultiplier}
+                  onChange={(e) => setWeekendOtMultiplier(Number(e.target.value))}
+                  className={erpFormInputClassName}
+                />
+                <span className="text-[10px] text-slate-400">Standard statutory 2.0x</span>
+              </div>
+              <div>
+                <label className={erpFormLabelClassName}>Public Holiday OT Rate</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={holidayOtMultiplier}
+                  onChange={(e) => setHolidayOtMultiplier(Number(e.target.value))}
+                  className={erpFormInputClassName}
+                />
+                <span className="text-[10px] text-slate-400">Standard statutory 2.5x</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-purple-100">
+              <div>
+                <label className={erpFormLabelClassName}>Weekly-Off Schedule Pattern</label>
+                <select
+                  value={weekOffPattern}
+                  onChange={(e) => setWeekOffPattern(e.target.value as WeekOffPattern)}
+                  className={erpFormInputClassName}
+                >
+                  <option value="SundayOnly">Sunday Only (Standard 6-day week)</option>
+                  <option value="AlternateSaturdaySunday">Sunday + 2nd &amp; 4th Saturday</option>
+                  <option value="AllSaturdaysSunday">Saturday &amp; Sunday (5-day week)</option>
+                  <option value="Custom">Custom / Dynamic Shift Roster</option>
+                </select>
+              </div>
+              <div>
+                <label className={erpFormLabelClassName}>Min Overtime Required (Mins)</label>
+                <input
+                  type="number"
+                  value={minMinutesForOvertime}
+                  onChange={(e) => setMinMinutesForOvertime(Number(e.target.value))}
+                  className={erpFormInputClassName}
+                />
+                <span className="text-[10px] text-slate-400">Minimum continuous OT span to trigger calculation</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between py-2 border-t border-purple-100">
+              <div>
+                <p className="text-xs font-semibold text-slate-800">Allow Comp-Off Banking</p>
+                <p className="text-[11px] text-slate-500">Convert holiday or weekend overtime into compensatory off leave balance</p>
+              </div>
+              <Switch checked={allowCompOffInsteadOfPay} onCheckedChange={setAllowCompOffInsteadOfPay} />
+            </div>
+          </div>
+
+          {/* Section 4: Punch Modes & Hardware Verification */}
+          <div className="rounded-xl border border-indigo-200 bg-indigo-50/20 p-4 space-y-4">
+            <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+              <ArrowLeftRight className="h-3.5 w-3.5 text-indigo-600" />
+              Punch Tracking Modes &amp; Missing Punch Penalties
+            </h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[
+                {
+                  id: "TwoPunchFirstInLastOut",
+                  title: "Standard 2-Punch",
+                  desc: "First IN & Last OUT of the day. Ideal for corporate desks.",
+                },
+                {
+                  id: "MultiPunchPairwise",
+                  title: "Multi-Punch Interval",
+                  desc: "Exact break & work sessions. Recommended for hospital shifts & factory floors.",
+                },
+                {
+                  id: "SplitShiftFourPunch",
+                  title: "Split Shift (4-Punch)",
+                  desc: "Two distinct slots: Morning & Evening. Both required for full-day credit.",
+                },
+                {
+                  id: "ContinuousRoaming",
+                  title: "Continuous Field Roaming",
+                  desc: "Mobile patrol & site inspection checkpoints. Validates field presence.",
+                },
+              ].map((m) => (
+                <label
+                  key={m.id}
+                  className={`flex flex-col p-3 rounded-xl border cursor-pointer transition-all ${
+                    punchMode === m.id
+                      ? "border-indigo-600 bg-white ring-2 ring-indigo-500/20 shadow-sm"
+                      : "border-slate-200 bg-white/60 hover:bg-white"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold text-slate-900">{m.title}</span>
+                    <input
+                      type="radio"
+                      name="punchMode"
+                      value={m.id}
+                      checked={punchMode === m.id}
+                      onChange={() => setPunchMode(m.id as PunchPolicyMode)}
+                      className="text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5"
+                    />
+                  </div>
+                  <span className="text-[10px] text-slate-500 leading-tight">{m.desc}</span>
+                </label>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-indigo-100">
+              <div>
+                <label className={erpFormLabelClassName}>Missing Punch Penalty Action</label>
+                <select
+                  value={missingPunchPenalty}
+                  onChange={(e) => setMissingPunchPenalty(e.target.value)}
+                  className={erpFormInputClassName}
+                >
+                  <option value="HalfDay">Mark Half-Day (0.5 Day Cut)</option>
+                  <option value="Absent">Mark Absent (Full-Day LOP)</option>
+                  <option value="FlagForReview">Flag For Manager Review Only</option>
+                </select>
+              </div>
+              <div>
+                <label className={erpFormLabelClassName}>Self-Service Regularization Window (Days)</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={30}
+                  value={missingPunchGraceDays}
+                  onChange={(e) => setMissingPunchGraceDays(Number(e.target.value))}
+                  className={erpFormInputClassName}
+                />
+                <span className="text-[10px] text-slate-400">Grace period before auto-penalty applies</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 5: Geofence GPS & Facial Recognition */}
           <div className="rounded-xl border border-slate-200 p-4 space-y-4">
             <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
               <MapPin className="h-3.5 w-3.5 text-emerald-600" />
-              Geofence GPS & Biometric Enforcement
+              Geofence GPS &amp; Biometric Hardware Enforcement
             </h4>
+
             <div className="flex items-center justify-between py-2 border-b border-slate-100">
               <div>
                 <p className="text-xs font-semibold text-slate-800">Require GPS Geofencing</p>
-                <p className="text-[11px] text-slate-500">Punches only allowed within office radius coordinates</p>
+                <p className="text-[11px] text-slate-500">Punches only allowed within authorized office/site coordinates</p>
               </div>
               <Switch checked={requireGeofence} onCheckedChange={setRequireGeofence} />
             </div>
@@ -399,7 +750,7 @@ export function AttendancePolicyDrawer({
             <div className="flex items-center justify-between py-2 border-b border-slate-100">
               <div>
                 <p className="text-xs font-semibold text-slate-800">Require Facial Recognition (FRS)</p>
-                <p className="text-[11px] text-slate-500">Validate live webcam/mobile selfie against registered vector</p>
+                <p className="text-[11px] text-slate-500">Validate live camera selfie against registered facial embedding vector</p>
               </div>
               <Switch checked={requireFacialVerification} onCheckedChange={setRequireFacialVerification} />
             </div>

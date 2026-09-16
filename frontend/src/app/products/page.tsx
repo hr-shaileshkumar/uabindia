@@ -6,7 +6,7 @@ import { resolveAudienceForPath, type PublicSearchParams } from "@/lib/public-pa
 export const metadata: Metadata = buildPublicMetadata({
   title: "Products",
   description:
-    "Explore UabIndia ERP modules for HRMS, payroll, attendance, finance, inventory, procurement, CRM, projects, assets, help desk, and reporting.",
+    "Explore enterprise ERP modules for HRMS, payroll, attendance, finance, inventory, procurement, CRM, projects, assets, help desk, and reporting.",
   path: "/products",
 });
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+
 import { useEffect, useMemo, useState } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { PERMISSIONS } from "@/constants/permissions";
@@ -27,7 +29,7 @@ interface AuditLogResponse {
   total?: number;
 }
 
-export default function AuditLogsPage() {
+function LegacyAuditLogsPage() {
   const [logs, setLogs] = useState<AuditRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -259,5 +261,15 @@ export default function AuditLogsPage() {
         }
       />
     </ProtectedRoute>
+  );
+}
+
+export default function AuditLogsPage() {
+  return (
+    <DynamicPage
+      pageKey="administration.audit-logs"
+      fallback={<LegacyAuditLogsPage />}
+      renderMode="auto"
+    />
   );
 }

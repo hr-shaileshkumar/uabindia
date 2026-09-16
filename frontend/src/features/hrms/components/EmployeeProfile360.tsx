@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import {
@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { StatusBadge } from "@/components/workspace/status-badge";
 import { erpButtonClassName } from "@/components/workspace/styles";
+import DynamicFieldsSection from "@/components/DynamicFieldsSection";
 
 export interface EmployeeProfile360Data {
   id: string;
@@ -166,6 +167,7 @@ type TabKey =
   | "documents"
   | "assets"
   | "reports"
+  | "customFields"
   | "timeline";
 
 export default function EmployeeProfile360({
@@ -202,6 +204,7 @@ export default function EmployeeProfile360({
     { id: "documents", label: "Document Vault", icon: FileText, count: data.documents?.length },
     { id: "assets", label: "Assigned Assets", icon: Laptop, count: data.assignedAssets?.length },
     { id: "reports", label: "Direct Reports", icon: Users, count: data.directReports?.length },
+    { id: "customFields", label: "Custom Attributes", icon: Sparkles },
     { id: "timeline", label: "Lifecycle & Audit", icon: History },
   ];
 
@@ -391,6 +394,17 @@ export default function EmployeeProfile360({
                 <InfoItem label="Account Number" value={data.bankAccountNumber} />
                 <InfoItem label="IFSC Code" value={data.bankIfsc} />
               </div>
+            </div>
+
+            {/* Dynamic Custom Metadata */}
+            <div className="border-t border-slate-100 pt-6 dark:border-slate-800">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                  Custom Tenant Attributes
+                </h3>
+              </div>
+              <DynamicFieldsSection entityName="Employee" recordId={data.id} editable={false} compact />
             </div>
           </div>
         )}
@@ -705,7 +719,25 @@ export default function EmployeeProfile360({
           </div>
         )}
 
-        {/* 9. Lifecycle & Audit Tab */}
+        {/* 9. Custom Attributes Tab */}
+        {activeTab === "customFields" && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                  Tenant-Configured Custom Fields
+                </h3>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Dynamic enterprise attributes defined under Schema Manager for Employee records.
+                </p>
+              </div>
+            </div>
+            <DynamicFieldsSection entityName="Employee" recordId={data.id} editable={true} />
+          </div>
+        )}
+
+        {/* 10. Lifecycle & Audit Tab */}
         {activeTab === "timeline" && (
           <div className="space-y-6">
             <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white">

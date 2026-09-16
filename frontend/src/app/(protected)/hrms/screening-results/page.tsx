@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+﻿
 import { useCallback, useEffect, useState } from "react";
 import { CrudHeaderStats } from "@/components/workspace/crud-workspace";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
@@ -22,7 +24,7 @@ type ResultRow = {
   comments: string | null;
 };
 
-export default function ScreeningResultsPage() {
+function LegacyScreeningResultsPage() {
   const [rows, setRows] = useState<ResultRow[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -201,5 +203,15 @@ export default function ScreeningResultsPage() {
         </div>
       )}
     </StandardPageLayout>
+  );
+}
+
+export default function ScreeningResultsPage() {
+  return (
+    <DynamicPage
+      pageKey="hrms.screening-results"
+      fallback={<LegacyScreeningResultsPage />}
+      renderMode="auto"
+    />
   );
 }

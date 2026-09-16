@@ -1,5 +1,7 @@
 "use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+
 import React, { useMemo, useState } from "react";
 import { Code2, KeyRound, Plug, ExternalLink, Plus, Copy, Check, Terminal, ShieldCheck, Trash2 } from "lucide-react";
 import { AdministrationGlobalPageShell, type KpiMetricItem } from "@/components/administration/AdministrationGlobalPageShell";
@@ -9,12 +11,16 @@ import { notifyError, notifySuccess } from "@/lib/notifications";
 import { mapIntegration, useIntegrations } from "@/features/administration/hooks/useIntegrations";
 import { mapApiKey, useApiKeys, useApiKeyMutations } from "@/features/administration/hooks/useApiKeys";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
+import { getClientApiV1BaseUrl } from "@/lib/api-base-url";
 
-const swaggerUrl =
-  (process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL.replace(/\/api\/v1\/?$/i, "") : "http://127.0.0.1:5000") +
-  "/swagger";
+const getSwaggerUrl = () => {
+  if (typeof window !== "undefined") {
+    return `${window.location.origin}/swagger`;
+  }
+  return process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL.replace(/\/api\/v1\/?$/i, "") + "/swagger" : "/swagger";
+};
 
-export default function DeveloperCenterPage() {
+function LegacyDeveloperCenterPage() {
   const integrationsQuery = useIntegrations();
   const apiKeysQuery = useApiKeys();
   const { createApiKey, revokeApiKey } = useApiKeyMutations();
@@ -124,7 +130,9 @@ export default function DeveloperCenterPage() {
   };
 
   const getSampleSnippet = () => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+    const baseUrl = typeof window !== "undefined"
+      ? `${window.location.origin}${getClientApiV1BaseUrl()}`
+      : getClientApiV1BaseUrl();
     if (snippetLang === "curl") {
       return `curl -X GET "${baseUrl}/notifications/me" \\
   -H "Authorization: Bearer <YOUR_API_TOKEN>" \\
@@ -175,7 +183,7 @@ print(response.json())`;
           {
             label: "Launch Swagger UI",
             icon: <ExternalLink className="h-3.5 w-3.5" />,
-            onClick: () => window.open(swaggerUrl, "_blank", "noopener,noreferrer"),
+            onClick: () => window.open(getSwaggerUrl(), "_blank", "noopener,noreferrer"),
           },
         ]}
         listKey="platform-developer-center"
@@ -333,5 +341,15 @@ print(response.json())`;
       </AdministrationGlobalPageShell>
       {confirmDialog}
     </>
+  );
+}
+
+export default function DeveloperCenterPage() {
+  return (
+    <DynamicPage
+      pageKey="administration.developer-center"
+      fallback={<LegacyDeveloperCenterPage />}
+      renderMode="auto"
+    />
   );
 }

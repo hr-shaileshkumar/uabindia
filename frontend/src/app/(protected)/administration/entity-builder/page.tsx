@@ -1,5 +1,7 @@
 "use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -48,7 +50,7 @@ const SYSTEM_ENTITIES: EntityMetadata[] = [
   { name: "Company", category: "Platform", description: "Legal entities, GSTIN profiles, and corporate branches", table: "Companies", icon: "Landmark" },
 ];
 
-export default function EntityBuilderPage() {
+function LegacyEntityBuilderPage() {
   const [selectedEntity, setSelectedEntity] = useState<EntityMetadata>(SYSTEM_ENTITIES[0]);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -382,5 +384,15 @@ export default function EntityBuilderPage() {
         </form>
       </SideDrawer>
     </StandardPageLayout>
+  );
+}
+
+export default function EntityBuilderPage() {
+  return (
+    <DynamicPage
+      pageKey="administration.entity-builder"
+      fallback={<LegacyEntityBuilderPage />}
+      renderMode="auto"
+    />
   );
 }

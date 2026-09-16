@@ -224,6 +224,31 @@ export const administrationApi = {
     getValues: (entityName: string, recordId: string) => apiClient.get(`/platform/custom-fields/values/${entityName}/${recordId}`),
     saveValues: (entityName: string, data: ApiPayload) => apiClient.post(`/platform/custom-fields/values/${entityName}`, data),
   },
+  uiPages: {
+    list: (moduleKey?: string) =>
+      apiClient.get(`/ui-pages${moduleKey ? `?moduleKey=${encodeURIComponent(moduleKey)}` : ""}`),
+    get: (pageKey: string, options?: { draft?: boolean; version?: number; companyId?: string; projectId?: string }) => {
+      const params = new URLSearchParams();
+      if (options?.draft) params.append("draft", "true");
+      if (options?.version) params.append("version", String(options.version));
+      if (options?.companyId) params.append("companyId", options.companyId);
+      if (options?.projectId) params.append("projectId", options.projectId);
+      const qs = params.toString();
+      return apiClient.get(`/ui-pages/${encodeURIComponent(pageKey)}${qs ? `?${qs}` : ""}`);
+    },
+    create: (data: ApiPayload) => apiClient.post("/ui-pages", data),
+    saveDraft: (pageKey: string, data: ApiPayload) =>
+      apiClient.put(`/ui-pages/${encodeURIComponent(pageKey)}`, data),
+    publish: (pageKey: string, data?: { version?: number; changeSummary?: string }) =>
+      apiClient.post(`/ui-pages/${encodeURIComponent(pageKey)}/publish`, data || {}),
+    rollback: (pageKey: string, targetVersion: number) =>
+      apiClient.post(`/ui-pages/${encodeURIComponent(pageKey)}/rollback`, { targetVersion }),
+    delete: (pageKey: string) =>
+      apiClient.delete(`/ui-pages/${encodeURIComponent(pageKey)}`),
+    getEntities: () => apiClient.get("/ui-pages/entities"),
+    getEntityFields: (entityName: string) =>
+      apiClient.get(`/ui-pages/entities/${encodeURIComponent(entityName)}/fields`),
+  },
 };
 
 export const platformApi = administrationApi;

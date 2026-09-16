@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+﻿
 import { useCallback, useEffect, useMemo, useState } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
 import { CrudHeaderStats } from "@/components/workspace/crud-workspace";
@@ -47,7 +49,7 @@ const asList = (raw: unknown): ReimbursementRecord[] => {
   return [];
 };
 
-export default function PayrollReimbursementsPage() {
+function LegacyPayrollReimbursementsPage() {
   const [records, setRecords] = useState<ReimbursementRecord[]>([]);
   const [employees, setEmployees] = useState<EmployeeOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -287,5 +289,15 @@ export default function PayrollReimbursementsPage() {
         </div>
       </SideDrawer>
     </>
+  );
+}
+
+export default function PayrollReimbursementsPage() {
+  return (
+    <DynamicPage
+      pageKey="payroll.reimbursements"
+      fallback={<LegacyPayrollReimbursementsPage />}
+      renderMode="auto"
+    />
   );
 }

@@ -39,6 +39,20 @@ namespace UabIndia.Core.Entities
         public string? EmploymentType { get; set; } = "Permanent";
         public string? WorkLocation { get; set; }
 
+        // Geofencing & Base Location Attendance Validation
+        public bool ValidateGeofenceOnAttendance { get; set; } = true;
+        public bool AllowAnyLocationCheckIn { get; set; } = false;
+        public Guid? BaseOperationalLocationId { get; set; }
+        public double? BaseLocationLatitude { get; set; }
+        public double? BaseLocationLongitude { get; set; }
+        public int? BaseLocationRadiusMeters { get; set; } = 150;
+
+        // Biometric Hardware & Shift Mapping
+        public string? BiometricEnrollmentId { get; set; }  // Device machine user ID (e.g. "1042")
+        public string? BiometricCardNumber { get; set; }    // RFID / NFC Card Number
+        public Guid? AssignedShiftId { get; set; }          // Default employee shift
+        public Guid? AttendancePolicyId { get; set; }       // Custom attendance policy override
+
         public Guid? DepartmentId { get; set; }
         public Guid? DesignationId { get; set; }
         public Guid? BranchId { get; set; }

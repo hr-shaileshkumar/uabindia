@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+﻿
 import { useCallback, useEffect, useState } from "react";
 import { CrudCard, CrudHeaderStats } from "@/components/workspace/crud-workspace";
 import {
@@ -28,7 +30,7 @@ type CertificateRow = {
   notes: string | null;
 };
 
-export default function CertificatesPage() {
+function LegacyCertificatesPage() {
   const [rows, setRows] = useState<CertificateRow[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -273,5 +275,15 @@ export default function CertificatesPage() {
         ) : null}
       </SideDrawer>
     </StandardPageLayout>
+  );
+}
+
+export default function CertificatesPage() {
+  return (
+    <DynamicPage
+      pageKey="hrms.certificates"
+      fallback={<LegacyCertificatesPage />}
+      renderMode="auto"
+    />
   );
 }

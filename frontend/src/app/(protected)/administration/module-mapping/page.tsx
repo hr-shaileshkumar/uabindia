@@ -1,5 +1,7 @@
 "use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { SlidersHorizontal, Layers, ShieldCheck, Compass, CheckCircle2 } from "lucide-react";
@@ -24,7 +26,7 @@ type CatalogModule = {
 
 const catalogQueryKey = ["platform", "modules", "catalog"] as const;
 
-export default function ModuleMappingPage() {
+function LegacyModuleMappingPage() {
   const queryClient = useQueryClient();
   const { refresh: refreshUiSchema } = useUiSchema();
   const [search, setSearch] = useState("");
@@ -150,6 +152,16 @@ export default function ModuleMappingPage() {
           </>
         );
       }}
+    />
+  );
+}
+
+export default function ModuleMappingPage() {
+  return (
+    <DynamicPage
+      pageKey="administration.module-mapping"
+      fallback={<LegacyModuleMappingPage />}
+      renderMode="auto"
     />
   );
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+
 import React, { useMemo, useState } from "react";
 import { Plug, CheckCircle2, ExternalLink, RefreshCw } from "lucide-react";
 import { AdministrationGlobalPageShell, KpiMetricItem } from "@/components/administration/AdministrationGlobalPageShell";
@@ -13,7 +15,7 @@ import {
 } from "@/features/administration/hooks/useIntegrations";
 import Link from "next/link";
 
-export default function ConnectorsPage() {
+function LegacyConnectorsPage() {
   const { data = [], isLoading, isError, error, refetch } = useIntegrations();
   const { sync } = useIntegrationMutations();
   const [search, setSearch] = useState("");
@@ -107,5 +109,15 @@ export default function ConnectorsPage() {
         <div className="erp-alert-error text-sm">{getApiErrorMessage(error, "Failed to load integrations.")}</div>
       ) : null}
     </AdministrationGlobalPageShell>
+  );
+}
+
+export default function ConnectorsPage() {
+  return (
+    <DynamicPage
+      pageKey="administration.connectors"
+      fallback={<LegacyConnectorsPage />}
+      renderMode="auto"
+    />
   );
 }

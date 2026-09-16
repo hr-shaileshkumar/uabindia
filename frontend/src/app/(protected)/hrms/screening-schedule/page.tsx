@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+﻿
 import { useCallback, useEffect, useState } from "react";
 import { CrudHeaderStats } from "@/components/workspace/crud-workspace";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
@@ -30,7 +32,7 @@ const STATUS_COLORS: Record<string, string> = {
   NoShow:     "bg-gray-100 text-gray-600",
 };
 
-export default function ScreeningSchedulePage() {
+function LegacyScreeningSchedulePage() {
   const [rows, setRows] = useState<ScheduleRow[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -209,5 +211,15 @@ export default function ScreeningSchedulePage() {
         </div>
       )}
     </StandardPageLayout>
+  );
+}
+
+export default function ScreeningSchedulePage() {
+  return (
+    <DynamicPage
+      pageKey="hrms.screening-schedule"
+      fallback={<LegacyScreeningSchedulePage />}
+      renderMode="auto"
+    />
   );
 }

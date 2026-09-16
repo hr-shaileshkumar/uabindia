@@ -1,5 +1,7 @@
 "use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+
 import { useMemo, useState } from "react";
 import { HardDrive, RotateCcw, ShieldAlert, Layers } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +14,7 @@ import { mapRecycleBinLog, useRecycleBin, useRecycleBinMutations } from "@/featu
 
 type RecycleRow = ReturnType<typeof mapRecycleBinLog>;
 
-export default function RecycleBinPage() {
+function LegacyRecycleBinPage() {
   const [search, setSearch] = useState("");
   const [entityFilter, setEntityFilter] = useState("all");
   const { data, isLoading, isError, error, refetch } = useRecycleBin(1, 50, entityFilter !== "all" ? entityFilter : undefined);
@@ -141,6 +143,16 @@ export default function RecycleBinPage() {
           </td>
         </>
       )}
+    />
+  );
+}
+
+export default function RecycleBinPage() {
+  return (
+    <DynamicPage
+      pageKey="administration.recycle-bin"
+      fallback={<LegacyRecycleBinPage />}
+      renderMode="auto"
     />
   );
 }

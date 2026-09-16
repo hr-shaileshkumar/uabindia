@@ -232,12 +232,22 @@ namespace UabIndia.Infrastructure.Services
                     new() { TenantId = tenantId, AccountCode = "1301", AccountName = "Input CGST (9%)", AccountType = "Asset", SubType = "Tax", Currency = "INR", IsActive = true },
                     new() { TenantId = tenantId, AccountCode = "1302", AccountName = "Input SGST (9%)", AccountType = "Asset", SubType = "Tax", Currency = "INR", IsActive = true },
                     new() { TenantId = tenantId, AccountCode = "1303", AccountName = "Input IGST (18%)", AccountType = "Asset", SubType = "Tax", Currency = "INR", IsActive = true },
+                    new() { TenantId = tenantId, AccountCode = "1304", AccountName = "RCM Input CGST", AccountType = "Asset", SubType = "Tax", Currency = "INR", IsActive = true },
+                    new() { TenantId = tenantId, AccountCode = "1305", AccountName = "RCM Input SGST", AccountType = "Asset", SubType = "Tax", Currency = "INR", IsActive = true },
+                    new() { TenantId = tenantId, AccountCode = "1306", AccountName = "RCM Input IGST", AccountType = "Asset", SubType = "Tax", Currency = "INR", IsActive = true },
                     new() { TenantId = tenantId, AccountCode = "2001", AccountName = "Trade Creditors (Accounts Payable)", AccountType = "Liability", SubType = "Current Liability", Currency = "INR", IsActive = true },
                     new() { TenantId = tenantId, AccountCode = "2101", AccountName = "Output CGST (9%)", AccountType = "Liability", SubType = "Tax", Currency = "INR", IsActive = true },
                     new() { TenantId = tenantId, AccountCode = "2102", AccountName = "Output SGST (9%)", AccountType = "Liability", SubType = "Tax", Currency = "INR", IsActive = true },
                     new() { TenantId = tenantId, AccountCode = "2103", AccountName = "Output IGST (18%)", AccountType = "Liability", SubType = "Tax", Currency = "INR", IsActive = true },
+                    new() { TenantId = tenantId, AccountCode = "2201", AccountName = "PF Payable (Statutory)", AccountType = "Liability", SubType = "Statutory", Currency = "INR", IsActive = true },
+                    new() { TenantId = tenantId, AccountCode = "2202", AccountName = "ESIC Payable (Statutory)", AccountType = "Liability", SubType = "Statutory", Currency = "INR", IsActive = true },
+                    new() { TenantId = tenantId, AccountCode = "2210", AccountName = "TDS Payable - Contractors (Sec 194C)", AccountType = "Liability", SubType = "Statutory", Currency = "INR", IsActive = true },
+                    new() { TenantId = tenantId, AccountCode = "2211", AccountName = "TDS Payable - Professional Fees (Sec 194J)", AccountType = "Liability", SubType = "Statutory", Currency = "INR", IsActive = true },
                     new() { TenantId = tenantId, AccountCode = "4001", AccountName = "Domestic Product Sales (18% GST)", AccountType = "Revenue", SubType = "Operating Revenue", Currency = "INR", IsActive = true },
+                    new() { TenantId = tenantId, AccountCode = "4201", AccountName = "Rounding Off Reserve (Income)", AccountType = "Revenue", SubType = "Other Income", Currency = "INR", IsActive = true },
                     new() { TenantId = tenantId, AccountCode = "5001", AccountName = "Cost of Goods Sold (COGS)", AccountType = "Expense", SubType = "Cost of Sales", Currency = "INR", IsActive = true },
+                    new() { TenantId = tenantId, AccountCode = "5101", AccountName = "Salaries & Wages Expense", AccountType = "Expense", SubType = "Payroll Expense", Currency = "INR", IsActive = true },
+                    new() { TenantId = tenantId, AccountCode = "5201", AccountName = "Rounding Off Reserve (Expense)", AccountType = "Expense", SubType = "Other Expense", Currency = "INR", IsActive = true },
                 };
 
                 var existingAccounts = await _db.ChartOfAccounts.Where(a => a.TenantId == tenantId).Select(a => a.AccountCode).ToListAsync();
@@ -332,10 +342,7 @@ namespace UabIndia.Infrastructure.Services
                 var custDefs = new (string Code, string Name, string City, string Gst)[]
                 {
                     ("CUST-001", "Infosys Technologies Ltd", "Bengaluru", "29AABCI4444D1Z4"),
-                    ("CUST-002", "Reliance Industries Ltd", "Mumbai", "27AABCR5555E1Z5"),
-                    ("CUST-003", "Tata Motors Commercial Division", "Pune", "27AABCT6666F1Z6"),
-                    ("CUST-004", "Larsen & Toubro Heavy Engineering", "Mumbai", "27AABCL7777G1Z7"),
-                    ("CUST-005", "Mahindra & Mahindra Logistics", "Mumbai", "27AABCM8888H1Z8")
+                    ("CUST-002", "Reliance Industries Ltd", "Mumbai", "27AABCR5555E1Z5")
                 };
 
                 var existingCusts = await _db.Customers.Where(c => c.TenantId == tenantId).ToDictionaryAsync(c => c.CustomerCode, c => c);
@@ -367,17 +374,15 @@ namespace UabIndia.Infrastructure.Services
                 await _db.SaveChangesAsync();
 
                 // 10. Vendors
-                var vendorDefs = new (string Code, string Name, string City, string Gst)[]
+                var vendorDefs = new (string Code, string Name, string City, string Gst, string VendorType, string Notes)[]
                 {
-                    ("VEN-001", "Apex Logistics & Transport Pvt Ltd", "Thane", "27AABCA1111A1Z1"),
-                    ("VEN-002", "Kothari & Associates LLP", "Mumbai", "27AABCK2222B1Z2"),
-                    ("VEN-003", "Tata Communications Ltd", "Mumbai", "27AABCT3333C1Z3"),
-                    ("VEN-004", "Jindal Steel & Power Ltd", "Raigarh", "22AABCJ4444D1Z4"),
-                    ("VEN-005", "Bharat Electronics Ltd (BEL)", "Bengaluru", "29AABCB5555E1Z5")
+                    ("VEN-001", "Apex Logistics & Transport Pvt Ltd", "Thane", "27AABCA1111A1Z1", "Contractor", "Transport contractor covered under Section 194C TDS"),
+                    ("VEN-002", "Kothari & Associates LLP", "Mumbai", "27AABCK2222B1Z2", "Professional", "Statutory audit and tax consultants (194J 10%)"),
+                    ("VEN-003", "Tata Communications Ltd", "Mumbai", "27AABCT3333C1Z3", "Enterprise", "Corporate cloud & telecom services")
                 };
 
                 var existingVendors = await _db.Vendors.Where(v => v.TenantId == tenantId).ToDictionaryAsync(v => v.VendorCode, v => v);
-                foreach (var (code, name, city, gst) in vendorDefs)
+                foreach (var (code, name, city, gst, vType, notes) in vendorDefs)
                 {
                     if (!existingVendors.ContainsKey(code))
                     {
@@ -388,12 +393,14 @@ namespace UabIndia.Infrastructure.Services
                             CompanyId = companyId,
                             VendorCode = code,
                             VendorName = name,
+                            VendorType = vType,
                             City = city,
                             State = "Maharashtra",
                             Country = "India",
                             GSTNumber = gst,
                             Status = "Active",
                             PaymentTerms = 30,
+                            Notes = notes,
                             CreatedAt = DateTime.UtcNow
                         };
                         _db.Vendors.Add(v);

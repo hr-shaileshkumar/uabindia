@@ -42,6 +42,33 @@ namespace UabIndia.Api.Models
         public string? ApplicableDays { get; set; }
 
         public bool IsNightShift { get; set; }
+        public bool AllowOvernightCrossMidnight { get; set; } = false;
+        public int EarlyExitToleranceMinutes { get; set; } = 15;
+
+        // Split Shift Slots
+        public TimeSpan? SplitSlot1StartTime { get; set; }
+        public TimeSpan? SplitSlot1EndTime { get; set; }
+        public TimeSpan? SplitSlot2StartTime { get; set; }
+        public TimeSpan? SplitSlot2EndTime { get; set; }
+
+        // Flexi Shift Windows
+        public bool IsFlexiShift { get; set; } = false;
+        public TimeSpan? CoreStartTime { get; set; }
+        public TimeSpan? CoreEndTime { get; set; }
+        public TimeSpan? FlexiWindowStart { get; set; }
+        public TimeSpan? FlexiWindowEnd { get; set; }
+
+        // 24-Hour & On-Call Emergency
+        public bool Is24HourShift { get; set; } = false;
+        public int MandatoryRestHoursAfterShift { get; set; } = 24;
+        public bool IsOnCallStandby { get; set; } = false;
+        public decimal StandbyRateMultiplier { get; set; } = 0.5m;
+
+        // Scoping & Multi-Company / Multi-Project
+        public Guid? CountryId { get; set; }
+        public Guid? CompanyId { get; set; }
+        public Guid? ProjectId { get; set; }
+        public Guid? OperationalLocationId { get; set; }
 
         [Range(0, 100)]
         public decimal NightShiftAllowance { get; set; }
@@ -76,12 +103,39 @@ namespace UabIndia.Api.Models
         public decimal DurationHours { get; set; }
 
         [Range(0, 60)]
-        public int GracePeriodMinutes { get; set; }
+        public int GracePeriodMinutes { get; set; } = 15;
 
         [Range(0, 120)]
         public int BreakDurationMinutes { get; set; }
 
         public bool IsNightShift { get; set; }
+        public bool AllowOvernightCrossMidnight { get; set; } = false;
+        public int EarlyExitToleranceMinutes { get; set; } = 15;
+
+        // Split Shift Slots
+        public TimeSpan? SplitSlot1StartTime { get; set; }
+        public TimeSpan? SplitSlot1EndTime { get; set; }
+        public TimeSpan? SplitSlot2StartTime { get; set; }
+        public TimeSpan? SplitSlot2EndTime { get; set; }
+
+        // Flexi Shift Windows
+        public bool IsFlexiShift { get; set; } = false;
+        public TimeSpan? CoreStartTime { get; set; }
+        public TimeSpan? CoreEndTime { get; set; }
+        public TimeSpan? FlexiWindowStart { get; set; }
+        public TimeSpan? FlexiWindowEnd { get; set; }
+
+        // 24-Hour & On-Call Emergency
+        public bool Is24HourShift { get; set; } = false;
+        public int MandatoryRestHoursAfterShift { get; set; } = 24;
+        public bool IsOnCallStandby { get; set; } = false;
+        public decimal StandbyRateMultiplier { get; set; } = 0.5m;
+
+        // Scoping & Multi-Company / Multi-Project
+        public Guid? CountryId { get; set; }
+        public Guid? CompanyId { get; set; }
+        public Guid? ProjectId { get; set; }
+        public Guid? OperationalLocationId { get; set; }
 
         [Range(0, 100)]
         public decimal NightShiftAllowance { get; set; }
@@ -109,6 +163,25 @@ namespace UabIndia.Api.Models
         public ShiftType ShiftType { get; set; }
         public string? ApplicableDays { get; set; }
         public bool IsNightShift { get; set; }
+        public bool AllowOvernightCrossMidnight { get; set; }
+        public int EarlyExitToleranceMinutes { get; set; }
+        public TimeSpan? SplitSlot1StartTime { get; set; }
+        public TimeSpan? SplitSlot1EndTime { get; set; }
+        public TimeSpan? SplitSlot2StartTime { get; set; }
+        public TimeSpan? SplitSlot2EndTime { get; set; }
+        public bool IsFlexiShift { get; set; }
+        public TimeSpan? CoreStartTime { get; set; }
+        public TimeSpan? CoreEndTime { get; set; }
+        public TimeSpan? FlexiWindowStart { get; set; }
+        public TimeSpan? FlexiWindowEnd { get; set; }
+        public bool Is24HourShift { get; set; }
+        public int MandatoryRestHoursAfterShift { get; set; }
+        public bool IsOnCallStandby { get; set; }
+        public decimal StandbyRateMultiplier { get; set; }
+        public Guid? CountryId { get; set; }
+        public Guid? CompanyId { get; set; }
+        public Guid? ProjectId { get; set; }
+        public Guid? OperationalLocationId { get; set; }
         public decimal NightShiftAllowance { get; set; }
         public bool IsActive { get; set; }
         public int MinEmployeesRequired { get; set; }

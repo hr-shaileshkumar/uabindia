@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+﻿
 import { useCallback, useEffect, useState } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
 import { CrudHeaderStats } from "@/components/workspace/crud-workspace";
@@ -17,7 +19,7 @@ type ModuleRow = {
   version: string;
 };
 
-export default function ModuleCatalogPage() {
+function LegacyModuleCatalogPage() {
   const { refresh: refreshUiSchema } = useUiSchema();
   const [modules, setModules] = useState<ModuleRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -130,6 +132,16 @@ export default function ModuleCatalogPage() {
           </td>
         </tr>
       )}
+    />
+  );
+}
+
+export default function ModuleCatalogPage() {
+  return (
+    <DynamicPage
+      pageKey="licensing.catalog"
+      fallback={<LegacyModuleCatalogPage />}
+      renderMode="auto"
     />
   );
 }

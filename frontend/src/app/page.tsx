@@ -9,7 +9,7 @@ export const metadata: Metadata = buildPublicMetadata(
   {
     title: "Modern Cloud ERP Platform",
     description:
-      "UabIndia ERP helps organizations manage HR, payroll, attendance, finance, procurement, inventory, CRM, projects, assets, support, and reporting from one secure cloud platform.",
+      (process.env.NEXT_PUBLIC_APP_NAME || "Enterprise ERP") + " helps organizations manage HR, payroll, attendance, finance, procurement, inventory, CRM, projects, assets, support, and reporting from one secure cloud platform.",
     path: "/",
   }
 );

@@ -21,11 +21,13 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
     {
         private readonly ApplicationDbContext _db;
         private readonly ITenantAccessor _tenantAccessor;
+        private readonly IAttendanceSynthesisService _attendanceSynthesisService;
 
-        public AttendanceController(ApplicationDbContext db, ITenantAccessor tenantAccessor)
+        public AttendanceController(ApplicationDbContext db, ITenantAccessor tenantAccessor, IAttendanceSynthesisService attendanceSynthesisService)
         {
             _db = db;
             _tenantAccessor = tenantAccessor;
+            _attendanceSynthesisService = attendanceSynthesisService;
         }
 
         [HttpPost("punch")]
@@ -34,28 +36,202 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
             var tenantId = _tenantAccessor.GetTenantId();
-            var employeeExists = await _db.Employees.AnyAsync(e => e.Id == dto.EmployeeId && e.TenantId == tenantId && !e.IsDeleted);
-            if (!employeeExists) return BadRequest(new { message = "Invalid employee." });
+            var employee = await _db.Employees.FirstOrDefaultAsync(e => e.Id == dto.EmployeeId && e.TenantId == tenantId && !e.IsDeleted);
+            if (employee == null) return BadRequest(new { message = "Invalid employee." });
+
+            var punchType = string.IsNullOrWhiteSpace(dto.PunchType) ? "IN" : dto.PunchType.Trim().ToUpperInvariant();
+            var timestamp = dto.Timestamp == default ? DateTime.UtcNow : dto.Timestamp;
 
             var record = new AttendanceRecord
             {
                 EmployeeId = dto.EmployeeId,
                 ProjectId = dto.ProjectId,
-                PunchType = string.IsNullOrWhiteSpace(dto.PunchType) ? "IN" : dto.PunchType.Trim().ToUpperInvariant(),
-                Timestamp = dto.Timestamp == default ? DateTime.UtcNow : dto.Timestamp,
+                PunchType = punchType,
+                Timestamp = timestamp,
                 Latitude = dto.Latitude,
                 Longitude = dto.Longitude,
                 DeviceId = dto.DeviceId,
                 Source = dto.Source ?? "Biometric",
-                GeoValidated = dto.Latitude.HasValue && dto.Longitude.HasValue,
                 TenantId = tenantId,
                 CreatedAt = DateTime.UtcNow
             };
 
+            // Geofence Validation Engine
+            if (employee.ValidateGeofenceOnAttendance)
+            {
+                if (!dto.Latitude.HasValue || !dto.Longitude.HasValue)
+                {
+                    return BadRequest(new
+                    {
+                        message = "Geofence validation failed: GPS coordinates (Latitude & Longitude) are mandatory for attendance marking.",
+                        geofenceBreach = true,
+                        code = "GPS_REQUIRED"
+                    });
+                }
+
+                var punchLat = (double)dto.Latitude.Value;
+                var punchLon = (double)dto.Longitude.Value;
+
+                if (employee.AllowAnyLocationCheckIn)
+                {
+                    // Roaming check-in: Employee can mark attendance from ANY registered company location
+                    var companyLocations = await _db.OperationalLocations
+                        .Where(l => l.TenantId == tenantId && !l.IsDeleted && l.IsActive)
+                        .ToListAsync();
+
+                    if (companyLocations.Count == 0)
+                    {
+                        record.GeoValidated = true;
+                        record.IsGeofenceBreached = false;
+                        record.GeofenceValidationMessage = "Roaming check-in approved (no active company facilities registered).";
+                    }
+                    else
+                    {
+                        OperationalLocation? closestLoc = null;
+                        double minDistance = double.MaxValue;
+                        bool withinFence = false;
+
+                        foreach (var loc in companyLocations)
+                        {
+                            var dist = CalculateDistanceMeters(punchLat, punchLon, loc.Latitude, loc.Longitude);
+                            var radius = loc.GeofenceRadiusMeters > 0 ? loc.GeofenceRadiusMeters : 150;
+
+                            if (dist < minDistance)
+                            {
+                                minDistance = dist;
+                                closestLoc = loc;
+                            }
+
+                            if (dist <= radius)
+                            {
+                                withinFence = true;
+                                closestLoc = loc;
+                                minDistance = dist;
+                                break;
+                            }
+                        }
+
+                        if (!withinFence)
+                        {
+                            var nearestName = closestLoc?.Name ?? "Registered Facility";
+                            var allowedRadius = closestLoc?.GeofenceRadiusMeters > 0 ? closestLoc.GeofenceRadiusMeters : 150;
+                            var distRounded = Math.Round(minDistance);
+
+                            return BadRequest(new
+                            {
+                                message = $"Geofence validation failed: You are outside all registered company sites. Nearest site is '{nearestName}' which is {distRounded}m away (allowed radius: {allowedRadius}m).",
+                                geofenceBreach = true,
+                                code = "GEOFENCE_BREACH",
+                                distanceMeters = distRounded,
+                                nearestLocation = nearestName,
+                                allowedRadius = allowedRadius
+                            });
+                        }
+
+                        record.GeoValidated = true;
+                        record.DistanceFromLocationMeters = Math.Round(minDistance, 1);
+                        record.MatchedLocationId = closestLoc?.Id;
+                        record.MatchedLocationName = closestLoc?.Name;
+                        record.IsGeofenceBreached = false;
+                        record.GeofenceValidationMessage = $"Verified at {closestLoc?.Name} ({Math.Round(minDistance)}m from facility center).";
+                    }
+                }
+                else
+                {
+                    // Strict Base Location check-in: Employee must be within their mapped base location or custom base coordinates
+                    double? baseLat = employee.BaseLocationLatitude;
+                    double? baseLon = employee.BaseLocationLongitude;
+                    int allowedRadius = employee.BaseLocationRadiusMeters.HasValue && employee.BaseLocationRadiusMeters.Value > 0
+                        ? employee.BaseLocationRadiusMeters.Value
+                        : 150;
+                    string locationName = "Assigned Base Location";
+                    Guid? matchedId = employee.BaseOperationalLocationId;
+
+                    if (employee.BaseOperationalLocationId.HasValue)
+                    {
+                        var baseLoc = await _db.OperationalLocations
+                            .FirstOrDefaultAsync(l => l.Id == employee.BaseOperationalLocationId.Value && l.TenantId == tenantId && !l.IsDeleted);
+
+                        if (baseLoc != null)
+                        {
+                            locationName = baseLoc.Name;
+                            if (!baseLat.HasValue || !baseLon.HasValue)
+                            {
+                                baseLat = baseLoc.Latitude;
+                                baseLon = baseLoc.Longitude;
+                            }
+                            if (!employee.BaseLocationRadiusMeters.HasValue || employee.BaseLocationRadiusMeters <= 0)
+                            {
+                                allowedRadius = baseLoc.GeofenceRadiusMeters > 0 ? baseLoc.GeofenceRadiusMeters : 150;
+                            }
+                        }
+                    }
+
+                    if (!baseLat.HasValue || !baseLon.HasValue)
+                    {
+                        return BadRequest(new
+                        {
+                            message = "Geofence validation failed: No base location or GPS coordinates configured for your profile. Please contact HR to configure your base posting location.",
+                            geofenceBreach = true,
+                            code = "BASE_LOCATION_NOT_CONFIGURED"
+                        });
+                    }
+
+                    var distance = CalculateDistanceMeters(punchLat, punchLon, baseLat.Value, baseLon.Value);
+                    var distRounded = Math.Round(distance);
+
+                    if (distance > allowedRadius)
+                    {
+                        return BadRequest(new
+                        {
+                            message = $"Geofence validation failed: You are {distRounded}m away from '{locationName}'. Attendance can only be marked within {allowedRadius}m.",
+                            geofenceBreach = true,
+                            code = "GEOFENCE_BREACH",
+                            distanceMeters = distRounded,
+                            nearestLocation = locationName,
+                            allowedRadius = allowedRadius
+                        });
+                    }
+
+                    record.GeoValidated = true;
+                    record.DistanceFromLocationMeters = Math.Round(distance, 1);
+                    record.MatchedLocationId = matchedId;
+                    record.MatchedLocationName = locationName;
+                    record.IsGeofenceBreached = false;
+                    record.GeofenceValidationMessage = $"Verified at {locationName} ({distRounded}m from base).";
+                }
+            }
+            else
+            {
+                // Geofence exempt (field workers / roving bypass)
+                record.GeoValidated = dto.Latitude.HasValue && dto.Longitude.HasValue;
+                record.IsGeofenceBreached = false;
+                record.GeofenceValidationMessage = "Geofence validation bypassed (employee exempt).";
+            }
+
             _db.AttendanceRecords.Add(record);
             await _db.SaveChangesAsync();
 
-            return Ok(new { id = record.Id, geoValidated = record.GeoValidated });
+            return Ok(new
+            {
+                id = record.Id,
+                geoValidated = record.GeoValidated,
+                distanceFromLocationMeters = record.DistanceFromLocationMeters,
+                matchedLocationName = record.MatchedLocationName,
+                geofenceValidationMessage = record.GeofenceValidationMessage
+            });
+        }
+
+        private static double CalculateDistanceMeters(double lat1, double lon1, double lat2, double lon2)
+        {
+            const double R = 6371000; // Earth radius in meters
+            var dLat = (lat2 - lat1) * Math.PI / 180.0;
+            var dLon = (lon2 - lon1) * Math.PI / 180.0;
+            var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
+                    Math.Cos(lat1 * Math.PI / 180.0) * Math.Cos(lat2 * Math.PI / 180.0) *
+                    Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+            var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+            return R * c;
         }
 
         [HttpPost("punch/me")]
@@ -103,7 +279,12 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                             DeviceId = attendance.DeviceId,
                             Source = attendance.Source,
                             Latitude = attendance.Latitude,
-                            Longitude = attendance.Longitude
+                            Longitude = attendance.Longitude,
+                            DistanceFromLocationMeters = attendance.DistanceFromLocationMeters,
+                            MatchedLocationId = attendance.MatchedLocationId,
+                            MatchedLocationName = attendance.MatchedLocationName,
+                            IsGeofenceBreached = attendance.IsGeofenceBreached,
+                            GeofenceValidationMessage = attendance.GeofenceValidationMessage
                         };
 
             var data = await query.Skip((page - 1) * limit).Take(limit).ToListAsync();
@@ -132,7 +313,12 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                                   DeviceId = attendance.DeviceId,
                                   Source = attendance.Source,
                                   Latitude = attendance.Latitude,
-                                  Longitude = attendance.Longitude
+                                  Longitude = attendance.Longitude,
+                                  DistanceFromLocationMeters = attendance.DistanceFromLocationMeters,
+                                  MatchedLocationId = attendance.MatchedLocationId,
+                                  MatchedLocationName = attendance.MatchedLocationName,
+                                  IsGeofenceBreached = attendance.IsGeofenceBreached,
+                                  GeofenceValidationMessage = attendance.GeofenceValidationMessage
                               }).FirstOrDefaultAsync();
 
             return item == null ? NotFound() : Ok(item);
@@ -184,33 +370,44 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
         public async Task<IActionResult> GetPolicies([FromQuery] Guid? companyId = null, [FromQuery] Guid? projectId = null)
         {
             var tenantId = _tenantAccessor.GetTenantId();
-            var any = await _db.AttendancePolicies.AnyAsync(p => p.TenantId == tenantId && !p.IsDeleted);
-            if (!any)
+            try
             {
-                var defaultPol = new AttendancePolicy
+                var any = await _db.AttendancePolicies.AnyAsync(p => p.TenantId == tenantId && !p.IsDeleted);
+                if (!any)
                 {
-                    Id = Guid.NewGuid(),
-                    TenantId = tenantId,
-                    Name = "Standard Organization Shift Policy",
-                    Description = "Default organization-wide policy enforced by backend",
-                    IsDefault = true,
-                    StandardShiftHours = 8.0m,
-                    MinHalfDayHours = 4.0m,
-                    GracePeriodMinutes = 15,
-                    OvertimeThresholdHours = 8.0m,
-                    MaxContinuousHours = 16.0m,
-                    AutoDeductBreakMinutes = 60,
-                    RequireGeofence = false,
-                    AllowedRadiusMeters = 250,
-                    RequireFacialVerification = false,
-                    MinFacialConfidenceScore = 75,
-                    AllowManualRegularization = true,
-                    MaxRegularizationsPerMonth = 3,
-                    Status = "Active",
-                    CreatedAt = DateTime.UtcNow
-                };
-                _db.AttendancePolicies.Add(defaultPol);
-                await _db.SaveChangesAsync();
+                    var defaultPol = new AttendancePolicy
+                    {
+                        Id = Guid.NewGuid(),
+                        TenantId = tenantId,
+                        Name = "Standard Organization Shift Policy",
+                        Description = "Default organization-wide policy enforced by backend",
+                        IsDefault = true,
+                        StandardShiftHours = 8.0m,
+                        MinHalfDayHours = 4.0m,
+                        GracePeriodMinutes = 15,
+                        OvertimeThresholdHours = 8.0m,
+                        MaxContinuousHours = 16.0m,
+                        AutoDeductBreakMinutes = 60,
+                        RequireGeofence = false,
+                        AllowedRadiusMeters = 250,
+                        RequireFacialVerification = false,
+                        MinFacialConfidenceScore = 75,
+                        AllowManualRegularization = true,
+                        MaxRegularizationsPerMonth = 3,
+                        PunchMode = PunchPolicyMode.TwoPunchFirstInLastOut,
+                        MinPunchesRequiredPerDay = 2,
+                        EarlyExitToleranceMinutes = 15,
+                        MissingPunchPenalty = "FlagForReview",
+                        Status = "Active",
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    _db.AttendancePolicies.Add(defaultPol);
+                    await _db.SaveChangesAsync();
+                }
+            }
+            catch
+            {
+                // Silently continue if seeding default policy encounters existing/transient issues
             }
 
             var query = _db.AttendancePolicies
@@ -331,6 +528,29 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             policy.MinFacialConfidenceScore = model.MinFacialConfidenceScore;
             policy.AllowManualRegularization = model.AllowManualRegularization;
             policy.MaxRegularizationsPerMonth = model.MaxRegularizationsPerMonth;
+            policy.PunchMode = model.PunchMode;
+            policy.MinPunchesRequiredPerDay = model.MinPunchesRequiredPerDay;
+            policy.MaxPunchesAllowedPerDay = model.MaxPunchesAllowedPerDay;
+            policy.EarlyExitToleranceMinutes = model.EarlyExitToleranceMinutes;
+            policy.MissingPunchPenalty = model.MissingPunchPenalty;
+            policy.MissingPunchGraceDays = model.MissingPunchGraceDays;
+            policy.DeductionBasis = model.DeductionBasis;
+            policy.MonthlyFreeLateDays = model.MonthlyFreeLateDays;
+            policy.LatePenaltyStepFrequency = model.LatePenaltyStepFrequency;
+            policy.LatePenaltyAction = model.LatePenaltyAction;
+            policy.MinorLateWindowMinutes = model.MinorLateWindowMinutes;
+            policy.MajorLateThresholdMinutes = model.MajorLateThresholdMinutes;
+            policy.EarlyExitThresholdMinutes = model.EarlyExitThresholdMinutes;
+            policy.EarlyExitPenaltyAction = model.EarlyExitPenaltyAction;
+            policy.MinMinutesForOvertime = model.MinMinutesForOvertime;
+            policy.RequireOvertimeApproval = model.RequireOvertimeApproval;
+            policy.NormalDayOtMultiplier = model.NormalDayOtMultiplier;
+            policy.WeekendOtMultiplier = model.WeekendOtMultiplier;
+            policy.HolidayOtMultiplier = model.HolidayOtMultiplier;
+            policy.AllowCompOffInsteadOfPay = model.AllowCompOffInsteadOfPay;
+            policy.WeekOffPattern = model.WeekOffPattern;
+            policy.AllowDailyShortfallOffsetWithOt = model.AllowDailyShortfallOffsetWithOt;
+            policy.DefaultShiftId = model.DefaultShiftId;
             policy.CompanyId = model.CompanyId;
             policy.ProjectId = model.ProjectId;
             policy.Status = model.Status;
@@ -599,5 +819,158 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                 message = $"Attendance {record.PunchType} recorded successfully."
             });
         }
+
+        /// <summary>
+        /// Daily Attendance Synthesis: Reconciles all punches for an employee on a given date,
+        /// supporting 2-Punch, Multi-Punch Interval, Split Shift, and Continuous Roaming modes.
+        /// </summary>
+        [HttpGet("summary/daily-synthesis")]
+        public async Task<IActionResult> GetDailySynthesis([FromQuery] Guid employeeId, [FromQuery] DateTime? date = null)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var targetDate = (date ?? DateTime.UtcNow).Date;
+
+            var result = await _attendanceSynthesisService.SynthesizeDayAsync(tenantId, employeeId, targetDate);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Batch Daily Synthesis for an entire date across all or filtered employees.
+        /// </summary>
+        [HttpGet("summary/daily-synthesis-batch")]
+        public async Task<IActionResult> GetDailySynthesisBatch([FromQuery] DateTime? date = null, [FromQuery] Guid? departmentId = null, [FromQuery] Guid? employeeId = null)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var targetDate = (date ?? DateTime.UtcNow).Date;
+
+            var results = await _attendanceSynthesisService.SynthesizeBatchAsync(tenantId, targetDate, targetDate, employeeId, departmentId);
+
+            return Ok(new
+            {
+                date = targetDate.ToString("yyyy-MM-dd"),
+                totalEvaluated = results.Count,
+                presentCount = results.Count(r => r.Status == "Present"),
+                halfDayCount = results.Count(r => r.Status == "HalfDay"),
+                absentCount = results.Count(r => r.Status == "Absent"),
+                items = results
+            });
+        }
+
+        #region Attendance Regularization Endpoints
+
+        [HttpGet("regularization")]
+        public async Task<IActionResult> GetRegularizationRequests(
+            [FromQuery] Guid? employeeId = null,
+            [FromQuery] string? status = null,
+            [FromQuery] DateTime? fromDate = null,
+            [FromQuery] DateTime? toDate = null)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var query = _db.AttendanceRegularizationRequests
+                .Include(r => r.Employee)
+                .AsNoTracking()
+                .Where(r => r.TenantId == tenantId && !r.IsDeleted);
+
+            if (employeeId.HasValue) query = query.Where(r => r.EmployeeId == employeeId.Value);
+            if (!string.IsNullOrWhiteSpace(status)) query = query.Where(r => r.Status == status);
+            if (fromDate.HasValue) query = query.Where(r => r.AttendanceDate >= fromDate.Value.Date);
+            if (toDate.HasValue) query = query.Where(r => r.AttendanceDate <= toDate.Value.Date);
+
+            var items = await query
+                .OrderByDescending(r => r.CreatedAt)
+                .Select(r => new
+                {
+                    r.Id,
+                    r.EmployeeId,
+                    EmployeeName = r.Employee != null ? r.Employee.FullName : "",
+                    EmployeeCode = r.Employee != null ? r.Employee.EmployeeCode : "",
+                    Date = r.AttendanceDate,
+                    r.RequestType,
+                    r.Reason,
+                    ProposedInTime = r.CorrectedInTime,
+                    ProposedOutTime = r.CorrectedOutTime,
+                    r.Status,
+                    ManagerRemarks = r.ReviewNotes,
+                    r.ApprovedAt,
+                    r.CreatedAt
+                })
+                .ToListAsync();
+
+            return Ok(items);
+        }
+
+        [HttpPost("regularization")]
+        public async Task<IActionResult> CreateRegularizationRequest([FromBody] CreateRegularizationDto dto)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var employee = await _db.Employees.FirstOrDefaultAsync(e => e.Id == dto.EmployeeId && e.TenantId == tenantId && !e.IsDeleted);
+            if (employee == null) return BadRequest(new { message = "Invalid employee." });
+
+            var model = new AttendanceRegularizationRequest
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                EmployeeId = dto.EmployeeId,
+                AttendanceDate = dto.Date.Date,
+                RequestType = dto.RequestType,
+                Reason = dto.Reason,
+                CorrectedInTime = dto.ProposedInTime,
+                CorrectedOutTime = dto.ProposedOutTime,
+                Status = "Pending",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _db.AttendanceRegularizationRequests.Add(model);
+            await _db.SaveChangesAsync();
+
+            return Ok(model);
+        }
+
+        [Authorize(Roles = "Admin,HR,Manager")]
+        [HttpPost("regularization/{id:guid}/approve")]
+        public async Task<IActionResult> ApproveRegularizationRequest(Guid id, [FromBody] RegularizationApprovalDto? dto)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var req = await _db.AttendanceRegularizationRequests.FirstOrDefaultAsync(r => r.Id == id && r.TenantId == tenantId && !r.IsDeleted);
+            if (req == null) return NotFound(new { message = "Regularization request not found." });
+
+            req.Status = "Approved";
+            req.CorrectedInTime = dto?.ApprovedInTime ?? req.CorrectedInTime;
+            req.CorrectedOutTime = dto?.ApprovedOutTime ?? req.CorrectedOutTime;
+            req.ReviewNotes = dto?.ManagerRemarks ?? "Approved by manager";
+            req.ApprovedAt = DateTime.UtcNow;
+            req.UpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync();
+
+            // Resynthesize attendance for this employee on that date so synthesis results reflect approval immediately
+            var synthesized = await _attendanceSynthesisService.SynthesizeDayAsync(tenantId, req.EmployeeId, req.AttendanceDate.Date);
+
+            return Ok(new
+            {
+                message = "Regularization approved successfully and attendance recalculated.",
+                request = req,
+                synthesizedResult = synthesized
+            });
+        }
+
+        [Authorize(Roles = "Admin,HR,Manager")]
+        [HttpPost("regularization/{id:guid}/reject")]
+        public async Task<IActionResult> RejectRegularizationRequest(Guid id, [FromBody] RegularizationApprovalDto? dto)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var req = await _db.AttendanceRegularizationRequests.FirstOrDefaultAsync(r => r.Id == id && r.TenantId == tenantId && !r.IsDeleted);
+            if (req == null) return NotFound(new { message = "Regularization request not found." });
+
+            req.Status = "Rejected";
+            req.ReviewNotes = dto?.ManagerRemarks ?? "Rejected by manager";
+            req.UpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync();
+
+            return Ok(new { message = "Regularization request rejected.", request = req });
+        }
+
+        #endregion
     }
 }

@@ -1,0 +1,5880 @@
+[
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/AdminSettingsController.cs",
+    "className": "AdminSettingsController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/admin",
+    "authorization": [
+      "Policy = \"AdminOnly\"",
+      "Policy = \"Module:platform\""
+    ],
+    "endpointsCount": 3,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "settings",
+        "actionName": "GetSettings",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "settings",
+        "actionName": "UpdateSettings",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] TenantAdminSettingsDto dto"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "users/invite",
+        "actionName": "InviteUser",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] InviteUserDto dto"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/AiAgentsController.cs",
+    "className": "AiAgentsController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/ai",
+    "authorization": [
+      "Default",
+      "Policy = \"Module:platform\"",
+      "Policy = \"Module:platform\"",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 1,
+    "endpoints": [
+      {
+        "verb": "POST",
+        "subRoute": "chat",
+        "actionName": "Chat",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] AiChatRequestDto dto"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/AiCopilotController.cs",
+    "className": "AiCopilotController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/ai/copilot",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 2,
+    "endpoints": [
+      {
+        "verb": "POST",
+        "subRoute": "query",
+        "actionName": "Query",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] PromptApiRequest req"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "anomalies",
+        "actionName": "GetAnomalies",
+        "returnType": "IActionResult>",
+        "params": ""
+      }
+    ],
+    "injected": [
+      "IAiCopilotService",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/AuditLogsController.cs",
+    "className": "AuditLogsController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Policy = \"AdminOnly\"",
+      "Policy = \"Module:platform\""
+    ],
+    "endpointsCount": 2,
+    "endpoints": [
+      {
+        "verb": "POST",
+        "subRoute": "restore",
+        "actionName": "Restore",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] RestoreDeletedRequest request"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "hard-delete",
+        "actionName": "HardDelete",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] RestoreDeletedRequest request"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/AuthController.cs",
+    "className": "AuthController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default",
+      "Default",
+      "Default",
+      "Default"
+    ],
+    "endpointsCount": 5,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "csrf-token",
+        "actionName": "CsrfToken",
+        "returnType": "IActionResult",
+        "params": ""
+      },
+      {
+        "verb": "POST",
+        "subRoute": "revoke-all",
+        "actionName": "RevokeAll",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] RevokeAllRequest req"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "me",
+        "actionName": "Me",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "permissions",
+        "actionName": "Permissions",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "POST",
+        "subRoute": "logout",
+        "actionName": "Logout",
+        "returnType": "IActionResult>",
+        "params": ""
+      }
+    ],
+    "injected": [
+      "JwtService",
+      "RefreshTokenService",
+      "UabIndia.Application.Interfaces.IRefreshTokenRepository",
+      "UabIndia.Application.Interfaces.ITenantAccessor",
+      "Microsoft.Extensions.Logging.ILogger<AuthController>",
+      "Microsoft.Extensions.Hosting.IHostEnvironment",
+      "ApplicationDbContext",
+      "IPasswordHasher<User>",
+      "TenantEmailService",
+      "IEncryptionService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/BillingController.cs",
+    "className": "BillingController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/billing",
+    "authorization": [],
+    "endpointsCount": 4,
+    "endpoints": [
+      {
+        "verb": "POST",
+        "subRoute": "invoice",
+        "actionName": "CreateInvoice",
+        "returnType": "ActionResult<InvoiceDto>>",
+        "params": "[FromBody] CreateInvoiceDto request"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "invoice/{id:guid}",
+        "actionName": "GetInvoice",
+        "returnType": "ActionResult<InvoiceDto>",
+        "params": "[FromRoute] Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "subscription",
+        "actionName": "CreateSubscription",
+        "returnType": "ActionResult<SubscriptionDto>>",
+        "params": "[FromBody] CreateSubscriptionDto request"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "subscription/{id:guid}",
+        "actionName": "GetSubscription",
+        "returnType": "ActionResult<SubscriptionDto>",
+        "params": "[FromRoute] Guid id"
+      }
+    ],
+    "injected": [
+      "IBillingService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/CompaniesController.cs",
+    "className": "CompaniesController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 3,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "List",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 10, [FromQuery] bool includeDeleted = false"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "all",
+        "actionName": "ListAll",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "{id:guid}",
+        "actionName": "Get",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "InputSanitizer",
+      "ICacheService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/ContactSubmissionsController.cs",
+    "className": "ContactSubmissionsController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"Module:platform\""
+    ],
+    "endpointsCount": 2,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "List",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 20"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "{id:guid}",
+        "actionName": "Update",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] UpdateContactSubmissionDto dto"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/CustomFieldsController.cs",
+    "className": "CustomFieldsController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/administration/custom-fields",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 4,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "definitions/{entityName}",
+        "actionName": "GetDefinitions",
+        "returnType": "IActionResult>",
+        "params": "string entityName, CancellationToken cancellationToken"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "definitions",
+        "actionName": "CreateDefinition",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateCustomFieldDto dto, CancellationToken cancellationToken"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "values/{entityName}/{recordId:guid}",
+        "actionName": "GetRecordValues",
+        "returnType": "IActionResult>",
+        "params": "string entityName, Guid recordId, CancellationToken cancellationToken"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "values/{entityName}",
+        "actionName": "SaveRecordValues",
+        "returnType": "IActionResult>",
+        "params": "string entityName, [FromBody] SaveFieldValueDto dto, CancellationToken cancellationToken"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/DocumentsController.cs",
+    "className": "DocumentsController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 2,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "{id:guid}/download",
+        "actionName": "Download",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "{id:guid}",
+        "actionName": "Delete",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/ElectronicDataInterchangeController.cs",
+    "className": "ElectronicDataInterchangeController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/integrations/electronic-data-interchange",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 3,
+    "endpoints": [
+      {
+        "verb": "POST",
+        "subRoute": "parse",
+        "actionName": "ParseEdi",
+        "returnType": "IActionResult",
+        "params": "[FromBody] RawEdiPayloadRequest req"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "generate-810",
+        "actionName": "Generate810",
+        "returnType": "IActionResult",
+        "params": "[FromBody] GenerateEdi810Request req"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "generate-856",
+        "actionName": "Generate856",
+        "returnType": "IActionResult",
+        "params": "[FromBody] GenerateEdi856Request req"
+      }
+    ],
+    "injected": [
+      "IEdiParserService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/EntityFieldsController.cs",
+    "className": "EntityFieldsController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/entity-fields",
+    "authorization": [
+      "Default",
+      "Roles = \"SuperAdmin,Admin\"",
+      "Roles = \"SuperAdmin,Admin\"",
+      "Roles = \"SuperAdmin,Admin\"",
+      "Roles = \"SuperAdmin,Admin\""
+    ],
+    "endpointsCount": 3,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "definitions/{entityName}",
+        "actionName": "GetDefinitions",
+        "returnType": "IActionResult>",
+        "params": "string entityName"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "values/{entityName}/{recordId}",
+        "actionName": "GetValues",
+        "returnType": "IActionResult>",
+        "params": "string entityName, Guid recordId"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "values/{entityName}/{recordId}",
+        "actionName": "SaveValues",
+        "returnType": "IActionResult>",
+        "params": "string entityName, Guid recordId, [FromBody] SaveFieldValuesDto dto"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/GeographyController.cs",
+    "className": "GeographyController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/geo",
+    "authorization": [
+      "Default",
+      "Policy = \"Module:platform\""
+    ],
+    "endpointsCount": 4,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "countries",
+        "actionName": "ListCountries",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "states",
+        "actionName": "ListStates",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? countryId"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "districts",
+        "actionName": "ListDistricts",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? stateId"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "cities",
+        "actionName": "ListCities",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? districtId"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/GlobalSearchController.cs",
+    "className": "GlobalSearchController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/administration/search",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 1,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "GlobalSearch",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] string? q, CancellationToken cancellationToken"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/HelpdeskController.cs",
+    "className": "HelpdeskController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/helpdesk",
+    "authorization": [
+      "Default",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 6,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "tickets/{id:guid}",
+        "actionName": "GetTicketById",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "tickets",
+        "actionName": "CreateTicket",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateHelpdeskTicketDto dto"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "tickets/{id:guid}",
+        "actionName": "UpdateTicket",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] UpdateHelpdeskTicketDto dto"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "escalations",
+        "actionName": "ListEscalations",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] string? status = null, [FromQuery] int page = 1, [FromQuery] int limit = 20"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "escalations/{id:guid}",
+        "actionName": "GetEscalationById",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "faq",
+        "actionName": "ListFaq",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] string? category = null, [FromQuery] string? search = null, [FromQuery] int page = 1, [FromQuery] int limit = 20"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "IDocumentNumberService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/IndustryExtensionsController.cs",
+    "className": "IndustryExtensionsController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/industry-extensions",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 3,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "GetSupportedIndustries",
+        "returnType": "IActionResult",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "active",
+        "actionName": "GetActiveIndustryManifest",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "POST",
+        "subRoute": "select/{code}",
+        "actionName": "SetActiveIndustry",
+        "returnType": "IActionResult>",
+        "params": "string code"
+      }
+    ],
+    "injected": [
+      "IIndustryExtensionService",
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/IntegrationsController.cs",
+    "className": "IntegrationsController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default",
+      "Policy = \"Module:licensing\""
+    ],
+    "endpointsCount": 10,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "api-keys",
+        "actionName": "ApiKeys",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "POST",
+        "subRoute": "api-keys",
+        "actionName": "CreateApiKey",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateApiKeyDto? dto"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "api-keys/{id:guid}/revoke",
+        "actionName": "RevokeApiKey",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "List",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "{id:guid}",
+        "actionName": "Get",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "{id:guid}",
+        "actionName": "UpsertConfig",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] UpsertIntegrationConfigDto dto"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "{id:guid}/test",
+        "actionName": "TestConnection",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "{id:guid}/sync",
+        "actionName": "Sync",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "logs",
+        "actionName": "AllLogs",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int limit = 50"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "{id:guid}/logs",
+        "actionName": "Logs",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromQuery] int limit = 25"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/LicensingController.cs",
+    "className": "LicensingController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/licensing",
+    "authorization": [
+      "Default",
+      "Policy = \"Module:licensing\""
+    ],
+    "endpointsCount": 5,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "usage",
+        "actionName": "Usage",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] string? period"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "invoices",
+        "actionName": "Invoices",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] string? status"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "invoices",
+        "actionName": "CreateInvoice",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateLicenseInvoiceDto dto"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "invoices/{id:guid}/pay",
+        "actionName": "MarkInvoicePaid",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "invoices/{id:guid}",
+        "actionName": "DeleteInvoice",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/LocalizationController.cs",
+    "className": "LocalizationController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 3,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "countries",
+        "actionName": "GetCountries",
+        "returnType": "IActionResult",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "profile/{countryCode}",
+        "actionName": "GetCountryProfile",
+        "returnType": "IActionResult",
+        "params": "string countryCode"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "current-tenant",
+        "actionName": "GetCurrentTenantLocalization",
+        "returnType": "IActionResult>",
+        "params": ""
+      }
+    ],
+    "injected": [
+      "ILocalizationService",
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/ModulesController.cs",
+    "className": "ModulesController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default",
+      "Policy = \"Module:platform\"",
+      "Policy = \"Module:platform\"",
+      "Policy = \"Module:platform\""
+    ],
+    "endpointsCount": 1,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "enabled",
+        "actionName": "GetEnabledModules",
+        "returnType": "IActionResult>",
+        "params": ""
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/MultiFactorAuthenticationController.cs",
+    "className": "MultiFactorAuthenticationController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/multi-factor-authentication",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 4,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "status",
+        "actionName": "GetStatus",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "POST",
+        "subRoute": "setup",
+        "actionName": "Setup",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "POST",
+        "subRoute": "verify",
+        "actionName": "Verify",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] MfaVerifyDto dto"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "disable",
+        "actionName": "Disable",
+        "returnType": "IActionResult>",
+        "params": ""
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/OrgContextController.cs",
+    "className": "OrgContextController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/org-context",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 1,
+    "endpoints": [
+      {
+        "verb": "POST",
+        "subRoute": "events",
+        "actionName": "LogContextChange",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] OrgContextChangeDto dto"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/OrgStructureController.cs",
+    "className": "OrgStructureController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/org",
+    "authorization": [
+      "Default",
+      "Policy = \"Module:platform\""
+    ],
+    "endpointsCount": 40,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "departments",
+        "actionName": "ListDepartments",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? companyId"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "departments",
+        "actionName": "CreateDepartment",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] UpsertDepartmentRequest request"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "departments/{id:guid}",
+        "actionName": "UpdateDepartment",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] UpsertDepartmentRequest request"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "departments/{id:guid}",
+        "actionName": "DeleteDepartment",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "designations",
+        "actionName": "ListDesignations",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? companyId"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "designations",
+        "actionName": "CreateDesignation",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] UpsertDesignationRequest request"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "designations/{id:guid}",
+        "actionName": "UpdateDesignation",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] UpsertDesignationRequest request"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "designations/{id:guid}",
+        "actionName": "DeleteDesignation",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "branches",
+        "actionName": "ListBranches",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? companyId"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "branches",
+        "actionName": "CreateBranch",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] UpsertBranchRequest request"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "branches/{id:guid}",
+        "actionName": "UpdateBranch",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] UpsertBranchRequest request"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "branches/{id:guid}",
+        "actionName": "DeleteBranch",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "cost-centers",
+        "actionName": "ListCostCenters",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? companyId"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "cost-centers",
+        "actionName": "CreateCostCenter",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] UpsertCostCenterRequest request"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "cost-centers/{id:guid}",
+        "actionName": "UpdateCostCenter",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] UpsertCostCenterRequest request"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "cost-centers/{id:guid}",
+        "actionName": "DeleteCostCenter",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "business-units",
+        "actionName": "ListBusinessUnits",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? companyId"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "business-units",
+        "actionName": "CreateBusinessUnit",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] UpsertBusinessUnitRequest request"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "business-units/{id:guid}",
+        "actionName": "UpdateBusinessUnit",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] UpsertBusinessUnitRequest request"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "business-units/{id:guid}",
+        "actionName": "DeleteBusinessUnit",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "zones",
+        "actionName": "ListZones",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? companyId"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "zones",
+        "actionName": "CreateZone",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] UpsertBusinessZoneRequest request"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "zones/{id:guid}",
+        "actionName": "UpdateZone",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] UpsertBusinessZoneRequest request"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "zones/{id:guid}",
+        "actionName": "DeleteZone",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "regions",
+        "actionName": "ListRegions",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? companyId, [FromQuery] Guid? zoneId"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "regions",
+        "actionName": "CreateRegion",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] UpsertBusinessRegionRequest request"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "regions/{id:guid}",
+        "actionName": "UpdateRegion",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] UpsertBusinessRegionRequest request"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "regions/{id:guid}",
+        "actionName": "DeleteRegion",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "clusters",
+        "actionName": "ListClusters",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? companyId, [FromQuery] Guid? regionId"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "clusters",
+        "actionName": "CreateCluster",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] UpsertBusinessClusterRequest request"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "clusters/{id:guid}",
+        "actionName": "UpdateCluster",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] UpsertBusinessClusterRequest request"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "clusters/{id:guid}",
+        "actionName": "DeleteCluster",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "operational-locations",
+        "actionName": "ListOperationalLocations",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? companyId, [FromQuery] Guid? districtId"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "operational-locations",
+        "actionName": "CreateOperationalLocation",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] UpsertOperationalLocationRequest request"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "operational-locations/{id:guid}",
+        "actionName": "UpdateOperationalLocation",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] UpsertOperationalLocationRequest request"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "operational-locations/{id:guid}",
+        "actionName": "DeleteOperationalLocation",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "posting-units",
+        "actionName": "ListPostingUnits",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? companyId, [FromQuery] Guid? parentLocationId"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "posting-units",
+        "actionName": "CreatePostingUnit",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] UpsertPostingUnitRequest request"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "posting-units/{id:guid}",
+        "actionName": "UpdatePostingUnit",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] UpsertPostingUnitRequest request"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "posting-units/{id:guid}",
+        "actionName": "DeletePostingUnit",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/PermissionsController.cs",
+    "className": "PermissionsController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default",
+      "Policy = \"Module:platform\""
+    ],
+    "endpointsCount": 3,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "List",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "POST",
+        "subRoute": "",
+        "actionName": "Create",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreatePermissionDto dto"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "{id:guid}",
+        "actionName": "Delete",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/PoliciesController.cs",
+    "className": "PoliciesController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 12,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "List",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] string? category = null, [FromQuery] string? status = null, [FromQuery] string? search = null"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "ui-schema",
+        "actionName": "GetUiSchema",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? companyId = null, [FromQuery] Guid? projectId = null"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "",
+        "actionName": "Create",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] JsonElement payload"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "{id:guid}/versions",
+        "actionName": "CreateVersion",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] JsonElement payload"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "{id:guid}",
+        "actionName": "Delete",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "schema/{category}",
+        "actionName": "GetCategorySchema",
+        "returnType": "IActionResult>",
+        "params": "string category, [FromQuery] Guid? companyId = null, [FromQuery] Guid? projectId = null"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "definitions",
+        "actionName": "CreateDefinition",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] PolicyRuleDefinition model"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "definitions/{id:guid}",
+        "actionName": "UpdateDefinition",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] PolicyRuleDefinition model"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "definitions/{id:guid}",
+        "actionName": "DeleteDefinition",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "definitions/bulk",
+        "actionName": "BulkUpsertDefinitions",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] List<PolicyRuleDefinition> definitions"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "evaluate",
+        "actionName": "Evaluate",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] JsonElement payload"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "simulate",
+        "actionName": "Simulate",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] JsonElement payload"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/PrivacyController.cs",
+    "className": "PrivacyController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 1,
+    "endpoints": [
+      {
+        "verb": "POST",
+        "subRoute": "export-me",
+        "actionName": "ExportMyData",
+        "returnType": "IActionResult>",
+        "params": ""
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/PublicController.cs",
+    "className": "PublicController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/public",
+    "authorization": [],
+    "endpointsCount": 5,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "check-subdomain",
+        "actionName": "CheckSubdomain",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] string? subdomain"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "company-profile",
+        "actionName": "GetCompanyProfile",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] string? audience = null"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "site-data",
+        "actionName": "GetSiteData",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] string? audience = null"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "website-pages/{pageType}",
+        "actionName": "GetWebsitePage",
+        "returnType": "IActionResult>",
+        "params": "string pageType, [FromQuery] string? audience = null"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "site-manifest",
+        "actionName": "GetSiteManifest",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] string? audience = null"
+      }
+    ],
+    "injected": [
+      "ITenantAccessor",
+      "IWebsiteContentService",
+      "ILogger<PublicController>",
+      "ApplicationDbContext",
+      "IPasswordHasher<User>",
+      "JwtService",
+      "IEncryptionService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/RolesController.cs",
+    "className": "RolesController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default",
+      "Policy = \"Module:platform\""
+    ],
+    "endpointsCount": 6,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "List",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? tenantId = null"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "",
+        "actionName": "Create",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateRoleDto dto"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "{roleId:guid}",
+        "actionName": "Update",
+        "returnType": "IActionResult>",
+        "params": "Guid roleId, [FromBody] UpdateRoleDto dto"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "{roleId:guid}",
+        "actionName": "Delete",
+        "returnType": "IActionResult>",
+        "params": "Guid roleId"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "{roleId:guid}/permissions",
+        "actionName": "GetRolePermissions",
+        "returnType": "IActionResult>",
+        "params": "Guid roleId"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "{roleId:guid}/permissions",
+        "actionName": "UpdateRolePermissions",
+        "returnType": "IActionResult>",
+        "params": "Guid roleId, [FromBody] UpdateRolePermissionsDto dto"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/SearchController.cs",
+    "className": "SearchController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/search",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 1,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "Search",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] string? q = null, [FromQuery] int take = 20"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/SecurityController.cs",
+    "className": "SecurityController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default",
+      "Policy = \"Module:security\""
+    ],
+    "endpointsCount": 20,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "device-sessions",
+        "actionName": "DeviceSessions",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "password-policy",
+        "actionName": "PasswordPolicy",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "password-policy",
+        "actionName": "UpdatePasswordPolicy",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] PasswordPolicyDto dto"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "mfa-policy",
+        "actionName": "MfaPolicy",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "mfa-policy",
+        "actionName": "UpdateMfaPolicy",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] MfaPolicyDto dto"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "mfa-enrollments",
+        "actionName": "MfaEnrollments",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "directory-users",
+        "actionName": "DirectoryUsers",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "POST",
+        "subRoute": "mfa-enrollments",
+        "actionName": "CreateMfaEnrollment",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateMfaEnrollmentDto dto"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "mfa-enrollments/{id:guid}/enroll",
+        "actionName": "MarkMfaEnrolled",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "mfa-enrollments/{id:guid}/disable",
+        "actionName": "DisableMfaEnrollment",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "sso-providers",
+        "actionName": "SsoProviders",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "POST",
+        "subRoute": "sso-providers",
+        "actionName": "CreateSsoProvider",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateSsoProviderDto dto"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "sso-providers/{id:guid}",
+        "actionName": "UpdateSsoProvider",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] CreateSsoProviderDto dto"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "sso-providers/{id:guid}/test",
+        "actionName": "TestSsoProvider",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "sso-providers/{id:guid}/enable",
+        "actionName": "EnableSsoProvider",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "sso-providers/{id:guid}/disable",
+        "actionName": "DisableSsoProvider",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "sso-providers/{id:guid}",
+        "actionName": "DeleteSsoProvider",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "ip-rules",
+        "actionName": "IpRules",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "POST",
+        "subRoute": "ip-rules",
+        "actionName": "CreateIpRule",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateIpAccessRuleDto dto"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "ip-rules/{id:guid}",
+        "actionName": "DeleteIpRule",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/SettingsController.cs",
+    "className": "SettingsController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Policy = \"AdminOnly\"",
+      "Policy = \"Module:platform\""
+    ],
+    "endpointsCount": 4,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "feature-flags",
+        "actionName": "GetFeatureFlags",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "POST",
+        "subRoute": "feature-flags",
+        "actionName": "UpsertFeatureFlag",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] UpdateFeatureFlagDto dto"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "tenant-config",
+        "actionName": "GetTenantConfig",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "tenant-config",
+        "actionName": "UpdateTenantConfig",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] UpdateTenantConfigDto dto"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/SubscriptionsController.cs",
+    "className": "SubscriptionsController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 4,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "current",
+        "actionName": "GetCurrentSubscription",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "POST",
+        "subRoute": "checkout-session",
+        "actionName": "CreateCheckoutSession",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateCheckoutDto dto"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "verify-payment",
+        "actionName": "VerifyPayment",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] VerifyPaymentDto dto"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "cancel",
+        "actionName": "CancelSubscription",
+        "returnType": "IActionResult>",
+        "params": ""
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/SuperadminTenantsController.cs",
+    "className": "SuperadminTenantsController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/superadmin/tenants",
+    "authorization": [
+      "Default",
+      "Roles = \"SUPERADMIN,SuperAdmin,ADMIN,Admin\"",
+      "Roles = \"SUPERADMIN,SuperAdmin,ADMIN,Admin\""
+    ],
+    "endpointsCount": 0,
+    "endpoints": [],
+    "injected": [
+      "ApplicationDbContext",
+      "TenantProvisioningService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/SystemController.cs",
+    "className": "SystemController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/system",
+    "authorization": [
+      "Default",
+      "Roles = \"SuperAdmin,Admin\""
+    ],
+    "endpointsCount": 2,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "financial-years",
+        "actionName": "GetFinancialYears",
+        "returnType": "IActionResult",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "metrics/summary",
+        "actionName": "GetMetricsSummary",
+        "returnType": "IActionResult",
+        "params": ""
+      }
+    ],
+    "injected": [
+      "ISystemMetrics?",
+      "IIndianEnterpriseDemoSeeder?",
+      "ITenantAccessor?"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/TenantsController.cs",
+    "className": "TenantsController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Policy = \"Module:platform\""
+    ],
+    "endpointsCount": 11,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "{id}",
+        "actionName": "GetById",
+        "returnType": "IActionResult>",
+        "params": "string id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "resolve",
+        "actionName": "Resolve",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] string? subdomain, [FromQuery] string? host"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "",
+        "actionName": "Create",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateTenantDto dto"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "provisioning/dashboard",
+        "actionName": "ProvisioningDashboard",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "{id:guid}/health",
+        "actionName": "Health",
+        "returnType": "IActionResult>",
+        "params": "System.Guid id, [FromQuery] bool recover = false"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "{id:guid}/provisioning/logs",
+        "actionName": "ProvisioningLogs",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromQuery] int take = 100"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "{id:guid}/repair",
+        "actionName": "Repair",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "{id:guid}",
+        "actionName": "Update",
+        "returnType": "IActionResult>",
+        "params": "System.Guid id, [FromBody] UpdateTenantDto dto"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "{id:guid}",
+        "actionName": "Delete",
+        "returnType": "IActionResult>",
+        "params": "System.Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "{id}/restore",
+        "actionName": "Restore",
+        "returnType": "IActionResult>",
+        "params": "string id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "bulk",
+        "actionName": "BulkAction",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] TenantBulkActionDto payload"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "TenantProvisioningService",
+      "TenantResolutionService",
+      "ILogger<TenantsController>",
+      "IDistributedCache"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/UiPagesController.cs",
+    "className": "UiPagesController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/ui-pages",
+    "authorization": [
+      "Default",
+      "Roles = \"SuperAdmin,Admin\"",
+      "Roles = \"SuperAdmin,Admin\"",
+      "Roles = \"SuperAdmin,Admin\"",
+      "Roles = \"SuperAdmin,Admin\"",
+      "Roles = \"SuperAdmin,Admin\""
+    ],
+    "endpointsCount": 3,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "entities",
+        "actionName": "GetEntities",
+        "returnType": "IActionResult>",
+        "params": "CancellationToken ct"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "entities/{entityName}/fields",
+        "actionName": "GetEntityFields",
+        "returnType": "IActionResult>",
+        "params": "string entityName, CancellationToken ct"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "ListPages",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] string? moduleKey, CancellationToken ct"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "IEntityMetadataService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/UiShellController.cs",
+    "className": "UiShellController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/ui-shell",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 4,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "navigation",
+        "actionName": "GetNavigation",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "route-rules",
+        "actionName": "GetRouteRules",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "dashboard",
+        "actionName": "GetDashboard",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "page-schema/{pageKey}",
+        "actionName": "GetPageSchema",
+        "returnType": "IActionResult>",
+        "params": "[FromRoute] string pageKey"
+      }
+    ],
+    "injected": [
+      "IUiSchemaService",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/UserPermissionsController.cs",
+    "className": "UserPermissionsController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/permissions",
+    "authorization": [
+      "Default",
+      "Policy = \"Module:platform\""
+    ],
+    "endpointsCount": 3,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "catalog",
+        "actionName": "GetPermissionCatalog",
+        "returnType": "IActionResult",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "users/{userId:guid}",
+        "actionName": "GetUserPermissions",
+        "returnType": "IActionResult>",
+        "params": "Guid userId"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "users/{userId:guid}/batch",
+        "actionName": "SaveUserPermissions",
+        "returnType": "IActionResult>",
+        "params": "Guid userId, [FromBody] SaveUserPermissionsRequest request"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/UsersController.cs",
+    "className": "UsersController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Policy = \"AdminOnly\"",
+      "Policy = \"Module:platform\"",
+      "Default"
+    ],
+    "endpointsCount": 4,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "List",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] bool includeDeleted = false"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "",
+        "actionName": "Create",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateUserDto dto"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "{id:guid}",
+        "actionName": "Update",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] UpdateUserDto dto"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "{id:guid}",
+        "actionName": "Delete",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "IPasswordHasher<User>",
+      "IEncryptionService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/WebhooksController.cs",
+    "className": "WebhooksController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 6,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "List",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "POST",
+        "subRoute": "",
+        "actionName": "Create",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateWebhookDto dto"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "{id:guid}",
+        "actionName": "Update",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] CreateWebhookDto dto"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "{id:guid}",
+        "actionName": "Delete",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "{id:guid}/test",
+        "actionName": "TestFire",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "logs",
+        "actionName": "Logs",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int limit = 50"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Administration/Controllers/WebsiteController.cs",
+    "className": "WebsiteController",
+    "moduleName": "Administration",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Policy = \"Module:platform\""
+    ],
+    "endpointsCount": 5,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "pages",
+        "actionName": "GetPages",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "pages/{pageType}",
+        "actionName": "GetPage",
+        "returnType": "IActionResult>",
+        "params": "string pageType"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "pages/{pageType}",
+        "actionName": "UpdatePage",
+        "returnType": "IActionResult>",
+        "params": "string pageType, [FromBody] UpdateWebsitePageRequest request"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "pages/{pageType}/publish",
+        "actionName": "PublishPage",
+        "returnType": "IActionResult>",
+        "params": "string pageType, [FromQuery] Guid? tenantId = null"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "pages/{pageType}/unpublish",
+        "actionName": "UnpublishPage",
+        "returnType": "IActionResult>",
+        "params": "string pageType, [FromQuery] Guid? tenantId = null"
+      }
+    ],
+    "injected": [
+      "IWebsiteContentService",
+      "ILogger<WebsiteController>"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Assets/Controllers/AssetsController.cs",
+    "className": "AssetsController",
+    "moduleName": "Assets",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default",
+      "Policy = \"Module:hrms\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager,Employee\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR,Manager,Employee\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR\""
+    ],
+    "endpointsCount": 0,
+    "endpoints": [],
+    "injected": [
+      "IAssetRepository",
+      "ITenantAccessor",
+      "ILogger<AssetsController>",
+      "ICacheService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Assets/Controllers/FixedAssetDepreciationController.cs",
+    "className": "FixedAssetDepreciationController",
+    "moduleName": "Assets",
+    "routeTemplate": "api/v1/assets/depreciation",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 1,
+    "endpoints": [
+      {
+        "verb": "POST",
+        "subRoute": "run-post",
+        "actionName": "PostDepreciationRun",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] PostDepreciationRunRequest req"
+      }
+    ],
+    "injected": [
+      "IFixedAssetDepreciationService",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Assets/Controllers/FleetController.cs",
+    "className": "FleetController",
+    "moduleName": "Assets",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 10,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "kpis",
+        "actionName": "GetKpis",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "vehicles",
+        "actionName": "GetVehicles",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] string? status = null"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "vehicles/{id:guid}",
+        "actionName": "GetVehicleById",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "vehicles",
+        "actionName": "CreateVehicle",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateVehicleRequest req"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "vehicles/{id:guid}",
+        "actionName": "UpdateVehicle",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] UpdateVehicleRequest req"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "vehicles/{id:guid}",
+        "actionName": "DeleteVehicle",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "maintenance",
+        "actionName": "GetMaintenances",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? vehicleId = null"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "maintenance",
+        "actionName": "CreateMaintenance",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateMaintenanceRequest req"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "fuel-logs",
+        "actionName": "GetFuelLogs",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? vehicleId = null"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "fuel-logs",
+        "actionName": "CreateFuelLog",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateFuelLogRequest req"
+      }
+    ],
+    "injected": [
+      "IFleetService",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Compliance/Controllers/ComplianceController.cs",
+    "className": "ComplianceController",
+    "moduleName": "Compliance",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default",
+      "Policy = \"Module:compliance\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager,Employee\"",
+      "Roles = \"Admin,HR,Manager,Employee\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager,Employee\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Employee\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager,Employee\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager,Employee\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager,Employee\"",
+      "Roles = \"Admin,HR,Manager,Employee\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR,Employee\"",
+      "Roles = \"Admin,HR,Employee\"",
+      "Roles = \"Admin,HR,Employee\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR\""
+    ],
+    "endpointsCount": 1,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "pf-withdrawals/{id}",
+        "actionName": "GetPFWithdrawalById",
+        "returnType": "ActionResult<PFWithdrawalDto>>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "IComplianceRepository",
+      "ILogger<ComplianceController>"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/CRM/Controllers/CustomersController.cs",
+    "className": "CustomersController",
+    "moduleName": "CRM",
+    "routeTemplate": "api/v1/crm/customers",
+    "authorization": [
+      "Policy = \"Module:crm\""
+    ],
+    "endpointsCount": 5,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "GetAll",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 10"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "{id}",
+        "actionName": "GetById",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "",
+        "actionName": "Create",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateCustomerDto dto"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "{id}",
+        "actionName": "Update",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] UpdateCustomerDto dto"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "{id}",
+        "actionName": "Delete",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "IDocumentNumberService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/CRM/Controllers/LeadsController.cs",
+    "className": "LeadsController",
+    "moduleName": "CRM",
+    "routeTemplate": "api/v1/crm/leads",
+    "authorization": [
+      "Policy = \"Module:crm\"",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 5,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "GetAll",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 50"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "{id}",
+        "actionName": "GetById",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "",
+        "actionName": "Create",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateCrmLeadDto dto"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "{id}",
+        "actionName": "Update",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] UpdateCrmLeadDto dto"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "{id}",
+        "actionName": "Delete",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "IDocumentNumberService",
+      "IDocumentConversionService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Finance/Controllers/AccountingPeriodsController.cs",
+    "className": "AccountingPeriodsController",
+    "moduleName": "Finance",
+    "routeTemplate": "api/v1/finance/periods",
+    "authorization": [
+      "Default",
+      "Policy = \"Module:finance\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 1,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "List",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int? year = null"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "IAccountingPeriodService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Finance/Controllers/BankFeedController.cs",
+    "className": "BankFeedController",
+    "moduleName": "Finance",
+    "routeTemplate": "api/v1/finance/bank-feed",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 3,
+    "endpoints": [
+      {
+        "verb": "POST",
+        "subRoute": "parse-ofx",
+        "actionName": "ParseOfx",
+        "returnType": "IActionResult",
+        "params": "[FromBody] RawPayloadApiRequest req"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "parse-mt940",
+        "actionName": "ParseMt940",
+        "returnType": "IActionResult",
+        "params": "[FromBody] RawPayloadApiRequest req"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "parse-csv",
+        "actionName": "ParseCsv",
+        "returnType": "IActionResult",
+        "params": "[FromBody] RawPayloadApiRequest req"
+      }
+    ],
+    "injected": [
+      "IBankFeedParserService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Finance/Controllers/BankReconciliationsController.cs",
+    "className": "BankReconciliationsController",
+    "moduleName": "Finance",
+    "routeTemplate": "api/v1/bank-reconciliations",
+    "authorization": [
+      "Policy = \"Module:finance\""
+    ],
+    "endpointsCount": 5,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "GetAll",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 50"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "{id}",
+        "actionName": "GetById",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "",
+        "actionName": "Create",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateBankReconciliationDto dto"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "{id}",
+        "actionName": "Update",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] UpdateBankReconciliationDto dto"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "{id}",
+        "actionName": "Delete",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "IBankReconciliationService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Finance/Controllers/BudgetingController.cs",
+    "className": "BudgetingController",
+    "moduleName": "Finance",
+    "routeTemplate": "api/v1/finance/budgeting",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 1,
+    "endpoints": [
+      {
+        "verb": "POST",
+        "subRoute": "allocate",
+        "actionName": "SaveBudgetAllocation",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] SaveBudgetAllocationRequest req"
+      }
+    ],
+    "injected": [
+      "IBudgetingService",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Finance/Controllers/ChartOfAccountsController.cs",
+    "className": "ChartOfAccountsController",
+    "moduleName": "Finance",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 8,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "GetAll",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] string? type = null"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "{id}",
+        "actionName": "GetById",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "templates",
+        "actionName": "GetTemplates",
+        "returnType": "IActionResult",
+        "params": ""
+      },
+      {
+        "verb": "POST",
+        "subRoute": "seed-standard",
+        "actionName": "SeedStandard",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] SeedStandardCoaDto dto, CancellationToken ct"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "",
+        "actionName": "Create",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateChartOfAccountDto dto"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "{id}",
+        "actionName": "Update",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] UpdateChartOfAccountDto dto"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "{id}",
+        "actionName": "Delete",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "getBalances",
+        "actionName": "GetAccountBalances",
+        "returnType": "IActionResult>",
+        "params": ""
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "IChartOfAccountsTemplateService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Finance/Controllers/CurrenciesController.cs",
+    "className": "CurrenciesController",
+    "moduleName": "Finance",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 1,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "GetSupportedCurrencies",
+        "returnType": "IActionResult",
+        "params": "[FromQuery] string baseCurrency = \"USD\""
+      }
+    ],
+    "injected": [
+      "ICurrencyConversionService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Finance/Controllers/EInvoiceController.cs",
+    "className": "EInvoiceController",
+    "moduleName": "Finance",
+    "routeTemplate": "api/v1/finance/einvoice",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 5,
+    "endpoints": [
+      {
+        "verb": "POST",
+        "subRoute": "generate/{invoiceId:guid}",
+        "actionName": "GenerateEInvoice",
+        "returnType": "IActionResult>",
+        "params": "Guid invoiceId"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "eway-bill",
+        "actionName": "GenerateEWayBill",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] EWayBillRequest req"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "generate-peppol",
+        "actionName": "GeneratePeppol",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] PeppolApiRequest req"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "generate-zatca",
+        "actionName": "GenerateZatca",
+        "returnType": "IActionResult",
+        "params": "[FromBody] ZatcaApiRequest req"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "compute-irn",
+        "actionName": "ComputeIrn",
+        "returnType": "IActionResult",
+        "params": "[FromBody] ComputeIrnApiRequest req"
+      }
+    ],
+    "injected": [
+      "IEInvoiceService",
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Finance/Controllers/ExpensesController.cs",
+    "className": "ExpensesController",
+    "moduleName": "Finance",
+    "routeTemplate": "api/v1/expenses",
+    "authorization": [
+      "Policy = \"Module:finance\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 4,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "GetAll",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 50, [FromQuery] string? status = null"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "",
+        "actionName": "Create",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateExpenseClaimDto dto"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "{id}",
+        "actionName": "Update",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] UpdateExpenseClaimDto dto"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "{id}",
+        "actionName": "Delete",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "IDocumentNumberService",
+      "IExpenseClaimService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Finance/Controllers/FinanceConsolidationController.cs",
+    "className": "FinanceConsolidationController",
+    "moduleName": "Finance",
+    "routeTemplate": "api/v1/finance",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 5,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "currency/rates",
+        "actionName": "GetRates",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] string? baseCurrency = \"USD\""
+      },
+      {
+        "verb": "POST",
+        "subRoute": "currency/convert",
+        "actionName": "ConvertCurrency",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] ConvertCurrencyRequest req"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "currency/fx-gain-loss",
+        "actionName": "CalculateFxGainLoss",
+        "returnType": "IActionResult",
+        "params": "[FromBody] FxGainLossRequest req"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "coa/templates",
+        "actionName": "GetCoaTemplates",
+        "returnType": "IActionResult",
+        "params": ""
+      },
+      {
+        "verb": "POST",
+        "subRoute": "coa/seed",
+        "actionName": "SeedCoaTemplate",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] SeedCoaRequest req"
+      }
+    ],
+    "injected": [
+      "ICurrencyExchangeService",
+      "IChartOfAccountsTemplateService",
+      "IFinancialConsolidationService",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Finance/Controllers/JournalEntriesController.cs",
+    "className": "JournalEntriesController",
+    "moduleName": "Finance",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 2,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "GetAll",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 20, [FromQuery] string? status = null"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "{id:guid}",
+        "actionName": "GetById",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "IJournalEntryService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Finance/Controllers/PaymentGatewayController.cs",
+    "className": "PaymentGatewayController",
+    "moduleName": "Finance",
+    "routeTemplate": "api/v1/payments",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 5,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "gateways",
+        "actionName": "GetSupportedGateways",
+        "returnType": "IActionResult",
+        "params": ""
+      },
+      {
+        "verb": "POST",
+        "subRoute": "intent",
+        "actionName": "CreatePaymentIntent",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateIntentApiRequest req"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "capture",
+        "actionName": "CapturePayment",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CapturePaymentApiRequest req"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "refund",
+        "actionName": "RefundPayment",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] RefundPaymentApiRequest req"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "billing/run-cycle",
+        "actionName": "RunSubscriptionBillingCycle",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] DateTime? asOfDate = null"
+      }
+    ],
+    "injected": [
+      "IPaymentGatewayFactory",
+      "ISubscriptionBillingService",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Finance/Controllers/PaymentsController.cs",
+    "className": "PaymentsController",
+    "moduleName": "Finance",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 2,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "GetAll",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 20, [FromQuery] string? paymentType = null"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "{id:guid}",
+        "actionName": "GetById",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "IPaymentService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Finance/Controllers/PaymentWebhookController.cs",
+    "className": "PaymentWebhookController",
+    "moduleName": "Finance",
+    "routeTemplate": "api/v1/payments/webhooks",
+    "authorization": [],
+    "endpointsCount": 1,
+    "endpoints": [
+      {
+        "verb": "POST",
+        "subRoute": "{provider}",
+        "actionName": "HandleWebhook",
+        "returnType": "IActionResult>",
+        "params": "string provider"
+      }
+    ],
+    "injected": [
+      "IPaymentGatewayFactory",
+      "ApplicationDbContext"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Finance/Controllers/TaxController.cs",
+    "className": "TaxController",
+    "moduleName": "Finance",
+    "routeTemplate": "api/v1/tax",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 5,
+    "endpoints": [
+      {
+        "verb": "POST",
+        "subRoute": "calculate",
+        "actionName": "CalculateGeneric",
+        "returnType": "IActionResult",
+        "params": "[FromBody] TaxCalculationRequest req"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "gst/calculate",
+        "actionName": "CalculateGst",
+        "returnType": "IActionResult",
+        "params": "[FromBody] GstCalcRequest req"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "gst/gstr1",
+        "actionName": "Gstr1",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int? year = null, [FromQuery] int? month = null"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "gst/gstr3b",
+        "actionName": "Gstr3b",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int? year = null, [FromQuery] int? month = null"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "gst/summary",
+        "actionName": "Summary",
+        "returnType": "IActionResult>",
+        "params": ""
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITaxCalculationEngine"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/HRMS/Controllers/AppraisalsController.cs",
+    "className": "AppraisalsController",
+    "moduleName": "HRMS",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 7,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "cycles",
+        "actionName": "GetAppraisalCycles",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 10"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "cycles/{id:guid}",
+        "actionName": "GetAppraisalCycle",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "GetMyAppraisals",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 10"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "{id:guid}",
+        "actionName": "GetAppraisal",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "{id:guid}/self-assess",
+        "actionName": "SubmitSelfAssessment",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] SubmitSelfAssessmentDto dto"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "{id:guid}/assess",
+        "actionName": "SubmitManagerAssessment",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] SubmitManagerAssessmentDto dto"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "competencies",
+        "actionName": "GetCompetencies",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 50"
+      }
+    ],
+    "injected": [
+      "IAppraisalRepository",
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "ICacheService",
+      "IAppraisalCycleService",
+      "IAppraisalAssessmentService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/HRMS/Controllers/AttendanceController.cs",
+    "className": "AttendanceController",
+    "moduleName": "HRMS",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default",
+      "Policy = \"Module:hrms\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager\""
+    ],
+    "endpointsCount": 22,
+    "endpoints": [
+      {
+        "verb": "POST",
+        "subRoute": "punch",
+        "actionName": "Punch",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] AttendancePunchDto dto"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "punch/me",
+        "actionName": "PunchMe",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] AttendancePunchDto? dto = null"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "List",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? employeeId = null, [FromQuery] int page = 1, [FromQuery] int limit = 50"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "{id:guid}",
+        "actionName": "GetById",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "{id:guid}",
+        "actionName": "Update",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] AttendanceUpdateDto dto"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "{id:guid}",
+        "actionName": "Delete",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "policies",
+        "actionName": "GetPolicies",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? companyId = null, [FromQuery] Guid? projectId = null"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "policies/schema",
+        "actionName": "GetPolicySchema",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? companyId = null, [FromQuery] Guid? projectId = null"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "policies/default",
+        "actionName": "GetDefaultPolicy",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "policies/{id:guid}",
+        "actionName": "GetPolicyById",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "policies",
+        "actionName": "CreatePolicy",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] AttendancePolicy model"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "policies/{id:guid}",
+        "actionName": "UpdatePolicy",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] AttendancePolicy model"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "policies/{id:guid}",
+        "actionName": "DeletePolicy",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "policies/{id:guid}/set-default",
+        "actionName": "SetDefaultPolicy",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "analytics/occupancy",
+        "actionName": "GetLiveOccupancyRadar",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "analytics/bradford",
+        "actionName": "GetBradfordScores",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "POST",
+        "subRoute": "web-checkin",
+        "actionName": "WebCheckIn",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] WebCheckInRequest request"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "summary/daily-synthesis",
+        "actionName": "GetDailySynthesis",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid employeeId, [FromQuery] DateTime? date = null"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "summary/daily-synthesis-batch",
+        "actionName": "GetDailySynthesisBatch",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] DateTime? date = null, [FromQuery] Guid? departmentId = null, [FromQuery] Guid? employeeId = null"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "regularization",
+        "actionName": "CreateRegularizationRequest",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateRegularizationDto dto"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "regularization/{id:guid}/approve",
+        "actionName": "ApproveRegularizationRequest",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] RegularizationApprovalDto? dto"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "regularization/{id:guid}/reject",
+        "actionName": "RejectRegularizationRequest",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] RegularizationApprovalDto? dto"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "IAttendanceSynthesisService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/HRMS/Controllers/BiometricGatewayController.cs",
+    "className": "BiometricGatewayController",
+    "moduleName": "HRMS",
+    "routeTemplate": "api/v1/hrms/attendance/biometric",
+    "authorization": [
+      "Default",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 0,
+    "endpoints": [],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/HRMS/Controllers/EmployeePostingController.cs",
+    "className": "EmployeePostingController",
+    "moduleName": "HRMS",
+    "routeTemplate": "api/v1/hrms/employees/{employeeId:guid}/postings",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 2,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "GetEmployeePostings",
+        "returnType": "IActionResult>",
+        "params": "Guid employeeId"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "",
+        "actionName": "CreatePosting",
+        "returnType": "IActionResult>",
+        "params": "Guid employeeId, [FromBody] CreatePostingAssignmentRequest request"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/HRMS/Controllers/EmployeesController.cs",
+    "className": "EmployeesController",
+    "moduleName": "HRMS",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default",
+      "Policy = \"Module:hrms\"",
+      "Roles = \"SuperAdmin,Admin,HR Manager\"",
+      "Roles = \"SuperAdmin,Admin,HR Manager\"",
+      "Roles = \"SuperAdmin,Admin,HR Manager\""
+    ],
+    "endpointsCount": 3,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "me",
+        "actionName": "Me",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "{id}",
+        "actionName": "Get",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "{id}/profile-360",
+        "actionName": "GetProfile360",
+        "returnType": "IActionResult>",
+        "params": "Guid id, System.Threading.CancellationToken ct"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "IPasswordHasher<User>",
+      "RoleMappingResolver",
+      "IDocumentNumberService",
+      "IEmployeeService",
+      "IEncryptionService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/HRMS/Controllers/GlobalHrmsController.cs",
+    "className": "GlobalHrmsController",
+    "moduleName": "HRMS",
+    "routeTemplate": "api/v1/hrms",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 3,
+    "endpoints": [
+      {
+        "verb": "POST",
+        "subRoute": "payroll/calculate",
+        "actionName": "CalculatePayroll",
+        "returnType": "IActionResult",
+        "params": "[FromBody] PayrollCalculationRequest request"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "lifecycle/initialize",
+        "actionName": "InitializeLifecycle",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] InitializeLifecycleApiRequest req"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "attendance/punch-verify",
+        "actionName": "PunchVerify",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] PunchVerifyApiRequest req"
+      }
+    ],
+    "injected": [
+      "IPayrollCalculationEngine",
+      "IHrLifecycleService",
+      "IAttendanceVerificationService",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/HRMS/Controllers/HrLifecycleController.cs",
+    "className": "HrLifecycleController",
+    "moduleName": "HRMS",
+    "routeTemplate": "api/v1/hrms/lifecycle",
+    "authorization": [
+      "Default",
+      "Policy = \"Module:hrms\""
+    ],
+    "endpointsCount": 3,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "tasks",
+        "actionName": "List",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] string kind = \"Onboarding\", [FromQuery] Guid? employeeId = null"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "tasks/{id:guid}/complete",
+        "actionName": "Complete",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "tasks",
+        "actionName": "Create",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] HrLifecycleTask dto"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/HRMS/Controllers/HumanResourcesDashboardController.cs",
+    "className": "HumanResourcesDashboardController",
+    "moduleName": "HRMS",
+    "routeTemplate": "api/v1/hrms/dashboard",
+    "authorization": [
+      "Default",
+      "Policy = \"Module:hrms\""
+    ],
+    "endpointsCount": 1,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "dashboard",
+        "actionName": "Dashboard",
+        "returnType": "IActionResult>",
+        "params": ""
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/HRMS/Controllers/LeaveController.cs",
+    "className": "LeaveController",
+    "moduleName": "HRMS",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default",
+      "Policy = \"Module:hrms\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Roles = \"SuperAdmin,Admin,HR Manager,Manager\"",
+      "Roles = \"SuperAdmin,Admin,HR Manager,Manager\"",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 19,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "types",
+        "actionName": "GetLeaveTypes",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "POST",
+        "subRoute": "types",
+        "actionName": "CreateLeaveType",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateLeaveTypeDto dto"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "policies",
+        "actionName": "GetPolicies",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? companyId = null, [FromQuery] Guid? projectId = null"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "policies/{id:guid}",
+        "actionName": "GetPolicyById",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "policies",
+        "actionName": "CreatePolicy",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateLeavePolicyDto dto"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "policies/{id:guid}",
+        "actionName": "UpdatePolicy",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] CreateLeavePolicyDto dto"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "policies/{id:guid}",
+        "actionName": "DeletePolicy",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "policies/{policyId:guid}/rules",
+        "actionName": "GetPolicyRules",
+        "returnType": "IActionResult>",
+        "params": "Guid policyId"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "policies/{policyId:guid}/rules",
+        "actionName": "CreatePolicyRule",
+        "returnType": "IActionResult>",
+        "params": "Guid policyId, [FromBody] CreateLeavePolicyRuleDto dto"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "requests",
+        "actionName": "GetRequests",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 50"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "requests/{id:guid}",
+        "actionName": "GetRequestById",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "approvals",
+        "actionName": "GetApprovals",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] string status = \"Pending\", [FromQuery] bool myTeamOnly = false"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "balances/me",
+        "actionName": "GetMyBalances",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "balances",
+        "actionName": "GetBalances",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? employeeId"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "holidays",
+        "actionName": "GetHolidays",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int? year"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "holidays",
+        "actionName": "CreateHoliday",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateHolidayDto dto"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "allocations",
+        "actionName": "GetAllocations",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? employeeId, [FromQuery] int? year"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "allocations",
+        "actionName": "CreateAllocation",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateLeaveAllocationDto dto"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "policies/schema",
+        "actionName": "GetPolicySchema",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? companyId = null, [FromQuery] Guid? projectId = null"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "IWorkflowService",
+      "ILeaveRequestService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/HRMS/Controllers/OrganizationHierarchyController.cs",
+    "className": "OrganizationHierarchyController",
+    "moduleName": "HRMS",
+    "routeTemplate": "api/v1/hrms/organization",
+    "authorization": [
+      "Default",
+      "Policy = \"Module:hrms\""
+    ],
+    "endpointsCount": 8,
+    "endpoints": [
+      {
+        "verb": "POST",
+        "subRoute": "employees/{id}/assign-manager",
+        "actionName": "AssignManager",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] AssignManagerRequestDto dto, CancellationToken ct = default"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "employees/{id}/chain-of-command",
+        "actionName": "GetChainOfCommand",
+        "returnType": "ActionResult<List<EmployeeSummaryDto>>>",
+        "params": "Guid id, CancellationToken ct = default"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "transfers",
+        "actionName": "RequestTransfer",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] HierarchyTransferRequestDto dto, CancellationToken ct = default"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "transfers/{id}/sign-off",
+        "actionName": "SignOffTransfer",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] HierarchyTransferSignOffDto dto, CancellationToken ct = default"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "orphan-risks",
+        "actionName": "GetOrphanRisks",
+        "returnType": "ActionResult<List<OrphanRiskDto>>>",
+        "params": "CancellationToken ct = default"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "delegations",
+        "actionName": "DelegateAuthority",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] DelegateAuthorityRequestDto dto, CancellationToken ct = default"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "delegations",
+        "actionName": "GetDelegations",
+        "returnType": "IActionResult>",
+        "params": "CancellationToken ct = default"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "delegations/{employeeId}",
+        "actionName": "RevokeDelegation",
+        "returnType": "IActionResult>",
+        "params": "Guid employeeId, CancellationToken ct = default"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/HRMS/Controllers/OvertimeController.cs",
+    "className": "OvertimeController",
+    "moduleName": "HRMS",
+    "routeTemplate": "api/v1/overtime",
+    "authorization": [
+      "Default",
+      "Policy = \"Module:hrms\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager,Employee\"",
+      "Roles = \"Admin,HR,Manager,Employee\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Employee\"",
+      "Roles = \"Admin,HR,Employee\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR,Manager,Employee\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager,Employee\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR,Manager,Employee\""
+    ],
+    "endpointsCount": 0,
+    "endpoints": [],
+    "injected": [
+      "IOvertimeRepository",
+      "ITenantAccessor",
+      "ILogger<OvertimeController>",
+      "ApplicationDbContext",
+      "IOvertimeApprovalService",
+      "IOvertimeRequestService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/HRMS/Controllers/ProbationController.cs",
+    "className": "ProbationController",
+    "moduleName": "HRMS",
+    "routeTemplate": "api/v1/hrms/probation",
+    "authorization": [
+      "Default",
+      "Policy = \"Module:hrms\""
+    ],
+    "endpointsCount": 8,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "policies",
+        "actionName": "GetPolicies",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? companyId = null, [FromQuery] Guid? projectId = null"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "policies/schema",
+        "actionName": "GetPolicySchema",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? companyId = null, [FromQuery] Guid? projectId = null"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "policies/default",
+        "actionName": "GetDefaultPolicy",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "policies/{id:guid}",
+        "actionName": "GetPolicyById",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "policies",
+        "actionName": "CreatePolicy",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateProbationPolicyDto dto"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "policies/{id:guid}",
+        "actionName": "UpdatePolicy",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] UpdateProbationPolicyDto dto"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "policies/{id:guid}",
+        "actionName": "DeletePolicy",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "policies/{id:guid}/set-default",
+        "actionName": "SetDefaultPolicy",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/HRMS/Controllers/RecruitmentController.cs",
+    "className": "RecruitmentController",
+    "moduleName": "HRMS",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 2,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "job-postings",
+        "actionName": "GetJobPostings",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 10"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "job-postings/{id:guid}",
+        "actionName": "GetJobPosting",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "IRecruitmentRepository",
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "ICacheService",
+      "IWebsiteContentService",
+      "IRecruitmentLifecycleService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/HRMS/Controllers/ScreeningsController.cs",
+    "className": "ScreeningsController",
+    "moduleName": "HRMS",
+    "routeTemplate": "api/v1/screenings",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 0,
+    "endpoints": [],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/HRMS/Controllers/ShiftsController.cs",
+    "className": "ShiftsController",
+    "moduleName": "HRMS",
+    "routeTemplate": "api/v1/shifts",
+    "authorization": [
+      "Default",
+      "Policy = \"Module:hrms\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager,Employee\"",
+      "Roles = \"Admin,HR,Manager,Employee\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager,Employee\"",
+      "Roles = \"Admin,HR,Employee\"",
+      "Roles = \"Admin,HR,Manager,Employee\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR\""
+    ],
+    "endpointsCount": 0,
+    "endpoints": [],
+    "injected": [
+      "IShiftRepository",
+      "IDistributedCache",
+      "ITenantAccessor",
+      "ILogger<ShiftsController>"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/HRMS/Controllers/TrainingController.cs",
+    "className": "TrainingController",
+    "moduleName": "HRMS",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default",
+      "Policy = \"Module:hrms\"",
+      "Roles = \"Admin,HR,Manager,Employee\"",
+      "Roles = \"Admin,HR,Manager,Employee\"",
+      "Roles = \"Admin,HR,Manager,Employee\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager,Employee\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager,Employee\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager\"",
+      "Roles = \"Admin,HR,Manager,Employee\"",
+      "Roles = \"Admin,HR,Manager,Employee\"",
+      "Roles = \"Admin,HR,Manager,Employee\"",
+      "Roles = \"Admin,HR\"",
+      "Roles = \"Admin,HR,Manager,Employee\"",
+      "Roles = \"Admin,HR,Employee\"",
+      "Roles = \"Admin,HR,Manager,Employee\""
+    ],
+    "endpointsCount": 0,
+    "endpoints": [],
+    "injected": [
+      "ITrainingRepository",
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "ILogger<TrainingController>",
+      "ICacheService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/HRMS/Controllers/TravelController.cs",
+    "className": "TravelController",
+    "moduleName": "HRMS",
+    "routeTemplate": "api/v1/travel",
+    "authorization": [
+      "Policy = \"Module:hrms\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 10,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "requests",
+        "actionName": "ListRequests",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 20, [FromQuery] string? status = null"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "requests",
+        "actionName": "CreateRequest",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateTravelRequestDto dto"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "policies",
+        "actionName": "GetPolicies",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? companyId = null, [FromQuery] Guid? projectId = null"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "policies/schema",
+        "actionName": "GetPolicySchema",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? companyId = null, [FromQuery] Guid? projectId = null"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "policies/default",
+        "actionName": "GetDefaultPolicy",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "policies/{id:guid}",
+        "actionName": "GetPolicyById",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "policies",
+        "actionName": "CreatePolicy",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] TravelExpensePolicy model"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "policies/{id:guid}",
+        "actionName": "UpdatePolicy",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] TravelExpensePolicy model"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "policies/{id:guid}",
+        "actionName": "DeletePolicy",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "policies/{id:guid}/set-default",
+        "actionName": "SetDefaultPolicy",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "IDocumentNumberService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Inventory/Controllers/DemandForecastingController.cs",
+    "className": "DemandForecastingController",
+    "moduleName": "Inventory",
+    "routeTemplate": "api/v1/inventory/forecasting",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 1,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "simulate",
+        "actionName": "Simulate",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? warehouseId = null, [FromQuery] double serviceLevel = 1.65"
+      }
+    ],
+    "injected": [
+      "IDemandForecastingService",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Inventory/Controllers/InventoryTransferController.cs",
+    "className": "InventoryTransferController",
+    "moduleName": "Inventory",
+    "routeTemplate": "api/v1/inventory",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 5,
+    "endpoints": [
+      {
+        "verb": "POST",
+        "subRoute": "transfers/create",
+        "actionName": "CreateTransfer",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateTransferApiRequest req"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "transfers/{id:guid}/receive",
+        "actionName": "ReceiveTransfer",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] ReceiveTransferApiRequest req"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "transfers",
+        "actionName": "GetTransfers",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? warehouseId = null, [FromQuery] string? status = null"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "reorder/evaluate",
+        "actionName": "EvaluateReorderPoints",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? warehouseId = null"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "batches/expiring",
+        "actionName": "GetExpiringBatches",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int daysThreshold = 30"
+      }
+    ],
+    "injected": [
+      "IStockTransferService",
+      "IAutomatedReorderService",
+      "IBatchTrackingService",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Inventory/Controllers/ItemsController.cs",
+    "className": "ItemsController",
+    "moduleName": "Inventory",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 4,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "GetAll",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 10"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "{id}",
+        "actionName": "GetById",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "{id}",
+        "actionName": "Update",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] UpdateItemDto dto"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "{id}",
+        "actionName": "Delete",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "IDocumentNumberService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Inventory/Controllers/StockMovementsController.cs",
+    "className": "StockMovementsController",
+    "moduleName": "Inventory",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 1,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "GetAll",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 20"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "IInventoryStockService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Inventory/Controllers/WarehouseManagementSystemController.cs",
+    "className": "WarehouseManagementSystemController",
+    "moduleName": "Inventory",
+    "routeTemplate": "api/v1/inventory/warehouse-management",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 3,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "bins",
+        "actionName": "GetBins",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? warehouseId = null"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "put-away",
+        "actionName": "ExecutePutAway",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] ScanBarcodePutAwayRequest req"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "pick-pack",
+        "actionName": "ExecutePickPack",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] ScanBarcodePickPackRequest req"
+      }
+    ],
+    "injected": [
+      "IWmsService",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Inventory/Controllers/WarehousesController.cs",
+    "className": "WarehousesController",
+    "moduleName": "Inventory",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 2,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "GetAll",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 50"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "{id:guid}",
+        "actionName": "GetById",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "IDocumentNumberService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Manufacturing/Controllers/MrpController.cs",
+    "className": "MrpController",
+    "moduleName": "Manufacturing",
+    "routeTemplate": "api/v1/manufacturing/mrp",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 1,
+    "endpoints": [
+      {
+        "verb": "POST",
+        "subRoute": "calculate-requirements",
+        "actionName": "CalculateRequirements",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CalculateMrpApiRequest req"
+      }
+    ],
+    "injected": [
+      "IMrpEngineService",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Manufacturing/Controllers/WorkOrdersController.cs",
+    "className": "WorkOrdersController",
+    "moduleName": "Manufacturing",
+    "routeTemplate": "api/v1/manufacturing/work-orders",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 4,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "List",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] string? status = null"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "",
+        "actionName": "Create",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateWorkOrderRequest req"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "{id:guid}/operations/update-status",
+        "actionName": "UpdateOperation",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] UpdateOperationStatusRequest req"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "{id:guid}/complete",
+        "actionName": "Complete",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] CompleteWorkOrderRequest req"
+      }
+    ],
+    "injected": [
+      "IWorkOrderService",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Notifications/Controllers/CommunicationController.cs",
+    "className": "CommunicationController",
+    "moduleName": "Notifications",
+    "routeTemplate": "api/v1/communication",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 15,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "announcements",
+        "actionName": "ListAnnouncements",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 24"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "announcements/{id:guid}",
+        "actionName": "GetAnnouncement",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "announcements",
+        "actionName": "CreateAnnouncement",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] AnnouncementUpsertDto dto"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "announcements/{id:guid}",
+        "actionName": "UpdateAnnouncement",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] AnnouncementUpsertDto dto"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "announcements/{id:guid}",
+        "actionName": "DeleteAnnouncement",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "email-templates",
+        "actionName": "ListEmailTemplates",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 24"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "email-templates/{id:guid}",
+        "actionName": "GetEmailTemplate",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "email-templates",
+        "actionName": "CreateEmailTemplate",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CommunicationTemplateUpsertDto dto"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "email-templates/{id:guid}",
+        "actionName": "UpdateEmailTemplate",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] CommunicationTemplateUpsertDto dto"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "email-templates/{id:guid}",
+        "actionName": "DeleteEmailTemplate",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "sms-templates",
+        "actionName": "ListSmsTemplates",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 24"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "sms-templates/{id:guid}",
+        "actionName": "GetSmsTemplate",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "sms-templates",
+        "actionName": "CreateSmsTemplate",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CommunicationTemplateUpsertDto dto"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "sms-templates/{id:guid}",
+        "actionName": "UpdateSmsTemplate",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] CommunicationTemplateUpsertDto dto"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "sms-templates/{id:guid}",
+        "actionName": "DeleteSmsTemplate",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Notifications/Controllers/NotificationsController.cs",
+    "className": "NotificationsController",
+    "moduleName": "Notifications",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 4,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "me",
+        "actionName": "ListMine",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] bool? unreadOnly = null, [FromQuery] int take = 50"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "me/unread-count",
+        "actionName": "UnreadCount",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "POST",
+        "subRoute": "me/read-all",
+        "actionName": "MarkAllRead",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "POST",
+        "subRoute": "{id:guid}/read",
+        "actionName": "MarkRead",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Payroll/Controllers/PayrollController.cs",
+    "className": "PayrollController",
+    "moduleName": "Payroll",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default",
+      "Policy = \"Module:payroll\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 68,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "structures",
+        "actionName": "GetStructures",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? companyId = null, [FromQuery] Guid? projectId = null"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "structures/{id}",
+        "actionName": "GetStructure",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "structures",
+        "actionName": "CreateStructure",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreatePayrollStructureDto dto"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "structures/{id}",
+        "actionName": "UpdateStructure",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] UpdatePayrollStructureDto dto"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "structures/{id}",
+        "actionName": "DeleteStructure",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "components",
+        "actionName": "GetComponents",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? structureId"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "components/{id}",
+        "actionName": "GetComponent",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "components",
+        "actionName": "CreateComponent",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreatePayrollComponentDto dto"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "components/{id}",
+        "actionName": "UpdateComponent",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] UpdatePayrollComponentDto dto"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "components/{id}",
+        "actionName": "DeleteComponent",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "runs",
+        "actionName": "GetRuns",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] string? status"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "runs/{id}",
+        "actionName": "GetRun",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "runs",
+        "actionName": "CreateRun",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreatePayrollRunDto dto"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "runs/{id}/complete",
+        "actionName": "CompleteRun",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "runs/{id:guid}/bank-file",
+        "actionName": "BankFile",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "runs/{id}",
+        "actionName": "DeleteRun",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "payslips/me",
+        "actionName": "GetMyPayslips",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "payslips",
+        "actionName": "GetPayslips",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? runId, [FromQuery] Guid? employeeId"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "payslips/{id:guid}",
+        "actionName": "GetPayslip",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "payslips/{id:guid}/download",
+        "actionName": "DownloadPayslip",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "payslips",
+        "actionName": "CreatePayslip",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreatePayslipDto dto"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "statutory/pf",
+        "actionName": "GetPFReport",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] DateTime? month"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "statutory/pf/ecr",
+        "actionName": "PfEcr",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] DateTime? month"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "statutory/esi/challan",
+        "actionName": "EsiChallan",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] DateTime? month"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "statutory/tds/form24q",
+        "actionName": "Form24Q",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int? financialYear"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "statutory/form16/{employeeId:guid}",
+        "actionName": "Form16",
+        "returnType": "IActionResult>",
+        "params": "Guid employeeId, [FromQuery] int? financialYear"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "statutory/esi",
+        "actionName": "GetESIReport",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] DateTime? month"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "statutory/pt",
+        "actionName": "GetPTReport",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] DateTime? month"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "statutory/tds",
+        "actionName": "GetTDSReport",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] DateTime? month"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "employees",
+        "actionName": "GetEmployees",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "tax-declarations",
+        "actionName": "GetTaxDeclarations",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int? financialYear"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "tax-declarations",
+        "actionName": "CreateTaxDeclaration",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] UpsertPayrollTaxDeclarationDto dto"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "tax-declarations/{id:guid}",
+        "actionName": "UpdateTaxDeclaration",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] UpsertPayrollTaxDeclarationDto dto"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "tax-declarations/{id:guid}/verify",
+        "actionName": "VerifyTaxDeclaration",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "reimbursements",
+        "actionName": "GetReimbursements",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] string? status"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "reimbursements",
+        "actionName": "CreateReimbursement",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreatePayrollReimbursementDto dto"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "reimbursements/{id:guid}/approve",
+        "actionName": "ApproveReimbursement",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "reimbursements/{id:guid}/reject",
+        "actionName": "RejectReimbursement",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "reimbursements/{id:guid}/mark-paid",
+        "actionName": "MarkReimbursementPaid",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "settlements",
+        "actionName": "GetSettlements",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "POST",
+        "subRoute": "settlements/compute",
+        "actionName": "ComputeSettlement",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] UpsertPayrollSettlementDto dto"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "settlements",
+        "actionName": "CreateSettlement",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] UpsertPayrollSettlementDto dto"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "settlements/{id:guid}",
+        "actionName": "UpdateSettlement",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] UpsertPayrollSettlementDto dto"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "settlements/{id:guid}/settle",
+        "actionName": "MarkSettlementSettled",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "settlements/{id:guid}",
+        "actionName": "DeleteSettlement",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "loans",
+        "actionName": "GetLoans",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] string? status"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "loans",
+        "actionName": "CreateLoan",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreatePayrollLoanDto dto"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "loans/{id:guid}/approve",
+        "actionName": "ApproveLoan",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "loans/{id:guid}/activate",
+        "actionName": "ActivateLoan",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "loans/{id:guid}/emi",
+        "actionName": "RecordLoanEmi",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "loans/{id:guid}/close",
+        "actionName": "CloseLoan",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "bonuses",
+        "actionName": "GetBonuses",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] string? status"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "bonuses",
+        "actionName": "CreateBonus",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreatePayrollBonusDto dto"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "bonuses/{id:guid}/approve",
+        "actionName": "ApproveBonus",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "bonuses/{id:guid}/pay",
+        "actionName": "PayBonus",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "bonuses/{id:guid}/reject",
+        "actionName": "RejectBonus",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "arrears",
+        "actionName": "GetArrears",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] string? status"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "arrears",
+        "actionName": "CreateArrear",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreatePayrollArrearDto dto"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "arrears/{id:guid}/approve",
+        "actionName": "ApproveArrear",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "arrears/{id:guid}/process",
+        "actionName": "ProcessArrear",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "policies/schema",
+        "actionName": "GetPolicySchema",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? companyId = null, [FromQuery] Guid? projectId = null"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "policies",
+        "actionName": "GetPolicies",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] Guid? companyId = null, [FromQuery] Guid? projectId = null"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "policies/default",
+        "actionName": "GetDefaultPolicy",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "policies/{id:guid}",
+        "actionName": "GetPolicyById",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "policies",
+        "actionName": "CreatePolicy",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] PayrollPolicy model"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "policies/{id:guid}",
+        "actionName": "UpdatePolicy",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] PayrollPolicy model"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "policies/{id:guid}",
+        "actionName": "DeletePolicy",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "policies/{id:guid}/set-default",
+        "actionName": "SetDefaultPolicy",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "IPayrollEngine",
+      "IDocumentNumberService",
+      "IExpenseClaimService",
+      "IPayrollSettlementService",
+      "IPayrollEmployeeFinanceService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Procurement/Controllers/GoodsReceiptsController.cs",
+    "className": "GoodsReceiptsController",
+    "moduleName": "Procurement",
+    "routeTemplate": "api/v1/grn",
+    "authorization": [
+      "Policy = \"Module:procurement\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 1,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "GetAll",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 50"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "IDocumentNumberService",
+      "IGoodsReceiptService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Procurement/Controllers/PurchaseInvoicesController.cs",
+    "className": "PurchaseInvoicesController",
+    "moduleName": "Procurement",
+    "routeTemplate": "api/v1/purchaseinvoices",
+    "authorization": [
+      "Default",
+      "Policy = \"Module:procurement\"",
+      "Roles = \"SuperAdmin,Admin,Manager\""
+    ],
+    "endpointsCount": 1,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "List",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 20"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "IPurchaseInvoiceService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Procurement/Controllers/PurchaseOrdersController.cs",
+    "className": "PurchaseOrdersController",
+    "moduleName": "Procurement",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 2,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "GetAll",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 10"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "{id}",
+        "actionName": "GetById",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "ICommercialOrderService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Procurement/Controllers/PurchaseRequestsController.cs",
+    "className": "PurchaseRequestsController",
+    "moduleName": "Procurement",
+    "routeTemplate": "api/v1/purchaserequests",
+    "authorization": [
+      "Default",
+      "Policy = \"Module:procurement\"",
+      "Roles = \"SuperAdmin,Admin,Manager\"",
+      "Roles = \"SuperAdmin,Admin,Manager\"",
+      "Roles = \"SuperAdmin,Admin,Manager\""
+    ],
+    "endpointsCount": 3,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "List",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 50, [FromQuery] string? status = null"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "",
+        "actionName": "Create",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] PurchaseRequest dto"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "match/{purchaseOrderId:guid}",
+        "actionName": "ThreeWayMatch",
+        "returnType": "IActionResult>",
+        "params": "Guid purchaseOrderId"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "IDocumentNumberService",
+      "IDocumentConversionService",
+      "IPurchaseRequestService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Procurement/Controllers/VendorsController.cs",
+    "className": "VendorsController",
+    "moduleName": "Procurement",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 4,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "GetAll",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 10"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "{id}",
+        "actionName": "GetById",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "{id}",
+        "actionName": "Update",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] UpdateVendorDto dto"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "{id}",
+        "actionName": "Delete",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "IDocumentNumberService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Projects/Controllers/FieldServiceController.cs",
+    "className": "FieldServiceController",
+    "moduleName": "Projects",
+    "routeTemplate": "api/v1/field-service",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 4,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "tickets",
+        "actionName": "GetTickets",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] string? status = null"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "tickets",
+        "actionName": "CreateTicket",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] ServiceTicketDto dto"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "dispatch",
+        "actionName": "DispatchTechnician",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] DispatchTechnicianRequest req"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "complete",
+        "actionName": "CompleteTicket",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CompleteServiceTicketRequest req"
+      }
+    ],
+    "injected": [
+      "IFieldServiceDispatchService",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Projects/Controllers/ProjectsController.cs",
+    "className": "ProjectsController",
+    "moduleName": "Projects",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 1,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "{id:guid}",
+        "actionName": "Get",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Projects/Controllers/ProjectTasksController.cs",
+    "className": "ProjectTasksController",
+    "moduleName": "Projects",
+    "routeTemplate": "api/v1/project-tasks",
+    "authorization": [
+      "Policy = \"Module:projects\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 0,
+    "endpoints": [],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "IDocumentNumberService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Projects/Controllers/TimesheetsController.cs",
+    "className": "TimesheetsController",
+    "moduleName": "Projects",
+    "routeTemplate": "api/v1/timesheets",
+    "authorization": [
+      "Policy = \"Module:projects\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 2,
+    "endpoints": [
+      {
+        "verb": "POST",
+        "subRoute": "",
+        "actionName": "Create",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateTimesheetEntryDto dto"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "{id}/submit",
+        "actionName": "Submit",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "ITimesheetService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Reports/Controllers/ReportsController.cs",
+    "className": "ReportsController",
+    "moduleName": "Reports",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default",
+      "Policy = \"Module:reports\""
+    ],
+    "endpointsCount": 29,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "hr/overview",
+        "actionName": "HROverview",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "hr/headcount",
+        "actionName": "HeadcountByCompany",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "hr/headcount-by-department",
+        "actionName": "HeadcountByDepartment",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "hr/attendance-summary",
+        "actionName": "AttendanceSummary",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "hr/leave-summary",
+        "actionName": "LeaveSummary",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int? year"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "hr/turnover",
+        "actionName": "HrTurnover",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int? year"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "payroll/overview",
+        "actionName": "PayrollOverview",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "payroll/monthly",
+        "actionName": "MonthlyPayroll",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int? year"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "payroll/components",
+        "actionName": "ComponentsBreakdown",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "payroll/structures",
+        "actionName": "StructuresReport",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "compliance/audit-log",
+        "actionName": "AuditLogSummary",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "compliance/data-quality",
+        "actionName": "DataQualitySummary",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "compliance/module-usage",
+        "actionName": "ModuleUsageSummary",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "dashboard",
+        "actionName": "DashboardSummary",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "executive-dashboard",
+        "actionName": "ExecutiveDashboard",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "custom",
+        "actionName": "CustomReports",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "POST",
+        "subRoute": "custom",
+        "actionName": "CreateCustomReport",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] CreateCustomReportDto dto"
+      },
+      {
+        "verb": "PUT",
+        "subRoute": "custom/{id:guid}",
+        "actionName": "UpdateCustomReport",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] CreateCustomReportDto dto"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "custom/{id:guid}/run",
+        "actionName": "RunCustomReport",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "custom/{id:guid}/activate",
+        "actionName": "ActivateCustomReport",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "DELETE",
+        "subRoute": "custom/{id:guid}",
+        "actionName": "DeleteCustomReport",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "finance/trial-balance",
+        "actionName": "TrialBalance",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "finance/profit-and-loss",
+        "actionName": "ProfitAndLoss",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] DateTime? from = null, [FromQuery] DateTime? to = null"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "finance/balance-sheet",
+        "actionName": "BalanceSheet",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "finance/ageing",
+        "actionName": "Ageing",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "financial/trial-balance",
+        "actionName": "TrialBalanceStatement",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] DateTime? asOfDate"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "financial/profit-and-loss",
+        "actionName": "ProfitAndLossStatement",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] DateTime? from, [FromQuery] DateTime? to"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "financial/balance-sheet",
+        "actionName": "BalanceSheetStatement",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] DateTime? asOfDate"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "financial/cash-flow",
+        "actionName": "CashFlowStatement",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] DateTime? from, [FromQuery] DateTime? to"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "IFinancialStatementService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Sales/Controllers/B2BPortalController.cs",
+    "className": "B2BPortalController",
+    "moduleName": "Sales",
+    "routeTemplate": "api/v1/sales/portal",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 1,
+    "endpoints": [
+      {
+        "verb": "POST",
+        "subRoute": "accept-quotation",
+        "actionName": "AcceptQuotation",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] AcceptQuotationRequest req"
+      }
+    ],
+    "injected": [
+      "IB2BPortalService",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Sales/Controllers/DiscountSchemesController.cs",
+    "className": "DiscountSchemesController",
+    "moduleName": "Sales",
+    "routeTemplate": "api/v1/discountschemes",
+    "authorization": [
+      "Policy = \"Module:sales\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 4,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "List",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 50"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "active",
+        "actionName": "Active",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "product-map",
+        "actionName": "ProductMap",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "{id:guid}",
+        "actionName": "GetById",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "IDocumentNumberService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Sales/Controllers/PricingController.cs",
+    "className": "PricingController",
+    "moduleName": "Sales",
+    "routeTemplate": "api/v1/sales/pricing",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 3,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "price-lists",
+        "actionName": "GetPriceLists",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "POST",
+        "subRoute": "calculate-effective-price",
+        "actionName": "CalculateEffectivePrice",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] PriceCalculationRequest req"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "price-lists",
+        "actionName": "SavePriceList",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] PriceListSummaryDto dto"
+      }
+    ],
+    "injected": [
+      "IPricingEngineService",
+      "ITenantAccessor"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Sales/Controllers/SalesInvoicesController.cs",
+    "className": "SalesInvoicesController",
+    "moduleName": "Sales",
+    "routeTemplate": "api/v1/salesinvoices",
+    "authorization": [
+      "Policy = \"Module:sales\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 2,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "GetAll",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 10"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "{id}",
+        "actionName": "GetById",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "ISalesInvoiceService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Sales/Controllers/SalesOrdersController.cs",
+    "className": "SalesOrdersController",
+    "moduleName": "Sales",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Policy = \"Module:sales\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 2,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "GetAll",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 10"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "{id}",
+        "actionName": "GetById",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "ISalesInvoiceService",
+      "ICommercialOrderService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Sales/Controllers/SalesQuotationsController.cs",
+    "className": "SalesQuotationsController",
+    "moduleName": "Sales",
+    "routeTemplate": "api/v1/salesquotations",
+    "authorization": [
+      "Policy = \"Module:sales\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\"",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 2,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "GetAll",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 10"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "{id}",
+        "actionName": "GetById",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "IDocumentConversionService",
+      "ICommercialOrderService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Sales/Controllers/SalesReturnsController.cs",
+    "className": "SalesReturnsController",
+    "moduleName": "Sales",
+    "routeTemplate": "api/v1/salesreturns",
+    "authorization": [
+      "Policy = \"Module:sales\""
+    ],
+    "endpointsCount": 3,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "",
+        "actionName": "List",
+        "returnType": "IActionResult>",
+        "params": "[FromQuery] int page = 1, [FromQuery] int limit = 50"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "",
+        "actionName": "Create",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] SalesReturn dto"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "{id:guid}/process",
+        "actionName": "Process",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      }
+    ],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "IDocumentNumberService",
+      "ISalesReturnService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Workflow/Controllers/ApprovalsController.cs",
+    "className": "ApprovalsController",
+    "moduleName": "Workflow",
+    "routeTemplate": "api/v1/[controller]",
+    "authorization": [
+      "Default"
+    ],
+    "endpointsCount": 0,
+    "endpoints": [],
+    "injected": [
+      "ApplicationDbContext",
+      "ITenantAccessor",
+      "IApprovalRequestService"
+    ]
+  },
+  {
+    "filePath": "Backend/src/Modules/Workflow/Controllers/WorkflowController.cs",
+    "className": "WorkflowController",
+    "moduleName": "Workflow",
+    "routeTemplate": "api/v1/workflows",
+    "authorization": [
+      "Default",
+      "Policy = \"AdminOnly\""
+    ],
+    "endpointsCount": 6,
+    "endpoints": [
+      {
+        "verb": "GET",
+        "subRoute": "definitions",
+        "actionName": "ListDefinitions",
+        "returnType": "IActionResult>",
+        "params": ""
+      },
+      {
+        "verb": "GET",
+        "subRoute": "definitions/{key}",
+        "actionName": "GetDefinition",
+        "returnType": "IActionResult>",
+        "params": "string key"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "instances",
+        "actionName": "StartInstance",
+        "returnType": "IActionResult>",
+        "params": "[FromBody] StartInstanceRequestDto request"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "instances/{id}",
+        "actionName": "GetInstance",
+        "returnType": "IActionResult>",
+        "params": "Guid id"
+      },
+      {
+        "verb": "POST",
+        "subRoute": "instances/{id}/actions",
+        "actionName": "PerformAction",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromBody] ActionRequestDto action"
+      },
+      {
+        "verb": "GET",
+        "subRoute": "instances/{id}/approvals",
+        "actionName": "GetApprovals",
+        "returnType": "IActionResult>",
+        "params": "Guid id, [FromQuery] bool mine = true"
+      }
+    ],
+    "injected": [
+      "IWorkflowService",
+      "ITenantAccessor",
+      "ApplicationDbContext",
+      "IWorkflowDefinitionService",
+      "IWorkflowApprovalQueryService"
+    ]
+  }
+]

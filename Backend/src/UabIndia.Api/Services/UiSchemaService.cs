@@ -554,6 +554,27 @@ namespace UabIndia.Api.Services
         {
             try
             {
+                var normalizedKey = pageKey.Trim().ToLowerInvariant();
+                var pageDef = await _db.UiPageDefinitions
+                    .AsNoTracking()
+                    .Include(p => p.Versions.Where(v => v.IsPublished && !v.IsDeleted))
+                    .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.PageKey.ToLower() == normalizedKey && !p.IsDeleted);
+
+                if (pageDef != null)
+                {
+                    var activeVersion = pageDef.Versions.FirstOrDefault(v => v.Version == pageDef.PublishedVersion)
+                        ?? pageDef.Versions.OrderByDescending(v => v.Version).FirstOrDefault();
+
+                    if (activeVersion != null && !string.IsNullOrWhiteSpace(activeVersion.SchemaJson))
+                    {
+                        var schema = JsonSerializer.Deserialize<PageSchemaDto>(activeVersion.SchemaJson, _jsonOpts);
+                        if (schema != null)
+                        {
+                            return schema;
+                        }
+                    }
+                }
+
                 var config = await _db.TenantConfigs
                     .AsNoTracking()
                     .FirstOrDefaultAsync(c => c.TenantId == tenantId && !c.IsDeleted);

@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+﻿
 import { useCallback, useEffect, useMemo, useState } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
 import { CrudHeaderStats } from "@/components/workspace/crud-workspace";
@@ -27,7 +29,7 @@ const asList = (raw: unknown): UsageRow[] => {
   return [];
 };
 
-export default function LicensingUsagePage() {
+function LegacyLicensingUsagePage() {
   const [records, setRecords] = useState<UsageRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -124,6 +126,16 @@ export default function LicensingUsagePage() {
           <td className="erp-td text-slate-600">{r.period}</td>
         </tr>
       )}
+    />
+  );
+}
+
+export default function LicensingUsagePage() {
+  return (
+    <DynamicPage
+      pageKey="licensing.usage"
+      fallback={<LegacyLicensingUsagePage />}
+      renderMode="auto"
     />
   );
 }

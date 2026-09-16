@@ -1,5 +1,7 @@
 "use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Flag, ToggleLeft, ToggleRight, Zap, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { platformApi } from "@/services/modules";
@@ -28,7 +30,7 @@ function getFlagCategory(key: string) {
   return match ?? { prefix: "", label: "General", tone: "neutral" };
 }
 
-export default function FeatureFlagsPage() {
+function LegacyFeatureFlagsPage() {
   const [flags, setFlags] = useState<FlagRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -241,6 +243,16 @@ export default function FeatureFlagsPage() {
           </div>
         </div>
       }
+    />
+  );
+}
+
+export default function FeatureFlagsPage() {
+  return (
+    <DynamicPage
+      pageKey="administration.feature-flags"
+      fallback={<LegacyFeatureFlagsPage />}
+      renderMode="auto"
     />
   );
 }

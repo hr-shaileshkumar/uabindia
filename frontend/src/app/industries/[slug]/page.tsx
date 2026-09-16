@@ -16,7 +16,7 @@ export async function generateMetadata({
   if (!industry) {
     return buildPublicMetadata({
       title: "Industry Solutions",
-      description: "Industry solutions from UabIndia ERP.",
+      description: "Enterprise industry solutions.",
       path: "/industries",
     });
   }

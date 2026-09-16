@@ -1,5 +1,7 @@
 "use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+
 import React, { useMemo, useState } from "react";
 import { FileText, Layers, CheckCircle2 } from "lucide-react";
 import { AdministrationGlobalPageShell, KpiMetricItem } from "@/components/administration/AdministrationGlobalPageShell";
@@ -12,7 +14,7 @@ type TemplateRow = {
   publishedCount: number;
 };
 
-export default function WebsiteTemplatesPage() {
+function LegacyWebsiteTemplatesPage() {
   const { data = [], isLoading, isError, error, refetch } = useWebsitePages();
   const [search, setSearch] = useState("");
 
@@ -86,5 +88,15 @@ export default function WebsiteTemplatesPage() {
         </table>
       </div>
     </AdministrationGlobalPageShell>
+  );
+}
+
+export default function WebsiteTemplatesPage() {
+  return (
+    <DynamicPage
+      pageKey="administration.website.templates"
+      fallback={<LegacyWebsiteTemplatesPage />}
+      renderMode="auto"
+    />
   );
 }

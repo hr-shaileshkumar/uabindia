@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+﻿
 import { useCallback, useEffect, useState } from "react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
 import { CrudHeaderStats } from "@/components/workspace/crud-workspace";
@@ -19,7 +21,7 @@ type ApiKeyRow = {
   createdAt: string;
 };
 
-export default function ApiKeysPage() {
+function LegacyApiKeysPage() {
   const router = useRouter();
   const [keys, setKeys] = useState<ApiKeyRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -120,6 +122,16 @@ export default function ApiKeysPage() {
           </td>
         </tr>
       )}
+    />
+  );
+}
+
+export default function ApiKeysPage() {
+  return (
+    <DynamicPage
+      pageKey="licensing.integrations"
+      fallback={<LegacyApiKeysPage />}
+      renderMode="auto"
     />
   );
 }

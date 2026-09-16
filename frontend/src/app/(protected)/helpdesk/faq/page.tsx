@@ -1,5 +1,7 @@
-﻿"use client";
+"use client";
 
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+﻿
 import { useEffect, useState, useCallback } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import ModuleTablePage from "@/features/shared/components/ModuleTablePage";
@@ -24,7 +26,7 @@ const emptyForm = () => ({
   status: "Draft",
 });
 
-export default function HelpdeskFaqPage() {
+function LegacyHelpdeskFaqPage() {
   const [records, setRecords] = useState<FaqRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -214,5 +216,15 @@ export default function HelpdeskFaqPage() {
         </div>
       </SideDrawer>
     </>
+  );
+}
+
+export default function HelpdeskFaqPage() {
+  return (
+    <DynamicPage
+      pageKey="helpdesk.faq"
+      fallback={<LegacyHelpdeskFaqPage />}
+      renderMode="auto"
+    />
   );
 }

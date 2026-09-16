@@ -503,7 +503,7 @@ export function TenantSubdomainSwitcher() {
                                   )}
                                 </div>
                                 <p className="text-[10px] text-slate-400">
-                                  {t.subdomain}.uabindia.com
+                                  {t.subdomain}.{typeof window !== "undefined" && !window.location.hostname.includes("localhost") ? window.location.host.split(".").slice(-2).join(".") : "tenant.workspace"}
                                 </p>
                               </div>
                             </button>
@@ -514,7 +514,11 @@ export function TenantSubdomainSwitcher() {
                               )}
                               {typeof window !== "undefined" && (
                                 <a
-                                  href={`${window.location.protocol}//${t.subdomain}.${window.location.host.split(".").slice(-2).join(".") || "localhost:3000"}${window.location.pathname}`}
+                                  href={
+                                    window.location.hostname.includes("localhost")
+                                      ? `${window.location.protocol}//${window.location.host}${window.location.pathname}?tenant=${t.subdomain}`
+                                      : `${window.location.protocol}//${t.subdomain}.${window.location.host.split(".").slice(-2).join(".")}${window.location.pathname}`
+                                  }
                                   target="_blank"
                                   rel="noreferrer"
                                   title={`Open ${t.subdomain} directly`}
