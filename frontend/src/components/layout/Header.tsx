@@ -9,7 +9,6 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   RefreshCw,
-  Search,
   Settings,
   Shield,
   Sun,
@@ -17,6 +16,7 @@ import {
   Users,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { HeaderSearch } from "./HeaderSearch";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
@@ -369,7 +369,6 @@ function ProfileDropdown() {
 export function Header({ onMenuClick }: HeaderProps) {
   const isSidebarCollapsed = useNavigationStore((state) => state.isSidebarCollapsed);
   const toggleSidebar = useNavigationStore((state) => state.toggleSidebar);
-  const setSearchOpen = useNavigationStore((state) => state.setSearchOpen);
 
   return (
     <header
@@ -392,29 +391,8 @@ export function Header({ onMenuClick }: HeaderProps) {
         <WorkspaceBrand />
       </div>
 
-      {/* Center: Command Palette Search */}
-      <div className="flex flex-1 justify-center max-w-md mx-2">
-        <button
-          type="button"
-          onClick={() => setSearchOpen(true)}
-          className="hidden h-8 w-full max-w-sm items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/80 px-3 text-xs text-slate-500 transition-all hover:border-slate-300 hover:bg-white hover:shadow-2xs focus:outline-none dark:border-slate-800 dark:bg-slate-800/60 dark:text-slate-400 dark:hover:border-slate-700 dark:hover:bg-slate-800 md:flex"
-        >
-          <Search className="h-3.5 w-3.5 shrink-0 text-slate-400 dark:text-slate-500" />
-          <span className="truncate">Search modules, records & actions…</span>
-          <kbd className="ml-auto inline-flex items-center rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-400 font-mono dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
-            Ctrl K
-          </kbd>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setSearchOpen(true)}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 md:hidden"
-          aria-label="Search"
-        >
-          <Search className="h-4 w-4" />
-        </button>
-      </div>
+      {/* Center: Topbar Search Input & Live Dropdown */}
+      <HeaderSearch />
 
       {/* Right Utility Cluster */}
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">

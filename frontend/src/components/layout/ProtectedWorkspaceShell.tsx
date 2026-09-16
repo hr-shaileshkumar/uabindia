@@ -385,17 +385,7 @@ export function ProtectedWorkspaceShell({ children }: { children: ReactNode }) {
   }, [role, user]);
 
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        setSearchOpen(true);
-      }
-    };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [setSearchOpen]);
 
 
   const handleShellMenuClick = () => {
