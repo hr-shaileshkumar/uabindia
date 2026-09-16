@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { getServerApiV1BaseUrl } from "@/lib/api-base-url";
 import { AUTH_PATH_PREFIXES, BUSINESS_PATH_PREFIXES, OWNER_PATH_PREFIXES, matchesAnyPrefix } from "@/lib/workspace/route-config";
 import { isPlatformOnlyPath, TENANT_PUBLIC_HOME } from "@/lib/workspace/public-routing";
-import { hasTenantScopedHost, isLocalhostHostname } from "@/lib/tenant-host";
+import { hasTenantScopedHost, isLocalhostHostname, normalizeHostname } from "@/lib/tenant-host";
 
 const API_BASE_URL = getServerApiV1BaseUrl();
 const PROTECTED_PREFIXES = [...BUSINESS_PATH_PREFIXES, ...OWNER_PATH_PREFIXES, "/context"];
@@ -27,9 +27,11 @@ const TENANT_CACHE_TTL_MS = 60_000;
 const tenantHostCache = new Map<string, TenantHostCacheEntry>();
 
 export async function middleware(request: NextRequest) {
-  const hostname = request.nextUrl.hostname.toLowerCase();
+  const rawHost = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? request.nextUrl.hostname;
+  const hostname = normalizeHostname(rawHost);
   const pathname = request.nextUrl.pathname;
   const hasAccessToken = Boolean(request.cookies.get("access_token")?.value);
+  const isLocal = isLocalhostHostname(hostname) || isLocalhostHostname(request.nextUrl.hostname);
 
   if (pathname.startsWith("/tenant-not-found")) {
     return NextResponse.next();
@@ -75,7 +77,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (isLocalhostHostname(hostname)) {
+  if (isLocal) {
     return NextResponse.next();
   }
 

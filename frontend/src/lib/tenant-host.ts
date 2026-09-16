@@ -38,8 +38,19 @@ const PLATFORM_HOSTNAME_VARIANTS = new Set(
     .filter(Boolean)
 );
 
-export const isLocalhostHostname = (hostname: string): boolean =>
-  hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+export const isLocalhostHostname = (hostname: string): boolean => {
+  const norm = normalizeHostname(hostname);
+  return (
+    norm === "localhost" ||
+    norm === "127.0.0.1" ||
+    norm === "::1" ||
+    norm === "0.0.0.0" ||
+    norm.endsWith(".localhost")
+  );
+};
+
+const isIpAddress = (hostname: string): boolean =>
+  /^(?:\d{1,3}\.){3}\d{1,3}$/.test(hostname) || hostname.includes(":");
 
 const isReservedTenantLabel = (label: string, hostname: string): boolean => {
   if (hostname.endsWith(".localhost")) {
@@ -51,11 +62,11 @@ const isReservedTenantLabel = (label: string, hostname: string): boolean => {
 
 export const getTenantSubdomainFromHost = (value: string | null | undefined): string | null => {
   const hostname = normalizeHostname(value);
-  if (!hostname) {
+  if (!hostname || isLocalhostHostname(hostname) || isIpAddress(hostname)) {
     return null;
   }
 
-  if (hostname.endsWith(".localhost") && !isLocalhostHostname(hostname)) {
+  if (hostname.endsWith(".localhost")) {
     const candidate = hostname.split(".")[0] || null;
     if (!candidate || isReservedTenantLabel(candidate, hostname)) {
       return null;
