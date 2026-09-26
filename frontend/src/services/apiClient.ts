@@ -195,6 +195,7 @@ const dispatchApiErrorEvent = (error: AxiosError) => {
   const status = error.response?.status ?? 0;
   const responseData = error.response?.data as { message?: string } | undefined;
   const message = responseData?.message || error.message || "Unexpected API error";
+  const correlationId = (error.response?.headers?.["x-correlation-id"] || error.config?.headers?.["X-Correlation-Id"]) as string | undefined;
 
   window.dispatchEvent(
     new CustomEvent("erp:api-error", {
@@ -203,6 +204,7 @@ const dispatchApiErrorEvent = (error: AxiosError) => {
         message,
         url: error.config?.url,
         method: error.config?.method,
+        correlationId,
       },
     })
   );
@@ -223,6 +225,7 @@ const dispatchApiErrorEvent = (error: AxiosError) => {
         variant: "error",
         title,
         message,
+        correlationId,
       },
     })
   );
@@ -272,6 +275,12 @@ apiClient.interceptors.request.use(
     const method = (config.method || "get").toLowerCase();
     const isStateChanging = ["post", "put", "patch", "delete"].includes(method);
     const isCsrfEndpoint = typeof config.url === "string" && config.url.includes("/auth/csrf-token");
+
+    // Standard correlation ID for distributed enterprise request tracing
+    config.headers = config.headers || {};
+    if (!config.headers["X-Correlation-Id"]) {
+      config.headers["X-Correlation-Id"] = `req-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    }
 
     const tenant = getTenantHeader();
     const urlStr = typeof config.url === "string" ? config.url.toLowerCase() : "";
