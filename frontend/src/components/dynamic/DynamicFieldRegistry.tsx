@@ -321,7 +321,11 @@ export function DynamicFieldInput({
         return;
       }
 
-      const filterParam = field.filterParam || field.dependsOn;
+      const filterParam = field.filterParam
+        ? field.filterParam
+        : targetEndpoint.includes("/lookup")
+          ? "parentId"
+          : (field.dependsOn || "parentId");
       let endpoint = targetEndpoint;
       if (parentValue && filterParam) {
         const separator = endpoint.includes("?") ? "&" : "?";
