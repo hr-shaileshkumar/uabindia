@@ -21,6 +21,8 @@ import { DynamicRecordWorkflowBar } from "./engine/DynamicRecordWorkflowBar";
 import type { DynamicFormSection, DynamicFormField, DynamicWorkflowConfig, WorkflowTransition } from "@/lib/dynamic-schema/types";
 import { notifyError } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
+import { usePermissions } from "@/context/PermissionContext";
+import { useAuth } from "@/context/AuthContext";
 
 interface DynamicFormProps {
   sections: DynamicFormSection[];
@@ -82,6 +84,9 @@ export function DynamicForm({
   timelineEntries,
   onAddTimelineComment,
 }: DynamicFormProps) {
+  const { hasPermission, isSuperAdmin } = usePermissions();
+  const { user } = useAuth();
+
   // Intelligently partition single massive sections (e.g. fallback schemas) into logical tabs
   const effectiveSections = useMemo<DynamicFormSection[]>(() => {
     if (!sections || sections.length === 0) return [];
@@ -145,12 +150,31 @@ export function DynamicForm({
       );
     };
 
+    const isFieldPermitted = (f: DynamicFormField): boolean => {
+      if (isSuperAdmin) return true;
+      if (f.requiredPermission && !hasPermission([f.requiredPermission])) {
+        return false;
+      }
+      if (f.security?.restrictedPermissions && f.security.restrictedPermissions.length > 0) {
+        if (!hasPermission(f.security.restrictedPermissions)) {
+          return false;
+        }
+      }
+      if (f.security?.restrictedRoles && f.security.restrictedRoles.length > 0) {
+        const userRoles = user?.roles || (user?.role ? [user.role] : []);
+        if (!userRoles.some((r) => f.security!.restrictedRoles!.includes(r))) {
+          return false;
+        }
+      }
+      return true;
+    };
+
     // Sanitize sections: filter out blacklisted keys and configure auto-code fields
     const sanitizedSections = sections
       .map((sec) => ({
         ...sec,
         fields: (sec.fields || [])
-          .filter((f) => !BLACKLISTED_FORM_KEYS.has(f.key.toLowerCase()))
+          .filter((f) => !BLACKLISTED_FORM_KEYS.has(f.key.toLowerCase()) && isFieldPermitted(f))
           .map((f) => {
             if (isAutoCodeKey(f.key)) {
               return {
@@ -261,7 +285,7 @@ export function DynamicForm({
       partitioned[partitioned.length - 1].lineItems = single.lineItems;
     }
     return partitioned;
-  }, [sections]);
+  }, [sections, hasPermission, isSuperAdmin, user]);
 
   const [activeTabIndex, setActiveTabIndex] = useState(0);
 

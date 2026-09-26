@@ -72,6 +72,7 @@ export interface DynamicFormField {
     restrictedRoles?: string[];
     restrictedPermissions?: string[];
   };
+  requiredPermission?: string;
   validation?: {
     min?: number;
     max?: number;
@@ -130,6 +131,7 @@ export interface DynamicColumn {
     restrictedRoles?: string[];
     restrictedPermissions?: string[];
   };
+  requiredPermission?: string;
 }
 
 export interface DynamicFilter {

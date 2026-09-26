@@ -44,6 +44,7 @@ import { appApi } from "@/services/modules";
 import apiClient from "@/services/apiClient";
 import { useDynamicEntityQuery } from "@/hooks/useDynamicEntityQuery";
 import { usePermissions } from "@/context/PermissionContext";
+import { useAuth } from "@/context/AuthContext";
 import { useOrgContext } from "@/context/OrgContext";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
@@ -201,6 +202,7 @@ export function DynamicPage({
 }: DynamicPageProps) {
   const router = useRouter();
   const { hasPermission, isSuperAdmin } = usePermissions();
+  const { user } = useAuth();
   const { companyId: ctxCompanyId, projectId: ctxProjectId } = useOrgContext();
 
   const effectiveCompanyId = companyId || ctxCompanyId || undefined;
@@ -540,10 +542,29 @@ export function DynamicPage({
 
   const visibleColumns = useMemo(() => {
     if (!schema?.columns) return [];
+    const userRoles = user?.roles || (user?.role ? [user.role] : []);
     return (schema.columns || [])
-      .filter((c) => !c.hidden && !hiddenColumnKeys.includes(c.key) && !BLACKLISTED_TECHNICAL_KEYS.has(c.key.toLowerCase()))
+      .filter((c) => {
+        if (c.hidden || hiddenColumnKeys.includes(c.key) || BLACKLISTED_TECHNICAL_KEYS.has(c.key.toLowerCase())) {
+          return false;
+        }
+        if (c.requiredPermission && !isSuperAdmin && !hasPermission([c.requiredPermission])) {
+          return false;
+        }
+        if (c.security?.restrictedPermissions && c.security.restrictedPermissions.length > 0) {
+          if (!isSuperAdmin && !hasPermission(c.security.restrictedPermissions)) {
+            return false;
+          }
+        }
+        if (c.security?.restrictedRoles && c.security.restrictedRoles.length > 0) {
+          if (!isSuperAdmin && !userRoles.some((r) => c.security!.restrictedRoles!.includes(r))) {
+            return false;
+          }
+        }
+        return true;
+      })
       .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
-  }, [schema?.columns, hiddenColumnKeys, BLACKLISTED_TECHNICAL_KEYS]);
+  }, [schema?.columns, hiddenColumnKeys, BLACKLISTED_TECHNICAL_KEYS, hasPermission, isSuperAdmin, user]);
 
   // ── Facets — must be declared BEFORE any early returns (Rules of Hooks) ──
   const uniqueStatusValues = useMemo(() => {
