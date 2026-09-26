@@ -143,6 +143,83 @@ namespace UabIndia.Tests
             Assert.False(payload.PendingApprovals[1].IsCurrentStep);
         }
 
+        [Fact]
+        public async Task TransitionRecord_ValidRequest_UpdatesRecordStatus_And_CreatesAuditLog()
+        {
+            var tenantAccessor = new TestTenantAccessor();
+            var tenantId = Guid.NewGuid();
+            tenantAccessor.SetTenantId(tenantId);
+            await using var db = CreateContext(tenantAccessor);
+
+            var po = new PurchaseOrder
+            {
+                TenantId = tenantId,
+                PONumber = "PO-2026-0001",
+                Status = "Draft",
+                PODate = DateTime.UtcNow
+            };
+            db.PurchaseOrders.Add(po);
+            await db.SaveChangesAsync();
+
+            var userId = Guid.NewGuid();
+            var controller = CreateController(db, tenantAccessor, userId, "Admin");
+
+            var request = new UabIndia.Api.Models.WorkflowTransitionRequestDto
+            {
+                EntityType = "PurchaseOrder",
+                EntityId = po.Id,
+                Action = "submit",
+                FromState = "Draft",
+                ToState = "Submitted",
+                Remarks = "Submitting for approval"
+            };
+
+            var actionResult = await controller.TransitionRecord(request);
+            var okResult = Assert.IsType<OkObjectResult>(actionResult);
+            var response = Assert.IsType<UabIndia.Application.Common.Models.ApiResponse<UabIndia.Api.Models.WorkflowTransitionResultDto>>(okResult.Value);
+
+            Assert.True(response.Success);
+            Assert.NotNull(response.Data);
+            Assert.Equal("Submitted", response.Data.ToState);
+            Assert.Equal(po.Id, response.Data.EntityId);
+
+            // Verify entity updated in DB
+            var updatedPo = await db.PurchaseOrders.FindAsync(po.Id);
+            Assert.NotNull(updatedPo);
+            Assert.Equal("Submitted", updatedPo.Status);
+
+            // Verify audit log created
+            var auditLog = await db.AuditLogs.FirstOrDefaultAsync(a => a.EntityId == po.Id && a.Action.Contains("WorkflowTransition"));
+            Assert.NotNull(auditLog);
+            Assert.Equal(tenantId, auditLog.TenantId);
+            Assert.Equal("Draft", auditLog.OldValue);
+            Assert.Contains("Submitted", auditLog.NewValue);
+        }
+
+        [Fact]
+        public async Task TransitionRecord_MissingRequiredFields_ReturnsBadRequest()
+        {
+            var tenantAccessor = new TestTenantAccessor();
+            tenantAccessor.SetTenantId(Guid.NewGuid());
+            await using var db = CreateContext(tenantAccessor);
+            var controller = CreateController(db, tenantAccessor, Guid.NewGuid(), "Admin");
+
+            var request = new UabIndia.Api.Models.WorkflowTransitionRequestDto
+            {
+                EntityType = "PurchaseOrder",
+                EntityId = Guid.Empty, // Missing entity ID
+                Action = "",
+                ToState = ""
+            };
+
+            var actionResult = await controller.TransitionRecord(request);
+            var badRequest = Assert.IsType<BadRequestObjectResult>(actionResult);
+            var response = Assert.IsType<UabIndia.Application.Common.Models.ApiResponse<UabIndia.Api.Models.WorkflowTransitionResultDto>>(badRequest.Value);
+
+            Assert.False(response.Success);
+            Assert.Equal("INVALID_TRANSITION_REQUEST", response.StructuredErrors[0].Code);
+        }
+
         private static ApplicationDbContext CreateContext(TestTenantAccessor tenantAccessor)
         {
             var options = new DbContextOptionsBuilder<ApplicationDbContext>()

@@ -81,4 +81,31 @@ namespace UabIndia.Api.Models
         public string? Urgency { get; set; }
         public string? Title { get; set; }
     }
+
+    public class WorkflowTransitionRequestDto
+    {
+        [Required]
+        public string EntityType { get; set; } = string.Empty;
+        [Required]
+        public Guid EntityId { get; set; }
+        [Required]
+        public string Action { get; set; } = string.Empty;
+        public string FromState { get; set; } = string.Empty;
+        [Required]
+        public string ToState { get; set; } = string.Empty;
+        public string? Remarks { get; set; }
+        public string? StateField { get; set; } = "status";
+    }
+
+    public class WorkflowTransitionResultDto
+    {
+        public Guid EntityId { get; set; }
+        public string EntityType { get; set; } = string.Empty;
+        public string Action { get; set; } = string.Empty;
+        public string FromState { get; set; } = string.Empty;
+        public string ToState { get; set; } = string.Empty;
+        public string? Remarks { get; set; }
+        public DateTime TransitionedAt { get; set; }
+        public Guid PerformedBy { get; set; }
+    }
 }

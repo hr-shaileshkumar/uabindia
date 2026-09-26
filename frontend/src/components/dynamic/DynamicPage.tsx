@@ -1248,25 +1248,29 @@ export function DynamicPage({
               formId={schema.pageKey}
               onWorkflowTransition={async (transition, remarks) => {
                 if (!editingRecord?.id) return;
+                const stateField = (schema.workflowConfig || schema.workflow)?.stateField || "status";
                 try {
-                  await apiClient.post(`/workflow/transition`, {
+                  await apiClient.post(`/workflows/transition`, {
                     entityType: schema.entityName || schema.pageKey,
                     entityId: editingRecord.id,
                     action: transition.action,
                     fromState: transition.fromState,
                     toState: transition.toState,
                     remarks,
+                    stateField,
                   });
                   notifySuccess("Workflow Transitioned", `Status changed to ${transition.toState}`);
+                  setEditingRecord((prev: any) => prev ? { ...prev, [stateField]: transition.toState } : null);
                   void fetchData();
                 } catch {
                   // Fallback: update status field directly on the record
                   try {
                     await apiClient.put(`${schema.apiEndpoint}/${editingRecord.id}`, {
                       ...editingRecord,
-                      [(schema.workflowConfig || schema.workflow)?.stateField || "status"]: transition.toState,
+                      [stateField]: transition.toState,
                     });
                     notifySuccess("Status Updated", `Record moved to ${transition.toState}`);
+                    setEditingRecord((prev: any) => prev ? { ...prev, [stateField]: transition.toState } : null);
                     void fetchData();
                   } catch (updateErr) {
                     notifyError(getApiErrorMessage(updateErr, "Workflow transition failed."));

@@ -8,8 +8,10 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using UabIndia.Application.Interfaces;
 using UabIndia.Application.Models;
+using UabIndia.Api.Models;
 using UabIndia.Core.Entities;
 using UabIndia.Infrastructure.Data;
+using UabIndia.Application.Common.Models;
 
 namespace UabIndia.Api.Modules.Workflow.Controllers
 {
@@ -245,6 +247,90 @@ namespace UabIndia.Api.Modules.Workflow.Controllers
             {
                 return NotFound(new { message = "Approval instance not found." });
             }
+        }
+
+        [HttpPost("transition")]
+        [HttpPost("/api/v1/workflow/transition")]
+        public async Task<IActionResult> TransitionRecord([FromBody] WorkflowTransitionRequestDto request)
+        {
+            if (request == null || request.EntityId == Guid.Empty || string.IsNullOrWhiteSpace(request.Action) || string.IsNullOrWhiteSpace(request.ToState))
+            {
+                return BadRequest(UabIndia.Application.Common.Models.ApiResponse<WorkflowTransitionResultDto>.Fail(
+                    "EntityId, Action, and ToState are required.",
+                    "INVALID_TRANSITION_REQUEST"));
+            }
+
+            var tenantId = _tenantAccessor.GetTenantId();
+            if (tenantId == Guid.Empty)
+            {
+                return BadRequest(UabIndia.Application.Common.Models.ApiResponse<WorkflowTransitionResultDto>.Fail(
+                    "Tenant context missing.",
+                    "TENANT_REQUIRED"));
+            }
+
+            var userId = GetUserId();
+            if (userId == Guid.Empty)
+            {
+                return Unauthorized();
+            }
+
+            // 1. Attempt to update entity directly if registered in EF Core
+            string? normalizedEntityName = request.EntityType?.Trim();
+            if (!string.IsNullOrWhiteSpace(normalizedEntityName))
+            {
+                var efEntityType = _db.Model.GetEntityTypes().FirstOrDefault(t =>
+                    string.Equals(t.ClrType.Name, normalizedEntityName, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(t.GetTableName(), normalizedEntityName, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(t.ClrType.Name, normalizedEntityName.TrimEnd('s'), StringComparison.OrdinalIgnoreCase));
+
+                if (efEntityType != null)
+                {
+                    var entity = await _db.FindAsync(efEntityType.ClrType, request.EntityId);
+                    if (entity != null)
+                    {
+                        var targetPropName = request.StateField;
+                        var prop = (!string.IsNullOrWhiteSpace(targetPropName) ? efEntityType.FindProperty(targetPropName) : null)
+                                   ?? efEntityType.FindProperty("Status")
+                                   ?? efEntityType.FindProperty("State");
+
+                        if (prop != null && prop.ClrType == typeof(string))
+                        {
+                            _db.Entry(entity).Property(prop.Name).CurrentValue = request.ToState;
+                        }
+                    }
+                }
+            }
+
+            // 2. Audit Trail: Always record state transition in AuditLogs for complete enterprise traceability
+            var audit = new AuditLog
+            {
+                TenantId = tenantId,
+                EntityName = request.EntityType,
+                EntityId = request.EntityId,
+                Action = $"WorkflowTransition:{request.Action}",
+                OldValue = request.FromState,
+                NewValue = $"{request.ToState} (Remarks: {request.Remarks})",
+                PerformedBy = userId,
+                PerformedAt = DateTime.UtcNow,
+                Ip = HttpContext?.Connection?.RemoteIpAddress?.ToString()
+            };
+            _db.AuditLogs.Add(audit);
+
+            await _db.SaveChangesAsync();
+
+            var result = new WorkflowTransitionResultDto
+            {
+                EntityId = request.EntityId,
+                EntityType = request.EntityType,
+                Action = request.Action,
+                FromState = request.FromState,
+                ToState = request.ToState,
+                Remarks = request.Remarks,
+                TransitionedAt = DateTime.UtcNow,
+                PerformedBy = userId
+            };
+
+            return Ok(UabIndia.Application.Common.Models.ApiResponse<WorkflowTransitionResultDto>.Ok(result, $"Record transitioned successfully to '{request.ToState}'."));
         }
 
         private Guid GetUserId()
