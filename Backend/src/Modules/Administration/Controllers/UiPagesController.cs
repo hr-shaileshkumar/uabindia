@@ -256,7 +256,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                     ViewType = "table",
                     RoutePath = $"/{key.Replace('.', '/')}",
                     Icon = matched?.Icon ?? "Layers",
-                    Status = "AutoSynthesized",
+                    Status = "Published",
                     PublishedVersion = 1,
                     DraftVersion = (int?)null,
                     AddToNavigation = true,
@@ -264,6 +264,9 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                     NavSortOrder = 99,
                     RequiredPermission = $"{entityName.ToLowerInvariant()}.view",
                     ActiveVersion = 1,
+                    Version = 1,
+                    version = 1,
+                    status = "published",
                     SchemaJson = synthesizedJson,
                     IsSynthesized = true,
                     IsCustom = false,
@@ -312,6 +315,9 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                 page.NavSortOrder,
                 page.RequiredPermission,
                 ActiveVersion = selectedVersion?.Version,
+                Version = selectedVersion?.Version ?? 1,
+                version = selectedVersion?.Version ?? 1,
+                status = page.Status.ToLowerInvariant(),
                 SchemaJson = selectedVersion?.SchemaJson ?? "{}",
                 IsSynthesized = false,
                 IsCustom = isCustomPage,
@@ -494,6 +500,34 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             return Ok(new { message = "Draft saved successfully.", draftVersion = page.DraftVersion });
         }
 
+        [HttpPost("{pageKey}/review")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> SubmitForReview(string pageKey, CancellationToken ct)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var key = pageKey.Trim().ToLowerInvariant();
+
+            var page = await _db.UiPageDefinitions
+                .Include(p => p.Versions)
+                .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.PageKey.ToLower() == key && !p.IsDeleted, ct);
+
+            if (page == null)
+            {
+                return NotFound(new { message = $"Page '{pageKey}' not found." });
+            }
+
+            page.Status = "Review";
+            page.UpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync(ct);
+            return Ok(new
+            {
+                message = $"Page '{page.Title}' submitted for review.",
+                status = page.Status,
+                draftVersion = page.DraftVersion
+            });
+        }
+
         [HttpPost("{pageKey}/publish")]
         [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Publish(string pageKey, [FromBody] PublishPageDto? dto, CancellationToken ct)
@@ -607,10 +641,11 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             if (page == null) return NotFound();
 
             page.IsDeleted = true;
+            page.Status = "Archived";
             page.UpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync(ct);
 
-            return Ok(new { message = $"Page '{page.Title}' archived." });
+            return Ok(new { message = $"Page '{page.Title}' archived.", status = "Archived" });
         }
 
         [HttpPost("sync-catalog")]
