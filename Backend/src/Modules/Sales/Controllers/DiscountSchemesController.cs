@@ -13,6 +13,9 @@ namespace UabIndia.Api.Modules.Sales.Controllers
 {
     [ApiController]
     [Route("api/v1/discountschemes")]
+    [Route("api/v1/sales/discounts")]
+    [Route("api/v1/sales-discounts")]
+    [Route("api/v1/sales/pricing")]
     [Authorize(Policy = "Module:sales")]
     public class DiscountSchemesController : ControllerBase
     {

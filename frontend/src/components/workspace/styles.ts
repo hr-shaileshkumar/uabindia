@@ -73,14 +73,16 @@ export const actionCardTitleClassName = "truncate text-sm font-semibold text-sla
 export const actionCardSubtitleClassName = "truncate text-xs text-slate-500 dark:text-slate-400";
 
 export const tableWrapClassName =
-  "overflow-x-auto rounded-2xl border border-slate-200/90 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900";
+  "overflow-x-auto rounded-xl border border-slate-200/80 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900";
 
 export const tableThClassName =
-  "sticky top-0 z-10 border-b border-slate-200 bg-slate-50/90 backdrop-blur-xs px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:border-slate-800 dark:bg-slate-950/80 dark:text-slate-400";
+  "sticky top-0 z-10 border-b border-slate-200 bg-slate-50/95 backdrop-blur-sm px-3.5 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-300 select-none";
 
-export const tableTdClassName = "px-4 py-3 text-sm text-slate-700 border-b border-slate-100 last:border-0 dark:text-slate-300 dark:border-slate-800/70";
+export const tableTdClassName =
+  "px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 border-b border-slate-100/90 last:border-0 dark:text-slate-200 dark:border-slate-800/60 align-middle";
 
-export const tableRowHoverClassName = "transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/40";
+export const tableRowHoverClassName =
+  "transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/40";
 
 export const welcomeBannerClassName =
   "rounded-2xl border border-slate-200/90 bg-gradient-to-r from-white via-slate-50 to-blue-50/30 p-5 md:p-6 shadow-xs dark:border-slate-800 dark:from-slate-900 dark:via-slate-900/90 dark:to-blue-950/30";

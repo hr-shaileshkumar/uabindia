@@ -1,7 +1,7 @@
 const RESERVED_HOST_LABELS = new Set(["app", "api", "www"]);
 const LOCALHOST_RESERVED_HOST_LABELS = new Set(["app", "www"]);
 const RESERVED_PLATFORM_HOST_LABELS = new Set(["app", "api"]);
-const DEFAULT_PLATFORM_SITE_URL = "https://www.uabindia.com";
+const DEFAULT_PLATFORM_SITE_URL = "https://www.uabindia.in";
 
 export const normalizeHostname = (value: string | null | undefined): string => {
   const host = (value || "").trim().toLowerCase();
@@ -12,6 +12,11 @@ export const normalizeHostname = (value: string | null | undefined): string => {
   if (host.startsWith("[")) {
     const closingBracketIndex = host.indexOf("]");
     return closingBracketIndex >= 0 ? host.slice(1, closingBracketIndex) : host;
+  }
+
+  // IPv6 address without port brackets (e.g. "::1" or "fe80::1")
+  if (host.includes(":") && (host.match(/:/g) || []).length > 1) {
+    return host;
   }
 
   return host.split(":")[0];
@@ -38,15 +43,19 @@ const PLATFORM_HOSTNAME_VARIANTS = new Set(
     .filter(Boolean)
 );
 
-export const isLocalhostHostname = (hostname: string): boolean => {
+export const isBareLocalhost = (hostname: string): boolean => {
   const norm = normalizeHostname(hostname);
   return (
     norm === "localhost" ||
     norm === "127.0.0.1" ||
     norm === "::1" ||
-    norm === "0.0.0.0" ||
-    norm.endsWith(".localhost")
+    norm === "0.0.0.0"
   );
+};
+
+export const isLocalhostHostname = (hostname: string): boolean => {
+  const norm = normalizeHostname(hostname);
+  return isBareLocalhost(norm) || norm.endsWith(".localhost");
 };
 
 const isIpAddress = (hostname: string): boolean =>
@@ -62,7 +71,7 @@ const isReservedTenantLabel = (label: string, hostname: string): boolean => {
 
 export const getTenantSubdomainFromHost = (value: string | null | undefined): string | null => {
   const hostname = normalizeHostname(value);
-  if (!hostname || isLocalhostHostname(hostname) || isIpAddress(hostname)) {
+  if (!hostname || isBareLocalhost(hostname) || isIpAddress(hostname)) {
     return null;
   }
 

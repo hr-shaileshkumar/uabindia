@@ -23,11 +23,11 @@ export const publicMutedPanelClassName =
 export const publicGlassPanelClassName = publicMutedPanelClassName;
 
 export const publicSectionClassName =
-  "relative mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8";
+  "relative mx-auto w-full max-w-[1580px] 2xl:max-w-[1760px] px-5 sm:px-8 lg:px-12 xl:px-16";
 
-export const publicPageSectionClassName = "relative py-8 md:py-12";
-export const publicSectionSpacingClassName = "relative py-8 md:py-12";
-export const publicSectionContentGapClassName = "mt-6";
+export const publicPageSectionClassName = "relative py-12 md:py-16";
+export const publicSectionSpacingClassName = "relative py-12 md:py-16";
+export const publicSectionContentGapClassName = "mt-8";
 
 export const publicEyebrowClassName =
   "text-xs font-semibold uppercase tracking-[0.14em] text-slate-500";

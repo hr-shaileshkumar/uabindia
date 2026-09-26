@@ -22,6 +22,8 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
     [ApiController]
     [Route("api/v1/[controller]")]
     [Route("api/[controller]")]
+    [Route("api/v1/hrms/training")]
+    [Route("api/v1/hrms")]
     [Authorize(Policy = "Module:hrms")]
     public class TrainingController : ControllerBase
     {

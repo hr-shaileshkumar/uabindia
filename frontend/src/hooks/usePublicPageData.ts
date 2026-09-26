@@ -36,29 +36,49 @@ type UsePublicPageDataResult = {
   parseContent: <T extends Record<string, unknown>>(fallback: T) => T;
 };
 
+type PublicCacheData = {
+  profile: ClientProfile;
+  manifest: PublicSiteManifestResponse | null;
+  siteData: PublicSiteDataResponse | null;
+  pageRecord: PublicPageRecord | null;
+  headerRecord: PublicPageRecord | null;
+  footerRecord: PublicPageRecord | null;
+  ts: number;
+};
+
+const publicDataCache = new Map<string, PublicCacheData>();
+
 export const usePublicPageData = (
   pageType: string,
   audience: PublicAudience = "tenant"
 ): UsePublicPageDataResult => {
   const pathname = usePathname();
-  const [profile, setProfile] = useState<ClientProfile>(getBaseClientProfile());
-  const [pageRecord, setPageRecord] = useState<PublicPageRecord | null>(null);
-  const [manifest, setManifest] = useState<PublicSiteManifestResponse | null>(null);
-  const [siteData, setSiteData] = useState<PublicSiteDataResponse | null>(null);
-  const [headerRecord, setHeaderRecord] = useState<PublicPageRecord | null>(null);
-  const [footerRecord, setFooterRecord] = useState<PublicPageRecord | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = `${audience}:${pageType}`;
+  const cached = publicDataCache.get(cacheKey);
+
+  const [profile, setProfile] = useState<ClientProfile>(cached?.profile ?? getBaseClientProfile());
+  const [pageRecord, setPageRecord] = useState<PublicPageRecord | null>(cached?.pageRecord ?? null);
+  const [manifest, setManifest] = useState<PublicSiteManifestResponse | null>(cached?.manifest ?? null);
+  const [siteData, setSiteData] = useState<PublicSiteDataResponse | null>(cached?.siteData ?? null);
+  const [headerRecord, setHeaderRecord] = useState<PublicPageRecord | null>(cached?.headerRecord ?? null);
+  const [footerRecord, setFooterRecord] = useState<PublicPageRecord | null>(cached?.footerRecord ?? null);
+  const [loading, setLoading] = useState(false);
   const [isTenantContext, setIsTenantContext] = useState(false);
 
   useEffect(() => {
     let isActive = true;
     const loadPublicPageData = async () => {
+      // If we already have fresh cached data within 5 minutes, avoid duplicate network roundtrips
+      const existing = publicDataCache.get(cacheKey);
+      if (existing && Date.now() - existing.ts < 300_000) {
+        return;
+      }
+
       const isTenantRequest = typeof window !== "undefined" ? hasExplicitPublicTenantContext() : audience === "tenant";
       const resolvedAudience: PublicAudience = isTenantRequest ? "tenant" : "platform";
       const tenant = isTenantRequest && typeof window !== "undefined" ? getTenantSubdomain() : null;
       const canLoadPageContent = resolvedAudience === "platform" || Boolean(tenant);
       setIsTenantContext(isTenantRequest);
-      setLoading(true);
 
       if (resolvedAudience === "tenant" && !tenant) {
         setProfile(getBaseClientProfile());
@@ -126,6 +146,16 @@ export const usePublicPageData = (
       setHeaderRecord(headerResponse?.data ?? null);
       setFooterRecord(footerResponse?.data ?? null);
       setLoading(false);
+
+      publicDataCache.set(cacheKey, {
+        profile: nextProfile,
+        manifest: manifestResponse?.data ?? null,
+        siteData: siteDataResponse?.data ?? null,
+        pageRecord: pageResponse?.data ?? null,
+        headerRecord: headerResponse?.data ?? null,
+        footerRecord: footerResponse?.data ?? null,
+        ts: Date.now(),
+      });
     };
 
     void loadPublicPageData().catch(() => {

@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, typ
 import * as signalR from "@microsoft/signalr";
 import { useAuth } from "@/context/AuthContext";
 import { appApi } from "@/services/modules";
-import { notifyInfo } from "@/lib/notifications";
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from "@/lib/notifications";
 
 export type SignalRNotification = {
   id: string;
@@ -89,6 +89,11 @@ export function SignalRNotificationProvider({ children }: { children: ReactNode 
         withCredentials: true,
         skipNegotiation: false,
         transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling,
+        accessTokenFactory: () => {
+          if (typeof document === "undefined") return "";
+          const match = document.cookie.match(/(^| )access_token=([^;]+)/);
+          return match ? decodeURIComponent(match[2]) : "";
+        },
       })
       .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
       .configureLogging(signalR.LogLevel.None)
@@ -99,7 +104,7 @@ export function SignalRNotificationProvider({ children }: { children: ReactNode 
     connection.on("ReceiveNotification", (notification: SignalRNotification) => {
       setNotifications((prev) => [
         {
-          id: notification.id,
+          id: notification.id || `notif-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
           type: notification.type || "Alert",
           title: notification.title,
           message: notification.message,
@@ -111,8 +116,17 @@ export function SignalRNotificationProvider({ children }: { children: ReactNode 
       ]);
       setUnreadCount((c) => c + 1);
 
-      // Trigger modern in-app toast notification
-      notifyInfo(notification.message, notification.title);
+      // Trigger modern in-app toast notification matching severity
+      const typeStr = (notification.type || "").toUpperCase();
+      if (typeStr.includes("SUCCESS") || typeStr.includes("APPROV")) {
+        notifySuccess(notification.message, notification.title);
+      } else if (typeStr.includes("ERROR") || typeStr.includes("REJECT") || typeStr.includes("FAIL")) {
+        notifyError(notification.message, notification.title);
+      } else if (typeStr.includes("WARN")) {
+        notifyWarning(notification.message, notification.title);
+      } else {
+        notifyInfo(notification.message, notification.title);
+      }
     });
 
     connection

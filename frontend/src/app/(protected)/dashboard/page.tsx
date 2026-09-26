@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { isSuperAdminRole } from "@/lib/auth/role-utils";
+import { isSuperAdminRole, getNormalizedRoleSet } from "@/lib/auth/role-utils";
 import { SuperAdminDashboard } from "@/features/dashboard/components/SuperAdminDashboard";
 import { EmployeeDashboard } from "@/features/dashboard/components/EmployeeDashboard";
 import { GlobalExecutiveDashboard } from "@/features/dashboard/components/GlobalExecutiveDashboard";
@@ -17,17 +17,24 @@ import { Globe2, UserCheck } from "lucide-react";
  * - Admin / Manager / Executive: Executive BI Center with instant toggle to My Self-Service
  */
 export default function UnifiedEnterpriseDashboard() {
-  const { user } = useAuth();
+  const { user, isSuperAdmin } = useAuth();
   const [lens, setLens] = useState<"executive" | "personal">("executive");
-  const role = user?.role?.toLowerCase() || "";
+  const userRoleSet = getNormalizedRoleSet([...(user?.roles || []), user?.role]);
 
-  // 1. SuperAdmin Persona -> Direct to Platform Management Hub
-  if (isSuperAdminRole(user?.role)) {
+  // 1. Platform SuperAdmin Persona -> Direct to Platform Management Hub
+  if (isSuperAdmin && user?.isSystemAdmin) {
     return <SuperAdminDashboard />;
   }
 
-  // 2. Individual Employee / ESS Persona -> Direct to Personal Workforce Portal
-  if (role === "employee" || role === "ess") {
+  // 2. Individual Employee / ESS Persona (without administrative roles) -> Direct to Personal Workforce Portal
+  const isEmployeeOnly =
+    (userRoleSet.has("employee") || userRoleSet.has("ess")) &&
+    !userRoleSet.has("admin") &&
+    !userRoleSet.has("superadmin") &&
+    !userRoleSet.has("manager") &&
+    !userRoleSet.has("tenant_owner");
+
+  if (isEmployeeOnly) {
     return <EmployeeDashboard />;
   }
 

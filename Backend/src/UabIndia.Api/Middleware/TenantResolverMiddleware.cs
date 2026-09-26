@@ -245,10 +245,7 @@ namespace UabIndia.Api.Middleware
                 return false;
             }
 
-            return value.Equals("/api/v1/public/site-manifest", StringComparison.OrdinalIgnoreCase)
-                || value.Equals("/api/v1/public/company-profile", StringComparison.OrdinalIgnoreCase)
-                || value.Equals("/api/v1/public/site-data", StringComparison.OrdinalIgnoreCase)
-                || value.Equals("/api/v1/public/contact", StringComparison.OrdinalIgnoreCase)
+            return value.StartsWith("/api/v1/public/", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("/api/v1/recruitment/job-postings/active", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("/api/v1/auth/login", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("/api/v1/auth/me", StringComparison.OrdinalIgnoreCase)
@@ -262,8 +259,7 @@ namespace UabIndia.Api.Middleware
                 || value.Equals("/api/v1/iam/auth/forgot-password", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("/api/v1/iam/auth/reset-password", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("/api/v1/iam/auth/refresh", StringComparison.OrdinalIgnoreCase)
-                || value.Equals("/api/v1/iam/auth/csrf-token", StringComparison.OrdinalIgnoreCase)
-                || value.StartsWith("/api/v1/public/website-pages/", StringComparison.OrdinalIgnoreCase);
+                || value.Equals("/api/v1/iam/auth/csrf-token", StringComparison.OrdinalIgnoreCase);
         }
 
         private static string BuildSchemaName(string? subdomain, Guid tenantId)

@@ -19,6 +19,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
     /// </summary>
     [ApiController]
     [Route("api/v1/[controller]")]
+    [Route("api/v1/administration/permissions")]
     [Authorize]
     [Authorize(Policy = "Module:platform")]
     public class PermissionsController : ControllerBase

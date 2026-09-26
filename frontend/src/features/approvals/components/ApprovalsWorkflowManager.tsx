@@ -21,7 +21,10 @@ import {
   Layers,
   X,
   MessageSquare,
+  AlertTriangle,
+  ArrowUpRight,
 } from "lucide-react";
+import { ApprovalTimeline } from "./ApprovalTimeline";
 
 export type ApprovalRequestDto = {
   id: string;
@@ -29,13 +32,16 @@ export type ApprovalRequestDto = {
   entityType?: string;
   entityId?: string;
   currentStep?: number;
+  totalSteps?: number;
   status?: string;
   requestedBy?: string;
+  requesterName?: string;
   requestedAt?: string;
   comments?: string;
   amount?: number;
   department?: string;
   urgency?: "Normal" | "High" | "Urgent";
+  title?: string;
 };
 
 export const CATEGORIES = [
@@ -128,9 +134,39 @@ export function ApprovalsWorkflowManager() {
 
   const handleBulkApprove = async () => {
     if (selectedIds.size === 0) return;
-    notifySuccess(`${selectedIds.size} requests approved in bulk batch.`, "Workflow");
-    setSelectedIds(new Set());
-    await load();
+    try {
+      setLoading(true);
+      const ids = Array.from(selectedIds);
+      const res = await appApi.approvals.bulkApprove({
+        requestIds: ids,
+        comments: "Bulk approved from unified queue",
+      });
+      const approvedCount = res?.data?.approvedCount ?? ids.length;
+      notifySuccess(`${approvedCount} request(s) approved in bulk batch.`, "Workflow");
+      setSelectedIds(new Set());
+      await load();
+    } catch (err) {
+      notifyError(getApiErrorMessage(err, "Bulk approval failed."), "Workflow");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEscalate = async (item: ApprovalRequestDto) => {
+    try {
+      setDeciding(true);
+      await appApi.approvals.escalate(item.id, {
+        reason: decisionNotes || "Escalated for higher authorization review",
+      });
+      notifySuccess(`Request ${item.title || item.entityId || item.id} escalated to next tier.`, "Workflow");
+      setActiveItem(null);
+      setDecisionNotes("");
+      await load();
+    } catch (err) {
+      notifyError(getApiErrorMessage(err, "Escalation failed."), "Workflow");
+    } finally {
+      setDeciding(false);
+    }
   };
 
   const toggleSelectAll = () => {
@@ -279,16 +315,34 @@ export function ApprovalsWorkflowManager() {
                         />
                       </td>
                       <td className="px-4 py-3">
-                        <div className="font-bold text-slate-900 dark:text-white">
-                          {row.entityId ?? row.id}
+                        <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                          <span>{row.title || row.entityId || row.id}</span>
+                          {row.urgency && row.urgency !== "Normal" && (
+                            <span
+                              className={`rounded px-1.5 py-0.2 text-[9px] font-extrabold uppercase ${
+                                row.urgency === "Urgent"
+                                  ? "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300"
+                                  : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                              }`}
+                            >
+                              {row.urgency}
+                            </span>
+                          )}
                         </div>
-                        <span className="inline-flex items-center rounded-md bg-indigo-50 px-1.5 py-0.2 font-mono text-[10px] font-semibold text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
-                          {row.entityType}
-                        </span>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="inline-flex items-center rounded-md bg-indigo-50 px-1.5 py-0.2 font-mono text-[10px] font-semibold text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                            {row.entityType}
+                          </span>
+                          {row.totalSteps && row.totalSteps > 1 && (
+                            <span className="text-[10px] font-medium text-slate-400">
+                              Step {row.currentStep ?? 1}/{row.totalSteps}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3">
                         <div className="font-semibold text-slate-900 dark:text-slate-200">
-                          {row.requestedBy ?? "Unknown User"}
+                          {row.requesterName || row.requestedBy || "Unknown User"}
                         </div>
                         <div className="text-[11px] text-slate-400">{row.department ?? "General"}</div>
                       </td>
@@ -356,7 +410,7 @@ export function ApprovalsWorkflowManager() {
               <div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <FileText className="h-5 w-5 text-indigo-600" />
-                  Request Details ({activeItem.entityId ?? activeItem.id})
+                  {activeItem.title || `Request Details (${activeItem.entityId ?? activeItem.id})`}
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">Review request before authorizing</p>
               </div>
@@ -372,7 +426,9 @@ export function ApprovalsWorkflowManager() {
             <div className="space-y-4 text-xs">
               <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800/50 space-y-2">
                 <p className="font-semibold text-slate-400 uppercase text-[10px]">Requester Information</p>
-                <p className="text-sm font-bold text-slate-900 dark:text-white">{activeItem.requestedBy}</p>
+                <p className="text-sm font-bold text-slate-900 dark:text-white">
+                  {activeItem.requesterName || activeItem.requestedBy || "Unknown Requester"}
+                </p>
                 <p className="text-slate-500 dark:text-slate-400">Department: {activeItem.department ?? "General"}</p>
               </div>
 
@@ -396,6 +452,16 @@ export function ApprovalsWorkflowManager() {
                 </p>
               </div>
 
+              {/* Multi-Tier Approval Timeline */}
+              <ApprovalTimeline
+                currentStep={activeItem.currentStep ?? 1}
+                totalSteps={activeItem.totalSteps ?? 3}
+                status={activeItem.status ?? "Pending"}
+                requestedBy={activeItem.requesterName || activeItem.requestedBy}
+                requestedAt={activeItem.requestedAt}
+                comments={activeItem.comments}
+              />
+
               {/* Decision Input */}
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
@@ -412,22 +478,30 @@ export function ApprovalsWorkflowManager() {
               </div>
 
               {/* Action Buttons */}
-              <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <div className="grid grid-cols-3 gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   disabled={deciding}
                   onClick={() => void handleDecision(activeItem, false)}
-                  className="inline-flex justify-center items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 py-2.5 text-xs font-bold text-rose-700 hover:bg-rose-100 disabled:opacity-50 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300 cursor-pointer"
+                  className="inline-flex justify-center items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 py-2.5 text-xs font-bold text-rose-700 hover:bg-rose-100 disabled:opacity-50 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300 cursor-pointer"
                 >
-                  <XCircle className="h-4 w-4" /> Reject Request
+                  <XCircle className="h-4 w-4" /> Reject
+                </button>
+                <button
+                  type="button"
+                  disabled={deciding}
+                  onClick={() => void handleEscalate(activeItem)}
+                  className="inline-flex justify-center items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 py-2.5 text-xs font-bold text-amber-800 hover:bg-amber-100 disabled:opacity-50 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300 cursor-pointer"
+                >
+                  <ArrowUpRight className="h-4 w-4" /> Escalate
                 </button>
                 <button
                   type="button"
                   disabled={deciding}
                   onClick={() => void handleDecision(activeItem, true)}
-                  className="inline-flex justify-center items-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-500 disabled:opacity-50 cursor-pointer"
+                  className="inline-flex justify-center items-center gap-1.5 rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-500 disabled:opacity-50 cursor-pointer"
                 >
-                  <CheckCircle2 className="h-4 w-4" /> Approve & Sign Off
+                  <CheckCircle2 className="h-4 w-4" /> Approve
                 </button>
               </div>
             </div>

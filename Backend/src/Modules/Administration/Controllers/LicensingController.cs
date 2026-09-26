@@ -68,13 +68,15 @@ namespace UabIndia.Api.Modules.Administration.Controllers
         }
 
         [HttpGet("invoices")]
+        [HttpGet("billing-history")]
+        [HttpGet("/api/v1/licensing/billing-history")]
         public async Task<IActionResult> Invoices([FromQuery] string? status)
         {
             var query = _db.LicenseInvoices.AsNoTracking().AsQueryable();
             if (!string.IsNullOrWhiteSpace(status))
                 query = query.Where(i => i.Status == status);
             var rows = await query.OrderByDescending(i => i.CreatedAt).ToListAsync();
-            return Ok(rows);
+            return Ok(new { data = rows, items = rows, invoices = rows, total = rows.Count });
         }
 
         [HttpPost("invoices")]

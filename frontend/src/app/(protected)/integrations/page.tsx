@@ -1,5 +1,7 @@
-﻿import { ModuleHubPage } from "@/components/workspace/module-hub-page";
+"use client";
 
-export default function IntegrationsOverviewPage() {
-  return <ModuleHubPage moduleKey="integrations" />;
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+
+export default function IntegrationsPage() {
+  return <DynamicPage pageKey="integrations.overview" />;
 }

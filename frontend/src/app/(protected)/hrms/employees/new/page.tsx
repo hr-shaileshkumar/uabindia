@@ -1,22 +1,7 @@
-import { DynamicPage } from "@/components/dynamic/DynamicPage";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import { PERMISSIONS } from "@/constants/permissions";
-import EmployeeForm from "@/features/hrms/components/EmployeeForm";
+"use client";
 
-function LegacyEmployeeNewPage() {
-  return (
-    <ProtectedRoute permission={PERMISSIONS.EMPLOYEE_CREATE}>
-      <EmployeeForm title="Add Employee" />
-    </ProtectedRoute>
-  );
-}
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
 
 export default function EmployeeNewPage() {
-  return (
-    <DynamicPage
-      pageKey="hrms.employees.new"
-      fallback={<LegacyEmployeeNewPage />}
-      renderMode="auto"
-    />
-  );
+  return <DynamicPage pageKey="hrms.employees" initialDrawerMode="create" />;
 }

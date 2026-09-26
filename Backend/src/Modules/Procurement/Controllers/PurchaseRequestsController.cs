@@ -13,6 +13,8 @@ namespace UabIndia.Api.Modules.Procurement.Controllers
 {
     [ApiController]
     [Route("api/v1/purchaserequests")]
+    [Route("api/v1/procurement/requests")]
+    [Route("api/v1/purchase-requests")]
     [Authorize]
     [Authorize(Policy = "Module:procurement")]
     public class PurchaseRequestsController : ControllerBase

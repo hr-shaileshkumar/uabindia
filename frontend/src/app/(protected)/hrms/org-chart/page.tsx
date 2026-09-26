@@ -1,18 +1,7 @@
-import { DynamicPage } from "@/components/dynamic/DynamicPage";
-import OrgChartView from "@/features/hrms/components/OrgChartView";
+﻿"use client";
 
-export const metadata = {
-  title: "Organization Hierarchy & Org Chart | UAB India",
-  description: "Enterprise hierarchy mapping, tree visualization, transfer workflows, and delegation of authority.",
-};
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
 
 export default function OrgChartPage() {
-  return (
-    <DynamicPage
-      pageKey="hrms.org-chart"
-      fallback={<OrgChartView />}
-      renderMode="auto"
-    />
-  );
+  return <DynamicPage pageKey="hrms.org-chart" />;
 }
-

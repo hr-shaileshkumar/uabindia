@@ -13,6 +13,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
 {
     [ApiController]
     [Route("api/v1/travel")]
+    [Route("api/v1/hrms/travel")]
     [Authorize(Policy = "Module:hrms")]
     public class TravelController : ControllerBase
     {

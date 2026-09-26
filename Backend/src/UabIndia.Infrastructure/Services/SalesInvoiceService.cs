@@ -67,10 +67,15 @@ namespace UabIndia.Infrastructure.Services
                 ? (paid <= 0 ? "Pending" : paid >= total ? "Paid" : "Partial")
                 : command.PaymentStatus;
 
+            var targetCompanyId = _tenantAccessor.GetCompanyId();
+            var targetProjectId = _tenantAccessor.GetProjectId();
+
             var invoice = new SalesInvoice
             {
+                CompanyId = targetCompanyId,
+                ProjectId = targetProjectId,
                 InvoiceNumber = string.IsNullOrWhiteSpace(command.InvoiceNumber)
-                    ? await _numbers.NextAsync("SalesInvoice", "INV-", 5, cancellationToken)
+                    ? await _numbers.NextAsync("SalesInvoice", "INV-", 5, targetCompanyId, targetProjectId, null, cancellationToken)
                     : command.InvoiceNumber.Trim(),
                 InvoiceDate = invoiceDate,
                 CustomerId = command.CustomerId,
@@ -138,9 +143,14 @@ namespace UabIndia.Infrastructure.Services
                 ? order.TotalAmount
                 : IndiaStatutoryCalculator.RoundMoney(taxable + gst.TotalTax - discount + order.ShippingCharges);
 
+            var targetCompanyId = order.CompanyId ?? _tenantAccessor.GetCompanyId();
+            var targetProjectId = order.ProjectId ?? _tenantAccessor.GetProjectId();
+
             var invoice = new SalesInvoice
             {
-                InvoiceNumber = await _numbers.NextAsync("SalesInvoice", "INV-", 5, cancellationToken),
+                CompanyId = targetCompanyId,
+                ProjectId = targetProjectId,
+                InvoiceNumber = await _numbers.NextAsync("SalesInvoice", "INV-", 5, targetCompanyId, targetProjectId, null, cancellationToken),
                 InvoiceDate = DateTime.UtcNow.Date,
                 CustomerId = order.CustomerId,
                 SalesOrderId = order.Id,

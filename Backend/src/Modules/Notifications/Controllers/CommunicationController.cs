@@ -15,6 +15,7 @@ namespace UabIndia.Api.Modules.Notifications.Controllers
 {
     [ApiController]
     [Route("api/v1/communication")]
+    [Route("api/v1/administration/communication-templates")]
     [Authorize]
     public class CommunicationController : ControllerBase
     {
@@ -29,6 +30,27 @@ namespace UabIndia.Api.Modules.Notifications.Controllers
         {
             _db = db;
             _tenantAccessor = tenantAccessor;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ListAllTemplates([FromQuery] int page = 1, [FromQuery] int limit = 50)
+        {
+            page = Math.Max(page, 1);
+            limit = Math.Clamp(limit, 1, 100);
+
+            var query = _db.CommunicationTemplates.AsNoTracking()
+                .Where(t => !t.IsDeleted);
+
+            var total = await query.CountAsync();
+            var rows = await query
+                .OrderBy(t => t.TemplateKind)
+                .ThenBy(t => t.Name)
+                .Skip((page - 1) * limit)
+                .Take(limit)
+                .ToListAsync();
+
+            var list = rows.Select(MapTemplate).ToList();
+            return Ok(new { data = list, items = list, templates = list, total, page, limit });
         }
 
         [HttpGet("announcements")]

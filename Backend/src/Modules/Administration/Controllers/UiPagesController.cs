@@ -17,6 +17,8 @@ namespace UabIndia.Api.Modules.Administration.Controllers
 {
     [ApiController]
     [Route("api/v1/ui-pages")]
+    [Route("api/metadata")]
+    [Route("api/v1/metadata")]
     [Authorize]
     public class UiPagesController : ControllerBase
     {
@@ -160,6 +162,24 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             }
         }
 
+        [HttpGet("modules")]
+        public IActionResult GetModules()
+        {
+            var modules = new[]
+            {
+                new { key = "hrms", name = "HRMS & Workforce", icon = "Users", description = "Workforce management, attendance, leave, and employee profiles" },
+                new { key = "payroll", name = "Payroll & Compensation", icon = "Calculator", description = "Salary calculations, payslips, deductions, and tax declarations" },
+                new { key = "administration", name = "Administration & Platform", icon = "Building2", description = "Company structure, tenant settings, access control, and master registers" },
+                new { key = "finance", name = "Finance & General Ledger", icon = "Receipt", description = "Chart of accounts, invoices, expenses, and banking transactions" },
+                new { key = "sales", name = "Sales & Invoicing", icon = "ShoppingCart", description = "Customer master, sales orders, quotes, and accounts receivable" },
+                new { key = "procurement", name = "Procurement & Vendors", icon = "Truck", description = "Purchase orders, vendor master, receiving, and accounts payable" },
+                new { key = "projects", name = "Projects & Operations", icon = "Briefcase", description = "Project delivery, milestones, resource planning, and timesheets" },
+                new { key = "assets", name = "Asset Management", icon = "Cpu", description = "Fixed asset register, depreciation schedules, and maintenance tracking" }
+            };
+            return Ok(modules);
+        }
+
+        [HttpGet("pages/{pageKey}")]
         [HttpGet("{pageKey}")]
         public async Task<IActionResult> GetPage(
             string pageKey,
@@ -171,6 +191,19 @@ namespace UabIndia.Api.Modules.Administration.Controllers
         {
             var tenantId = _tenantAccessor.GetTenantId();
             var key = pageKey.Trim().ToLowerInvariant();
+
+            // Canonical key aliases for standard ERP Master pages
+            if (key == "employee-master" || key == "employee" || key == "employees") key = "hrms.employees";
+            else if (key == "department-master" || key == "department" || key == "departments") key = "administration.departments";
+            else if (key == "designation-master" || key == "designation" || key == "designations") key = "administration.designations";
+            else if (key == "company-master" || key == "company" || key == "companies") key = "administration.companies";
+            else if (key == "branch-master" || key == "branch" || key == "branches") key = "administration.branches";
+            else if (key == "user-master" || key == "user" || key == "users") key = "administration.users";
+            else if (key == "role-master" || key == "role" || key == "roles") key = "administration.roles";
+            else if (key == "vendor-bills" || key == "vendorbill" || key == "vendorbills" || key == "finance.vendor-bills") key = "procurement.vendor-bills";
+            else if (key == "inventory.warehouse-management" || key == "warehouse-management" || key == "wms") key = "inventory.wms";
+            else if (key == "procurement.goods-receipt-notes" || key == "goods-receipt-notes") key = "procurement.grn";
+            else if (key == "sales.customers") key = "crm.customers";
 
             UiPageDefinition? page = null;
             try
@@ -233,6 +266,8 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                     ActiveVersion = 1,
                     SchemaJson = synthesizedJson,
                     IsSynthesized = true,
+                    IsCustom = false,
+                    IsDefaultSeed = false,
                     Versions = Array.Empty<object>()
                 });
             }
@@ -256,6 +291,8 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             // Fallback to latest version
             selectedVersion ??= page.Versions.OrderByDescending(v => v.Version).FirstOrDefault();
 
+            var isCustomPage = page.Versions.Any(v => v.ChangeSummary != null && !v.ChangeSummary.StartsWith("Default system schema") && !v.ChangeSummary.StartsWith("Auto-seeded"));
+
             return Ok(new
             {
                 page.Id,
@@ -276,6 +313,9 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                 page.RequiredPermission,
                 ActiveVersion = selectedVersion?.Version,
                 SchemaJson = selectedVersion?.SchemaJson ?? "{}",
+                IsSynthesized = false,
+                IsCustom = isCustomPage,
+                IsDefaultSeed = !isCustomPage,
                 Versions = page.Versions.OrderByDescending(v => v.Version).Select(v => new
                 {
                     v.Id,
@@ -291,14 +331,41 @@ namespace UabIndia.Api.Modules.Administration.Controllers
         private static string InferEntityNameFromKey(string key)
         {
             var raw = key.Contains('.') ? key.Split('.').Last() : key;
-            if (raw.EndsWith("ies", StringComparison.OrdinalIgnoreCase))
-                raw = raw.Substring(0, raw.Length - 3) + "y";
-            else if (raw.EndsWith("es", StringComparison.OrdinalIgnoreCase) && !raw.EndsWith("ees", StringComparison.OrdinalIgnoreCase))
-                raw = raw.Substring(0, raw.Length - 2);
-            else if (raw.EndsWith("s", StringComparison.OrdinalIgnoreCase))
-                raw = raw.Substring(0, raw.Length - 1);
+            var segments = raw.Split(new[] { '-', '_' }, StringSplitOptions.RemoveEmptyEntries);
+            var sb = new System.Text.StringBuilder();
 
-            return string.IsNullOrWhiteSpace(raw) ? "Record" : char.ToUpperInvariant(raw[0]) + raw.Substring(1);
+            for (int i = 0; i < segments.Length; i++)
+            {
+                var word = segments[i];
+                if (i == segments.Length - 1)
+                {
+                    if (word.EndsWith("ies", StringComparison.OrdinalIgnoreCase) && word.Length > 3)
+                        word = word.Substring(0, word.Length - 3) + "y";
+                    else if (word.EndsWith("ges", StringComparison.OrdinalIgnoreCase) ||
+                             word.EndsWith("ces", StringComparison.OrdinalIgnoreCase) ||
+                             word.EndsWith("tes", StringComparison.OrdinalIgnoreCase) ||
+                             word.EndsWith("des", StringComparison.OrdinalIgnoreCase) ||
+                             word.EndsWith("nes", StringComparison.OrdinalIgnoreCase) ||
+                             word.EndsWith("res", StringComparison.OrdinalIgnoreCase) ||
+                             word.EndsWith("mes", StringComparison.OrdinalIgnoreCase) ||
+                             word.EndsWith("ves", StringComparison.OrdinalIgnoreCase))
+                        word = word.Substring(0, word.Length - 1);
+                    else if ((word.EndsWith("ches", StringComparison.OrdinalIgnoreCase) ||
+                              word.EndsWith("shes", StringComparison.OrdinalIgnoreCase) ||
+                              word.EndsWith("xes", StringComparison.OrdinalIgnoreCase)) && word.Length > 4)
+                        word = word.Substring(0, word.Length - 2);
+                    else if (word.EndsWith("s", StringComparison.OrdinalIgnoreCase) && !word.EndsWith("ss", StringComparison.OrdinalIgnoreCase) && word.Length > 2)
+                        word = word.Substring(0, word.Length - 1);
+                }
+
+                if (!string.IsNullOrEmpty(word))
+                {
+                    sb.Append(char.ToUpperInvariant(word[0]));
+                    if (word.Length > 1) sb.Append(word.Substring(1));
+                }
+            }
+
+            return sb.Length == 0 ? "Record" : sb.ToString();
         }
 
         [HttpPost]
@@ -546,12 +613,33 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             return Ok(new { message = $"Page '{page.Title}' archived." });
         }
 
+        [HttpPost("sync-catalog")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> SyncCatalog([FromQuery] bool allTenants = false, CancellationToken ct = default)
+        {
+            var seeder = new PageSchemaSeeder();
+            if (allTenants && User.IsInRole("SuperAdmin"))
+            {
+                var count = await seeder.SyncAllTenantsCatalogAsync(_db, _tenantAccessor);
+                return Ok(new { success = true, message = "Successfully synced metadata catalog across all active tenants.", seededCount = count });
+            }
+            else
+            {
+                var tenantId = _tenantAccessor.GetTenantId();
+                var count = await seeder.EnsurePageSchemasForTenantAsync(_db, tenantId);
+                return Ok(new { success = true, message = "Successfully synced metadata catalog for tenant.", tenantId, seededCount = count });
+            }
+        }
+
         // ─────────────────────────────────────────────────────────────────────
         // 3. Default Page Seeding
         // ─────────────────────────────────────────────────────────────────────
 
         private async Task EnsureDefaultPagesSeededAsync(Guid tenantId, CancellationToken ct)
         {
+            var seeder = new PageSchemaSeeder();
+            await seeder.EnsurePageSchemasForTenantAsync(_db, tenantId);
+
             await SeedEmployeeMasterAsync(tenantId, ct);
             await SeedShiftsAsync(tenantId, ct);
             await SeedLeaveAsync(tenantId, ct);
@@ -560,6 +648,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             await SeedCustomersAsync(tenantId, ct);
             await SeedVendorsAsync(tenantId, ct);
             await SeedItemsAsync(tenantId, ct);
+            await SeedUsersAsync(tenantId, ct);
         }
 
         private async Task SeedPageHelperAsync(
@@ -1314,6 +1403,68 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             await SeedPageHelperAsync(tenantId, "inventory.items", "Item", "Item Master & Catalog",
                 "SKU catalog, pricing tiers, reorder triggers, HSN codes, and valuation profiles.",
                 "inventory", "/inventory/items", "Box", "Inventory", 1, "item.view", schemaJson, ct);
+        }
+
+        private async Task SeedUsersAsync(Guid tenantId, CancellationToken ct)
+        {
+            var schemaJson = """
+            {
+              "schemaVersion": "1",
+              "pageKey": "administration.users",
+              "title": "User Directory",
+              "subTitle": "Manage user accounts, roles, access permissions, and corporate authentication status.",
+              "entityName": "User",
+              "viewType": "table",
+              "apiEndpoint": "/api/v1/admin/users",
+              "kpiMetrics": [
+                { "label": "Total Users", "tone": "info", "icon": "Users", "subtext": "Registered platform accounts" },
+                { "label": "Active Users", "tone": "positive", "icon": "CheckCircle2", "subtext": "Operational accounts" }
+              ],
+              "columns": [
+                { "key": "fullName", "label": "Full Name", "dataType": "string", "sortable": true, "sortOrder": 1, "width": "220px" },
+                { "key": "email", "label": "Email Address", "dataType": "string", "sortable": true, "sortOrder": 2, "width": "240px" },
+                { "key": "roles", "label": "Assigned Roles", "dataType": "badge", "sortable": false, "sortOrder": 3, "width": "180px" },
+                { "key": "isActive", "label": "Account Status", "dataType": "boolean", "sortable": true, "sortOrder": 4, "width": "120px" }
+              ],
+              "filters": [
+                { "key": "search", "label": "Search Users", "filterType": "text", "placeholder": "Search name, email, or role…" },
+                {
+                  "key": "isActive",
+                  "label": "Status",
+                  "filterType": "select",
+                  "options": [
+                    { "value": "all", "label": "All Statuses" },
+                    { "value": "true", "label": "Active Only" },
+                    { "value": "false", "label": "Inactive Only" }
+                  ]
+                }
+              ],
+              "form": {
+                "sections": [
+                  {
+                    "title": "User Profile",
+                    "description": "User identity and authentication coordinates.",
+                    "fields": [
+                      { "key": "fullName", "label": "Full Name", "fieldType": "text", "required": true, "placeholder": "First and Last Name" },
+                      { "key": "email", "label": "Email Address", "fieldType": "email", "required": true, "placeholder": "user@uabindia.com" },
+                      { "key": "phoneNumber", "label": "Phone Number", "fieldType": "phone", "required": false },
+                      { "key": "isActive", "label": "Account Active", "fieldType": "boolean", "required": false, "defaultValue": true }
+                    ]
+                  }
+                ]
+              },
+              "actions": [
+                { "key": "create", "label": "Add User", "actionType": "button", "variant": "primary", "requiredPermission": "users.create" },
+                { "key": "edit", "label": "Edit", "actionType": "button", "variant": "secondary", "requiredPermission": "users.edit" },
+                { "key": "delete", "label": "Delete", "actionType": "button", "variant": "danger", "requiredPermission": "users.delete" },
+                { "key": "export", "label": "Export CSV", "actionType": "button", "variant": "secondary", "requiredPermission": "users.view" }
+              ]
+            }
+            """;
+
+            await SeedPageHelperAsync(tenantId, "administration.users", "User", "User Directory",
+                "Manage user accounts, roles, access permissions, and corporate authentication status.",
+                "administration", "/administration/users", "Users", "Identity & Access", 1, "users.view", schemaJson, ct);
         }
     }
 }

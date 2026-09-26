@@ -13,6 +13,8 @@ namespace UabIndia.Api.Modules.Finance.Controllers
 {
     [ApiController]
     [Route("api/v1/[controller]")]
+    [Route("api/v1/finance/accounts")]
+    [Route("api/v1/chart-of-accounts")]
     [Authorize]
     public class ChartOfAccountsController : ControllerBase
     {

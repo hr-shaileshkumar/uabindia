@@ -141,6 +141,21 @@ namespace UabIndia.Api.Services
 
             if (tenant == null)
             {
+                tenant = await _db.Tenants
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(t =>
+                        t.IsActive
+                        && !t.IsDeleted
+                        && t.Subdomain != null
+                        && (t.Subdomain == "erp" || t.Subdomain == "default" || t.Subdomain == "api"))
+                    ?? await _db.Tenants
+                        .AsNoTracking()
+                        .OrderBy(t => t.CreatedAt)
+                        .FirstOrDefaultAsync(t => t.IsActive && !t.IsDeleted);
+            }
+
+            if (tenant == null)
+            {
                 _logger.LogWarning(
                     "Platform public content tenant was not found for configured subdomain {Subdomain}.",
                     platformSubdomain);
@@ -877,7 +892,7 @@ namespace UabIndia.Api.Services
                 return configuredSubdomain.Trim().ToLowerInvariant();
             }
 
-            return _environment.IsProduction() ? "default" : "api";
+            return _environment.IsProduction() ? "default" : "erp";
         }
 
         private static string NormalizeAudience(string? audience)

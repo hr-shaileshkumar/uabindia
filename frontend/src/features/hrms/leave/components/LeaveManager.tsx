@@ -399,7 +399,12 @@ export default function LeaveManager() {
 
   const tabItems = [
     { key: "requests", label: "Requests", count: filteredRequests.length },
-    { key: "approvals", label: "Pending approvals", count: filteredApprovals.length },
+    {
+      key: "approvals",
+      label: "Pending approvals",
+      count: filteredApprovals.length,
+      tone: filteredApprovals.length > 0 ? ("warning" as const) : undefined,
+    },
     { key: "balances", label: "Balances", count: filteredBalances.length },
     { key: "policies", label: "Policies", count: filteredPolicies.length },
     { key: "types", label: "Leave types", count: leaveTypes.length },

@@ -1,7 +1,7 @@
 # ==============================================================================
 # Multi-stage Dockerfile for Next.js 15 Frontend
 # ==============================================================================
-FROM node:20-alpine AS deps
+FROM node:24-alpine AS deps
 WORKDIR /app
 
 # Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine
@@ -13,7 +13,7 @@ RUN npm ci
 # ==============================================================================
 # Builder Stage
 # ==============================================================================
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
@@ -27,7 +27,7 @@ RUN npm run build
 # ==============================================================================
 # Production Runner Stage
 # ==============================================================================
-FROM node:20-alpine AS runner
+FROM node:24-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production \

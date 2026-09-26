@@ -6,8 +6,12 @@ namespace UabIndia.Core.Entities
     {
         public Guid Id { get; set; } = Guid.NewGuid();
         public Guid TenantId { get; set; }
+        public Guid? CompanyId { get; set; }
+        public Guid? ProjectId { get; set; }
+        public string? FiscalYear { get; set; }
         public string EntityName { get; set; } = string.Empty;
         public string? Prefix { get; set; }
+        public string? NamingPattern { get; set; }
         public int Padding { get; set; } = 6;
         public long CurrentValue { get; set; }
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

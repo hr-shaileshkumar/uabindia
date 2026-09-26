@@ -1,9 +1,18 @@
 import type { Metadata } from "next";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import ScreenFitController from "@/components/app/ScreenFitController";
 import Providers from "./providers";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { publicSiteUrl } from "@/lib/public-site-url";
+
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
+  variable: "--font-sans",
+  fallback: ["-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
+});
 
 export const metadata: Metadata = {
   title: {
@@ -19,27 +28,23 @@ export const metadata: Metadata = {
     type: "website",
     url: publicSiteUrl,
   },
+  icons: {
+    icon: "/favicon.ico",
+  },
   twitter: {
     card: "summary_large_image",
   },
 };
 
-import { headers } from "next/headers";
-
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const headersList = await headers();
-  const nonce = headersList.get("x-nonce") ?? undefined;
-
   return (
-    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth">
-      <head>
-        {nonce && <meta property="csp-nonce" content={nonce} />}
-      </head>
-      <body className="min-h-screen">
+    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth" className={plusJakarta.variable}>
+      <head />
+      <body className="min-h-screen font-sans antialiased text-slate-900 bg-[#f8fafc] dark:bg-slate-950 dark:text-slate-100">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <ScreenFitController />
           <Providers>{children}</Providers>

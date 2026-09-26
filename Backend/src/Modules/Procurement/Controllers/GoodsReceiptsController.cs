@@ -12,6 +12,8 @@ namespace UabIndia.Api.Modules.Procurement.Controllers
 {
     [ApiController]
     [Route("api/v1/grn")]
+    [Route("api/v1/procurement/grn")]
+    [Route("api/v1/goods-receipts")]
     [Authorize(Policy = "Module:procurement")]
     public class GoodsReceiptsController : ControllerBase
     {

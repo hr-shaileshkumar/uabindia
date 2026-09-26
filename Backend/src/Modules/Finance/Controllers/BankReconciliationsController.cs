@@ -12,6 +12,8 @@ namespace UabIndia.Api.Modules.Finance.Controllers
 {
     [ApiController]
     [Route("api/v1/bank-reconciliations")]
+    [Route("api/v1/finance/bank-reconciliation")]
+    [Route("api/v1/finance/bank-reconciliations")]
     [Authorize(Policy = "Module:finance")]
     public class BankReconciliationsController : ControllerBase
     {

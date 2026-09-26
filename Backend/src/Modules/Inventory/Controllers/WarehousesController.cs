@@ -12,6 +12,7 @@ namespace UabIndia.Api.Modules.Inventory.Controllers
 {
     [ApiController]
     [Route("api/v1/[controller]")]
+    [Route("api/v1/inventory/warehouses")]
     [Authorize]
     public class WarehousesController : ControllerBase
     {
@@ -59,11 +60,16 @@ namespace UabIndia.Api.Modules.Inventory.Controllers
         public async Task<IActionResult> Create([FromBody] CreateWarehouseDto dto)
         {
             var tenantId = _tenantAccessor.GetTenantId();
+            var targetCompanyId = dto.CompanyId ?? _tenantAccessor.GetCompanyId();
+            var targetProjectId = dto.ProjectId ?? _tenantAccessor.GetProjectId();
+
             var warehouse = new Warehouse
             {
                 TenantId = tenantId,
+                CompanyId = targetCompanyId,
+                ProjectId = targetProjectId,
                 WarehouseCode = string.IsNullOrWhiteSpace(dto.WarehouseCode)
-                    ? await _numbers.NextAsync("Warehouse", "WH-", 5)
+                    ? await _numbers.NextAsync("Warehouse", "WH-", 5, targetCompanyId, targetProjectId)
                     : dto.WarehouseCode.Trim(),
                 WarehouseName = dto.WarehouseName.Trim(),
                 Address = dto.Address,
@@ -137,6 +143,8 @@ namespace UabIndia.Api.Modules.Inventory.Controllers
 
     public class CreateWarehouseDto
     {
+        public Guid? CompanyId { get; set; }
+        public Guid? ProjectId { get; set; }
         public string WarehouseCode { get; set; } = "";
         public string WarehouseName { get; set; } = "";
         public string? Address { get; set; }

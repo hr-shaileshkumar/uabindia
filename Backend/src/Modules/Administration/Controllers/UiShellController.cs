@@ -100,5 +100,37 @@ namespace UabIndia.Api.Modules.Administration.Controllers
 
             return Ok(schema);
         }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // GET /api/v1/ui-shell/config
+        // Returns the dynamic topbar & public header configuration for the tenant.
+        // ─────────────────────────────────────────────────────────────────────
+        [HttpGet("config")]
+        public async Task<IActionResult> GetShellConfig()
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var config = await _schemaService.GetShellConfigAsync(tenantId);
+            return Ok(config);
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // PUT /api/v1/ui-shell/config
+        // Updates the dynamic topbar & public header configuration for the tenant.
+        // Requires Admin or SuperAdmin role.
+        // ─────────────────────────────────────────────────────────────────────
+        [HttpPut("config")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> SaveShellConfig([FromBody] UiShellConfigDto dto)
+        {
+            if (dto == null)
+                return BadRequest(new { error = "Config payload is required." });
+
+            var tenantId = _tenantAccessor.GetTenantId();
+            var success = await _schemaService.SaveShellConfigAsync(tenantId, dto);
+            if (!success)
+                return StatusCode(500, new { error = "Failed to update shell configuration." });
+
+            return Ok(new { message = "Shell configuration updated successfully.", config = dto });
+        }
     }
 }

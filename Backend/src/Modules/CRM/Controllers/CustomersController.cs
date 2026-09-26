@@ -74,10 +74,15 @@ namespace UabIndia.Api.Modules.CRM.Controllers
                     return BadRequest(new { success = false, error = "Customer code already exists" });
             }
 
+            var targetCompanyId = dto.CompanyId ?? _tenantAccessor.GetCompanyId();
+            var targetProjectId = dto.ProjectId ?? _tenantAccessor.GetProjectId();
+
             var customer = new Customer
             {
+                CompanyId = targetCompanyId,
+                ProjectId = targetProjectId,
                 CustomerCode = string.IsNullOrWhiteSpace(dto.CustomerCode)
-                    ? await _numbers.NextAsync("Customer", "CUST-", 5)
+                    ? await _numbers.NextAsync("Customer", "CUST-", 5, targetCompanyId, targetProjectId)
                     : dto.CustomerCode,
                 CustomerName = dto.CustomerName,
                 CustomerType = dto.CustomerType ?? "Individual",
@@ -167,6 +172,8 @@ namespace UabIndia.Api.Modules.CRM.Controllers
 
     public class CreateCustomerDto
     {
+        public Guid? CompanyId { get; set; }
+        public Guid? ProjectId { get; set; }
         public string CustomerCode { get; set; } = string.Empty;
         public string CustomerName { get; set; } = string.Empty;
         public string? CustomerType { get; set; }

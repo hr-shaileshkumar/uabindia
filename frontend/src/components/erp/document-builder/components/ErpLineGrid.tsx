@@ -35,6 +35,8 @@ function LineNumberInput({
 
   return (
     <input
+      id={`line-num-${ariaLabel?.toLowerCase().replace(/[^a-z0-9]/g, "-") || "input"}`}
+      name={`line_num_${ariaLabel?.toLowerCase().replace(/[^a-z0-9]/g, "_") || "input"}`}
       className="erp-input erp-line-num"
       type="text"
       inputMode="decimal"
@@ -124,6 +126,8 @@ export function ErpLineGrid({
                 <tr key={line.key} className="border-t border-slate-100 dark:border-slate-800">
                   <td className="px-2 py-1.5 min-w-[16rem]">
                     <select
+                      id={`line-item-select-${line.key}`}
+                      name={`line_item_${line.key}`}
                       className="erp-select cursor-pointer"
                       value={line.itemId}
                       onChange={(event) => {

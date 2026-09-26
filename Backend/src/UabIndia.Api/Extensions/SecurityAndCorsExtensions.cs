@@ -117,7 +117,28 @@ namespace UabIndia.Api.Extensions
                     return RoleCatalog.IsAdminLike(roleClaims);
                 }
 
+                bool IsPlatformSuperAdmin(AuthorizationHandlerContext context)
+                {
+                    if (context.User.HasClaim("is_system_admin", "true"))
+                    {
+                        return true;
+                    }
+
+                    var isSysAdminClaim = context.User.FindFirst("is_system_admin")?.Value;
+                    if (string.Equals(isSysAdminClaim, "true", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+
+                    var roleClaims = context.User.Claims
+                        .Where(c => c.Type.EndsWith("/role", StringComparison.OrdinalIgnoreCase) || c.Type.EndsWith("role", StringComparison.OrdinalIgnoreCase))
+                        .Select(c => c.Value);
+
+                    return RoleCatalog.HasAnyRole(roleClaims, SystemRole.SuperAdmin);
+                }
+
                 // System / Platform level admin policies
+                options.AddPolicy("SuperAdminOnly", policy => policy.RequireAssertion(IsPlatformSuperAdmin));
                 options.AddPolicy("AdminOnly", policy => policy.RequireAssertion(IsAdminRole));
                 options.AddPolicy("Module:platform", policy =>
                 {

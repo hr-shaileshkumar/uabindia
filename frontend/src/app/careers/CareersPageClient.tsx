@@ -171,18 +171,33 @@ export default function CareersPageClient({ audience }: { audience: PublicAudien
         ? `Uploaded Document: ${resumeFile.name} (${(resumeFile.size / 1024).toFixed(1)} KB)`
         : (resumeUrl || "Shared via Email / Direct Attachment");
 
-      await publicApi.submitContact(
-        {
-          name: `${firstName.trim()} ${lastName.trim()}`,
+      if (applyingJob?.id && applyingJob.id.length > 20) {
+        await publicApi.applyForJob({
+          jobPostingId: applyingJob.id,
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
           email: applicantEmail.trim(),
-          phoneNumber: applicantPhone.trim(),
-          companyName: currentCompanyOrCollege.trim() || `Fresher (${yearsOfExperience} yrs exp) | ${generatedRef}`,
-          subject: `Job Application: ${applyingJob?.role || "General Application"} (${generatedRef})`,
-          message: `Candidate Name: ${firstName.trim()} ${lastName.trim()}\nPosition: ${applyingJob?.role || "General"}\nDesignation / Degree: ${currentDesignationOrDegree.trim() || "N/A"}\nCollege / Current Org: ${currentCompanyOrCollege.trim() || "Fresher"}\nExperience: ${yearsOfExperience === 0 ? "Fresher / Student (0 yrs)" : `${yearsOfExperience} years`}\nSource: ${sourceOfRecruit}\nResume: ${resumeInfo}\nPortfolio / LinkedIn: ${portfolioUrl || "N/A"}\n\nCover Letter / Pitch:\n${coverNote}`,
-        },
-        audience,
-        "contact"
-      );
+          phoneNumber: applicantPhone.trim() || undefined,
+          currentCompany: currentCompanyOrCollege.trim() || undefined,
+          currentDesignation: currentDesignationOrDegree.trim() || undefined,
+          yearsOfExperience: Number(yearsOfExperience) || 0,
+          coverLetter: `${coverNote}\n\nResume: ${resumeInfo}\nPortfolio: ${portfolioUrl}`.trim(),
+          sourceOfRecruit: sourceOfRecruit || "Careers Portal",
+        });
+      } else {
+        await publicApi.submitContact(
+          {
+            name: `${firstName.trim()} ${lastName.trim()}`,
+            email: applicantEmail.trim(),
+            phoneNumber: applicantPhone.trim(),
+            companyName: currentCompanyOrCollege.trim() || `Fresher (${yearsOfExperience} yrs exp) | ${generatedRef}`,
+            subject: `Job Application: ${applyingJob?.role || "General Application"} (${generatedRef})`,
+            message: `Candidate Name: ${firstName.trim()} ${lastName.trim()}\nPosition: ${applyingJob?.role || "General"}\nDesignation / Degree: ${currentDesignationOrDegree.trim() || "N/A"}\nCollege / Current Org: ${currentCompanyOrCollege.trim() || "Fresher"}\nExperience: ${yearsOfExperience === 0 ? "Fresher / Student (0 yrs)" : `${yearsOfExperience} years`}\nSource: ${sourceOfRecruit}\nResume: ${resumeInfo}\nPortfolio / LinkedIn: ${portfolioUrl || "N/A"}\n\nCover Letter / Pitch:\n${coverNote}`,
+          },
+          audience,
+          "contact"
+        );
+      }
 
       setAppSuccessRef(generatedRef);
     } catch {

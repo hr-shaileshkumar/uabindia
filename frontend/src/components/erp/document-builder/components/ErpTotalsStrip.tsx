@@ -58,6 +58,8 @@ export function ErpTotalsStrip({
         <div className="flex items-center justify-between gap-2">
           <span className="text-slate-500 dark:text-slate-400">Discount</span>
           <select
+            id="bill-discount-kind"
+            name="bill_discount_kind"
             className="erp-select w-36 cursor-pointer"
             value={discount.kind}
             onChange={(event) => {
@@ -75,6 +77,8 @@ export function ErpTotalsStrip({
           <div className="flex items-center justify-between gap-2">
             <span className="text-slate-500 dark:text-slate-400">Discount %</span>
             <select
+              id="bill-discount-percent"
+              name="bill_discount_percent"
               className="erp-select w-36 cursor-pointer"
               value={String(discount.percent)}
               onChange={(event) => onDiscountChange({ ...discount, percent: Number(event.target.value) })}
@@ -92,6 +96,8 @@ export function ErpTotalsStrip({
           <div className="flex items-center justify-between gap-2">
             <span className="text-slate-500 dark:text-slate-400">Discount Rs</span>
             <input
+              id="bill-discount-amount"
+              name="bill_discount_amount"
               className="erp-input w-36 text-right"
               inputMode="decimal"
               aria-label="Discount amount"

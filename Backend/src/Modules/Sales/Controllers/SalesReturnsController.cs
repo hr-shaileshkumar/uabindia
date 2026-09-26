@@ -12,6 +12,8 @@ namespace UabIndia.Api.Modules.Sales.Controllers
 {
     [ApiController]
     [Route("api/v1/salesreturns")]
+    [Route("api/v1/sales/returns")]
+    [Route("api/v1/sales-returns")]
     [Authorize(Policy = "Module:sales")]
     public class SalesReturnsController : ControllerBase
     {

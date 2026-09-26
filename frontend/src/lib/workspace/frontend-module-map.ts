@@ -79,8 +79,11 @@ export const FRONTEND_MODULE_MAP: FrontendModuleDefinition[] = [
         purpose: "System settings, schema modeling, dynamic navigation, and feature toggles.",
         pages: [
           { label: "Navigation & Modules", route: ROUTES.ADMINISTRATION_NAVIGATION, purpose: "Map modules, routes, and UI shell metadata.", display: "settings", status: "implemented" },
+          { label: "Page Builder", route: ROUTES.ADMINISTRATION_PAGE_BUILDER, purpose: "Interactive visual drag-and-drop page, form, and canvas designer studio.", display: "settings", status: "implemented" },
           { label: "Schema Manager", route: ROUTES.ADMINISTRATION_SCHEMA_MANAGER, purpose: "Manage backend UI schema, JSON layouts, and route rules.", display: "settings", status: "implemented" },
           { label: "Entity Builder", route: ROUTES.ADMINISTRATION_ENTITY_BUILDER, purpose: "Visual entity schema and custom fields modeler.", display: "settings", status: "implemented" },
+          { label: "Menu Builder", route: ROUTES.ADMINISTRATION_MENU_BUILDER, purpose: "Visual drag-and-drop navigation and sidebar menu builder.", display: "settings", status: "implemented" },
+          { label: "Migration Dashboard", route: ROUTES.ADMINISTRATION_MIGRATION_DASHBOARD, purpose: "DocType and metadata schema migration tracking.", display: "analytics", status: "implemented" },
           { label: "System Settings", route: ROUTES.ADMINISTRATION_SETTINGS, purpose: "Drive enterprise setup, localization, and company profile.", display: "settings", status: "implemented" },
           { label: "Feature Flags", route: ROUTES.ADMINISTRATION_FEATURE_FLAGS, purpose: "Safely toggle feature availability across tenants.", display: "settings", status: "implemented" },
         ],
@@ -143,6 +146,9 @@ export const FRONTEND_MODULE_MAP: FrontendModuleDefinition[] = [
           { label: "Developer Center", route: ROUTES.ADMINISTRATION_DEVELOPER_CENTER, purpose: "API keys, Swagger UI documentation, and quickstarts.", display: "settings", status: "implemented" },
           { label: "Webhooks", route: ROUTES.ADMINISTRATION_WEBHOOKS, purpose: "Real-time webhook subscriptions and delivery logs.", display: "settings", status: "implemented" },
           { label: "Electronic Data Interchange (EDI X12) Studio", route: ROUTES.ADMINISTRATION_EDI, purpose: "EDI X12 transaction interchange and mapper.", display: "settings", status: "implemented" },
+          { label: "Integration Hub", route: ROUTES.ADMINISTRATION_INTEGRATIONS, purpose: "Manage ERP connectors, endpoints, and credentials.", display: "settings", status: "implemented" },
+          { label: "AI Agents", route: ROUTES.ADMINISTRATION_AI_ASSISTANT, purpose: "Configure enterprise AI models, system prompts, and tools.", display: "settings", status: "implemented" },
+          { label: "Support Tickets", route: ROUTES.ADMINISTRATION_SUPPORT, purpose: "Platform system diagnostic tickets and support.", display: "directory", status: "implemented" },
           { label: "Contact Submissions", route: ROUTES.ADMINISTRATION_CONTACT_SUBMISSIONS, purpose: "Review inbound web contact form submissions.", display: "directory", status: "implemented" },
         ],
       },
@@ -473,6 +479,7 @@ export const FRONTEND_MODULE_MAP: FrontendModuleDefinition[] = [
         label: "Project Execution",
         purpose: "Projects register, task management, and timesheets.",
         pages: [
+          { label: "Projects Hub", route: ROUTES.PROJECTS_HOME, purpose: "Cross-functional project tracking, workspaces, and milestones.", display: "dashboard", status: "implemented" },
           { label: "Projects Register", route: ROUTES.PLATFORM_PROJECTS, purpose: "Manage client projects and delivery scope.", display: "directory", status: "implemented" },
           { label: "Task Board", route: ROUTES.PROJECT_TASKS, purpose: "Interactive task board and backlog.", display: "workflow", status: "implemented" },
           { label: "Timesheets", route: ROUTES.PROJECT_TIMESHEETS, purpose: "Time logging, billing hours, and approvals.", display: "workflow", status: "implemented" },
@@ -489,9 +496,10 @@ export const FRONTEND_MODULE_MAP: FrontendModuleDefinition[] = [
       {
         key: "asset-lifecycle",
         label: "Asset Lifecycle",
-        purpose: "Fixed asset depreciation schedules.",
+        purpose: "Fixed asset depreciation schedules and vehicle fleet tracking.",
         pages: [
           { label: "Fixed Asset Depreciation", route: ROUTES.ASSET_DEPRECIATION, purpose: "Fixed asset depreciation runs and schedules.", display: "workflow", status: "implemented" },
+          { label: "Fleet Management", route: ROUTES.FLEET_HOME, purpose: "Vehicle registry, maintenance logs, and fuel tracking.", display: "workflow", status: "implemented" },
         ],
       },
     ],
@@ -586,6 +594,7 @@ export const FRONTEND_MODULE_MAP: FrontendModuleDefinition[] = [
         purpose: "Manage connectivity and integration credentials.",
         pages: [
           { label: "Integrations Overview", route: ROUTES.INTEGRATIONS_HOME, purpose: "Integrations workspace landing.", display: "dashboard", status: "implemented" },
+          { label: "Connector Studio", route: ROUTES.ADMINISTRATION_INTEGRATIONS, purpose: "Configure third-party connectors, webhooks, and sync pipelines.", display: "settings", status: "implemented" },
           { label: "API Keys", route: ROUTES.INTEGRATIONS_API_KEYS, purpose: "Manage API credentials.", display: "settings", status: "implemented" },
           { label: "Webhooks", route: ROUTES.INTEGRATIONS_WEBHOOKS, purpose: "Manage webhook events.", display: "settings", status: "implemented" },
           { label: "Apps", route: ROUTES.INTEGRATIONS_APPS, purpose: "Manage integrated apps.", display: "directory", status: "implemented" },
@@ -663,6 +672,42 @@ export const FRONTEND_MODULE_MAP: FrontendModuleDefinition[] = [
         pages: [
           { label: "Password Policies", route: ROUTES.SECURITY_PASSWORD_POLICIES, purpose: "Manage password policy rules.", display: "settings", status: "implemented" },
           { label: "IP Restrictions", route: ROUTES.SECURITY_IP_RESTRICTIONS, purpose: "Manage trusted IP boundaries.", display: "settings", status: "implemented" },
+        ],
+      },
+    ],
+  },
+  {
+    key: "manufacturing",
+    label: "Manufacturing",
+    homeRoute: ROUTES.MANUFACTURING_HOME,
+    purpose: "Production planning, work orders, bill of materials, shop floor tracking, and assembly line execution.",
+    moduleView: "Module hub grouping work orders, production schedules, operations routing, and quality assurance.",
+    submodules: [
+      {
+        key: "production-control",
+        label: "Production Control",
+        purpose: "Manage work orders, operations sequencing, and execution.",
+        pages: [
+          { label: "Manufacturing Dashboard", route: ROUTES.MANUFACTURING_HOME, purpose: "Production telemetry, yield rates, and work order summary.", display: "dashboard", status: "implemented" },
+          { label: "Work Orders", route: ROUTES.MANUFACTURING_WORK_ORDERS, purpose: "Assembly orders, bills of material, and operations routing.", display: "workflow", status: "implemented" },
+        ],
+      },
+    ],
+  },
+  {
+    key: "ai",
+    label: "AI Assistant",
+    homeRoute: "/ai",
+    purpose: "Enterprise conversational copilot, grounded RAG tools, and AI agent prompt configurations.",
+    moduleView: "Conversational copilot shell with live tenant citations and agent management.",
+    submodules: [
+      {
+        key: "copilot",
+        label: "Copilot & Tools",
+        purpose: "Interactive tenant-grounded chat and conversational tools.",
+        pages: [
+          { label: "AI Copilot", route: "/ai", purpose: "Tenant-grounded conversational assistant.", display: "workflow", status: "implemented" },
+          { label: "AI Agents Manager", route: ROUTES.ADMINISTRATION_AI_ASSISTANT, purpose: "Configure enterprise AI models and system prompts.", display: "settings", status: "implemented" },
         ],
       },
     ],

@@ -13,6 +13,7 @@ namespace UabIndia.Api.Modules.Finance.Controllers
 {
     [ApiController]
     [Route("api/v1/tax")]
+    [Route("api/v1/finance/gst")]
     [Authorize]
     public class TaxController : ControllerBase
     {
@@ -23,6 +24,48 @@ namespace UabIndia.Api.Modules.Finance.Controllers
         {
             _db = db;
             _taxEngine = taxEngine;
+        }
+
+        [HttpGet]
+        [HttpGet("/api/v1/finance/gst")]
+        [HttpGet("/api/v1/tax/gst")]
+        public async Task<IActionResult> GetGstOverview([FromQuery] int? year, [FromQuery] int? month)
+        {
+            var y = year ?? DateTime.UtcNow.Year;
+            var m = month ?? DateTime.UtcNow.Month;
+            var start = new DateTime(y, m, 1, 0, 0, 0, DateTimeKind.Utc);
+            var end = start.AddMonths(1);
+            var invoices = await _db.SalesInvoices.AsNoTracking()
+                .Include(i => i.Customer)
+                .Where(i => !i.IsDeleted && i.InvoiceDate >= start && i.InvoiceDate < end && i.Status != "Cancelled")
+                .ToListAsync();
+
+            var rows = invoices.Select(i => new
+            {
+                id = i.Id,
+                invoiceNumber = i.InvoiceNumber,
+                customerName = i.Customer?.CustomerName ?? "Cash Sale",
+                gstin = i.Customer?.GSTNumber ?? "-",
+                invoiceDate = i.InvoiceDate,
+                taxableAmount = i.SubTotal,
+                cgst = i.CgstAmount,
+                sgst = i.SgstAmount,
+                igst = i.IgstAmount,
+                totalTax = i.TaxAmount,
+                totalAmount = i.TotalAmount,
+                status = i.Status
+            }).ToList();
+
+            return Ok(new
+            {
+                success = true,
+                data = rows,
+                items = rows,
+                total = rows.Count,
+                period = $"{y:0000}-{m:00}",
+                totalTaxable = invoices.Sum(i => i.SubTotal),
+                totalTax = invoices.Sum(i => i.TaxAmount)
+            });
         }
 
         public class GstCalcRequest

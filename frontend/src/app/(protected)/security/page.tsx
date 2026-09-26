@@ -1,5 +1,7 @@
-﻿import { ModuleHubPage } from "@/components/workspace/module-hub-page";
+"use client";
+
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
 
 export default function SecurityPage() {
-  return <ModuleHubPage moduleKey="security" />;
+  return <DynamicPage pageKey="security.overview" />;
 }

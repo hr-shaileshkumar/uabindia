@@ -16,6 +16,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
 {
     [ApiController]
     [Route("api/v1/[controller]")]
+    [Route("api/v1/hrms/appraisals")]
     [Authorize]
     public class AppraisalsController : ControllerBase
     {

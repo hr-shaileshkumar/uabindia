@@ -18,6 +18,8 @@ import {
   Wallet,
   CornerDownLeft,
   Star,
+  Package,
+  Briefcase,
 } from "lucide-react";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import ModuleIcon from "@/components/ModuleIcon";
@@ -56,6 +58,18 @@ type CopilotAction = {
   icon: typeof Zap;
   badge: string;
 };
+
+function getCategoryIcon(category?: string) {
+  const c = (category || "").toLowerCase();
+  if (c.includes("customer") || c.includes("employee") || c.includes("user")) return Users;
+  if (c.includes("vendor") || c.includes("company")) return Building2;
+  if (c.includes("order") || c.includes("purchase")) return ShoppingBag;
+  if (c.includes("project")) return Briefcase;
+  if (c.includes("item") || c.includes("inventory")) return Package;
+  if (c.includes("ledger") || c.includes("account")) return Wallet;
+  if (c.includes("invoice") || c.includes("bill")) return Receipt;
+  return Receipt;
+}
 
 const COPILOT_PRESETS: CopilotAction[] = [
   {
@@ -457,28 +471,38 @@ export function GlobalSearchCommand({
                 {recordsLoading && <span className="text-[10px] lowercase text-indigo-500 animate-pulse">Searching…</span>}
               </div>
               <div className="divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs dark:divide-slate-800 dark:border-slate-800 dark:bg-slate-900">
-                {recordOnlyHits.map((hit, idx) => (
-                  <Link
-                    key={`${hit.path}-${idx}`}
-                    href={hit.path}
-                    onClick={() => onOpenChange(false)}
-                    className="flex items-center justify-between px-4 py-3 text-left transition hover:bg-slate-50 dark:hover:bg-slate-800/60"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-                        <Receipt className="h-4 w-4" />
+                {recordOnlyHits.map((hit, idx) => {
+                  const ItemIcon = getCategoryIcon(hit.category);
+                  return (
+                    <Link
+                      key={`${hit.path}-${idx}`}
+                      href={hit.path}
+                      onClick={() => onOpenChange(false)}
+                      className="flex items-center justify-between px-4 py-3 text-left transition hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
+                          <ItemIcon className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="truncate text-xs font-bold text-slate-900 dark:text-white">{hit.title}</p>
+                            {hit.category && (
+                              <span className="rounded bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 text-[9px] font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wide">
+                                {hit.category}
+                              </span>
+                            )}
+                          </div>
+                          <p className="truncate text-[11px] text-slate-500 mt-0.5">{hit.subtitle}</p>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-xs font-bold text-slate-900 dark:text-white">{hit.title}</p>
-                        <p className="truncate text-[11px] text-slate-500">{hit.subtitle}</p>
-                      </div>
-                    </div>
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400">
-                      <span>Open</span>
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </span>
-                  </Link>
-                ))}
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+                        <span>Open</span>
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </span>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           )}

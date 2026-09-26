@@ -12,6 +12,7 @@ namespace UabIndia.Api.Modules.Finance.Controllers
 {
     [ApiController]
     [Route("api/v1/finance/periods")]
+    [Route("api/v1/finance/fiscal-periods")]
     [Authorize]
     [Authorize(Policy = "Module:finance")]
     public class AccountingPeriodsController : ControllerBase

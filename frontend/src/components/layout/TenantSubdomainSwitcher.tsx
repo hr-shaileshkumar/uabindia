@@ -122,11 +122,17 @@ export function TenantSubdomainSwitcher() {
         dataList = (res.data?.data || res.data?.tenants || []) as Record<string, unknown>[];
       } catch {
         try {
-          const fallbackRes = await tenantApi.getTenants({ page: 1, limit: 100 });
-          const raw = fallbackRes as unknown as { data?: Record<string, unknown>[]; tenants?: Record<string, unknown>[] };
-          dataList = (raw?.data || raw?.tenants || []) as Record<string, unknown>[];
+          const adminRes = await platformApi.admin.tenants();
+          const rawAdmin = adminRes.data as { data?: Record<string, unknown>[]; tenants?: Record<string, unknown>[] } | Record<string, unknown>[];
+          dataList = (Array.isArray(rawAdmin) ? rawAdmin : (rawAdmin?.data || rawAdmin?.tenants || [])) as Record<string, unknown>[];
         } catch {
-          dataList = [];
+          try {
+            const fallbackRes = await tenantApi.getTenants({ page: 1, limit: 100 });
+            const raw = fallbackRes as unknown as { data?: Record<string, unknown>[]; tenants?: Record<string, unknown>[] };
+            dataList = (raw?.data || raw?.tenants || []) as Record<string, unknown>[];
+          } catch {
+            dataList = [];
+          }
         }
       }
 
@@ -167,7 +173,18 @@ export function TenantSubdomainSwitcher() {
         ]);
       }
     } catch {
-      if (tenants.length === 0) {
+      const fallbackSub = (user as { tenantSubdomain?: string })?.tenantSubdomain;
+      if (fallbackSub && tenants.length === 0) {
+        setTenants([
+          {
+            id: (user as { tenantId?: string })?.tenantId || "user-tenant",
+            name: (user as { tenantName?: string })?.tenantName || fallbackSub,
+            subdomain: fallbackSub.toLowerCase(),
+            subscriptionPlan: "Enterprise",
+            isActive: true,
+          },
+        ]);
+      } else if (tenants.length === 0) {
         setLoadError("Could not reach tenant registry.");
       }
     } finally {
@@ -377,6 +394,8 @@ export function TenantSubdomainSwitcher() {
                   <div className="mt-1 flex gap-1.5">
                     <div className="relative flex-1">
                       <input
+                        id="custom-subdomain-input"
+                        name="custom_subdomain"
                         type="text"
                         value={customSubdomainInput}
                         onChange={(e) => setCustomSubdomainInput(e.target.value)}
@@ -399,6 +418,8 @@ export function TenantSubdomainSwitcher() {
                   <div className="relative mt-2">
                     <Search className="absolute left-2 top-2 h-3.5 w-3.5 text-slate-400" />
                     <input
+                      id="tenant-search-input"
+                      name="tenant_search"
                       type="text"
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}

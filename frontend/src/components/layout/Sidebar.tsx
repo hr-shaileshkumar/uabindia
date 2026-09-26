@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ChevronRight,
@@ -19,6 +19,9 @@ import { cn } from "@/lib/utils";
 import { ROUTES } from "@/constants/routes";
 import { useNavigationStore } from "@/store/navigationStore";
 import { useUiSchema } from "@/context/UiSchemaContext";
+import { useAuth } from "@/context/AuthContext";
+import { usePermissions } from "@/context/PermissionContext";
+import { useOrgContext } from "@/context/OrgContext";
 import {
   buildWorkspaceModules,
   groupWorkspaceModulesForSidebar,
@@ -67,7 +70,6 @@ function SidebarNavItem({
   const favorites = useNavigationStore((state) => state.favorites);
   const addFavorite = useNavigationStore((state) => state.addFavorite);
   const removeFavorite = useNavigationStore((state) => state.removeFavorite);
-  const addRecent = useNavigationStore((state) => state.addRecent);
   const hasChildren = mod.groups.some((group) => group.items.length > 0);
   const isModActive =
     isPathActive(pathname, mod.homeHref) ||
@@ -102,7 +104,7 @@ function SidebarNavItem({
   if (!hasChildren) {
     return (
       <li className="list-none">
-        <Link href={mod.homeHref || ROUTES.DASHBOARD} onClick={onNavigate} className={rowClass}>
+        <Link href={mod.homeHref || ROUTES.DASHBOARD} prefetch={false} onClick={onNavigate} className={rowClass}>
           {isModActive ? (
             <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-blue-600" />
           ) : null}
@@ -175,10 +177,8 @@ function SidebarNavItem({
                       <li key={item.key} className="group/item relative flex items-center">
                         <Link
                           href={item.path}
-                          onClick={() => {
-                            addRecent({ id: item.key, label: item.name, href: item.path, icon: item.icon ?? undefined });
-                            onNavigate?.();
-                          }}
+                          prefetch={false}
+                          onClick={onNavigate}
                           className={cn(
                             "flex flex-1 items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12.5px] transition-colors pr-7",
                             isItemActive
@@ -236,8 +236,26 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const isCollapsed = useNavigationStore((state) => state.isSidebarCollapsed);
   const favorites = useNavigationStore((state) => state.favorites);
   const removeFavorite = useNavigationStore((state) => state.removeFavorite);
+  const { user } = useAuth();
+  const { hasPermission, isSuperAdmin } = usePermissions();
+  const { companyId, projectId } = useOrgContext();
   const { navigation: schemaNav, enabledModules } = useUiSchema();
-  const dynamicModules = buildWorkspaceModules(schemaNav.modules, enabledModules);
+
+  const accessContext = useMemo(
+    () => ({
+      userRole: (user?.role as string) || user?.roles?.[0] || null,
+      hasPermission: (keys: string | string[]) => {
+        const keyArray = Array.isArray(keys) ? keys : [keys];
+        return hasPermission(keyArray);
+      },
+      companyId: companyId || null,
+      projectId: projectId || null,
+      isSuperAdmin,
+    }),
+    [user?.role, user?.roles, hasPermission, companyId, projectId, isSuperAdmin]
+  );
+
+  const dynamicModules = buildWorkspaceModules(schemaNav.modules, enabledModules, accessContext);
   const sections = groupWorkspaceModulesForSidebar(dynamicModules);
   const dashboardActive = isPathActive(pathname, ROUTES.DASHBOARD);
 
@@ -283,14 +301,15 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           {/* Pinned Favorites Section */}
           {!collapsed && favorites.length > 0 && (
             <li className="list-none">
-              <SectionLabel label="Pinned Shortcuts" collapsed={collapsed} />
               <ul className="space-y-0.5 py-0.5">
+                <SectionLabel label="Pinned Shortcuts" collapsed={collapsed} />
                 {favorites.map((fav) => {
                   const isFavActive = isPathActive(pathname, fav.href);
                   return (
                     <li key={fav.id} className="group/fav relative flex items-center">
                       <Link
                         href={fav.href}
+                        prefetch={false}
                         onClick={onMobileClose}
                         className={cn(
                           "flex flex-1 items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12.5px] transition-colors pr-7",

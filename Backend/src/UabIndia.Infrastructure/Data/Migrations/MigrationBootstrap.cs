@@ -213,6 +213,18 @@ BEGIN
     IF COL_LENGTH('dbo.Vendors', 'BusinessId') IS NULL
         ALTER TABLE dbo.Vendors ADD BusinessId NVARCHAR(100) NULL;
 END;
+
+IF OBJECT_ID(N'dbo.TenantModules', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.TenantModules', 'CustomDisplayName') IS NULL
+        ALTER TABLE dbo.TenantModules ADD CustomDisplayName NVARCHAR(200) NULL;
+    IF COL_LENGTH('dbo.TenantModules', 'CustomSortOrder') IS NULL
+        ALTER TABLE dbo.TenantModules ADD CustomSortOrder INT NULL;
+    IF COL_LENGTH('dbo.TenantModules', 'CustomIcon') IS NULL
+        ALTER TABLE dbo.TenantModules ADD CustomIcon NVARCHAR(100) NULL;
+    IF COL_LENGTH('dbo.TenantModules', 'CustomSection') IS NULL
+        ALTER TABLE dbo.TenantModules ADD CustomSection NVARCHAR(100) NULL;
+END;
 ";
         try
         {
@@ -480,15 +492,33 @@ BEGIN
     CREATE TABLE [dbo].[BusinessIdSequences] (
         [Id] uniqueidentifier NOT NULL,
         [TenantId] uniqueidentifier NOT NULL,
+        [CompanyId] uniqueidentifier NULL,
+        [ProjectId] uniqueidentifier NULL,
+        [FiscalYear] nvarchar(20) NULL,
         [EntityName] nvarchar(450) NOT NULL,
         [Prefix] nvarchar(max) NULL,
+        [NamingPattern] nvarchar(100) NULL,
         [Padding] int NOT NULL,
         [CurrentValue] bigint NOT NULL,
         [UpdatedAt] datetime2 NOT NULL,
         CONSTRAINT [PK_BusinessIdSequences] PRIMARY KEY ([Id])
     );
-    CREATE UNIQUE INDEX [IX_BusinessIdSequences_TenantId_EntityName]
-        ON [dbo].[BusinessIdSequences]([TenantId], [EntityName]);
+    CREATE INDEX [IX_BusinessIdSequences_Tenant_Company_Entity]
+        ON [dbo].[BusinessIdSequences]([TenantId], [CompanyId], [EntityName]);
+END
+ELSE
+BEGIN
+    IF COL_LENGTH('[dbo].[BusinessIdSequences]', 'CompanyId') IS NULL
+        ALTER TABLE [dbo].[BusinessIdSequences] ADD [CompanyId] uniqueidentifier NULL;
+    IF COL_LENGTH('[dbo].[BusinessIdSequences]', 'ProjectId') IS NULL
+        ALTER TABLE [dbo].[BusinessIdSequences] ADD [ProjectId] uniqueidentifier NULL;
+    IF COL_LENGTH('[dbo].[BusinessIdSequences]', 'FiscalYear') IS NULL
+        ALTER TABLE [dbo].[BusinessIdSequences] ADD [FiscalYear] nvarchar(20) NULL;
+    IF COL_LENGTH('[dbo].[BusinessIdSequences]', 'NamingPattern') IS NULL
+        ALTER TABLE [dbo].[BusinessIdSequences] ADD [NamingPattern] nvarchar(100) NULL;
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_BusinessIdSequences_Tenant_Company_Entity' AND object_id = OBJECT_ID('[dbo].[BusinessIdSequences]'))
+        CREATE INDEX [IX_BusinessIdSequences_Tenant_Company_Entity]
+            ON [dbo].[BusinessIdSequences]([TenantId], [CompanyId], [EntityName]);
 END;";
 
         try
@@ -1003,6 +1033,7 @@ BEGIN
         ProcessedAtUtc DATETIME2 NULL,
         Error NVARCHAR(MAX) NULL,
         RetryCount INT NOT NULL DEFAULT 0,
+        NextRetryUtc DATETIME2 NULL,
         IsProcessed BIT NOT NULL DEFAULT 0,
         CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
         UpdatedAt DATETIME2 NULL,
@@ -1012,12 +1043,22 @@ BEGIN
 
     CREATE NONCLUSTERED INDEX IX_OutboxMessages_Processing 
     ON dbo.OutboxMessages (IsProcessed, RetryCount, OccurredAtUtc);
+END
+ELSE
+BEGIN
+    IF COL_LENGTH('dbo.OutboxMessages', 'NextRetryUtc') IS NULL
+        ALTER TABLE dbo.OutboxMessages ADD NextRetryUtc DATETIME2 NULL;
+
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_OutboxMessages_DueProcessing' AND object_id = OBJECT_ID('dbo.OutboxMessages'))
+        CREATE NONCLUSTERED INDEX IX_OutboxMessages_DueProcessing 
+        ON dbo.OutboxMessages (IsProcessed, NextRetryUtc, OccurredAtUtc)
+        INCLUDE (RetryCount);
 END;
 ";
         try
         {
             await db.Database.ExecuteSqlRawAsync(sql, cancellationToken);
-            logger?.LogInformation("Ensured OutboxMessages table.");
+            logger?.LogInformation("Ensured OutboxMessages table and NextRetryUtc column.");
         }
         catch (System.Exception ex)
         {
@@ -2261,5 +2302,29 @@ END;
             .SingleAsync(cancellationToken);
 
         return result == 1;
+    }
+
+    /// <summary>
+    /// Applies physical schema partitioning to transfer tables from dbo into 17 isolated domain schemas.
+    /// Safe, idempotent, and reversible. Can be invoked automatically or via CLI migration flags.
+    /// </summary>
+    public static async Task ApplyEnterpriseSchemaPartitioningAsync(
+        ApplicationDbContext db,
+        ILogger? logger = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            logger?.LogInformation("Applying Enterprise Schema Partitioning (17 logical schemas)...");
+            await MigrationSqlHelper.ExecuteSqlFileAsync(
+                db,
+                "20260924_EnterpriseSchemaPartitioning.sql",
+                cancellationToken);
+            logger?.LogInformation("Enterprise Schema Partitioning applied successfully.");
+        }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not apply Enterprise Schema Partitioning SQL migration.");
+        }
     }
 }

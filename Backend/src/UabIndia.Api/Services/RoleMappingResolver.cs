@@ -53,7 +53,7 @@ namespace UabIndia.Api.Services
         public IReadOnlyCollection<string> GetAllowedAdminRoles() =>
             GetConfiguredRoleSet(
                 "AllowedAdminRoles",
-                new[] { RoleCatalog.AdminRoleName, RoleCatalog.SuperAdminRoleName },
+                new[] { RoleCatalog.AdminRoleName },
                 RoleCatalog.AdminRoleName,
                 canonicalizeKnownRoles: true);
 

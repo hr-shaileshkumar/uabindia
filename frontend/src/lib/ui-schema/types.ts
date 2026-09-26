@@ -34,6 +34,8 @@ export interface NavModuleDto {
   icon?: string | null;
   homeHref?: string | null;
   sortOrder: number;
+  section?: string | null;
+  allowedRoles?: string[] | null;
   groups: NavGroupDto[];
 }
 
@@ -50,6 +52,9 @@ export interface NavItemDto {
   icon?: string | null;
   sortOrder: number;
   requiredPermissions: string[];
+  allowedRoles?: string[] | null;
+  allowedCompanyIds?: string[] | null;
+  allowedProjectIds?: string[] | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -178,4 +183,42 @@ export interface ActionDefDto {
   href?: string | null;
   handlerKey?: string | null;
   requiredPermissions: string[];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UI Shell Dynamic Visibility Configuration
+// ─────────────────────────────────────────────────────────────────────────────
+export interface UiShellConfigDto {
+  topbar: TopbarConfigDto;
+  publicHeader: PublicHeaderConfigDto;
+}
+
+export interface TopbarConfigDto {
+  showCompanySwitcher: boolean;
+  showProjectSwitcher: boolean;
+  showNotifications: boolean;
+  showGlobalSearch: boolean;
+  showQuickRefresh: boolean;
+  profileLinks: ProfileLinkDto[];
+}
+
+export interface ProfileLinkDto {
+  label: string;
+  href: string;
+  icon: string;
+  requiredRole?: string | null;
+  requiredPermission?: string | null;
+}
+
+export interface PublicHeaderConfigDto {
+  navLinks: PublicHeaderNavLinkDto[];
+  showLoginButton: boolean;
+  primaryCtaLabel: string;
+  primaryCtaHref: string;
+}
+
+export interface PublicHeaderNavLinkDto {
+  label: string;
+  href: string;
+  target?: string | null;
 }

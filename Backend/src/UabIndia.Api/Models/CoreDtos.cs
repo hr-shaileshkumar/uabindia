@@ -496,6 +496,8 @@ namespace UabIndia.Api.Models
         public DateTime PerformedAt { get; set; }
         public Guid? PerformedBy { get; set; }
         public string? Ip { get; set; }
+        public string? OldValue { get; set; }
+        public string? NewValue { get; set; }
     }
 
     public class ApiKeyDto

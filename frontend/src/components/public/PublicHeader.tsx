@@ -8,7 +8,7 @@ import type { ClientProfile } from "@/lib/publicProfile";
 import type { PublicAudience } from "@/lib/public-audience";
 import type { PublicHeaderContent } from "@/lib/publicSiteContent";
 import { withPublicAudience } from "@/lib/public-audience";
-import { getDefaultPublicHomeHref } from "@/lib/public-site-map";
+import { getDefaultPublicHomeHref, getPublicNavLinks } from "@/lib/public-site-map";
 import { cn } from "@/lib/utils";
 import { publicSectionClassName } from "@/components/public/publicStyles";
 
@@ -18,23 +18,6 @@ type PublicHeaderProps = {
   headerContent: PublicHeaderContent;
   allowedPaths?: string[];
 };
-
-/** Primary nav definitions in user-specified sequence */
-const PLATFORM_NAV_HREFS = [
-  { label: "Product", href: "/products" },
-  { label: "Industries", href: "/industries" },
-  { label: "Pricing", href: "/pricing" },
-  { label: "Resources", href: "/resources" },
-  { label: "About", href: "/about" },
-  { label: "Careers", href: "/careers" },
-  { label: "Contact", href: "/contact" },
-];
-
-const TENANT_NAV_HREFS = [
-  { label: "About", href: "/about" },
-  { label: "Careers", href: "/careers" },
-  { label: "Contact", href: "/contact" },
-];
 
 export default function PublicHeader({
   audience = "tenant",
@@ -47,16 +30,19 @@ export default function PublicHeader({
   const [isScrolled, setIsScrolled] = useState(false);
 
   const brandName = profile.brandName || profile.companyName || "UabIndia ERP";
-  const platformMode = audience === "platform";
-
   const homeHref = headerContent.homeHref || getDefaultPublicHomeHref(audience);
 
   const navItems = useMemo(() => {
-    if (platformMode) return PLATFORM_NAV_HREFS;
-    const list = TENANT_NAV_HREFS;
-    if (!allowedPaths || allowedPaths.length === 0) return list;
-    return list.filter((item) => allowedPaths.includes(item.href));
-  }, [platformMode, allowedPaths]);
+    const sourceLinks =
+      headerContent?.navLinks && headerContent.navLinks.length > 0
+        ? headerContent.navLinks
+        : getPublicNavLinks(audience, "primary");
+
+    if (!allowedPaths || allowedPaths.length === 0) {
+      return sourceLinks;
+    }
+    return sourceLinks.filter((item) => allowedPaths.includes(item.href));
+  }, [headerContent?.navLinks, audience, allowedPaths]);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 4);
@@ -111,15 +97,17 @@ export default function PublicHeader({
             ))}
           </nav>
 
-          <Link
-            href={withPublicAudience("/login", audience)}
-            className={cn(
-              "ml-1 xl:ml-2 inline-flex h-9 items-center justify-center rounded-lg bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900",
-              isActive("/login") && "ring-2 ring-slate-900 ring-offset-2",
-            )}
-          >
-            Login
-          </Link>
+          <div className="ml-3 flex items-center">
+            <Link
+              href={withPublicAudience("/login", audience)}
+              className={cn(
+                "inline-flex h-9 items-center justify-center rounded-lg bg-slate-900 px-4 text-xs font-semibold text-white shadow-2xs transition hover:bg-slate-800",
+                isActive("/login") && "ring-2 ring-slate-900 ring-offset-2",
+              )}
+            >
+              Login
+            </Link>
+          </div>
         </div>
 
         {/* Mobile menu toggle on the far right */}

@@ -12,6 +12,7 @@ namespace UabIndia.Api.Modules.Inventory.Controllers
 {
     [ApiController]
     [Route("api/v1/[controller]")]
+    [Route("api/v1/inventory/items")]
     [Authorize]
     public class ItemsController : ControllerBase
     {
@@ -59,10 +60,15 @@ namespace UabIndia.Api.Modules.Inventory.Controllers
         public async Task<IActionResult> Create([FromBody] CreateItemDto dto)
         {
             var tenantId = _tenantAccessor.GetTenantId();
+            var targetCompanyId = dto.CompanyId ?? _tenantAccessor.GetCompanyId();
+            var targetProjectId = dto.ProjectId ?? _tenantAccessor.GetProjectId();
+
             var item = new Item
             {
+                CompanyId = targetCompanyId,
+                ProjectId = targetProjectId,
                 ItemCode = string.IsNullOrWhiteSpace(dto.ItemCode)
-                    ? await _numbers.NextAsync("Item", "ITM-", 5)
+                    ? await _numbers.NextAsync("Item", "ITM-", 5, targetCompanyId, targetProjectId)
                     : dto.ItemCode.Trim(),
                 ItemName = dto.ItemName,
                 ItemType = dto.ItemType ?? "Stockable",
@@ -133,6 +139,8 @@ namespace UabIndia.Api.Modules.Inventory.Controllers
 
     public class CreateItemDto
     {
+        public Guid? CompanyId { get; set; }
+        public Guid? ProjectId { get; set; }
         public string ItemCode { get; set; } = string.Empty;
         public string ItemName { get; set; } = string.Empty;
         public string? ItemType { get; set; }

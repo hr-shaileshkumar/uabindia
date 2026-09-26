@@ -61,7 +61,7 @@ type PlatformPublicPageShellProps = {
 };
 
 export function PublicPageShell({
-  loading,
+  loading: _loading,
   profile,
   headerContent,
   footerContent,
@@ -69,10 +69,6 @@ export function PublicPageShell({
   pageVisible = true,
   children,
 }: PlatformPublicPageShellProps) {
-  if (loading) {
-    return <PublicPageLoading label="Loading..." sublabel="Preparing the website" />;
-  }
-
   return (
     <PublicAudiencePageFrame
       audience="platform"

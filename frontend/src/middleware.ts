@@ -68,10 +68,20 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL(nextPath || "/context", request.url));
   }
 
+  // Normalize audience=platform to tenant on tenant-scoped hosts (e.g. uab.localhost:3000/login?audience=platform)
+  if (hasTenantScopedHost(hostname) && matchesAnyPrefix(pathname, AUTH_PATH_PREFIXES)) {
+    if (request.nextUrl.searchParams.get("audience") === "platform") {
+      const normalizedUrl = new URL(request.url);
+      normalizedUrl.searchParams.set("audience", "tenant");
+      return NextResponse.redirect(normalizedUrl);
+    }
+  }
+
   if (matchesPrefix(pathname, PROTECTED_PREFIXES) && !hasAccessToken) {
     const loginUrl = new URL("/login", request.url);
     const nextPath = `${pathname}${request.nextUrl.search}`;
-    const audience = matchesAnyPrefix(pathname, OWNER_PATH_PREFIXES) ? "platform" : "tenant";
+    const isTenantHost = hasTenantScopedHost(hostname);
+    const audience = !isTenantHost && matchesAnyPrefix(pathname, OWNER_PATH_PREFIXES) ? "platform" : "tenant";
     loginUrl.searchParams.set("next", nextPath);
     loginUrl.searchParams.set("audience", audience);
     return NextResponse.redirect(loginUrl);

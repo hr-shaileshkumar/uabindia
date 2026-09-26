@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -129,8 +130,8 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             var adminRole = new Role
             {
                 TenantId = tenant.Id,
-                Name = RoleCatalog.SuperAdminRoleName,
-                Description = "Super Administrator with full ERP permissions."
+                Name = RoleCatalog.AdminRoleName,
+                Description = "Tenant administrator with full company permissions."
             };
             _db.Roles.Add(adminRole);
 
@@ -200,10 +201,49 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                 });
             }
 
+            // 5b. Seed Default Tenant Modules & SuperAdmin Role Permissions
+            var defaultModuleKeys = new[]
+            {
+                "security", "sales", "compliance", "erp", "projects", "payroll",
+                "procurement", "reports", "licensing", "notifications", "crm",
+                "hrms", "workflow", "finance", "inventory", "platform"
+            };
+
+            foreach (var modKey in defaultModuleKeys)
+            {
+                _db.TenantModules.Add(new TenantModule
+                {
+                    TenantId = tenant.Id,
+                    ModuleKey = modKey,
+                    IsEnabled = true,
+                    EnabledAt = DateTime.UtcNow
+                });
+            }
+
+            var allPermissions = await _db.Permissions.AsNoTracking().Where(p => !p.IsDeleted).ToListAsync();
+            foreach (var perm in allPermissions)
+            {
+                _db.RolePermissions.Add(new RolePermission
+                {
+                    TenantId = tenant.Id,
+                    RoleId = adminRole.Id,
+                    PermissionId = perm.Id
+                });
+            }
+
             await _db.SaveChangesAsync();
 
-            // 6. Generate Token
-            var token = _jwt.GenerateToken(user.Id, tenant.Id, new[] { RoleCatalog.SuperAdminRoleName, RoleCatalog.AdminRoleName }, TimeSpan.FromDays(7));
+            // 6. Generate Token & Session Cookies
+            var token = _jwt.GenerateToken(user.Id, tenant.Id, new[] { RoleCatalog.AdminRoleName }, TimeSpan.FromDays(7), isSystemAdmin: false);
+
+            Response.Cookies.Append("access_token", token, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = false,
+                SameSite = SameSiteMode.Lax,
+                Expires = DateTimeOffset.UtcNow.AddDays(7),
+                Path = "/"
+            });
 
             return Ok(new
             {
@@ -237,7 +277,10 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                 var response = await _websiteContentService.GetCompanyProfileAsync(normalizedAudience);
                 if (response == null)
                 {
-                    return NotFound(new { message = "Tenant not resolved" });
+                    return Ok(new PublicCompanyProfileResponse
+                    {
+                        BrandingJson = "{}"
+                    });
                 }
 
                 return Ok(response);
@@ -264,7 +307,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                 var response = await _websiteContentService.GetPublicSiteDataAsync(normalizedAudience);
                 if (response == null)
                 {
-                    return NotFound(new { message = "Tenant not resolved" });
+                    return Ok(BuildFallbackSiteData(normalizedAudience));
                 }
 
                 return Ok(response);
@@ -288,7 +331,13 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                 var page = await _websiteContentService.GetPublicWebsitePageAsync(pageType, normalizedAudience);
                 if (page == null)
                 {
-                    return NotFound(new { message = "Tenant not resolved or page type is unsupported" });
+                    return Ok(new PublicWebsitePageResponse
+                    {
+                        PageType = pageType,
+                        Title = pageType,
+                        ContentJson = "{}",
+                        IsPublished = false
+                    });
                 }
 
                 return Ok(page);

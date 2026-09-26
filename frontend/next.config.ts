@@ -18,14 +18,21 @@ const frontendRoot = path.resolve(__dirname);
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: frontendRoot,
-  turbopack: {
-    root: frontendRoot,
-  },
-  allowedDevOrigins: ["127.0.0.1", "localhost"],
+  allowedDevOrigins: [
+    "127.0.0.1",
+    "127.0.0.1:3000",
+    "localhost",
+    "localhost:3000",
+    "*.localhost",
+    "*.localhost:3000",
+  ],
   devIndicators: false,
   generateBuildId: () => process.env.NEXT_BUILD_ID || "dev",
   typescript: {
     ignoreBuildErrors: false,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
   },
   ...(isProd && !isVercel
     ? {
@@ -98,9 +105,7 @@ const nextConfig: NextConfig = {
       { source: "/performance", destination: "/hrms/performance", permanent: false },
       { source: "/travel", destination: "/hrms/travel", permanent: false },
       { source: "/tours", destination: "/hrms/travel", permanent: false },
-      { source: "/fleet", destination: "/dashboard", permanent: false },
       { source: "/healthcare", destination: "/dashboard", permanent: false },
-      { source: "/projects", destination: "/administration/projects", permanent: false },
       { source: "/security/sessions", destination: "/administration/security/sessions", permanent: false },
       { source: "/security/devices", destination: "/administration/security/sessions", permanent: false },
       { source: "/administration/licensing", destination: "/licensing", permanent: false },

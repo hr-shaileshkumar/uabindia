@@ -287,9 +287,10 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                             GeofenceValidationMessage = attendance.GeofenceValidationMessage
                         };
 
+            var total = await query.CountAsync();
             var data = await query.Skip((page - 1) * limit).Take(limit).ToListAsync();
 
-            return Ok(data);
+            return Ok(new { data, total, page, limit });
         }
 
         [HttpGet("{id:guid}")]

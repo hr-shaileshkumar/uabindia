@@ -160,7 +160,7 @@ builder.Services.AddEnterpriseCaching(configuration);
 builder.Services.AddEnterpriseSecurityAndCors(configuration, env);
 builder.Services.AddEnterpriseRateLimiting(env);
 builder.Services.AddEnterpriseBackgroundJobs(configuration, env);
-builder.Services.AddEnterpriseBusinessServices();
+builder.Services.AddEnterpriseBusinessServices(configuration);
 builder.Services.AddScoped<IBillingService, BillingService>();
 builder.Services.AddScoped<IQueryAnalyzer, QueryAnalyzer>();
 builder.Services.AddScoped<IAuditLog, AuditLogService>();
@@ -331,6 +331,11 @@ if (app.Environment.IsDevelopment())
         await MigrationBootstrap.EnsureInitialCleanSchemaAsync(db, app.Logger);
         await MigrationBootstrap.EnsureExtendedSchemaAsync(db, app.Logger);
 
+        if (args.Contains("--migrate-schemas") || configuration.GetValue<bool>("Database:ApplyPartitionedSchemas", false))
+        {
+            await MigrationBootstrap.ApplyEnterpriseSchemaPartitioningAsync(db, app.Logger);
+        }
+
         var tenant = db.Tenants.FirstOrDefault(t => t.Subdomain == "erp")
             ?? db.Tenants.FirstOrDefault(t => t.Subdomain == "api")
             ?? db.Tenants.FirstOrDefault();
@@ -445,8 +450,36 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+// Page Schema Seeding (Phase 1A — seeds DynamicPage schemas for all stub pages)
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var tenantAccessor = scope.ServiceProvider.GetRequiredService<ITenantAccessor>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("PageSchemaSeeder");
+    var pageSeeder = new PageSchemaSeeder();
+    try
+    {
+        await pageSeeder.EnsurePageSchemasAsync(db, tenantAccessor, logger);
+    }
+    catch (Exception ex)
+    {
+        logger.LogWarning(ex, "Page schema seeding skipped so the API can still start.");
+    }
+
+    var wfLogger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("WorkflowDefinitionSeeder");
+    var wfSeeder = new WorkflowDefinitionSeeder();
+    try
+    {
+        await wfSeeder.EnsureWorkflowDefinitionsAsync(db, tenantAccessor, wfLogger);
+    }
+    catch (Exception ex)
+    {
+        wfLogger.LogWarning(ex, "Workflow definition seeding skipped so the API can still start.");
+    }
+}
+
 // Health Check Endpoints
-app.MapHealthChecks("/health", new HealthCheckOptions
+var healthCheckOptions = new HealthCheckOptions
 {
     Predicate = _ => true,
     ResponseWriter = async (context, report) =>
@@ -466,14 +499,25 @@ app.MapHealthChecks("/health", new HealthCheckOptions
         });
         await context.Response.WriteAsync(result);
     }
-}).AllowAnonymous();
+};
+
+app.MapHealthChecks("/health", healthCheckOptions).AllowAnonymous();
+app.MapHealthChecks("/api/v1/health", healthCheckOptions).AllowAnonymous();
 
 app.MapHealthChecks("/health/live", new HealthCheckOptions
 {
     Predicate = check => check.Tags.Contains("api")
 }).AllowAnonymous();
+app.MapHealthChecks("/api/v1/health/live", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("api")
+}).AllowAnonymous();
 
 app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("db")
+}).AllowAnonymous();
+app.MapHealthChecks("/api/v1/health/ready", new HealthCheckOptions
 {
     Predicate = check => check.Tags.Contains("db")
 }).AllowAnonymous();

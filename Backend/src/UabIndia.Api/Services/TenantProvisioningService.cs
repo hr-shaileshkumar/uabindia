@@ -70,8 +70,7 @@ namespace UabIndia.Api.Services
 
         private static readonly (string Name, string Description)[] DefaultRoles =
         {
-            (RoleCatalog.SuperAdminRoleName, "Tenant super administrator"),
-            (RoleCatalog.AdminRoleName, "Company administrator"),
+            (RoleCatalog.AdminRoleName, "Tenant administrator"),
             (RoleCatalog.HrManagerRoleName, "Human Resources manager"),
             (RoleCatalog.AccountantRoleName, "Finance and accounts"),
             (RoleCatalog.ManagerRoleName, "Project manager"),

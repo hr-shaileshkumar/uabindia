@@ -29,6 +29,10 @@ export interface Module {
   subModules?: SubModule[];
   isEnabled: boolean;
   order?: number;
+  customDisplayName?: string | null;
+  customSortOrder?: number | null;
+  customIcon?: string | null;
+  customSection?: string | null;
 }
 
 export interface SubModule {

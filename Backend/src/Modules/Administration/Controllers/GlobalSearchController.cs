@@ -37,12 +37,17 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             public string Icon { get; set; } = string.Empty;
         }
 
+        public class GlobalSearchResponse
+        {
+            public List<SearchResultItem> Results { get; set; } = new();
+        }
+
         [HttpGet]
         public async Task<IActionResult> GlobalSearch([FromQuery] string? q, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(q) || q.Trim().Length < 2)
             {
-                return Ok(new { results = new List<SearchResultItem>() });
+                return Ok(new GlobalSearchResponse());
             }
 
             var query = q.Trim().ToLower();
@@ -133,7 +138,95 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                 .ToListAsync(cancellationToken);
             results.AddRange(items);
 
-            return Ok(new { results });
+            // 6. Search Sales Invoices
+            var invoices = await _db.SalesInvoices
+                .Include(si => si.Customer)
+                .Where(si => !si.IsDeleted && (
+                    (si.InvoiceNumber != null && si.InvoiceNumber.ToLower().Contains(query)) ||
+                    (si.Customer != null && si.Customer.CustomerName != null && si.Customer.CustomerName.ToLower().Contains(query))
+                ))
+                .Take(5)
+                .Select(si => new SearchResultItem
+                {
+                    Id = si.Id.ToString(),
+                    Category = "Invoice",
+                    Title = si.InvoiceNumber,
+                    Subtitle = $"Customer: {(si.Customer != null ? si.Customer.CustomerName : "N/A")} · Total: ₹{si.TotalAmount} · Status: {si.Status}",
+                    Path = "/invoices",
+                    Icon = "receipt"
+                })
+                .ToListAsync(cancellationToken);
+            results.AddRange(invoices);
+
+            // 7. Search Purchase Orders
+            var purchaseOrders = await _db.PurchaseOrders
+                .Include(po => po.Vendor)
+                .Where(po => !po.IsDeleted && (
+                    (po.PONumber != null && po.PONumber.ToLower().Contains(query)) ||
+                    (po.Vendor != null && po.Vendor.VendorName != null && po.Vendor.VendorName.ToLower().Contains(query))
+                ))
+                .Take(5)
+                .Select(po => new SearchResultItem
+                {
+                    Id = po.Id.ToString(),
+                    Category = "Purchase Order",
+                    Title = po.PONumber,
+                    Subtitle = $"Vendor: {(po.Vendor != null ? po.Vendor.VendorName : "N/A")} · Total: ₹{po.TotalAmount} · Status: {po.Status}",
+                    Path = "/purchase-orders",
+                    Icon = "shopping-bag"
+                })
+                .ToListAsync(cancellationToken);
+            results.AddRange(purchaseOrders);
+
+            // 8. Search Projects
+            var projects = await _db.Set<Project>()
+                .Where(p => !p.IsDeleted && (p.ProjectCode.ToLower().Contains(query) || p.Name.ToLower().Contains(query)))
+                .Take(5)
+                .Select(p => new SearchResultItem
+                {
+                    Id = p.Id.ToString(),
+                    Category = "Project",
+                    Title = $"{p.ProjectCode} - {p.Name}",
+                    Subtitle = $"Type: {p.ProjectType} · Priority: {p.Priority} · Status: {p.Status}",
+                    Path = "/projects",
+                    Icon = "briefcase"
+                })
+                .ToListAsync(cancellationToken);
+            results.AddRange(projects);
+
+            // 9. Search Chart of Accounts
+            var accounts = await _db.Set<ChartOfAccount>()
+                .Where(coa => !coa.IsDeleted && (coa.AccountCode.ToLower().Contains(query) || coa.AccountName.ToLower().Contains(query)))
+                .Take(5)
+                .Select(coa => new SearchResultItem
+                {
+                    Id = coa.Id.ToString(),
+                    Category = "General Ledger",
+                    Title = $"{coa.AccountCode} - {coa.AccountName}",
+                    Subtitle = $"Type: {coa.AccountType} · Balance: ₹{coa.CurrentBalance}",
+                    Path = "/chart-of-accounts",
+                    Icon = "wallet"
+                })
+                .ToListAsync(cancellationToken);
+            results.AddRange(accounts);
+
+            // 10. Search Helpdesk Tickets
+            var tickets = await _db.Set<HelpdeskTicket>()
+                .Where(ht => !ht.IsDeleted && (ht.TicketNumber.ToLower().Contains(query) || ht.Subject.ToLower().Contains(query)))
+                .Take(5)
+                .Select(ht => new SearchResultItem
+                {
+                    Id = ht.Id.ToString(),
+                    Category = "Helpdesk Ticket",
+                    Title = $"{ht.TicketNumber}: {ht.Subject}",
+                    Subtitle = $"Priority: {ht.Priority} · Status: {ht.Status}",
+                    Path = "/helpdesk",
+                    Icon = "life-buoy"
+                })
+                .ToListAsync(cancellationToken);
+            results.AddRange(tickets);
+
+            return Ok(new GlobalSearchResponse { Results = results });
         }
     }
 }

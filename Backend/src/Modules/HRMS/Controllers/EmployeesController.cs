@@ -65,7 +65,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             if (!companyExists) return BadRequest(new { message = "Invalid company." });
 
             var code = string.IsNullOrWhiteSpace(dto.EmployeeCode)
-                ? await _numbers.NextAsync("Employee", "EMP-", 5)
+                ? await _numbers.NextAsync("Employee", "EMP-", 4, dto.CompanyId)
                 : dto.EmployeeCode.Trim();
 
             var codeTaken = await _db.Employees.AnyAsync(e => e.EmployeeCode == code && !e.IsDeleted);
@@ -199,6 +199,12 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                     ? await _db.OperationalLocations.AsNoTracking().Where(l => baseLocIds.Contains(l.Id)).ToDictionaryAsync(l => l.Id, l => l.Name)
                     : new System.Collections.Generic.Dictionary<Guid, string>();
 
+                var canViewSensitive = User != null && (User.IsInRole("SuperAdmin")
+                    || User.IsInRole("Admin")
+                    || User.IsInRole("HR Manager")
+                    || User.IsInRole("Payroll Admin")
+                    || User.HasClaim("permission", "hrms.employees.sensitive"));
+
                 var data = employees.Select(emp => new EmployeeDto
                 {
                     Id = emp.Id,
@@ -237,15 +243,15 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                     DesignationName = emp.DesignationId.HasValue && desigs.TryGetValue(emp.DesignationId.Value, out var desName) ? desName : null,
                     ManagerId = emp.ManagerId,
                     UserId = emp.UserId,
-                    Pan = emp.Pan,
-                    Uan = emp.Uan,
-                    EsiNumber = emp.EsiNumber,
-                    PfNumber = emp.PfNumber,
+                    Pan = canViewSensitive ? emp.Pan : MaskStatutory(emp.Pan),
+                    Uan = canViewSensitive ? emp.Uan : MaskStatutory(emp.Uan),
+                    EsiNumber = canViewSensitive ? emp.EsiNumber : MaskStatutory(emp.EsiNumber),
+                    PfNumber = canViewSensitive ? emp.PfNumber : MaskStatutory(emp.PfNumber),
                     BankName = emp.BankName,
-                    BankIfsc = emp.BankIfsc,
-                    PayrollStructureId = emp.PayrollStructureId,
-                    MonthlyCtc = emp.MonthlyCtc,
-                    BasicSalary = emp.BasicSalary,
+                    BankIfsc = canViewSensitive ? emp.BankIfsc : MaskStatutory(emp.BankIfsc),
+                    PayrollStructureId = canViewSensitive ? emp.PayrollStructureId : null,
+                    MonthlyCtc = canViewSensitive ? emp.MonthlyCtc : 0m,
+                    BasicSalary = canViewSensitive ? emp.BasicSalary : 0m,
                     ProbationStatus = emp.ProbationStatus,
                     ProbationScore = emp.ProbationScore,
                     ProbationComments = emp.ProbationComments,
@@ -446,6 +452,12 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                 ? await _db.AttendancePolicies.AsNoTracking().Where(p => p.Id == emp.AttendancePolicyId.Value).Select(p => p.Name).FirstOrDefaultAsync()
                 : null;
 
+            var canViewSensitive = User != null && (User.IsInRole("SuperAdmin")
+                || User.IsInRole("Admin")
+                || User.IsInRole("HR Manager")
+                || User.IsInRole("Payroll Admin")
+                || User.HasClaim("permission", "hrms.employees.sensitive"));
+
             return new EmployeeDto
             {
                 Id = emp.Id,
@@ -494,21 +506,29 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                 DelegationReason = emp.DelegationReason,
                 IsOrganizationHead = emp.IsOrganizationHead,
                 UserId = emp.UserId,
-                Pan = emp.Pan,
-                Uan = emp.Uan,
-                EsiNumber = emp.EsiNumber,
-                PfNumber = emp.PfNumber,
+                Pan = canViewSensitive ? emp.Pan : MaskStatutory(emp.Pan),
+                Uan = canViewSensitive ? emp.Uan : MaskStatutory(emp.Uan),
+                EsiNumber = canViewSensitive ? emp.EsiNumber : MaskStatutory(emp.EsiNumber),
+                PfNumber = canViewSensitive ? emp.PfNumber : MaskStatutory(emp.PfNumber),
                 BankName = emp.BankName,
-                BankIfsc = emp.BankIfsc,
-                PayrollStructureId = emp.PayrollStructureId,
-                MonthlyCtc = emp.MonthlyCtc,
-                BasicSalary = emp.BasicSalary,
+                BankIfsc = canViewSensitive ? emp.BankIfsc : MaskStatutory(emp.BankIfsc),
+                PayrollStructureId = canViewSensitive ? emp.PayrollStructureId : null,
+                MonthlyCtc = canViewSensitive ? emp.MonthlyCtc : 0m,
+                BasicSalary = canViewSensitive ? emp.BasicSalary : 0m,
                 ProbationStatus = emp.ProbationStatus,
                 ProbationScore = emp.ProbationScore,
                 ProbationComments = emp.ProbationComments,
                 CreatedAt = emp.CreatedAt,
                 UpdatedAt = emp.UpdatedAt
             };
+        }
+
+        private static string? MaskStatutory(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return value;
+            var trimmed = value.Trim();
+            if (trimmed.Length <= 4) return new string('•', trimmed.Length);
+            return new string('•', trimmed.Length - 4) + trimmed[^4..];
         }
 
         private static string BuildTemporaryPassword() => $"Emp@{Guid.NewGuid():N}"[..18];

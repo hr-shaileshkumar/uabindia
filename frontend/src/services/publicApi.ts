@@ -124,7 +124,7 @@ export type PublicSiteDataResponse = {
   socialProof: PublicSiteSocialProof;
 };
 
-const PUBLIC_API_COOLDOWN_MS = 30_000;
+const PUBLIC_API_COOLDOWN_MS = 60_000;
 const SILENT_PUBLIC_HEADERS = { headers: { "X-Silent-Error": "1" } };
 const pendingOptionalPublicReads = new Map<string, Promise<unknown>>();
 let optionalPublicReadRetryAt = 0;
@@ -134,7 +134,7 @@ const shouldSilenceOptionalPublicRead = () => Date.now() < optionalPublicReadRet
 const isTransientConnectionError = (error: unknown) => {
   if (!axios.isAxiosError(error)) return false;
   const status = error.response?.status ?? 0;
-  if (status >= 500 && status <= 504) {
+  if ((status >= 500 && status <= 504) || status === 404) {
     return true;
   }
   if (error.response) return false;
@@ -212,5 +212,21 @@ export const publicApi = {
         `/recruitment/job-postings/active?page=${page}&limit=${limit}&audience=${encodeURIComponent(audience)}`,
         SILENT_PUBLIC_HEADERS
       )
+    ),
+  applyForJob: (payload: {
+    jobPostingId: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber?: string;
+    currentCompany?: string;
+    currentDesignation?: string;
+    yearsOfExperience?: number;
+    coverLetter?: string;
+    sourceOfRecruit?: string;
+  }) =>
+    apiClient.post<{ message: string; candidate?: { id: string } }>(
+      "/recruitment/apply",
+      payload
     ),
 };

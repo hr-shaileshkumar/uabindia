@@ -2,7 +2,7 @@
 
 import React, { useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, Check, Globe } from "lucide-react";
+import { ArrowRight, Boxes, Check, CheckCircle2, Globe, Receipt, Server, ShieldCheck, Sparkles, Users, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MotionReveal } from "@/components/public/PublicMotion";
 import PublicProductPreview from "@/components/public/PublicProductPreview";
@@ -76,26 +76,26 @@ export function MarketingHero({
       <div
         className={cn(
           publicSectionClassName,
-          "relative grid items-center gap-10 py-12 md:py-16 lg:gap-14",
-          showPreview ? "lg:grid-cols-[1.05fr_0.95fr]" : "",
+          "relative grid items-center gap-8 py-10 md:py-14 lg:py-16 lg:gap-14 xl:gap-16",
+          showPreview ? "lg:grid-cols-[0.95fr_1.05fr]" : "",
         )}
       >
-        <MotionReveal className={cn("flex flex-col", !showPreview && "mx-auto max-w-3xl text-center items-center")}>
+        <MotionReveal className={cn("flex flex-col", !showPreview && "mx-auto max-w-4xl text-center items-center")}>
           <p className={cn(publicEyebrowClassName, !showPreview && "justify-center")}>{eyebrow}</p>
-          <h1 className="mt-4 text-4xl font-semibold tracking-tight text-slate-900 sm:text-[2.75rem] sm:leading-[1.1]">
+          <h1 className="mt-3.5 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl lg:text-[3rem] xl:text-[3.4rem] lg:leading-[1.12]">
             {title}
           </h1>
           <p
             className={cn(
-              "mt-4 max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg",
+              "mt-4 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg",
               !showPreview && "mx-auto",
             )}
           >
             {subtitle}
           </p>
-          <div className={cn("mt-7 flex flex-wrap gap-3", !showPreview && "justify-center")}>{actions}</div>
+          <div className={cn("mt-6 flex flex-wrap gap-3", !showPreview && "justify-center")}>{actions}</div>
           {trustSignals.length > 0 ? (
-            <ul className={cn("mt-6 flex flex-wrap gap-x-5 gap-y-2", !showPreview && "justify-center")}>
+            <ul className={cn("mt-5 flex flex-wrap gap-x-5 gap-y-2", !showPreview && "justify-center")}>
               {trustSignals.map((item) => (
                 <li key={item} className="flex items-center gap-2 text-sm text-slate-600">
                   <Check className="h-4 w-4 shrink-0 text-emerald-600" />
@@ -105,11 +105,11 @@ export function MarketingHero({
             </ul>
           ) : null}
           {badges.length > 0 ? (
-            <div className={cn("mt-5 flex flex-wrap gap-2", !showPreview && "justify-center")}>
+            <div className={cn("mt-4 flex flex-wrap gap-2", !showPreview && "justify-center")}>
               {badges.map((badge) => (
                 <span
                   key={badge}
-                  className="rounded-md border border-slate-200/80 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 shadow-sm"
+                  className="rounded-md border border-slate-200/80 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 shadow-2xs"
                 >
                   {badge}
                 </span>
@@ -173,17 +173,55 @@ export function ModuleGrid({
     <section className={publicSectionSpacingClassName}>
       <div className={publicSectionClassName}>
         <SectionIntro eyebrow={eyebrow} title={title} subtitle={subtitle} />
-        <div className={cn(publicSectionContentGapClassName, "grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4")}>
-          {modules.map((module) => (
-            <Link key={module.slug} href={`/products/${module.slug}`} className={cn(publicPanelHoverClassName, "block")}>
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{module.category}</p>
-              <h3 className="mt-2 text-base font-semibold text-slate-900">{module.title}</h3>
-              <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-slate-600">{module.summary}</p>
-              <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-slate-900">
-                View module <ArrowRight className="h-3.5 w-3.5" />
-              </span>
-            </Link>
-          ))}
+        <div className={cn(publicSectionContentGapClassName, "grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4")}>
+          {modules.map((module) => {
+            const isPeople = module.category === "People";
+            const isFinance = module.category === "Finance";
+            const isOps = module.category === "Operations";
+
+            const badgeStyle = isPeople
+              ? "bg-purple-50 border-purple-200/80 text-purple-700"
+              : isFinance
+              ? "bg-blue-50 border-blue-200/80 text-blue-700"
+              : isOps
+              ? "bg-emerald-50 border-emerald-200/80 text-emerald-700"
+              : "bg-amber-50 border-amber-200/80 text-amber-700";
+
+            return (
+              <Link
+                key={module.slug}
+                href={`/products/${module.slug}`}
+                className="group relative flex h-full flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs transition-all duration-200 hover:border-blue-400 hover:shadow-md hover:-translate-y-0.5"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={cn("inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider", badgeStyle)}>
+                      {isPeople && <Users className="h-3 w-3" />}
+                      {isFinance && <Receipt className="h-3 w-3" />}
+                      {isOps && <Boxes className="h-3 w-3" />}
+                      {!isPeople && !isFinance && !isOps && <Sparkles className="h-3 w-3" />}
+                      {module.category}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      Ready
+                    </span>
+                  </div>
+                  <h3 className="mt-3.5 text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                    {module.title}
+                  </h3>
+                  <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-slate-600">
+                    {module.summary}
+                  </p>
+                </div>
+
+                <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-700 group-hover:text-blue-600 transition-colors">
+                  <span>Explore App Capabilities</span>
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-1" />
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -205,16 +243,31 @@ export function IndustryGrid({
     <section className={cn(publicSectionSpacingClassName, "bg-slate-50")}>
       <div className={publicSectionClassName}>
         <SectionIntro eyebrow={eyebrow} title={title} subtitle={subtitle} />
-        <div className={cn(publicSectionContentGapClassName, "grid gap-4 sm:grid-cols-2 lg:grid-cols-3")}>
+        <div className={cn(publicSectionContentGapClassName, "grid gap-5 sm:grid-cols-2 lg:grid-cols-3")}>
           {industries.map((industry) => (
             <Link
               key={industry.slug}
               href={`/industries/${industry.slug}`}
-              className={cn(publicPanelHoverClassName, "block")}
+              className="group relative flex h-full flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs transition-all duration-200 hover:border-indigo-300 hover:shadow-md hover:-translate-y-0.5"
             >
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{industry.eyebrow}</p>
-              <h3 className="mt-2 text-base font-semibold text-slate-900">{industry.title}</h3>
-              <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-slate-600">{industry.summary}</p>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-md bg-indigo-50 border border-indigo-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-700">
+                    {industry.eyebrow}
+                  </span>
+                </div>
+                <h3 className="mt-3 text-lg font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                  {industry.title}
+                </h3>
+                <p className="mt-2.5 text-xs leading-relaxed text-slate-600">
+                  {industry.summary}
+                </p>
+              </div>
+
+              <div className="mt-6 pt-3.5 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">
+                <span>View Industry Playbook</span>
+                <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-1" />
+              </div>
             </Link>
           ))}
         </div>
@@ -379,30 +432,33 @@ export function PricingGrid({ plans }: { plans: PricingPlan[] }) {
             <article
               key={plan.name}
               className={cn(
-                publicPanelClassName,
-                "flex flex-col relative",
-                plan.featured && "border-slate-900 ring-2 ring-slate-900 shadow-xl"
+                "flex flex-col relative rounded-2xl border bg-white p-6 sm:p-7 transition-all duration-200",
+                plan.featured
+                  ? "border-blue-600 ring-2 ring-blue-600 shadow-xl"
+                  : "border-slate-200/90 shadow-xs hover:border-slate-300 hover:shadow-md"
               )}
             >
               {plan.featured ? (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-slate-900 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow">
-                  Most Popular
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-3.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
+                  Recommended Tier
                 </div>
               ) : null}
-              <h3 className="text-lg font-semibold text-slate-900">{plan.name}</h3>
+              <h3 className="text-xl font-bold text-slate-900">{plan.name}</h3>
               <p className="mt-1 text-xs text-slate-500 min-h-[32px]">{plan.audience}</p>
               
-              <div className="mt-4">
-                <p className="text-2xl font-bold tracking-tight text-slate-900">{displayPrice}</p>
+              <div className="mt-4 pb-4 border-b border-slate-100">
+                <p className="text-3xl font-extrabold tracking-tight text-slate-900 font-mono">{displayPrice}</p>
                 <p className="mt-1 text-[11px] text-slate-500 font-medium">{plan.implementation}</p>
               </div>
 
               <p className="mt-4 text-xs leading-relaxed text-slate-600 min-h-[36px]">{plan.summary}</p>
               
-              <ul className="mt-5 flex-1 space-y-2.5 border-t border-slate-100 pt-4">
+              <ul className="mt-5 flex-1 space-y-3">
                 {plan.points.map((point) => (
-                  <li key={point} className="flex items-start gap-2 text-xs text-slate-700">
-                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                  <li key={point} className="flex items-start gap-2.5 text-xs text-slate-700">
+                    <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 mt-0.5">
+                      <Check className="h-2.5 w-2.5 stroke-[3]" />
+                    </span>
                     <span>{point}</span>
                   </li>
                 ))}
@@ -416,14 +472,39 @@ export function PricingGrid({ plans }: { plans: PricingPlan[] }) {
                 }
                 className={cn(
                   plan.featured ? publicButtonClassName.primary : publicButtonClassName.secondary,
-                  "mt-6 w-full text-center py-2.5 text-xs font-semibold"
+                  "mt-8 w-full text-center py-2.5 text-xs font-semibold rounded-xl"
                 )}
               >
-                {plan.name.includes("Enterprise") ? "Talk to Enterprise Sales" : "Start 14-Day Free Trial"}
+                {plan.name.includes("Enterprise") ? "Schedule Architecture Consultation" : "Start 14-Day Free Trial"}
               </Link>
             </article>
           );
         })}
+      </div>
+
+      {/* Enterprise Guarantees Ribbon */}
+      <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { icon: Server, title: "99.99% Uptime SLA", desc: "Tier-IV Indian cloud datacenters (Mumbai / Hyderabad)" },
+            { icon: ShieldCheck, title: "Statutory Compliance", desc: "Guaranteed day-zero updates for GST, PF, ESI & TDS laws" },
+            { icon: Zap, title: "Zero Lock-in Migration", desc: "Automated legacy ERP ETL connectors & data import tools" },
+            { icon: Sparkles, title: "Enterprise Support", desc: "24/7 dedicated support engineers & dedicated TAM" },
+          ].map((item) => {
+            const Icon = item.icon;
+            return (
+              <div key={item.title} className="flex items-start gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white shadow-2xs">
+                  <Icon className="h-4 w-4 text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-900">{item.title}</p>
+                  <p className="text-[11px] text-slate-500 leading-snug mt-0.5">{item.desc}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -485,14 +566,22 @@ export function CtaPanel({
   return (
     <section className={publicSectionSpacingClassName}>
       <div className={publicSectionClassName}>
-        <div className="rounded-2xl border border-slate-200 bg-slate-900 px-6 py-10 text-center text-white sm:px-10">
-          {eyebrow ? <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{eyebrow}</p> : null}
-          <h2 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h2>
-          {copy ? <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-slate-300 sm:text-base">{copy}</p> : null}
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 px-6 py-12 text-center text-white sm:px-12 sm:py-16 shadow-2xl">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full bg-blue-500/10 blur-3xl"
+          />
+          {eyebrow ? (
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-400">{eyebrow}</p>
+          ) : null}
+          <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">{title}</h2>
+          {copy ? (
+            <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-slate-300 sm:text-base">{copy}</p>
+          ) : null}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
             <Link
               href={primaryHref}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-white px-5 text-sm font-medium text-slate-900 transition hover:bg-slate-100"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-white px-6 text-sm font-semibold text-slate-950 transition hover:bg-slate-100 shadow-md"
             >
               {primaryLabel}
               <ArrowRight className="h-4 w-4" />
@@ -500,7 +589,7 @@ export function CtaPanel({
             {secondaryLabel && secondaryHref ? (
               <Link
                 href={secondaryHref}
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-white/20 px-5 text-sm font-medium text-white transition hover:bg-white/10"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 px-6 text-sm font-semibold text-white backdrop-blur-xs transition hover:bg-white/10 hover:border-white/30"
               >
                 {secondaryLabel}
               </Link>

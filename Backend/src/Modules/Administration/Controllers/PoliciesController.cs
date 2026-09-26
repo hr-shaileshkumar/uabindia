@@ -14,6 +14,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
 {
     [ApiController]
     [Route("api/v1/[controller]")]
+    [Route("api/v1/administration/policies")]
     [Authorize]
     public class PoliciesController : ControllerBase
     {

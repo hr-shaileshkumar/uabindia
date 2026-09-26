@@ -953,6 +953,41 @@ namespace UabIndia.Api.Modules.Reports.Controllers
             return (from, to);
         }
 
+        // ===== FINANCIAL REPORTS =====
+
+        [HttpGet("finance/pnl")]
+        [HttpGet("/api/v1/finance/reports/pnl")]
+        public async Task<IActionResult> GetProfitAndLoss(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] Guid? companyId)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var start = startDate ?? new DateTime(DateTime.UtcNow.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            var end = endDate ?? DateTime.UtcNow;
+
+            var pnl = await _financialStatementService.GetProfitAndLossAsync(tenantId, start, end);
+            var rows = new List<object>();
+
+            foreach (var rev in pnl.RevenueBreakdown)
+                rows.Add(new { category = "Revenue", rev.AccountCode, rev.AccountName, Amount = rev.Amount, Type = "Income" });
+
+            foreach (var cogs in pnl.CogsBreakdown)
+                rows.Add(new { category = "Cost of Sales", cogs.AccountCode, cogs.AccountName, Amount = cogs.Amount, Type = "Expense" });
+
+            foreach (var exp in pnl.ExpenseBreakdown)
+                rows.Add(new { category = "Operating Expense", exp.AccountCode, exp.AccountName, Amount = exp.Amount, Type = "Expense" });
+
+            return Ok(new
+            {
+                success = true,
+                data = rows,
+                items = rows,
+                total = rows.Count,
+                summary = pnl
+            });
+        }
+
         private Guid? GetUserId()
         {
             var raw = User.FindFirstValue(ClaimTypes.NameIdentifier);

@@ -27,6 +27,10 @@ namespace UabIndia.Core.Entities
         public int? NumberOfPositions { get; set; }
         public int ApplicationCount { get; set; } = 0;
 
+        // Staffing Plan Link
+        public Guid? StaffingPlanId { get; set; }
+        public StaffingPlan? StaffingPlan { get; set; }
+
         // Navigation
         public ICollection<Candidate> Candidates { get; set; } = new List<Candidate>();
         public ICollection<OfferLetter> OfferLetters { get; set; } = new List<OfferLetter>();
@@ -122,6 +126,9 @@ namespace UabIndia.Core.Entities
         public DateTime? RejectedDate { get; set; }
         public string? RejectionReason { get; set; }
         public bool IsJoined { get; set; }
+        public Guid? EmployeeId { get; set; }
+        public Employee? Employee { get; set; }
+        public string? OfferTerms { get; set; }
         public User? CreatedByUser { get; set; }
         public Guid? AcceptedBy { get; set; } // Candidate user ID if joined
         public User? AcceptedByUser { get; set; }

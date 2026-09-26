@@ -106,18 +106,27 @@ export function resolveActivePolicyVersion(
   return validVersions[0];
 }
 
+export type PolicyStaffSample = {
+  id: string;
+  name: string;
+  department: string;
+  lateCount: number;
+  monthlyKm: number;
+  grossSalary: number;
+};
+
 /**
- * Mock sample staff dataset for dry-run simulation
+ * Standard test simulation staff dataset fixture for what-if policy analysis
  */
-const SAMPLE_HEALTHCARE_STAFF = [
-  { id: "EMP-101", name: "Dr. Rakesh Verma", department: "Clinical", lateCount: 4, monthlyKm: 240, grossSalary: 125000 },
-  { id: "EMP-102", name: "Sister Sunita Xalxo", department: "Nursing", lateCount: 2, monthlyKm: 60, grossSalary: 38000 },
-  { id: "EMP-103", name: "Aman Deep (Lab Tech)", department: "Diagnostics", lateCount: 5, monthlyKm: 420, grossSalary: 28000 },
-  { id: "EMP-104", name: "Pooja Kumari (Sample Collector)", department: "Diagnostics", lateCount: 3, monthlyKm: 580, grossSalary: 22000 },
-  { id: "EMP-105", name: "Vikas Sinha (Store Admin)", department: "Stores", lateCount: 1, monthlyKm: 30, grossSalary: 32000 },
-  { id: "EMP-106", name: "Dr. Anjali Mehta", department: "ICU", lateCount: 4, monthlyKm: 180, grossSalary: 140000 },
-  { id: "EMP-107", name: "Ramesh Sharma (Security)", department: "Administration", lateCount: 6, monthlyKm: 0, grossSalary: 18500 },
-  { id: "EMP-108", name: "Neha Roy (Billing Desk)", department: "Billing", lateCount: 4, monthlyKm: 45, grossSalary: 26000 },
+export const SAMPLE_SIMULATION_STAFF: PolicyStaffSample[] = [
+  { id: "EMP-101", name: "Employee 101", department: "Operations", lateCount: 4, monthlyKm: 240, grossSalary: 125000 },
+  { id: "EMP-102", name: "Employee 102", department: "Services", lateCount: 2, monthlyKm: 60, grossSalary: 38000 },
+  { id: "EMP-103", name: "Employee 103", department: "Quality", lateCount: 5, monthlyKm: 420, grossSalary: 28000 },
+  { id: "EMP-104", name: "Employee 104", department: "Quality", lateCount: 3, monthlyKm: 580, grossSalary: 22000 },
+  { id: "EMP-105", name: "Employee 105", department: "Stores", lateCount: 1, monthlyKm: 30, grossSalary: 32000 },
+  { id: "EMP-106", name: "Employee 106", department: "Engineering", lateCount: 4, monthlyKm: 180, grossSalary: 140000 },
+  { id: "EMP-107", name: "Employee 107", department: "Administration", lateCount: 6, monthlyKm: 0, grossSalary: 18500 },
+  { id: "EMP-108", name: "Employee 108", department: "Finance", lateCount: 4, monthlyKm: 45, grossSalary: 26000 },
 ];
 
 /**
@@ -126,12 +135,14 @@ const SAMPLE_HEALTHCARE_STAFF = [
  */
 export function simulatePolicyImpact(
   input: PolicyImpactSimulationInput,
+  staffDataset?: PolicyStaffSample[],
 ): PolicyImpactSimulationResult {
   const { policyCode, proposedRuleConfig, departmentFilter } = input;
+  const sourceStaff = staffDataset && staffDataset.length > 0 ? staffDataset : SAMPLE_SIMULATION_STAFF;
 
   const staff = departmentFilter
-    ? SAMPLE_HEALTHCARE_STAFF.filter((s) => s.department.toLowerCase() === departmentFilter.toLowerCase())
-    : SAMPLE_HEALTHCARE_STAFF;
+    ? sourceStaff.filter((s) => s.department.toLowerCase() === departmentFilter.toLowerCase())
+    : sourceStaff;
 
   const comparisons: PolicyImpactSimulationResult["sampleComparisons"] = [];
   let totalImpacted = 0;

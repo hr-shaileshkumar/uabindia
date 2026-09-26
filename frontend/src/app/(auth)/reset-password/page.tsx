@@ -37,6 +37,9 @@ export default function ResetPasswordPage() {
         homeHref={withPublicAudience("/", audience)}
         audience={audience}
         variant="reset-password"
+        profile={profile}
+        headerContent={headerContent}
+        allowedPaths={allowedPaths}
       >
         <ResetPasswordForm audience={audience} />
       </PublicAuthShell>

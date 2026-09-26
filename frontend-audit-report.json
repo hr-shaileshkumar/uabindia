@@ -1,0 +1,3138 @@
+{
+  "totalPages": 192,
+  "statusCounts": {
+    "200": 22,
+    "307": 167,
+    "TIMEOUT": 3
+  },
+  "exactDuplicates": [],
+  "semanticDuplicates": [
+    {
+      "baseName": "integrations",
+      "routes": [
+        "/administration/integrations",
+        "/integrations",
+        "/licensing/integrations"
+      ]
+    },
+    {
+      "baseName": "org-chart",
+      "routes": [
+        "/administration/org-chart",
+        "/hrms/org-chart"
+      ]
+    },
+    {
+      "baseName": "privacy",
+      "routes": [
+        "/administration/privacy",
+        "/privacy"
+      ]
+    },
+    {
+      "baseName": "projects",
+      "routes": [
+        "/administration/projects",
+        "/projects"
+      ]
+    },
+    {
+      "baseName": "[id]",
+      "routes": [
+        "/administration/tenants/[id]",
+        "/hrms/employees/[id]"
+      ]
+    },
+    {
+      "baseName": "webhooks",
+      "routes": [
+        "/administration/webhooks",
+        "/integrations/webhooks"
+      ]
+    },
+    {
+      "baseName": "compliance",
+      "routes": [
+        "/compliance",
+        "/reports/compliance"
+      ]
+    },
+    {
+      "baseName": "dashboard",
+      "routes": [
+        "/dashboard",
+        "/superadmin/dashboard"
+      ]
+    },
+    {
+      "baseName": "payroll",
+      "routes": [
+        "/payroll",
+        "/reports/payroll"
+      ]
+    },
+    {
+      "baseName": "pricing",
+      "routes": [
+        "/sales/pricing",
+        "/pricing"
+      ]
+    },
+    {
+      "baseName": "[slug]",
+      "routes": [
+        "/industries/[slug]",
+        "/products/[slug]"
+      ]
+    }
+  ],
+  "unmappedCount": 187,
+  "unmappedSample": [
+    {
+      "route": "/forgot-password",
+      "status": 200,
+      "isRedirect": false
+    },
+    {
+      "route": "/login",
+      "status": 200,
+      "isRedirect": true
+    },
+    {
+      "route": "/otp-verification",
+      "status": "TIMEOUT",
+      "isRedirect": true
+    },
+    {
+      "route": "/register",
+      "status": 200,
+      "isRedirect": true
+    },
+    {
+      "route": "/reset-password",
+      "status": 200,
+      "isRedirect": true
+    },
+    {
+      "route": "/accounting-periods",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/ai-assistant",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/audit-logs",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/backup",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/branches",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/business-units",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/companies",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/contact-submissions",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/cost-centers",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/data-management",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/departments",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/designations",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/developer-center",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/electronic-data-interchange",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/entity-builder",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/feature-flags",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/geography-hierarchy",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/holiday-calendar",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/integrations/connectors",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/integrations",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/master-data",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/menu-builder",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/migration-dashboard",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/module-mapping",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/notification-templates",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/org-chart",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/page-builder",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/permissions",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/policies",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/privacy",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/projects",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/recycle-bin",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/roles",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/schema-manager",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/security/sessions",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/settings",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/support",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/system-health",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/tenants/create",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/tenants",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/tenants/[id]/edit",
+      "status": 307,
+      "isRedirect": true
+    },
+    {
+      "route": "/administration/tenants/[id]",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/users",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/webhooks",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/website/pages",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/website/settings",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/website/templates",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/website/themes",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/administration/workflow-config",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/ai",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/approvals",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/assets/depreciation",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/communication/announcements",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/communication/email-templates",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/communication",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/communication/sms-templates",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/compliance",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/context",
+      "status": 307,
+      "isRedirect": true
+    },
+    {
+      "route": "/crm/contacts",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/crm/customers",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/crm/leads",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/crm",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/crm/pipeline",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/dashboard",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/documents",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/expenses",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/field-service",
+      "status": "TIMEOUT",
+      "isRedirect": false
+    },
+    {
+      "route": "/finance/bank-reconciliation",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/finance/budgeting",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/finance/chart-of-accounts",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/finance/consolidation",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/finance/journal-entries",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/finance",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/fleet",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/helpdesk/escalations",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/helpdesk/faq",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/helpdesk",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/helpdesk/tickets",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/hrms/assessments",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/hrms/assets",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/hrms/attendance",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/hrms/certificates",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/hrms/employees/new",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/hrms/employees",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/hrms/employees/[id]",
+      "status": 307,
+      "isRedirect": true
+    },
+    {
+      "route": "/hrms/leave",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/hrms/lifecycle",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/hrms/offboarding",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/hrms/onboarding",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/hrms/org-chart",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/hrms/overtime",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/hrms",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/hrms/performance",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/hrms/probation",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/hrms/recruitment",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/hrms/screening-results",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/hrms/screening-schedule",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/hrms/shifts",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/hrms/training",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/hrms/travel",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/integrations/api-keys",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/integrations/apps",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/integrations/logs",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/integrations",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/integrations/webhooks",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/inventory/items",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/inventory",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/inventory/warehouse-management",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/inventory/warehouses",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/inventory-adjustments",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/inventory-transfers",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/invoices",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/licensing/billing-history",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/licensing/catalog",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/licensing/integrations",
+      "status": 307,
+      "isRedirect": true
+    },
+    {
+      "route": "/licensing",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/licensing/subscriptions",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/licensing/usage",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/manufacturing",
+      "status": 200,
+      "isRedirect": true
+    },
+    {
+      "route": "/manufacturing/work-orders",
+      "status": 200,
+      "isRedirect": false
+    },
+    {
+      "route": "/notifications",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/payments",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/payroll/arrears",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/payroll/bonus",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/payroll/components",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/payroll/final-settlement",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/payroll/loans",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/payroll",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/payroll/payslips",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/payroll/reimbursements",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/payroll/runs",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/payroll/statutory",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/payroll/structures",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/payroll/tax-declarations",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/portal",
+      "status": 200,
+      "isRedirect": false
+    },
+    {
+      "route": "/procurement/goods-receipt-notes",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/procurement",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/procurement/purchase-orders",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/procurement/purchase-requests",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/procurement/vendors",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/profile",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/projects/tasks",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/projects/timesheets",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/reports/builder",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/reports/compliance",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/reports/custom",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/reports/financial",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/reports/hr",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/reports/operations",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/reports",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/reports/payroll",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/sales/discounts",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/sales/orders",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/sales",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/sales/pricing",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/sales/quotations",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/sales/returns",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/security/access-logs",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/security/ip-restrictions",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/security/multi-factor-authentication",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/security",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/security/password-policies",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/security/single-sign-on",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/stock-movements",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/superadmin/dashboard",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/tax-management",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/vendor-bills",
+      "status": 307,
+      "isRedirect": false
+    },
+    {
+      "route": "/about",
+      "status": 200,
+      "isRedirect": false
+    },
+    {
+      "route": "/book-demo",
+      "status": 200,
+      "isRedirect": false
+    },
+    {
+      "route": "/careers",
+      "status": 200,
+      "isRedirect": false
+    },
+    {
+      "route": "/contact",
+      "status": 200,
+      "isRedirect": false
+    },
+    {
+      "route": "/help-support",
+      "status": 200,
+      "isRedirect": false
+    },
+    {
+      "route": "/industries",
+      "status": 200,
+      "isRedirect": false
+    },
+    {
+      "route": "/industries/[slug]",
+      "status": "TIMEOUT",
+      "isRedirect": false
+    },
+    {
+      "route": "/not-authorized",
+      "status": 200,
+      "isRedirect": false
+    },
+    {
+      "route": "/pricing",
+      "status": 200,
+      "isRedirect": false
+    },
+    {
+      "route": "/privacy",
+      "status": 200,
+      "isRedirect": false
+    },
+    {
+      "route": "/products",
+      "status": 200,
+      "isRedirect": false
+    },
+    {
+      "route": "/products/[slug]",
+      "status": 200,
+      "isRedirect": false
+    },
+    {
+      "route": "/resources",
+      "status": 200,
+      "isRedirect": false
+    },
+    {
+      "route": "/tenant-not-found",
+      "status": 200,
+      "isRedirect": false
+    },
+    {
+      "route": "/terms",
+      "status": 200,
+      "isRedirect": false
+    }
+  ],
+  "allPages": [
+    {
+      "route": "/forgot-password",
+      "httpStatus": 200,
+      "redirectLocation": null,
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(auth)\\forgot-password\\page.tsx"
+    },
+    {
+      "route": "/login",
+      "httpStatus": 200,
+      "redirectLocation": null,
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": true,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(auth)\\login\\page.tsx"
+    },
+    {
+      "route": "/otp-verification",
+      "httpStatus": "TIMEOUT",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": true,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(auth)\\otp-verification\\page.tsx"
+    },
+    {
+      "route": "/register",
+      "httpStatus": 200,
+      "redirectLocation": null,
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": true,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(auth)\\register\\page.tsx"
+    },
+    {
+      "route": "/reset-password",
+      "httpStatus": 200,
+      "redirectLocation": null,
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": true,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(auth)\\reset-password\\page.tsx"
+    },
+    {
+      "route": "/accounting-periods",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Faccounting-periods&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\accounting-periods\\page.tsx"
+    },
+    {
+      "route": "/administration/ai-assistant",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fai-assistant&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": true,
+      "file": "frontend\\src\\app\\(protected)\\administration\\ai-assistant\\page.tsx"
+    },
+    {
+      "route": "/administration/audit-logs",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Faudit-logs&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": true,
+      "file": "frontend\\src\\app\\(protected)\\administration\\audit-logs\\page.tsx"
+    },
+    {
+      "route": "/administration/backup",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fbackup&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\backup\\page.tsx"
+    },
+    {
+      "route": "/administration/branches",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fbranches&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\branches\\page.tsx"
+    },
+    {
+      "route": "/administration/business-units",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fbusiness-units&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\business-units\\page.tsx"
+    },
+    {
+      "route": "/administration/companies",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fcompanies&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\companies\\page.tsx"
+    },
+    {
+      "route": "/administration/contact-submissions",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fcontact-submissions&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": true,
+      "file": "frontend\\src\\app\\(protected)\\administration\\contact-submissions\\page.tsx"
+    },
+    {
+      "route": "/administration/cost-centers",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fcost-centers&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\cost-centers\\page.tsx"
+    },
+    {
+      "route": "/administration/data-management",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fdata-management&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": true,
+      "file": "frontend\\src\\app\\(protected)\\administration\\data-management\\page.tsx"
+    },
+    {
+      "route": "/administration/departments",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fdepartments&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\departments\\page.tsx"
+    },
+    {
+      "route": "/administration/designations",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fdesignations&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\designations\\page.tsx"
+    },
+    {
+      "route": "/administration/developer-center",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fdeveloper-center&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": true,
+      "file": "frontend\\src\\app\\(protected)\\administration\\developer-center\\page.tsx"
+    },
+    {
+      "route": "/administration/electronic-data-interchange",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Felectronic-data-interchange&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\electronic-data-interchange\\page.tsx"
+    },
+    {
+      "route": "/administration/entity-builder",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fentity-builder&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\entity-builder\\page.tsx"
+    },
+    {
+      "route": "/administration/feature-flags",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Ffeature-flags&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": true,
+      "file": "frontend\\src\\app\\(protected)\\administration\\feature-flags\\page.tsx"
+    },
+    {
+      "route": "/administration/geography-hierarchy",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fgeography-hierarchy&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\geography-hierarchy\\page.tsx"
+    },
+    {
+      "route": "/administration/holiday-calendar",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fholiday-calendar&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": true,
+      "file": "frontend\\src\\app\\(protected)\\administration\\holiday-calendar\\page.tsx"
+    },
+    {
+      "route": "/administration/integrations/connectors",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fintegrations%2Fconnectors&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": true,
+      "file": "frontend\\src\\app\\(protected)\\administration\\integrations\\connectors\\page.tsx"
+    },
+    {
+      "route": "/administration/integrations",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fintegrations&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\integrations\\page.tsx"
+    },
+    {
+      "route": "/administration/master-data",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fmaster-data&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\master-data\\page.tsx"
+    },
+    {
+      "route": "/administration/menu-builder",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fmenu-builder&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": true,
+      "file": "frontend\\src\\app\\(protected)\\administration\\menu-builder\\page.tsx"
+    },
+    {
+      "route": "/administration/migration-dashboard",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fmigration-dashboard&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\migration-dashboard\\page.tsx"
+    },
+    {
+      "route": "/administration/module-mapping",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fmodule-mapping&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": true,
+      "file": "frontend\\src\\app\\(protected)\\administration\\module-mapping\\page.tsx"
+    },
+    {
+      "route": "/administration/notification-templates",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fnotification-templates&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": true,
+      "file": "frontend\\src\\app\\(protected)\\administration\\notification-templates\\page.tsx"
+    },
+    {
+      "route": "/administration/org-chart",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Forg-chart&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\org-chart\\page.tsx"
+    },
+    {
+      "route": "/administration/page-builder",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fpage-builder&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\page-builder\\page.tsx"
+    },
+    {
+      "route": "/administration",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration&audience=platform",
+      "inNavigation": true,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": true,
+      "file": "frontend\\src\\app\\(protected)\\administration\\page.tsx"
+    },
+    {
+      "route": "/administration/permissions",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fpermissions&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\permissions\\page.tsx"
+    },
+    {
+      "route": "/administration/policies",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fpolicies&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\policies\\page.tsx"
+    },
+    {
+      "route": "/administration/privacy",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fprivacy&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\privacy\\page.tsx"
+    },
+    {
+      "route": "/administration/projects",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fprojects&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\projects\\page.tsx"
+    },
+    {
+      "route": "/administration/recycle-bin",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Frecycle-bin&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": true,
+      "file": "frontend\\src\\app\\(protected)\\administration\\recycle-bin\\page.tsx"
+    },
+    {
+      "route": "/administration/roles",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Froles&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\roles\\page.tsx"
+    },
+    {
+      "route": "/administration/schema-manager",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fschema-manager&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": true,
+      "file": "frontend\\src\\app\\(protected)\\administration\\schema-manager\\page.tsx"
+    },
+    {
+      "route": "/administration/security/sessions",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fsecurity%2Fsessions&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": true,
+      "file": "frontend\\src\\app\\(protected)\\administration\\security\\sessions\\page.tsx"
+    },
+    {
+      "route": "/administration/settings",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fsettings&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\settings\\page.tsx"
+    },
+    {
+      "route": "/administration/support",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fsupport&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\support\\page.tsx"
+    },
+    {
+      "route": "/administration/system-health",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fsystem-health&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\system-health\\page.tsx"
+    },
+    {
+      "route": "/administration/tenants/create",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Ftenants%2Fcreate&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\tenants\\create\\page.tsx"
+    },
+    {
+      "route": "/administration/tenants",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Ftenants&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\tenants\\page.tsx"
+    },
+    {
+      "route": "/administration/tenants/[id]/edit",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Ftenants%2F11111111-1111-1111-1111-111111111111%2Fedit&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": true,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\tenants\\[id]\\edit\\page.tsx"
+    },
+    {
+      "route": "/administration/tenants/[id]",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Ftenants%2F11111111-1111-1111-1111-111111111111&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\tenants\\[id]\\page.tsx"
+    },
+    {
+      "route": "/administration/users",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fusers&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\users\\page.tsx"
+    },
+    {
+      "route": "/administration/webhooks",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fwebhooks&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\webhooks\\page.tsx"
+    },
+    {
+      "route": "/administration/website/pages",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fwebsite%2Fpages&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": true,
+      "file": "frontend\\src\\app\\(protected)\\administration\\website\\pages\\page.tsx"
+    },
+    {
+      "route": "/administration/website/settings",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fwebsite%2Fsettings&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\administration\\website\\settings\\page.tsx"
+    },
+    {
+      "route": "/administration/website/templates",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fwebsite%2Ftemplates&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": true,
+      "file": "frontend\\src\\app\\(protected)\\administration\\website\\templates\\page.tsx"
+    },
+    {
+      "route": "/administration/website/themes",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fwebsite%2Fthemes&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": true,
+      "file": "frontend\\src\\app\\(protected)\\administration\\website\\themes\\page.tsx"
+    },
+    {
+      "route": "/administration/workflow-config",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fadministration%2Fworkflow-config&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": true,
+      "file": "frontend\\src\\app\\(protected)\\administration\\workflow-config\\page.tsx"
+    },
+    {
+      "route": "/ai",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fai&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\ai\\page.tsx"
+    },
+    {
+      "route": "/approvals",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fapprovals&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\approvals\\page.tsx"
+    },
+    {
+      "route": "/assets/depreciation",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fassets%2Fdepreciation&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\assets\\depreciation\\page.tsx"
+    },
+    {
+      "route": "/communication/announcements",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fcommunication%2Fannouncements&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\communication\\announcements\\page.tsx"
+    },
+    {
+      "route": "/communication/email-templates",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fcommunication%2Femail-templates&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\communication\\email-templates\\page.tsx"
+    },
+    {
+      "route": "/communication",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fcommunication&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": true,
+      "file": "frontend\\src\\app\\(protected)\\communication\\page.tsx"
+    },
+    {
+      "route": "/communication/sms-templates",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fcommunication%2Fsms-templates&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\communication\\sms-templates\\page.tsx"
+    },
+    {
+      "route": "/compliance",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fcompliance&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\compliance\\page.tsx"
+    },
+    {
+      "route": "/context",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fcontext&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": true,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\context\\page.tsx"
+    },
+    {
+      "route": "/crm/contacts",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fcrm%2Fcontacts&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\crm\\contacts\\page.tsx"
+    },
+    {
+      "route": "/crm/customers",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fcrm%2Fcustomers&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\crm\\customers\\page.tsx"
+    },
+    {
+      "route": "/crm/leads",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fcrm%2Fleads&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": true,
+      "file": "frontend\\src\\app\\(protected)\\crm\\leads\\page.tsx"
+    },
+    {
+      "route": "/crm",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fcrm&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\crm\\page.tsx"
+    },
+    {
+      "route": "/crm/pipeline",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fcrm%2Fpipeline&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\crm\\pipeline\\page.tsx"
+    },
+    {
+      "route": "/dashboard",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fdashboard&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\dashboard\\page.tsx"
+    },
+    {
+      "route": "/documents",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fdocuments&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\documents\\page.tsx"
+    },
+    {
+      "route": "/employee-self-service",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Femployee-self-service&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": true,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\employee-self-service\\page.tsx"
+    },
+    {
+      "route": "/expenses",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fexpenses&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\expenses\\page.tsx"
+    },
+    {
+      "route": "/field-service",
+      "httpStatus": "TIMEOUT",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\field-service\\page.tsx"
+    },
+    {
+      "route": "/finance/bank-reconciliation",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Ffinance%2Fbank-reconciliation&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\finance\\bank-reconciliation\\page.tsx"
+    },
+    {
+      "route": "/finance/budgeting",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Ffinance%2Fbudgeting&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\finance\\budgeting\\page.tsx"
+    },
+    {
+      "route": "/finance/chart-of-accounts",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Ffinance%2Fchart-of-accounts&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\finance\\chart-of-accounts\\page.tsx"
+    },
+    {
+      "route": "/finance/consolidation",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Ffinance%2Fconsolidation&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\finance\\consolidation\\page.tsx"
+    },
+    {
+      "route": "/finance/journal-entries",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Ffinance%2Fjournal-entries&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\finance\\journal-entries\\page.tsx"
+    },
+    {
+      "route": "/finance",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Ffinance&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\finance\\page.tsx"
+    },
+    {
+      "route": "/fleet",
+      "httpStatus": 307,
+      "redirectLocation": "/dashboard",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\fleet\\page.tsx"
+    },
+    {
+      "route": "/helpdesk/escalations",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fhelpdesk%2Fescalations&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\helpdesk\\escalations\\page.tsx"
+    },
+    {
+      "route": "/helpdesk/faq",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fhelpdesk%2Ffaq&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\helpdesk\\faq\\page.tsx"
+    },
+    {
+      "route": "/helpdesk",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fhelpdesk&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\helpdesk\\page.tsx"
+    },
+    {
+      "route": "/helpdesk/tickets",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fhelpdesk%2Ftickets&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\helpdesk\\tickets\\page.tsx"
+    },
+    {
+      "route": "/hrms/assessments",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fhrms%2Fassessments&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\hrms\\assessments\\page.tsx"
+    },
+    {
+      "route": "/hrms/assets",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fhrms%2Fassets&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\hrms\\assets\\page.tsx"
+    },
+    {
+      "route": "/hrms/attendance",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fhrms%2Fattendance&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\hrms\\attendance\\page.tsx"
+    },
+    {
+      "route": "/hrms/certificates",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fhrms%2Fcertificates&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\hrms\\certificates\\page.tsx"
+    },
+    {
+      "route": "/hrms/employees/new",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fhrms%2Femployees%2Fnew&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\hrms\\employees\\new\\page.tsx"
+    },
+    {
+      "route": "/hrms/employees",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fhrms%2Femployees&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\hrms\\employees\\page.tsx"
+    },
+    {
+      "route": "/hrms/employees/[id]",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fhrms%2Femployees%2F11111111-1111-1111-1111-111111111111&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": true,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\hrms\\employees\\[id]\\page.tsx"
+    },
+    {
+      "route": "/hrms/leave",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fhrms%2Fleave&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\hrms\\leave\\page.tsx"
+    },
+    {
+      "route": "/hrms/lifecycle",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fhrms%2Flifecycle&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\hrms\\lifecycle\\page.tsx"
+    },
+    {
+      "route": "/hrms/offboarding",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fhrms%2Foffboarding&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\hrms\\offboarding\\page.tsx"
+    },
+    {
+      "route": "/hrms/onboarding",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fhrms%2Fonboarding&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\hrms\\onboarding\\page.tsx"
+    },
+    {
+      "route": "/hrms/org-chart",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fhrms%2Forg-chart&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\hrms\\org-chart\\page.tsx"
+    },
+    {
+      "route": "/hrms/overtime",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fhrms%2Fovertime&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\hrms\\overtime\\page.tsx"
+    },
+    {
+      "route": "/hrms",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fhrms&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\hrms\\page.tsx"
+    },
+    {
+      "route": "/hrms/performance",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fhrms%2Fperformance&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\hrms\\performance\\page.tsx"
+    },
+    {
+      "route": "/hrms/probation",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fhrms%2Fprobation&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\hrms\\probation\\page.tsx"
+    },
+    {
+      "route": "/hrms/recruitment",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fhrms%2Frecruitment&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\hrms\\recruitment\\page.tsx"
+    },
+    {
+      "route": "/hrms/screening-results",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fhrms%2Fscreening-results&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\hrms\\screening-results\\page.tsx"
+    },
+    {
+      "route": "/hrms/screening-schedule",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fhrms%2Fscreening-schedule&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\hrms\\screening-schedule\\page.tsx"
+    },
+    {
+      "route": "/hrms/shifts",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fhrms%2Fshifts&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\hrms\\shifts\\page.tsx"
+    },
+    {
+      "route": "/hrms/training",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fhrms%2Ftraining&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\hrms\\training\\page.tsx"
+    },
+    {
+      "route": "/hrms/travel",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fhrms%2Ftravel&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": true,
+      "file": "frontend\\src\\app\\(protected)\\hrms\\travel\\page.tsx"
+    },
+    {
+      "route": "/integrations/api-keys",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fintegrations%2Fapi-keys&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\integrations\\api-keys\\page.tsx"
+    },
+    {
+      "route": "/integrations/apps",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fintegrations%2Fapps&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\integrations\\apps\\page.tsx"
+    },
+    {
+      "route": "/integrations/logs",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fintegrations%2Flogs&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\integrations\\logs\\page.tsx"
+    },
+    {
+      "route": "/integrations",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fintegrations&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": true,
+      "file": "frontend\\src\\app\\(protected)\\integrations\\page.tsx"
+    },
+    {
+      "route": "/integrations/webhooks",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fintegrations%2Fwebhooks&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\integrations\\webhooks\\page.tsx"
+    },
+    {
+      "route": "/inventory/items",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Finventory%2Fitems&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\inventory\\items\\page.tsx"
+    },
+    {
+      "route": "/inventory",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Finventory&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\inventory\\page.tsx"
+    },
+    {
+      "route": "/inventory/warehouse-management",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Finventory%2Fwarehouse-management&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\inventory\\warehouse-management\\page.tsx"
+    },
+    {
+      "route": "/inventory/warehouses",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Finventory%2Fwarehouses&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\inventory\\warehouses\\page.tsx"
+    },
+    {
+      "route": "/inventory-adjustments",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Finventory-adjustments&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\inventory-adjustments\\page.tsx"
+    },
+    {
+      "route": "/inventory-transfers",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Finventory-transfers&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\inventory-transfers\\page.tsx"
+    },
+    {
+      "route": "/invoices",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Finvoices&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\invoices\\page.tsx"
+    },
+    {
+      "route": "/licensing/billing-history",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Flicensing%2Fbilling-history&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\licensing\\billing-history\\page.tsx"
+    },
+    {
+      "route": "/licensing/catalog",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Flicensing%2Fcatalog&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\licensing\\catalog\\page.tsx"
+    },
+    {
+      "route": "/licensing/integrations",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Flicensing%2Fintegrations&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": true,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\licensing\\integrations\\page.tsx"
+    },
+    {
+      "route": "/licensing",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Flicensing&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\licensing\\page.tsx"
+    },
+    {
+      "route": "/licensing/subscriptions",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Flicensing%2Fsubscriptions&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\licensing\\subscriptions\\page.tsx"
+    },
+    {
+      "route": "/licensing/usage",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Flicensing%2Fusage&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\licensing\\usage\\page.tsx"
+    },
+    {
+      "route": "/manager-self-service",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fmanager-self-service&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": true,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\manager-self-service\\page.tsx"
+    },
+    {
+      "route": "/manufacturing",
+      "httpStatus": 200,
+      "redirectLocation": null,
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": true,
+      "isStub": true,
+      "file": "frontend\\src\\app\\(protected)\\manufacturing\\page.tsx"
+    },
+    {
+      "route": "/manufacturing/work-orders",
+      "httpStatus": 200,
+      "redirectLocation": null,
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\manufacturing\\work-orders\\page.tsx"
+    },
+    {
+      "route": "/notifications",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fnotifications&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\notifications\\page.tsx"
+    },
+    {
+      "route": "/payments",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fpayments&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\payments\\page.tsx"
+    },
+    {
+      "route": "/payroll/arrears",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fpayroll%2Farrears&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\payroll\\arrears\\page.tsx"
+    },
+    {
+      "route": "/payroll/bonus",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fpayroll%2Fbonus&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\payroll\\bonus\\page.tsx"
+    },
+    {
+      "route": "/payroll/components",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fpayroll%2Fcomponents&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\payroll\\components\\page.tsx"
+    },
+    {
+      "route": "/payroll/final-settlement",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fpayroll%2Ffinal-settlement&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\payroll\\final-settlement\\page.tsx"
+    },
+    {
+      "route": "/payroll/loans",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fpayroll%2Floans&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\payroll\\loans\\page.tsx"
+    },
+    {
+      "route": "/payroll",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fpayroll&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\payroll\\page.tsx"
+    },
+    {
+      "route": "/payroll/payslips",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fpayroll%2Fpayslips&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\payroll\\payslips\\page.tsx"
+    },
+    {
+      "route": "/payroll/reimbursements",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fpayroll%2Freimbursements&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\payroll\\reimbursements\\page.tsx"
+    },
+    {
+      "route": "/payroll/runs",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fpayroll%2Fruns&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\payroll\\runs\\page.tsx"
+    },
+    {
+      "route": "/payroll/statutory",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fpayroll%2Fstatutory&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\payroll\\statutory\\page.tsx"
+    },
+    {
+      "route": "/payroll/structures",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fpayroll%2Fstructures&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\payroll\\structures\\page.tsx"
+    },
+    {
+      "route": "/payroll/tax-declarations",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fpayroll%2Ftax-declarations&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\payroll\\tax-declarations\\page.tsx"
+    },
+    {
+      "route": "/portal",
+      "httpStatus": 200,
+      "redirectLocation": null,
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\portal\\page.tsx"
+    },
+    {
+      "route": "/procurement/goods-receipt-notes",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fprocurement%2Fgoods-receipt-notes&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\procurement\\goods-receipt-notes\\page.tsx"
+    },
+    {
+      "route": "/procurement",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fprocurement&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\procurement\\page.tsx"
+    },
+    {
+      "route": "/procurement/purchase-orders",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fprocurement%2Fpurchase-orders&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\procurement\\purchase-orders\\page.tsx"
+    },
+    {
+      "route": "/procurement/purchase-requests",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fprocurement%2Fpurchase-requests&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\procurement\\purchase-requests\\page.tsx"
+    },
+    {
+      "route": "/procurement/vendors",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fprocurement%2Fvendors&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\procurement\\vendors\\page.tsx"
+    },
+    {
+      "route": "/profile",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fprofile&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\profile\\page.tsx"
+    },
+    {
+      "route": "/projects",
+      "httpStatus": 307,
+      "redirectLocation": "/administration/projects",
+      "inNavigation": true,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\projects\\page.tsx"
+    },
+    {
+      "route": "/projects/tasks",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fprojects%2Ftasks&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\projects\\tasks\\page.tsx"
+    },
+    {
+      "route": "/projects/timesheets",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fprojects%2Ftimesheets&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\projects\\timesheets\\page.tsx"
+    },
+    {
+      "route": "/reports/builder",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Freports%2Fbuilder&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\reports\\builder\\page.tsx"
+    },
+    {
+      "route": "/reports/compliance",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Freports%2Fcompliance&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\reports\\compliance\\page.tsx"
+    },
+    {
+      "route": "/reports/custom",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Freports%2Fcustom&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\reports\\custom\\page.tsx"
+    },
+    {
+      "route": "/reports/financial",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Freports%2Ffinancial&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\reports\\financial\\page.tsx"
+    },
+    {
+      "route": "/reports/hr",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Freports%2Fhr&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\reports\\hr\\page.tsx"
+    },
+    {
+      "route": "/reports/operations",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Freports%2Foperations&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\reports\\operations\\page.tsx"
+    },
+    {
+      "route": "/reports",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Freports&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\reports\\page.tsx"
+    },
+    {
+      "route": "/reports/payroll",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Freports%2Fpayroll&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\reports\\payroll\\page.tsx"
+    },
+    {
+      "route": "/sales/discounts",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fsales%2Fdiscounts&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\sales\\discounts\\page.tsx"
+    },
+    {
+      "route": "/sales/orders",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fsales%2Forders&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\sales\\orders\\page.tsx"
+    },
+    {
+      "route": "/sales",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fsales&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\sales\\page.tsx"
+    },
+    {
+      "route": "/sales/pricing",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fsales%2Fpricing&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\sales\\pricing\\page.tsx"
+    },
+    {
+      "route": "/sales/quotations",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fsales%2Fquotations&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\sales\\quotations\\page.tsx"
+    },
+    {
+      "route": "/sales/returns",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fsales%2Freturns&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\sales\\returns\\page.tsx"
+    },
+    {
+      "route": "/security/access-logs",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fsecurity%2Faccess-logs&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\security\\access-logs\\page.tsx"
+    },
+    {
+      "route": "/security/ip-restrictions",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fsecurity%2Fip-restrictions&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\security\\ip-restrictions\\page.tsx"
+    },
+    {
+      "route": "/security/multi-factor-authentication",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fsecurity%2Fmulti-factor-authentication&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\security\\multi-factor-authentication\\page.tsx"
+    },
+    {
+      "route": "/security",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fsecurity&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": true,
+      "file": "frontend\\src\\app\\(protected)\\security\\page.tsx"
+    },
+    {
+      "route": "/security/password-policies",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fsecurity%2Fpassword-policies&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\security\\password-policies\\page.tsx"
+    },
+    {
+      "route": "/security/single-sign-on",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fsecurity%2Fsingle-sign-on&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\security\\single-sign-on\\page.tsx"
+    },
+    {
+      "route": "/stock-movements",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fstock-movements&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\stock-movements\\page.tsx"
+    },
+    {
+      "route": "/superadmin/dashboard",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fsuperadmin%2Fdashboard&audience=platform",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\superadmin\\dashboard\\page.tsx"
+    },
+    {
+      "route": "/tax-management",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Ftax-management&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\tax-management\\page.tsx"
+    },
+    {
+      "route": "/vendor-bills",
+      "httpStatus": 307,
+      "redirectLocation": "/login?next=%2Fvendor-bills&audience=tenant",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": true,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\(protected)\\vendor-bills\\page.tsx"
+    },
+    {
+      "route": "/about",
+      "httpStatus": 200,
+      "redirectLocation": null,
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\about\\page.tsx"
+    },
+    {
+      "route": "/book-demo",
+      "httpStatus": 200,
+      "redirectLocation": null,
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\book-demo\\page.tsx"
+    },
+    {
+      "route": "/careers",
+      "httpStatus": 200,
+      "redirectLocation": null,
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\careers\\page.tsx"
+    },
+    {
+      "route": "/contact",
+      "httpStatus": 200,
+      "redirectLocation": null,
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\contact\\page.tsx"
+    },
+    {
+      "route": "/help-support",
+      "httpStatus": 200,
+      "redirectLocation": null,
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\help-support\\page.tsx"
+    },
+    {
+      "route": "/industries",
+      "httpStatus": 200,
+      "redirectLocation": null,
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\industries\\page.tsx"
+    },
+    {
+      "route": "/industries/[slug]",
+      "httpStatus": "TIMEOUT",
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\industries\\[slug]\\page.tsx"
+    },
+    {
+      "route": "/not-authorized",
+      "httpStatus": 200,
+      "redirectLocation": null,
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\not-authorized\\page.tsx"
+    },
+    {
+      "route": "/",
+      "httpStatus": 200,
+      "redirectLocation": null,
+      "inNavigation": true,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\page.tsx"
+    },
+    {
+      "route": "/pricing",
+      "httpStatus": 200,
+      "redirectLocation": null,
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\pricing\\page.tsx"
+    },
+    {
+      "route": "/privacy",
+      "httpStatus": 200,
+      "redirectLocation": null,
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\privacy\\page.tsx"
+    },
+    {
+      "route": "/products",
+      "httpStatus": 200,
+      "redirectLocation": null,
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\products\\page.tsx"
+    },
+    {
+      "route": "/products/[slug]",
+      "httpStatus": 200,
+      "redirectLocation": null,
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\products\\[slug]\\page.tsx"
+    },
+    {
+      "route": "/resources",
+      "httpStatus": 200,
+      "redirectLocation": null,
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\resources\\page.tsx"
+    },
+    {
+      "route": "/tenant-not-found",
+      "httpStatus": 200,
+      "redirectLocation": null,
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\tenant-not-found\\page.tsx"
+    },
+    {
+      "route": "/terms",
+      "httpStatus": 200,
+      "redirectLocation": null,
+      "inNavigation": false,
+      "inModuleMap": false,
+      "isDynamicPage": false,
+      "isRedirect": false,
+      "isStub": false,
+      "file": "frontend\\src\\app\\terms\\page.tsx"
+    }
+  ]
+}

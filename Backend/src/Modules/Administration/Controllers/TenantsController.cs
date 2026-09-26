@@ -18,6 +18,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
 {
     [ApiController]
     [Route("api/v1/[controller]")]
+    [Route("api/v1/administration/tenants")]
     [Authorize(Policy = "Module:platform")]
     public class TenantsController : ControllerBase
     {
@@ -41,6 +42,17 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             _cache = cache;
         }
 
+        private bool IsCallerPlatformSuperAdmin()
+        {
+            if (User.HasClaim("is_system_admin", "true")) return true;
+            var isSysAdminClaim = User.FindFirst("is_system_admin")?.Value;
+            if (string.Equals(isSysAdminClaim, "true", StringComparison.OrdinalIgnoreCase)) return true;
+            var roleClaims = User.Claims
+                .Where(c => c.Type.EndsWith("/role", StringComparison.OrdinalIgnoreCase) || c.Type.EndsWith("role", StringComparison.OrdinalIgnoreCase))
+                .Select(c => c.Value);
+            return RoleCatalog.HasAnyRole(roleClaims, SystemRole.SuperAdmin);
+        }
+
         [HttpGet]
         public async Task<IActionResult> List(
             [FromQuery] bool includeDeleted = false,
@@ -49,14 +61,22 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             [FromQuery] string? search = null,
             [FromQuery] string? status = null)
         {
-            var roleClaims = User.Claims
-                .Where(c => c.Type == ClaimTypes.Role || c.Type.EndsWith("/role", StringComparison.OrdinalIgnoreCase))
-                .Select(c => c.Value);
-            var isSuperAdmin = RoleCatalog.HasAnyRole(roleClaims, SystemRole.SuperAdmin);
+            var isPlatformSuperAdmin = IsCallerPlatformSuperAdmin();
+            var callerTenantClaim = User.FindFirst("tenant_id")?.Value;
+            Guid.TryParse(callerTenantClaim, out var callerTenantId);
 
             var tenantQuery = _db.Tenants.AsNoTracking().IgnoreQueryFilters().AsQueryable();
 
-            if (!(isSuperAdmin && includeDeleted))
+            if (!isPlatformSuperAdmin)
+            {
+                if (callerTenantId == Guid.Empty)
+                {
+                    return Forbid();
+                }
+                tenantQuery = tenantQuery.Where(t => t.Id == callerTenantId);
+            }
+
+            if (!(isPlatformSuperAdmin && includeDeleted))
             {
                 tenantQuery = tenantQuery.Where(t => !t.IsDeleted);
             }
@@ -97,6 +117,16 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             {
                 return BadRequest(new { message = "Invalid GUID" });
             }
+
+            var isPlatformSuperAdmin = IsCallerPlatformSuperAdmin();
+            var callerTenantClaim = User.FindFirst("tenant_id")?.Value;
+            Guid.TryParse(callerTenantClaim, out var callerTenantId);
+
+            if (!isPlatformSuperAdmin && guidId != callerTenantId)
+            {
+                return Forbid();
+            }
+
             var tenant = await _db.Tenants.IgnoreQueryFilters().FirstOrDefaultAsync(t => t.Id == guidId);
             if (tenant == null)
             {
@@ -133,6 +163,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
         }
 
         [HttpPost]
+        [Authorize(Policy = "SuperAdminOnly")]
         public async Task<IActionResult> Create([FromBody] CreateTenantDto dto)
         {
             if (!ModelState.IsValid)
@@ -237,6 +268,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
         }
 
         [HttpGet("provisioning/dashboard")]
+        [Authorize(Policy = "SuperAdminOnly")]
         public async Task<IActionResult> ProvisioningDashboard()
         {
             var tenants = await _db.Tenants
@@ -256,6 +288,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
         }
 
         [HttpGet("{id:guid}/health")]
+        [Authorize(Policy = "SuperAdminOnly")]
         public async Task<IActionResult> Health(System.Guid id, [FromQuery] bool recover = false)
         {
             var tenant = await _db.Tenants
@@ -282,6 +315,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
         }
 
         [HttpGet("{id:guid}/provisioning/logs")]
+        [Authorize(Policy = "SuperAdminOnly")]
         public async Task<IActionResult> ProvisioningLogs(Guid id, [FromQuery] int take = 100)
         {
             var tenant = await _db.Tenants
@@ -303,6 +337,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
         }
 
         [HttpPost("{id:guid}/repair")]
+        [Authorize(Policy = "SuperAdminOnly")]
         public async Task<IActionResult> Repair(Guid id)
         {
             var tenant = await _db.Tenants
@@ -340,6 +375,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
         }
 
         [HttpPut("{id:guid}")]
+        [Authorize(Policy = "SuperAdminOnly")]
         public async Task<IActionResult> Update(System.Guid id, [FromBody] UpdateTenantDto dto)
         {
             if (!ModelState.IsValid)
@@ -404,6 +440,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
         }
 
         [HttpDelete("{id:guid}")]
+        [Authorize(Policy = "SuperAdminOnly")]
         public async Task<IActionResult> Delete(System.Guid id)
         {
             var tenant = await _db.Tenants.FirstOrDefaultAsync(t => t.Id == id);
@@ -449,6 +486,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
         }
 
         [HttpPost("{id}/restore")]
+        [Authorize(Policy = "SuperAdminOnly")]
         public async Task<IActionResult> Restore(string id)
         {
             if (!Guid.TryParse(id, out var guidId)) return BadRequest(new { message = "Invalid GUID" });
@@ -465,6 +503,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
         }
 
         [HttpPost("bulk")]
+        [Authorize(Policy = "SuperAdminOnly")]
         public async Task<IActionResult> BulkAction([FromBody] TenantBulkActionDto payload)
         {
             if (payload == null || payload.TenantIds == null || !payload.TenantIds.Any())

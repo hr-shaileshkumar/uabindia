@@ -54,7 +54,6 @@ export default function LoginPage() {
 
   const [errorMessage, setErrorMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [csrfReady, setCsrfReady] = useState(false);
   const [savedEmail, setSavedEmail] = useState("");
 
   const emailFieldId = "login-email";
@@ -81,15 +80,6 @@ export default function LoginPage() {
     });
   }, [reset]);
 
-  useEffect(() => {
-    let cancelled = false;
-    authApi.csrfToken().catch(() => {}).finally(() => {
-      if (!cancelled) setCsrfReady(true);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const onSubmit = async (values: LoginValues) => {
     setErrorMessage("");
@@ -116,7 +106,7 @@ export default function LoginPage() {
 
   const brandName = profile.brandName || profile.companyName || process.env.NEXT_PUBLIC_APP_NAME || "Enterprise ERP";
   const homeHref = withPublicAudience("/", audience);
-  const busy = isSubmitting || !csrfReady;
+  const busy = isSubmitting;
 
   return (
     <PublicAudiencePageFrame
@@ -129,7 +119,15 @@ export default function LoginPage() {
       showHeader={false}
       showFooter={false}
     >
-      <PublicAuthShell brandName={brandName} homeHref={homeHref} audience={audience} variant="login">
+      <PublicAuthShell
+        brandName={brandName}
+        homeHref={homeHref}
+        audience={audience}
+        variant="login"
+        profile={profile}
+        headerContent={headerContent}
+        allowedPaths={allowedPaths}
+      >
         <PublicAuthCard
           title={content.title}
           subtitle={content.subtitle}

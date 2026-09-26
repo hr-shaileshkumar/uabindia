@@ -1,65 +1,49 @@
-﻿"use client";
+"use client";
 
-import Link from "next/link";
-import StandardPageLayout from "@/components/layout/StandardPageLayout";
-import { CrudHeaderStats } from "@/components/workspace/crud-workspace";
 import {
-  erpActionCardClassName,
-  erpActionCardIconClassName,
-  erpActionCardSubtitleClassName,
-  erpActionCardTitleClassName,
-} from "@/components/workspace/styles";
-import { ROUTES } from "@/constants/routes";
-import ModuleIcon from "@/components/ModuleIcon";
+  FolderKanban,
+  CheckSquare,
+  Clock,
+  Users,
+  BarChart2,
+  Milestone,
+  FileText,
+  CalendarDays,
+} from "lucide-react";
+import { ErpModuleDashboard } from "@/components/dynamic/ErpModuleDashboard";
 
-const cards = [
-  {
-    href: ROUTES.PLATFORM_PROJECTS,
-    title: "Project masters",
-    subtitle: "Create and govern company projects.",
-    icon: "folder",
-  },
-  {
-    href: ROUTES.PROJECT_TASKS,
-    title: "Tasks",
-    subtitle: "Assign delivery work and track status.",
-    icon: "grid",
-  },
-  {
-    href: ROUTES.PROJECT_TIMESHEETS,
-    title: "Timesheets",
-    subtitle: "Capture billable and non-billable hours.",
-    icon: "clock",
-  },
+const LINKS = [
+  { href: "/projects/tasks", label: "Tasks", icon: CheckSquare, desc: "Assignments, priorities, and progress" },
+  { href: "/projects/timesheets", label: "Timesheets", icon: Clock, desc: "Time entries and billing hours" },
+  { href: "/projects/milestones", label: "Milestones", icon: Milestone, desc: "Project milestones and deliverables" },
+  { href: "/projects/resources", label: "Resource Planning", icon: Users, desc: "Team capacity and allocation" },
+  { href: "/projects/reports", label: "Project Reports", icon: BarChart2, desc: "Status, burn rate, and utilization" },
 ];
 
-export default function ProjectsHubPage() {
+export default function ProjectsPage() {
   return (
-    <StandardPageLayout
-      title="Projects & Workspaces"
-      subtitle="Cross-functional project tracking, milestones, task assignments, and delivery status."
-      eyebrow="Operations / Projects"
-      icon="folder"
-      meta={
-        <CrudHeaderStats
-          items={[
-            { label: "Workspaces", value: 3, tone: "info" },
-            { label: "Status", value: "Live", tone: "positive" },
-          ]}
-        />
-      }
-    >
-      <div className="grid gap-4 md:grid-cols-3">
-        {cards.map((card) => (
-          <Link key={card.href} href={card.href} className={erpActionCardClassName}>
-            <span className={erpActionCardIconClassName}>
-              <ModuleIcon name={card.icon} className="h-4 w-4" />
-            </span>
-            <h3 className={`${erpActionCardTitleClassName} mt-3`}>{card.title}</h3>
-            <p className={`${erpActionCardSubtitleClassName} mt-1`}>{card.subtitle}</p>
-          </Link>
-        ))}
-      </div>
-    </StandardPageLayout>
+    <ErpModuleDashboard
+      moduleKey="projects"
+      title="Project Management"
+      subtitle="Projects, tasks, milestones, resource planning, and time tracking."
+      eyebrow="Projects"
+      icon={FolderKanban}
+      color="from-sky-600 via-blue-600 to-indigo-600"
+      statsEndpoint="/projects/dashboard/stats"
+      statsMapper={(data) => [
+        { label: "Active Projects", value: data?.activeProjects ?? 0, icon: FolderKanban, tone: "positive" },
+        { label: "Open Tasks", value: data?.openTasks ?? 0, icon: CheckSquare, tone: "info" },
+        { label: "Overdue Tasks", value: data?.overdueTasks ?? 0, icon: CalendarDays, tone: "negative" },
+        { label: "Hours Logged (MTD)", value: data?.hoursLoggedMTD ?? 0, icon: Clock, tone: "neutral" },
+      ]}
+      kpis={[
+        { label: "Active Projects", value: "—", icon: FolderKanban, tone: "positive" },
+        { label: "Open Tasks", value: "—", icon: CheckSquare, tone: "info" },
+        { label: "Overdue Tasks", value: "—", icon: CalendarDays, tone: "negative" },
+        { label: "Hours Logged (MTD)", value: "—", icon: Clock, tone: "neutral" },
+      ]}
+      links={LINKS}
+      linksTitle="Project Workspaces"
+    />
   );
 }

@@ -10,6 +10,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
 {
     [ApiController]
     [Route("api/v1/system")]
+    [Route("api/v1/administration/system")]
     [Authorize]
     public class SystemController : ControllerBase
     {

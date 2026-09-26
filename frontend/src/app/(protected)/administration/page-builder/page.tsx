@@ -33,6 +33,7 @@ import { platformApi } from "@/services/modules/administration";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { cn } from "@/lib/utils";
+import { VisualCanvasDesigner } from "@/components/dynamic/builder/VisualCanvasDesigner";
 import type {
   DynamicColumn,
   DynamicFilter,
@@ -44,12 +45,12 @@ import type {
   UiPageSummary,
 } from "@/lib/dynamic-schema/types";
 
-type BuilderTab = "basics" | "columns" | "filters" | "form" | "lineItems" | "actions" | "preview" | "history";
+type BuilderTab = "visual" | "basics" | "columns" | "filters" | "form" | "lineItems" | "actions" | "preview" | "history";
 
 export default function PageBuilderStudio() {
   const [pages, setPages] = useState<UiPageSummary[]>([]);
   const [selectedPageKey, setSelectedPageKey] = useState<string>("hrms.employees");
-  const [activeTab, setActiveTab] = useState<BuilderTab>("basics");
+  const [activeTab, setActiveTab] = useState<BuilderTab>("visual");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -377,13 +378,14 @@ export default function PageBuilderStudio() {
         {/* Tab Navigation */}
         <div className="flex flex-wrap gap-1 border-b border-slate-200 dark:border-slate-800 pb-px">
           {[
+            { key: "visual", label: "🎨 Visual Drag & Drop Canvas", icon: Sparkles, highlight: true },
             { key: "basics", label: "1. Page & Entity", icon: Layout },
             { key: "columns", label: "2. Table Columns", icon: Table },
             { key: "filters", label: "3. Filters & KPIs", icon: SlidersHorizontal },
             { key: "form", label: "4. Form & Sections", icon: FileText },
             { key: "lineItems", label: "5. Line Items Grid", icon: Calculator },
             { key: "actions", label: "6. Actions & Security", icon: Shield },
-            { key: "preview", label: "7. Interactive Live Preview", icon: Eye, highlight: true },
+            { key: "preview", label: "7. Interactive Live Preview", icon: Eye },
             { key: "history", label: "8. Versions & Rollback", icon: RotateCcw },
           ].map((tab) => {
             const Icon = tab.icon;
@@ -411,6 +413,37 @@ export default function PageBuilderStudio() {
         {/* Tab Contents */}
         <CrudCard>
           <div className="p-6">
+            {/* ─── TAB 0: Visual Drag & Drop Canvas ────────────────────────── */}
+            {activeTab === "visual" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                      <Sparkles className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                      Visual Drag-and-Drop Page Designer
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Drag form controls from the component palette into section drop zones, reorder fields visually, and configure properties in real time.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("preview")}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-indigo-200 bg-indigo-50 text-xs font-bold text-indigo-700 hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950 dark:text-indigo-300 transition-colors"
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    Test in Live Preview
+                  </button>
+                </div>
+
+                <VisualCanvasDesigner
+                  schema={schema}
+                  onChange={setSchema}
+                  availableDbFields={availableFields}
+                />
+              </div>
+            )}
+
             {/* ─── TAB 1: Basics ──────────────────────────────────────────────── */}
             {activeTab === "basics" && (
               <div className="space-y-6 max-w-3xl">

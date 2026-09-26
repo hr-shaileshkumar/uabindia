@@ -12,6 +12,9 @@ namespace UabIndia.Api.Modules.Inventory.Controllers
 {
     [ApiController]
     [Route("api/v1/[controller]")]
+    [Route("api/v1/inventory/stock-movements")]
+    [Route("api/v1/inventory/adjustments")]
+    [Route("api/v1/stock-movements")]
     [Authorize]
     public class StockMovementsController : ControllerBase
     {

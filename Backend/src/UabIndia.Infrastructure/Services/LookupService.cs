@@ -141,6 +141,32 @@ namespace UabIndia.Infrastructure.Services
                     break;
                 }
 
+                case "projects":
+                case "project":
+                {
+                    var q = _db.Projects.AsNoTracking().Where(p => p.TenantId == TenantId && !p.IsDeleted && p.IsActive);
+                    if (query.CompanyId.HasValue && query.CompanyId.Value != Guid.Empty)
+                        q = q.Where(p => p.CompanyId == query.CompanyId.Value);
+                    if (!string.IsNullOrEmpty(search))
+                        q = q.Where(p => p.Name.ToLower().Contains(search) || (p.ProjectCode != null && p.ProjectCode.ToLower().Contains(search)));
+
+                    var rows = await q.OrderBy(p => p.Name)
+                        .Take(limit)
+                        .Select(p => new { p.Id, p.Name, p.ProjectCode, p.Description, p.CompanyId, p.Status })
+                        .ToListAsync(ct);
+
+                    items = rows.Select(p => new LookupItemDto
+                    {
+                        Id = p.Id.ToString(),
+                        Name = p.Name,
+                        Code = p.ProjectCode,
+                        Description = p.Description ?? p.Status,
+                        Category = "Projects",
+                        Metadata = new Dictionary<string, object?> { ["companyId"] = p.CompanyId, ["status"] = p.Status }
+                    }).ToList();
+                    break;
+                }
+
                 case "cost-centers":
                 case "costcenters":
                 case "costcenter":
@@ -408,32 +434,6 @@ namespace UabIndia.Infrastructure.Services
                         Description = w.City,
                         Category = "Inventory",
                         Metadata = new Dictionary<string, object?> { ["isDefault"] = w.IsDefault }
-                    }).ToList();
-                    break;
-                }
-
-                case "projects":
-                case "project":
-                {
-                    var q = _db.Projects.AsNoTracking().Where(p => p.TenantId == TenantId && !p.IsDeleted && p.IsActive);
-                    if (query.CompanyId.HasValue && query.CompanyId.Value != Guid.Empty)
-                        q = q.Where(p => p.CompanyId == query.CompanyId.Value);
-                    if (!string.IsNullOrEmpty(search))
-                        q = q.Where(p => p.Name.ToLower().Contains(search) || p.ProjectCode.ToLower().Contains(search));
-
-                    var rows = await q.OrderBy(p => p.Name)
-                        .Take(limit)
-                        .Select(p => new { p.Id, p.Name, p.ProjectCode, p.Status, p.Priority })
-                        .ToListAsync(ct);
-
-                    items = rows.Select(p => new LookupItemDto
-                    {
-                        Id = p.Id.ToString(),
-                        Name = p.Name,
-                        Code = p.ProjectCode,
-                        Description = p.Status,
-                        Category = "Projects",
-                        Metadata = new Dictionary<string, object?> { ["status"] = p.Status, ["priority"] = p.Priority }
                     }).ToList();
                     break;
                 }

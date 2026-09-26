@@ -46,4 +46,9 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>
+
+  <!-- Auto-terminate any existing local instance before build so dotnet run never hits MSB3027 file lock on Windows -->
+  <Target Name="KillExistingBackend" BeforeTargets="BeforeBuild" Condition="'$(OS)' == 'Windows_NT' And '$(Configuration)' == 'Debug'">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;$ErrorActionPreference = 'SilentlyContinue'; Get-Process -Name 'UabIndia.Api' -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue }; exit 0&quot;" StandardOutputImportance="Low" StandardErrorImportance="Low" ContinueOnError="true" />
+  </Target>
 </Project>

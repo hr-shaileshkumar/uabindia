@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using UabIndia.Api.Models;
 using UabIndia.Application.Interfaces;
 using UabIndia.Core.Authorization;
+using UabIndia.Core.Entities;
 using UabIndia.Infrastructure.Data;
 
 namespace UabIndia.Api.Services
@@ -55,6 +56,7 @@ namespace UabIndia.Api.Services
                 .ToList();
 
             var tenantNavGroups = await TryGetTenantNavGroupsAsync(tenantId);
+            var pageRolePolicies = await TryGetPageRolePoliciesAsync(tenantId);
             var navModules = new List<NavModuleDto>();
 
             foreach (var module in modules)
@@ -70,6 +72,25 @@ namespace UabIndia.Api.Services
                         SortOrder = group.SortOrder,
                         Items = group.Items
                             .Where(item => HasRequiredPermission(item.RequiredPermissions, permissionSnapshot))
+                            .Select(item =>
+                            {
+                                var allowedRoles = pageRolePolicies.TryGetValue(item.Key, out var roles) && roles.Count > 0
+                                    ? roles
+                                    : item.AllowedRoles;
+
+                                return new NavItemDto
+                                {
+                                    Key = item.Key,
+                                    Name = item.Name,
+                                    Path = item.Path,
+                                    Icon = item.Icon,
+                                    SortOrder = item.SortOrder,
+                                    RequiredPermissions = item.RequiredPermissions,
+                                    AllowedRoles = allowedRoles,
+                                    AllowedCompanyIds = item.AllowedCompanyIds,
+                                    AllowedProjectIds = item.AllowedProjectIds,
+                                };
+                            })
                             .ToList(),
                     })
                     .Where(group => group.Items.Count > 0)
@@ -87,6 +108,7 @@ namespace UabIndia.Api.Services
                     Icon = module.Icon,
                     HomeHref = module.BasePath,
                     SortOrder = module.SortOrder,
+                    Section = module.CustomSection,
                     Groups = filteredGroups,
                 });
             }
@@ -190,12 +212,16 @@ namespace UabIndia.Api.Services
                     {
                         Key = m.ModuleKey,
                         Name = m.Name,
-                        DisplayName = string.IsNullOrWhiteSpace(m.DisplayName) ? m.Name : m.DisplayName,
+                        DisplayName = !string.IsNullOrWhiteSpace(tm.CustomDisplayName) ? tm.CustomDisplayName : (string.IsNullOrWhiteSpace(m.DisplayName) ? m.Name : m.DisplayName),
                         Description = m.Description,
-                        Icon = m.Icon,
+                        Icon = !string.IsNullOrWhiteSpace(tm.CustomIcon) ? tm.CustomIcon : m.Icon,
                         BasePath = m.BasePath,
-                        SortOrder = m.SortOrder,
+                        SortOrder = tm.CustomSortOrder ?? m.SortOrder,
                         Version = m.Version,
+                        CustomDisplayName = tm.CustomDisplayName,
+                        CustomSortOrder = tm.CustomSortOrder,
+                        CustomIcon = tm.CustomIcon,
+                        CustomSection = tm.CustomSection,
                     })
                 .OrderBy(m => m.SortOrder)
                 .ThenBy(m => m.Key)
@@ -598,6 +624,112 @@ namespace UabIndia.Api.Services
                 _logger.LogWarning(ex, "Failed to parse page schema '{PageKey}' for tenant {TenantId}", pageKey, tenantId);
                 return null;
             }
+        }
+
+        public async Task<UiShellConfigDto> GetShellConfigAsync(Guid tenantId)
+        {
+            try
+            {
+                var config = await _db.TenantConfigs
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(c => c.TenantId == tenantId && !c.IsDeleted);
+
+                if (config != null && !string.IsNullOrWhiteSpace(config.UiSchemaJson) && config.UiSchemaJson != "{}")
+                {
+                    using var doc = JsonDocument.Parse(config.UiSchemaJson);
+                    if (doc.RootElement.TryGetProperty("shellConfig", out var shellEl))
+                    {
+                        var parsed = JsonSerializer.Deserialize<UiShellConfigDto>(shellEl.GetRawText(), _jsonOpts);
+                        if (parsed != null)
+                        {
+                            return parsed;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to parse custom shellConfig for tenant {TenantId}, returning defaults", tenantId);
+            }
+
+            return new UiShellConfigDto();
+        }
+
+        public async Task<bool> SaveShellConfigAsync(Guid tenantId, UiShellConfigDto shellConfig)
+        {
+            try
+            {
+                var config = await _db.TenantConfigs
+                    .FirstOrDefaultAsync(c => c.TenantId == tenantId && !c.IsDeleted);
+
+                if (config == null)
+                {
+                    config = new TenantConfig
+                    {
+                        TenantId = tenantId,
+                        UiSchemaJson = "{}",
+                    };
+                    _db.TenantConfigs.Add(config);
+                }
+
+                var rootDict = new Dictionary<string, object?>();
+                if (!string.IsNullOrWhiteSpace(config.UiSchemaJson) && config.UiSchemaJson != "{}")
+                {
+                    try
+                    {
+                        rootDict = JsonSerializer.Deserialize<Dictionary<string, object?>>(config.UiSchemaJson) ?? new();
+                    }
+                    catch
+                    {
+                        rootDict = new();
+                    }
+                }
+
+                rootDict["shellConfig"] = shellConfig;
+                config.UiSchemaJson = JsonSerializer.Serialize(rootDict, _jsonOpts);
+                await _db.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to save shellConfig for tenant {TenantId}", tenantId);
+                return false;
+            }
+        }
+
+        private async Task<Dictionary<string, List<string>>> TryGetPageRolePoliciesAsync(Guid tenantId)
+        {
+            var result = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                var config = await _db.TenantConfigs
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(c => c.TenantId == tenantId && !c.IsDeleted);
+
+                if (config != null && !string.IsNullOrWhiteSpace(config.UiSchemaJson) && config.UiSchemaJson != "{}")
+                {
+                    using var doc = JsonDocument.Parse(config.UiSchemaJson);
+                    if (doc.RootElement.TryGetProperty("pageRoles", out var pageRolesEl) && pageRolesEl.ValueKind == JsonValueKind.Object)
+                    {
+                        foreach (var prop in pageRolesEl.EnumerateObject())
+                        {
+                            if (prop.Value.ValueKind == JsonValueKind.Array)
+                            {
+                                var roles = prop.Value.EnumerateArray()
+                                    .Select(r => r.GetString() ?? string.Empty)
+                                    .Where(r => !string.IsNullOrWhiteSpace(r))
+                                    .ToList();
+                                result[prop.Name] = roles;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to load page role policies for tenant {TenantId}", tenantId);
+            }
+            return result;
         }
     }
 }

@@ -1,5 +1,7 @@
-﻿import { ModuleHubPage } from "@/components/workspace/module-hub-page";
+"use client";
 
-export default function CommunicationOverviewPage() {
-  return <ModuleHubPage moduleKey="communication" />;
+import { DynamicPage } from "@/components/dynamic/DynamicPage";
+
+export default function CommunicationPage() {
+  return <DynamicPage pageKey="communication.overview" />;
 }

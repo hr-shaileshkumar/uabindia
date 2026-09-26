@@ -28,20 +28,24 @@ export default function StandardPageLayout({
   meta,
   actions,
   filters,
+  breadcrumb,
   children,
   pagination,
   className,
 }: StandardPageLayoutProps) {
   return (
-    <div className={cn("flex flex-col gap-4 w-full", className)}>
-      {/* Page Header Card */}
-      <section className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white px-4 py-3.5 sm:px-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+    <div className={cn("flex flex-col gap-3.5 sm:gap-4 w-full", className)}>
+      {/* Optional In-Page Breadcrumb */}
+      {breadcrumb && <div className="min-w-0">{breadcrumb}</div>}
+
+      {/* Page Header Command Banner */}
+      <section className="relative overflow-hidden rounded-xl border border-slate-200/80 bg-white px-4 py-3 sm:px-5 sm:py-3.5 shadow-xs transition-colors dark:border-slate-800 dark:bg-slate-900">
         <div className="relative flex flex-wrap items-center justify-between gap-3">
           {/* Title block */}
           <div className="flex items-center gap-3 min-w-0 flex-1">
             {icon && (
-              <div className="flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-xl border border-slate-200/80 bg-slate-50 text-slate-700 shadow-2xs dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                <ModuleIcon name={icon} className="h-4.5 w-4.5" />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200/80 bg-gradient-to-b from-slate-50 to-white text-blue-600 shadow-2xs dark:border-slate-700/80 dark:from-slate-800 dark:to-slate-850 dark:text-blue-400">
+                <ModuleIcon name={icon} className="h-5 w-5" />
               </div>
             )}
             <div className="min-w-0 flex-1">
@@ -64,7 +68,7 @@ export default function StandardPageLayout({
 
               {/* Row 2: Subtitle */}
               {subtitle && (
-                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-3xl">
+                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-3xl truncate sm:overflow-visible">
                   {subtitle}
                 </p>
               )}
@@ -80,22 +84,22 @@ export default function StandardPageLayout({
         </div>
       </section>
 
-      {/* Filters Section */}
+      {/* Contextual Filters Section */}
       {filters && (
-        <section className="rounded-2xl border border-slate-200/90 bg-white px-4 py-3 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+        <section className="rounded-xl border border-slate-200/80 bg-white/90 px-3.5 py-2.5 shadow-2xs backdrop-blur-xs dark:border-slate-800 dark:bg-slate-900/90 transition-colors">
           {filters}
         </section>
       )}
 
       {/* Content Section */}
       {children && (
-        <section className="min-w-0 space-y-4">
+        <section className="min-w-0 space-y-3.5 sm:space-y-4">
           {children}
         </section>
       )}
 
       {/* Pagination Section */}
-      {pagination && <section>{pagination}</section>}
+      {pagination && <section className="min-w-0">{pagination}</section>}
     </div>
   );
 }

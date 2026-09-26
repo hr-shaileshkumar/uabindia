@@ -175,8 +175,18 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
       "/stock-movements",
       "/inventory-adjustments",
       "/inventory-transfers",
-      "/manufacturing/work-orders",
     ],
+  },
+  {
+    key: "manufacturing",
+    label: "Manufacturing",
+    eyebrow: "Manufacturing / Workspace",
+    description: "Production orders, assembly lines, shop floor tracking, and work order management.",
+    icon: "factory",
+    shellOrder: 115,
+    tier: "business",
+    sourceModuleKey: "erp",
+    pathPrefixes: ["/manufacturing"],
   },
   {
     key: "procurement",
@@ -333,7 +343,10 @@ export function getModuleDefinition(key: string) {
 }
 
 export function getModuleLabel(key: string, fallback?: string) {
-  return getModuleDefinition(key)?.label || fallback || key;
+  if (fallback && fallback.trim().length > 0) {
+    return fallback.trim();
+  }
+  return getModuleDefinition(key)?.label || key;
 }
 
 export function getModuleEyebrow(key: string, fallback = "Workspace / Module") {
@@ -341,15 +354,24 @@ export function getModuleEyebrow(key: string, fallback = "Workspace / Module") {
 }
 
 export function getModuleDescription(key: string, fallback?: string) {
+  if (fallback && fallback.trim().length > 0) {
+    return fallback.trim();
+  }
   return getModuleDefinition(key)?.description || fallback;
 }
 
 export function getModuleIcon(key: string, fallback?: string | null) {
-  return getModuleDefinition(key)?.icon || fallback || undefined;
+  if (fallback && fallback.trim().length > 0) {
+    return fallback.trim();
+  }
+  return getModuleDefinition(key)?.icon || undefined;
 }
 
-export function getModuleShellOrder(key: string, fallback = Number.MAX_SAFE_INTEGER) {
-  return getModuleDefinition(key)?.shellOrder ?? fallback;
+export function getModuleShellOrder(key: string, fallback?: number) {
+  if (typeof fallback === "number" && !isNaN(fallback)) {
+    return fallback;
+  }
+  return getModuleDefinition(key)?.shellOrder ?? Number.MAX_SAFE_INTEGER;
 }
 
 export function listDerivedModules(sourceModuleKey: string) {

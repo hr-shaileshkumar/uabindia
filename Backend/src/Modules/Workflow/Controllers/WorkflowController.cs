@@ -68,6 +68,27 @@ namespace UabIndia.Api.Modules.Workflow.Controllers
             }
         }
 
+        [HttpPost("definitions/sync-defaults")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> SyncDefaultDefinitions([FromQuery] bool allTenants = false)
+        {
+            var seeder = new UabIndia.Api.Services.WorkflowDefinitionSeeder();
+            if (allTenants && User.IsInRole("SuperAdmin"))
+            {
+                var count = await seeder.SyncAllTenantsWorkflowDefinitionsAsync(_db, _tenantAccessor);
+                return Ok(new { success = true, message = "Successfully synced default workflows across all active tenants.", seededCount = count });
+            }
+            else
+            {
+                var tenantId = _tenantAccessor.GetTenantId();
+                if (tenantId == Guid.Empty)
+                    return BadRequest(new { message = "Tenant context missing" });
+
+                var count = await seeder.EnsureWorkflowDefinitionsForTenantAsync(_db, tenantId);
+                return Ok(new { success = true, message = "Successfully synced default workflows for tenant.", tenantId, seededCount = count });
+            }
+        }
+
         [HttpGet("definitions")]
         public async Task<IActionResult> ListDefinitions()
         {

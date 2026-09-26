@@ -47,6 +47,18 @@ namespace UabIndia.Api.Models
         public string? Comments { get; set; }
     }
 
+    public class EscalateApprovalDto
+    {
+        public string? Reason { get; set; }
+    }
+
+    public class BulkApprovalRequestDto
+    {
+        [Required]
+        public List<Guid> RequestIds { get; set; } = new();
+        public string? Comments { get; set; }
+    }
+
     public class ApprovalRequestDto
     {
         public Guid Id { get; set; }
@@ -54,13 +66,19 @@ namespace UabIndia.Api.Models
         public string EntityType { get; set; } = string.Empty;
         public Guid EntityId { get; set; }
         public int CurrentStep { get; set; }
+        public int TotalSteps { get; set; } = 1;
         public string Status { get; set; } = "Pending";
         public Guid RequestedBy { get; set; }
+        public string? RequesterName { get; set; }
         public DateTime RequestedAt { get; set; }
         public Guid? ApprovedBy { get; set; }
         public DateTime? ApprovedAt { get; set; }
         public Guid? RejectedBy { get; set; }
         public DateTime? RejectedAt { get; set; }
         public string? Comments { get; set; }
+        public decimal? Amount { get; set; }
+        public string? Department { get; set; }
+        public string? Urgency { get; set; }
+        public string? Title { get; set; }
     }
 }

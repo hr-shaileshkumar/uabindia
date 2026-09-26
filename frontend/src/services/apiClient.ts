@@ -17,7 +17,7 @@ const RESERVED_TENANT_LABELS = new Set(["app", "www"]);
 const apiClient: AxiosInstance = axios.create({
   baseURL: apiBaseUrl,
   withCredentials: true, // HTTP-only cookies for refresh tokens
-  timeout: 20_000,
+  timeout: 30_000,
   headers: {
     "Content-Type": "application/json",
   },
@@ -144,20 +144,35 @@ const getContextHeaders = (): { companyId?: string; projectId?: string; financia
 
 const shouldAttachOrgScopeHeaders = (url?: string): boolean => {
   if (!url) return false;
-  const normalized = url.toLowerCase();
+  let normalized = url.toLowerCase();
+  try {
+    if (normalized.startsWith("http://") || normalized.startsWith("https://")) {
+      const u = new URL(normalized);
+      normalized = u.pathname;
+    }
+  } catch {
+    // ignore
+  }
+  normalized = normalized.replace(/^\/+/, "");
+  if (normalized.startsWith("api/v1/")) normalized = normalized.slice(7);
+  else if (normalized.startsWith("api/")) normalized = normalized.slice(4);
+
   const bypassPrefixes = [
-    "/auth",
-    "/modules",
-    "/system",
-    "/companies",
-    "/projects",
-    "/tenants",
-    "/org-context",
-    "/settings",
-    "/platform",
-    "/superadmin",
-    "/licensing",
-    "/security",
+    "auth",
+    "public",
+    "modules",
+    "system",
+    "companies",
+    "tenants",
+    "dynamic-entities/tenant",
+    "dynamic-entities/tenants",
+    "ui-pages",
+    "org-context",
+    "settings",
+    "platform",
+    "superadmin",
+    "licensing",
+    "security",
   ];
 
   return !bypassPrefixes.some((prefix) => normalized.startsWith(prefix));
@@ -244,8 +259,14 @@ const requestRefreshToken = async (): Promise<boolean> => {
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     // Prevent duplicate /api/v1 prefix when calling with explicit /api/v1 paths
-    if (typeof config.url === "string" && config.url.startsWith("/api/v1/")) {
-      config.url = config.url.slice(7);
+    if (typeof config.url === "string") {
+      if (config.url.startsWith("/api/v1/")) {
+        config.url = config.url.slice(8);
+      } else if (config.url.startsWith("api/v1/")) {
+        config.url = config.url.slice(7);
+      } else if (config.url.startsWith("/") && !config.url.startsWith("//")) {
+        config.url = config.url.slice(1);
+      }
     }
 
     const method = (config.method || "get").toLowerCase();
@@ -269,20 +290,37 @@ apiClient.interceptors.request.use(
 
     if (shouldAttachOrgScopeHeaders(config.url)) {
       const { companyId, projectId, financialYearKey } = getContextHeaders();
-      // Prefer attaching on writes; still attach on reads when context is set for scoped queries.
       if (companyId) {
         config.headers = config.headers || {};
         config.headers["X-Company-Id"] = companyId;
         config.headers["company_id"] = companyId;
+        if (config.method === "get") {
+          config.params = config.params || {};
+          if (config.params.companyId === undefined && config.params.company_id === undefined) {
+            config.params.companyId = companyId;
+          }
+        }
       }
       if (projectId) {
         config.headers = config.headers || {};
         config.headers["X-Project-Id"] = projectId;
         config.headers["project_id"] = projectId;
+        if (config.method === "get") {
+          config.params = config.params || {};
+          if (config.params.projectId === undefined && config.params.project_id === undefined) {
+            config.params.projectId = projectId;
+          }
+        }
       }
       if (financialYearKey && financialYearKey !== "all") {
         config.headers = config.headers || {};
         config.headers["X-Financial-Year"] = financialYearKey;
+        if (config.method === "get") {
+          config.params = config.params || {};
+          if (config.params.financialYear === undefined && config.params.financialYearKey === undefined) {
+            config.params.financialYear = financialYearKey;
+          }
+        }
       }
 
       if (isStateChanging && !companyId) {

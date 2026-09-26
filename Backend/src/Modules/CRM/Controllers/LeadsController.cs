@@ -12,6 +12,7 @@ namespace UabIndia.Api.Modules.CRM.Controllers
 {
     [ApiController]
     [Route("api/v1/crm/leads")]
+    [Route("api/v1/crm/opportunities")]
     [Authorize(Policy = "Module:crm")]
     public class LeadsController : ControllerBase
     {
@@ -53,8 +54,11 @@ namespace UabIndia.Api.Modules.CRM.Controllers
                     l.Id,
                     l.LeadCode,
                     l.LeadName,
+                    Title = l.LeadName,
                     CustomerName = l.CompanyName,
                     l.CompanyName,
+                    Company = l.CompanyName,
+                    EstimatedValue = l.Value,
                     l.Email,
                     l.Phone,
                     l.Stage,
@@ -91,8 +95,9 @@ namespace UabIndia.Api.Modules.CRM.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateCrmLeadDto dto)
         {
-            if (string.IsNullOrWhiteSpace(dto.LeadName))
-                return BadRequest(new { success = false, error = "Lead name is required" });
+            var leadTitle = !string.IsNullOrWhiteSpace(dto.Title) ? dto.Title : dto.LeadName;
+            if (string.IsNullOrWhiteSpace(leadTitle))
+                return BadRequest(new { success = false, error = "Lead or opportunity name is required" });
 
             var tenantId = _tenantAccessor.GetTenantId();
             var lead = new CrmLead
@@ -100,13 +105,13 @@ namespace UabIndia.Api.Modules.CRM.Controllers
                 LeadCode = string.IsNullOrWhiteSpace(dto.LeadCode)
                     ? await _numbers.NextAsync("CrmLead", "LD-", 5)
                     : dto.LeadCode.Trim(),
-                LeadName = dto.LeadName.Trim(),
-                CompanyName = dto.CompanyName ?? dto.CustomerName,
+                LeadName = leadTitle.Trim(),
+                CompanyName = dto.CompanyName ?? dto.CustomerName ?? dto.Company,
                 Email = dto.Email,
                 Phone = dto.Phone,
                 Stage = string.IsNullOrWhiteSpace(dto.Stage) ? "New" : dto.Stage,
                 Status = string.IsNullOrWhiteSpace(dto.Status) ? "Open" : dto.Status,
-                Value = dto.Value,
+                Value = dto.EstimatedValue ?? dto.Value,
                 Probability = Math.Clamp(dto.Probability, 0, 100),
                 ExpectedCloseDate = dto.ExpectedCloseDate,
                 OwnerName = dto.Owner ?? dto.OwnerName,
@@ -133,13 +138,16 @@ namespace UabIndia.Api.Modules.CRM.Controllers
             if (lead == null)
                 return NotFound(new { success = false, error = "Lead not found" });
 
+            if (dto.Title != null) lead.LeadName = dto.Title;
             if (dto.LeadName != null) lead.LeadName = dto.LeadName;
             if (dto.CompanyName != null) lead.CompanyName = dto.CompanyName;
             if (dto.CustomerName != null) lead.CompanyName = dto.CustomerName;
+            if (dto.Company != null) lead.CompanyName = dto.Company;
             if (dto.Email != null) lead.Email = dto.Email;
             if (dto.Phone != null) lead.Phone = dto.Phone;
             if (dto.Stage != null) lead.Stage = dto.Stage;
             if (dto.Status != null) lead.Status = dto.Status;
+            if (dto.EstimatedValue.HasValue) lead.Value = dto.EstimatedValue.Value;
             if (dto.Value.HasValue) lead.Value = dto.Value.Value;
             if (dto.Probability.HasValue) lead.Probability = Math.Clamp(dto.Probability.Value, 0, 100);
             if (dto.ExpectedCloseDate.HasValue) lead.ExpectedCloseDate = dto.ExpectedCloseDate;
@@ -202,7 +210,9 @@ namespace UabIndia.Api.Modules.CRM.Controllers
     public class CreateCrmLeadDto
     {
         public string? LeadCode { get; set; }
-        public string LeadName { get; set; } = string.Empty;
+        public string? LeadName { get; set; }
+        public string? Title { get; set; }
+        public string? Company { get; set; }
         public string? CompanyName { get; set; }
         public string? CustomerName { get; set; }
         public string? Email { get; set; }
@@ -210,6 +220,7 @@ namespace UabIndia.Api.Modules.CRM.Controllers
         public string? Stage { get; set; }
         public string? Status { get; set; }
         public decimal Value { get; set; }
+        public decimal? EstimatedValue { get; set; }
         public int Probability { get; set; }
         public DateTime? ExpectedCloseDate { get; set; }
         public string? Owner { get; set; }
@@ -222,6 +233,8 @@ namespace UabIndia.Api.Modules.CRM.Controllers
     public class UpdateCrmLeadDto
     {
         public string? LeadName { get; set; }
+        public string? Title { get; set; }
+        public string? Company { get; set; }
         public string? CompanyName { get; set; }
         public string? CustomerName { get; set; }
         public string? Email { get; set; }
@@ -229,6 +242,7 @@ namespace UabIndia.Api.Modules.CRM.Controllers
         public string? Stage { get; set; }
         public string? Status { get; set; }
         public decimal? Value { get; set; }
+        public decimal? EstimatedValue { get; set; }
         public int? Probability { get; set; }
         public DateTime? ExpectedCloseDate { get; set; }
         public string? Owner { get; set; }

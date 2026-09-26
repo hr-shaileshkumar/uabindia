@@ -6,11 +6,23 @@ import {
   isValidElement,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactElement,
   type ReactNode,
 } from "react";
-import { ChevronDown, Columns3, Inbox, Rows3, UploadCloud } from "lucide-react";
+import {
+  ArrowUpDown,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Columns3,
+  Inbox,
+  RotateCcw,
+  Rows3,
+  Search,
+  UploadCloud,
+} from "lucide-react";
 import { erpButtonClassName } from "@/components/workspace/styles";
 import { ErpCreateButton } from "@/components/workspace/page-kit";
 import { ErpFloatingBulkBar } from "@/components/workspace/floating-bulk-bar";
@@ -44,6 +56,16 @@ function rowIdOf<T>(row: T, index: number, getRowId?: (row: T) => string) {
   return `row-${index}`;
 }
 
+function useClickOutside(ref: React.RefObject<HTMLElement | null>, onClose: () => void) {
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (ref.current && !ref.current.contains(event.target as Node)) onClose();
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [onClose, ref]);
+}
+
 function BulkActionMenu({
   selectedCount,
   selectedIds,
@@ -54,6 +76,9 @@ function BulkActionMenu({
   actions: ErpListBulkAction[];
 }) {
   const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useClickOutside(ref, () => setOpen(false));
+
   const groups = [
     { key: "data", label: "Data" },
     { key: "change", label: "Bulk changes" },
@@ -63,28 +88,38 @@ function BulkActionMenu({
   if (selectedCount === 0 || actions.length === 0) return null;
 
   return (
-    <div className="relative">
-      <button type="button" className={erpButtonClassName.secondary} onClick={() => setOpen((value) => !value)}>
-        Actions
-        <span className="rounded bg-slate-900 px-1.5 py-0.5 text-[10px] font-bold text-white">{selectedCount}</span>
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        className={cn(erpButtonClassName.secondary, "cursor-pointer")}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <span>Actions</span>
+        <span className="rounded bg-blue-600 px-1.5 py-0.5 text-[10px] font-bold text-white tabular-nums">
+          {selectedCount}
+        </span>
         <ChevronDown className="h-3.5 w-3.5" />
       </button>
       {open ? (
-        <div className="absolute right-0 z-30 mt-1 min-w-48 overflow-hidden rounded-lg border border-slate-200 bg-white py-1">
+        <div className="absolute right-0 z-40 mt-1 min-w-48 overflow-hidden rounded-xl border border-slate-200/90 bg-white py-1 shadow-xl dark:border-slate-800 dark:bg-slate-900">
           {groups.map((group) => {
             const items = actions.filter((action) => (action.category ?? "data") === group.key);
             if (items.length === 0) return null;
             return (
-              <div key={group.key}>
-                <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">{group.label}</p>
+              <div key={group.key} className="border-b border-slate-100 last:border-0 dark:border-slate-800/60 pb-1">
+                <p className="px-3 pt-1.5 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  {group.label}
+                </p>
                 {items.map((action) => (
                   <button
                     key={action.key}
                     type="button"
                     disabled={action.disabled}
                     className={cn(
-                      "flex w-full items-center px-3 py-1.5 text-left text-xs font-medium hover:bg-slate-50 disabled:opacity-40",
-                      group.key === "danger" ? "text-rose-600" : "text-slate-700",
+                      "flex w-full items-center px-3 py-1.5 text-left text-xs font-medium transition-colors hover:bg-slate-50 disabled:opacity-40 cursor-pointer dark:hover:bg-slate-800",
+                      group.key === "danger"
+                        ? "text-rose-600 dark:text-rose-400"
+                        : "text-slate-700 dark:text-slate-200",
                     )}
                     onClick={() => {
                       setOpen(false);
@@ -117,12 +152,31 @@ function patchRowNode(
   rowKey: string,
   isFocused?: boolean,
 ) {
+  const selectCell = (
+    <td key="__select" className="erp-td w-10 text-center">
+      <input
+        id={`table-row-select-${rowKey}`}
+        name={`table_row_select_${rowKey}`}
+        type="checkbox"
+        checked={selected}
+        onChange={onToggle}
+        aria-label="Select row"
+        className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500/20 cursor-pointer"
+      />
+    </td>
+  );
+
   if (!isValidElement(node)) {
     return (
-      <tr key={rowKey} className={cn("erp-tr", selected && "bg-sky-50", isFocused && "ring-2 ring-blue-500/40 bg-blue-50/20")}>
-        <td key="__select" className="erp-td w-8">
-          <input type="checkbox" checked={selected} onChange={onToggle} aria-label="Select row" className="h-3.5 w-3.5 rounded border-slate-300" />
-        </td>
+      <tr
+        key={rowKey}
+        className={cn(
+          "erp-tr",
+          selected && "erp-tr-selected",
+          isFocused && "ring-2 ring-blue-500/40 bg-blue-50/30 dark:bg-blue-950/20",
+        )}
+      >
+        {selectCell}
         {node}
         {extraCells}
       </tr>
@@ -149,9 +203,7 @@ function patchRowNode(
 
   const cells = Children.toArray(element.props.children);
   const nextChildren = [
-    <td key="__select" className="erp-td w-8">
-      <input type="checkbox" checked={selected} onChange={onToggle} aria-label="Select row" className="h-3.5 w-3.5 rounded border-slate-300" />
-    </td>,
+    selectCell,
     ...cellsAt(cells, visibleUnlockedIndexes),
     ...extraCells,
     ...cellsAt(cells, lockedIndexes),
@@ -159,9 +211,37 @@ function patchRowNode(
 
   return cloneElement(element, {
     key: element.key ?? rowKey,
-    className: cn(className, selected && "bg-sky-50", isFocused && "ring-2 ring-blue-500/40 bg-blue-50/20"),
+    className: cn(
+      className,
+      selected && "erp-tr-selected",
+      isFocused && "ring-2 ring-blue-500/40 bg-blue-50/30 dark:bg-blue-950/20",
+    ),
     children: nextChildren,
   });
+}
+
+function compareValues(a: unknown, b: unknown, dataType?: string): number {
+  if (a == null && b == null) return 0;
+  if (a == null) return 1;
+  if (b == null) return -1;
+
+  if (dataType === "number" || dataType === "currency") {
+    const numA = typeof a === "number" ? a : parseFloat(String(a).replace(/[^0-9.-]+/g, "")) || 0;
+    const numB = typeof b === "number" ? b : parseFloat(String(b).replace(/[^0-9.-]+/g, "")) || 0;
+    return numA - numB;
+  }
+
+  if (dataType === "date" || dataType === "datetime") {
+    const timeA = new Date(String(a)).getTime() || 0;
+    const timeB = new Date(String(b)).getTime() || 0;
+    return timeA - timeB;
+  }
+
+  if (typeof a === "boolean" && typeof b === "boolean") {
+    return a === b ? 0 : a ? -1 : 1;
+  }
+
+  return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: "base" });
 }
 
 export function useErpListView<T>({
@@ -198,16 +278,60 @@ export function useErpListView<T>({
     });
     return next.length ? next : defaults;
   });
+
   const [selected, setSelected] = useState<string[]>([]);
   const [columnsOpen, setColumnsOpen] = useState(false);
+  const [columnSearch, setColumnSearch] = useState("");
   const [importOpen, setImportOpen] = useState(false);
   const [density, setDensity] = useState<"compact" | "normal">("normal");
+
+  // Sorting state
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc" | null>(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const columnsMenuRef = useRef<HTMLDivElement>(null);
+  useClickOutside(columnsMenuRef, () => setColumnsOpen(false));
 
   useEffect(() => {
     saveListPreferences(listKey, { visibleKeys, filters });
   }, [listKey, visibleKeys, filters]);
 
+  // Reset pagination on filter or sort change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters, sortKey, sortDirection]);
+
+  // 1. Filtered Rows
   const filteredRows = useMemo(() => applyListFilters(rows, filters), [rows, filters]);
+
+  // 2. Sorted Rows
+  const sortedRows = useMemo(() => {
+    if (!sortKey || !sortDirection) return filteredRows;
+    const col = allColumns.find((c) => c.key === sortKey);
+    const dataType = col?.dataType;
+
+    return [...filteredRows].sort((rowA, rowB) => {
+      const valA = getRowFieldValue(rowA, sortKey);
+      const valB = getRowFieldValue(rowB, sortKey);
+      const result = compareValues(valA, valB, dataType);
+      return sortDirection === "asc" ? result : -result;
+    });
+  }, [filteredRows, sortKey, sortDirection, allColumns]);
+
+  // 3. Paginated Rows
+  const totalRecords = sortedRows.length;
+  const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+
+  const paginatedRows = useMemo(() => {
+    const start = (safePage - 1) * pageSize;
+    return sortedRows.slice(start, start + pageSize);
+  }, [sortedRows, safePage, pageSize]);
+
   const declaredKeys = declared.map((column) => column.key);
   const visibleUnlockedIndexes = declared
     .map((column, index) => (!column.locked && visibleKeys.includes(column.key) ? index : -1))
@@ -220,13 +344,13 @@ export function useErpListView<T>({
   const lockedDeclared = declared.filter((column) => column.locked);
   const headerColumns = [...unlockedVisible, ...extraVisible, ...lockedDeclared];
 
-  const selectedRows = filteredRows.filter((row, index) => selected.includes(rowIdOf(row, index, getRowId)));
-  const allVisibleIds = filteredRows.map((row, index) => rowIdOf(row, index, getRowId));
+  const selectedRows = sortedRows.filter((row, index) => selected.includes(rowIdOf(row, index, getRowId)));
+  const allVisibleIds = paginatedRows.map((row, index) => rowIdOf(row, index, getRowId));
   const allSelected = allVisibleIds.length > 0 && allVisibleIds.every((id) => selected.includes(id));
 
-  // Keyboard navigation hook
+  // Keyboard navigation hook on current page
   const { focusedIndex } = useTableKeyboardNav({
-    rows: filteredRows,
+    rows: paginatedRows,
     onRowClick: (row) => onRowClick?.(row),
     onToggleSelect: (row, idx) => {
       const id = rowIdOf(row, idx, getRowId);
@@ -235,17 +359,29 @@ export function useErpListView<T>({
     enabled: true,
   });
 
+  const handleSortToggle = (key: string) => {
+    if (sortKey !== key) {
+      setSortKey(key);
+      setSortDirection("asc");
+    } else if (sortDirection === "asc") {
+      setSortDirection("desc");
+    } else {
+      setSortKey(null);
+      setSortDirection(null);
+    }
+  };
+
   const builtInActions: ErpListBulkAction[] = [
     ...(onRefresh
       ? [{ key: "refresh", label: "Refresh", category: "data" as const, onClick: () => onRefresh() }]
       : []),
     {
       key: "export",
-      label: "Export selected CSV",
+      label: `Export CSV (${selected.length})`,
       category: "data",
       onClick: () =>
         exportListCsv(
-          selectedRows.length ? selectedRows : filteredRows,
+          selectedRows,
           headerColumns.filter((column) => !column.locked),
           listKey,
         ),
@@ -266,6 +402,10 @@ export function useErpListView<T>({
       : []),
   ];
 
+  const filteredColumnsToCustomize = allColumns.filter((col) =>
+    col.label.toLowerCase().includes(columnSearch.toLowerCase())
+  );
+
   return {
     filterBar: (
       <ErpListFilterBar columns={allColumns} filters={filters} onChange={setFilters} extra={extraFilters} />
@@ -276,67 +416,194 @@ export function useErpListView<T>({
         {onBulkImport && (
           <button
             type="button"
-            className={erpButtonClassName.secondary}
+            className={cn(erpButtonClassName.secondary, "cursor-pointer")}
             onClick={() => setImportOpen(true)}
             title="Bulk Import CSV data"
           >
             <UploadCloud className="h-3.5 w-3.5" />
-            Import CSV
+            <span>Import CSV</span>
           </button>
         )}
         <button
           type="button"
           title={density === "compact" ? "Switch to comfortable view" : "Switch to compact view"}
-          className={erpButtonClassName.secondary}
+          className={cn(erpButtonClassName.secondary, "cursor-pointer")}
           onClick={() => setDensity((d) => (d === "compact" ? "normal" : "compact"))}
         >
           <Rows3 className="h-3.5 w-3.5" />
-          {density === "compact" ? "Compact" : "Comfortable"}
+          <span className="hidden sm:inline">{density === "compact" ? "Compact" : "Comfortable"}</span>
         </button>
-        <button
-          type="button"
-          className={erpButtonClassName.secondary}
-          onClick={() => setColumnsOpen((value) => !value)}
-        >
-          <Columns3 className="h-3.5 w-3.5" />
-          Columns
-        </button>
+
+        {/* Popover Columns Customizer Menu */}
+        <div className="relative" ref={columnsMenuRef}>
+          <button
+            type="button"
+            className={cn(erpButtonClassName.secondary, "cursor-pointer", columnsOpen && "bg-slate-100 dark:bg-slate-800")}
+            onClick={() => setColumnsOpen((value) => !value)}
+            aria-expanded={columnsOpen}
+            title="Configure visible columns"
+          >
+            <Columns3 className="h-3.5 w-3.5" />
+            <span>Columns</span>
+            <ChevronDown className="h-3 w-3 opacity-60" />
+          </button>
+
+          {columnsOpen && (
+            <div className="absolute right-0 z-40 mt-1.5 w-64 rounded-xl border border-slate-200/90 bg-white p-3 shadow-xl dark:border-slate-800 dark:bg-slate-900">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Visible Columns
+                </span>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:underline dark:text-blue-400 cursor-pointer"
+                  onClick={() => setVisibleKeys(defaultVisibleKeys(allColumns))}
+                >
+                  <RotateCcw className="h-2.5 w-2.5" />
+                  Reset
+                </button>
+              </div>
+
+              {allColumns.length > 6 && (
+                <div className="relative mb-2">
+                  <Search className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400" />
+                  <input
+                    id="table-column-search-input"
+                    name="table_column_search_input"
+                    type="text"
+                    value={columnSearch}
+                    onChange={(e) => setColumnSearch(e.target.value)}
+                    placeholder="Search columns…"
+                    className="h-7 w-full rounded-md border border-slate-200 bg-slate-50 pl-7 pr-2 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  />
+                </div>
+              )}
+
+              <div className="max-h-64 space-y-0.5 overflow-y-auto scrollbar-thin">
+                {filteredColumnsToCustomize.map((column) => {
+                  const active = visibleKeys.includes(column.key);
+                  return (
+                    <label
+                      key={column.key}
+                      className={cn(
+                        "flex cursor-pointer items-center justify-between rounded-lg px-2 py-1.5 text-xs text-slate-700 transition hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/60 select-none",
+                        column.locked && "cursor-not-allowed opacity-60",
+                      )}
+                    >
+                      <span className="truncate pr-2">{column.label}</span>
+                      <input
+                        id={`column-visibility-${column.key}`}
+                        name={`column_visibility_${column.key}`}
+                        type="checkbox"
+                        checked={active}
+                        disabled={column.locked}
+                        onChange={() => {
+                          if (column.locked) return;
+                          setVisibleKeys((current) =>
+                            current.includes(column.key)
+                              ? current.filter((k) => k !== column.key)
+                              : [...current, column.key]
+                          );
+                        }}
+                        className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 cursor-pointer"
+                      />
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       </>
     ),
     table: (
-      <div className={cn("grid gap-3", columnsOpen ? "lg:grid-cols-[minmax(0,1fr)_16rem]" : "")}>
-        <div className="erp-table-wrap min-w-0 rounded-none border-0 shadow-none">
+      <div className="erp-table-wrap min-w-0 rounded-xl border border-slate-200/80 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900 transition-all">
+        <div className="overflow-x-auto scrollbar-thin">
           {loading && rows.length === 0 ? (
-            <div className="space-y-2 p-3" role="status">
+            <div className="space-y-2 p-4" role="status">
               {Array.from({ length: 5 }, (_, index) => (
-                <div key={index} className="h-8 animate-pulse rounded bg-slate-100" />
+                <div key={index} className="h-9 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />
               ))}
             </div>
           ) : (
-            <table className={cn("erp-table table-auto transition-all", density === "compact" ? "[&_.erp-td]:py-1.5 [&_.erp-td]:text-xs [&_.erp-th]:py-1.5" : "[&_.erp-td]:py-2.5 [&_.erp-td]:text-sm [&_.erp-th]:py-2.5")}>
+            <table
+              className={cn(
+                "erp-table w-full border-collapse transition-all",
+                density === "compact"
+                  ? "[&_.erp-td]:py-1.5 [&_.erp-td]:text-xs [&_.erp-th]:py-1.5"
+                  : "[&_.erp-td]:py-2.5 [&_.erp-td]:text-xs sm:[&_.erp-td]:text-sm [&_.erp-th]:py-2.5",
+              )}
+            >
               <thead className="erp-thead">
                 <tr>
-                  <th className="erp-th w-8">
+                  <th className="erp-th w-10 text-center">
                     <input
+                      id="data-table-select-all"
+                      name="data_table_select_all"
                       type="checkbox"
-                      className="h-3.5 w-3.5 rounded border-slate-300"
+                      className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500/20 cursor-pointer"
                       checked={allSelected}
                       onChange={() => setSelected(allSelected ? [] : allVisibleIds)}
-                      aria-label="Select all"
+                      aria-label="Select all rows"
                     />
                   </th>
-                  {headerColumns.map((column) => (
-                    <th key={column.key} className={cn("erp-th", column.className)}>
-                      {column.label}
-                    </th>
-                  ))}
+                  {headerColumns.map((column) => {
+                    const isSortable = column.key !== "actions" && column.key !== "select" && column.key !== "_";
+                    const isCurrentSort = sortKey === column.key;
+                    const isRightAligned = column.dataType === "currency" || column.dataType === "number";
+
+                    return (
+                      <th
+                        key={column.key}
+                        className={cn(
+                          "erp-th",
+                          isRightAligned && "text-right",
+                          column.className,
+                        )}
+                      >
+                        {isSortable ? (
+                          <button
+                            type="button"
+                            onClick={() => handleSortToggle(column.key)}
+                            className={cn(
+                              "group/th inline-flex items-center gap-1.5 font-bold uppercase tracking-wider transition-colors cursor-pointer select-none",
+                              isRightAligned ? "w-full justify-end" : "justify-start",
+                              isCurrentSort
+                                ? "text-blue-600 dark:text-blue-400"
+                                : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white",
+                            )}
+                            title={`Sort by ${column.label}`}
+                          >
+                            <span>{column.label}</span>
+                            <span className="shrink-0">
+                              {isCurrentSort && sortDirection === "asc" ? (
+                                <ChevronUp className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                              ) : isCurrentSort && sortDirection === "desc" ? (
+                                <ChevronDown className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                              ) : (
+                                <ArrowUpDown className="h-3 w-3 text-slate-400 opacity-0 group-hover/th:opacity-80 transition-opacity" />
+                              )}
+                            </span>
+                          </button>
+                        ) : (
+                          <span className={isRightAligned ? "block text-right" : ""}>{column.label}</span>
+                        )}
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
-                {filteredRows.map((row, index) => {
+                {paginatedRows.map((row, index) => {
                   const id = rowIdOf(row, index, getRowId);
                   const extraCells = extraVisible.map((column) => (
-                    <td key={column.key} className="erp-td">
+                    <td
+                      key={column.key}
+                      className={cn(
+                        "erp-td",
+                        (column.dataType === "currency" || column.dataType === "number") && "erp-cell-num",
+                      )}
+                    >
                       {formatListCell(getRowFieldValue(row, column.key), column.dataType)}
                     </td>
                   ));
@@ -354,16 +621,22 @@ export function useErpListView<T>({
                     focusedIndex === index,
                   );
                 })}
-                {!loading && filteredRows.length === 0 ? (
+                {!loading && sortedRows.length === 0 ? (
                   <tr>
-                    <td colSpan={headerColumns.length + 1} className="erp-td py-10 text-center">
-                      <div className="mx-auto flex max-w-xl flex-col items-center gap-2 text-center">
-                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500">
-                          <Inbox className="h-4 w-4" />
+                    <td colSpan={headerColumns.length + 1} className="erp-td py-12 text-center">
+                      <div className="mx-auto flex max-w-sm flex-col items-center gap-2.5 text-center">
+                        <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-400 shadow-2xs">
+                          <Inbox className="h-5 w-5" />
                         </span>
-                        <p className="text-sm font-semibold text-slate-900">No records in the current view</p>
-                        <p className="text-sm text-slate-500">{emptyMessage}</p>
-                        {emptyAction ? <div className="mt-2">{emptyAction}</div> : onCreate ? (
+                        <div>
+                          <p className="text-sm font-bold text-slate-900 dark:text-white">
+                            No records in current view
+                          </p>
+                          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{emptyMessage}</p>
+                        </div>
+                        {emptyAction ? (
+                          <div className="mt-2">{emptyAction}</div>
+                        ) : onCreate ? (
                           <div className="mt-2">
                             <ErpCreateButton label={createLabel} onClick={onCreate} />
                           </div>
@@ -376,50 +649,67 @@ export function useErpListView<T>({
             </table>
           )}
         </div>
-        {columnsOpen ? (
-          <aside className="rounded-2xl border border-slate-200 bg-white p-3 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Visible Columns</span>
+
+        {/* Docked Table Pagination Footer */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-slate-200/80 bg-slate-50/60 px-4 py-2.5 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-950/40">
+          <div className="flex items-center gap-2">
+            <span>
+              Showing <strong className="font-semibold text-slate-800 dark:text-slate-200">{totalRecords > 0 ? (safePage - 1) * pageSize + 1 : 0}</strong> to{" "}
+              <strong className="font-semibold text-slate-800 dark:text-slate-200">{Math.min(safePage * pageSize, totalRecords)}</strong> of{" "}
+              <strong className="font-semibold text-slate-800 dark:text-slate-200">{totalRecords}</strong> entries
+              {rows.length > totalRecords && (
+                <span className="text-slate-400"> (filtered from {rows.length} total)</span>
+              )}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] text-slate-500">Rows:</span>
+              <select
+                id="datatable-pagesize"
+                name="datatable_pagesize"
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                aria-label="Rows per page"
+                className="h-7 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-700 shadow-2xs focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 cursor-pointer"
+              >
+                {[10, 25, 50, 100].map((size) => (
+                  <option key={size} value={size}>
+                    {size}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1">
               <button
                 type="button"
-                className="text-xs text-blue-600 hover:underline"
-                onClick={() => setVisibleKeys(defaultVisibleKeys(allColumns))}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={safePage <= 1}
+                className="inline-flex h-7 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-700 shadow-2xs hover:bg-slate-50 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 cursor-pointer transition-colors"
               >
-                Reset
+                Previous
+              </button>
+
+              <span className="px-2 text-xs font-bold text-slate-800 dark:text-slate-200 tabular-nums">
+                {safePage} / {totalPages}
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safePage >= totalPages}
+                className="inline-flex h-7 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-700 shadow-2xs hover:bg-slate-50 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 cursor-pointer transition-colors"
+              >
+                Next
               </button>
             </div>
-            <div className="max-h-72 space-y-1 overflow-y-auto">
-              {allColumns.map((column) => {
-                const active = visibleKeys.includes(column.key);
-                return (
-                  <label
-                    key={column.key}
-                    className={cn(
-                      "flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-1.5 text-xs text-slate-700 transition hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800",
-                      column.locked && "cursor-not-allowed opacity-60",
-                    )}
-                  >
-                    <span>{column.label}</span>
-                    <input
-                      type="checkbox"
-                      checked={active}
-                      disabled={column.locked}
-                      onChange={() => {
-                        if (column.locked) return;
-                        setVisibleKeys((current) =>
-                          current.includes(column.key)
-                            ? current.filter((k) => k !== column.key)
-                            : [...current, column.key]
-                        );
-                      }}
-                      className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600"
-                    />
-                  </label>
-                );
-              })}
-            </div>
-          </aside>
-        ) : null}
+          </div>
+        </div>
 
         {onBulkImport && (
           <BulkImportModal
@@ -455,7 +745,17 @@ export function useErpListView<T>({
     ),
     selectedCount: selected.length,
     selectedIds: selected,
-    filteredCount: filteredRows.length,
+    filteredCount: sortedRows.length,
+    totalCount: totalRecords,
+    currentPage: safePage,
+    totalPages,
+    setPage: setCurrentPage,
+    sortKey,
+    sortDirection,
+    setSort: (key: string, dir: "asc" | "desc" | null) => {
+      setSortKey(key);
+      setSortDirection(dir);
+    },
   };
 }
 

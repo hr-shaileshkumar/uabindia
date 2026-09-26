@@ -10,6 +10,11 @@ using UabIndia.Infrastructure.Data;
 
 namespace UabIndia.Api.Services
 {
+    /// <summary>
+    /// Enterprise Metadata Service for dynamic, zero-hardcoding ERP operations.
+    /// Automatically reflects across the EF Core relational model to discover all database entities,
+    /// property types, nullability constraints, foreign key lookup relationships, and tenant custom fields.
+    /// </summary>
     public class EntityMetadataService : IEntityMetadataService
     {
         private readonly ApplicationDbContext _db;
@@ -21,9 +26,10 @@ namespace UabIndia.Api.Services
             _tenantAccessor = tenantAccessor;
         }
 
-        private static readonly List<EntitySummaryDto> SystemEntities = new()
+        // Curated business metadata for premier enterprise modules
+        private static readonly Dictionary<string, EntitySummaryDto> CuratedEntities = new(StringComparer.OrdinalIgnoreCase)
         {
-            new EntitySummaryDto
+            ["Employee"] = new EntitySummaryDto
             {
                 Name = "Employee",
                 DisplayName = "Employee Master",
@@ -32,9 +38,9 @@ namespace UabIndia.Api.Services
                 Table = "Employees",
                 ApiEndpoint = "/api/v1/hrms/employees",
                 Icon = "Users",
-                KeyField = "id",
+                KeyField = "id"
             },
-            new EntitySummaryDto
+            ["Department"] = new EntitySummaryDto
             {
                 Name = "Department",
                 DisplayName = "Departments",
@@ -43,9 +49,9 @@ namespace UabIndia.Api.Services
                 Table = "Departments",
                 ApiEndpoint = "/api/v1/platform/org/departments",
                 Icon = "Building2",
-                KeyField = "id",
+                KeyField = "id"
             },
-            new EntitySummaryDto
+            ["Designation"] = new EntitySummaryDto
             {
                 Name = "Designation",
                 DisplayName = "Designations & Roles",
@@ -54,9 +60,9 @@ namespace UabIndia.Api.Services
                 Table = "Designations",
                 ApiEndpoint = "/api/v1/platform/org/designations",
                 Icon = "Tag",
-                KeyField = "id",
+                KeyField = "id"
             },
-            new EntitySummaryDto
+            ["Project"] = new EntitySummaryDto
             {
                 Name = "Project",
                 DisplayName = "Projects",
@@ -65,9 +71,9 @@ namespace UabIndia.Api.Services
                 Table = "Projects",
                 ApiEndpoint = "/api/v1/projects",
                 Icon = "Briefcase",
-                KeyField = "id",
+                KeyField = "id"
             },
-            new EntitySummaryDto
+            ["Customer"] = new EntitySummaryDto
             {
                 Name = "Customer",
                 DisplayName = "Customers (CRM / Sales)",
@@ -76,9 +82,9 @@ namespace UabIndia.Api.Services
                 Table = "Customers",
                 ApiEndpoint = "/api/v1/sales/customers",
                 Icon = "Building",
-                KeyField = "id",
+                KeyField = "id"
             },
-            new EntitySummaryDto
+            ["Vendor"] = new EntitySummaryDto
             {
                 Name = "Vendor",
                 DisplayName = "Vendors (Suppliers)",
@@ -87,9 +93,9 @@ namespace UabIndia.Api.Services
                 Table = "Vendors",
                 ApiEndpoint = "/api/v1/procurement/vendors",
                 Icon = "Truck",
-                KeyField = "id",
+                KeyField = "id"
             },
-            new EntitySummaryDto
+            ["Shift"] = new EntitySummaryDto
             {
                 Name = "Shift",
                 DisplayName = "Work Shifts",
@@ -98,9 +104,9 @@ namespace UabIndia.Api.Services
                 Table = "Shifts",
                 ApiEndpoint = "/api/v1/hrms/shifts",
                 Icon = "Clock",
-                KeyField = "id",
+                KeyField = "id"
             },
-            new EntitySummaryDto
+            ["Leave"] = new EntitySummaryDto
             {
                 Name = "Leave",
                 DisplayName = "Leave Allocations & Requests",
@@ -109,9 +115,9 @@ namespace UabIndia.Api.Services
                 Table = "LeaveRequests",
                 ApiEndpoint = "/api/v1/hrms/leave",
                 Icon = "Calendar",
-                KeyField = "id",
+                KeyField = "id"
             },
-            new EntitySummaryDto
+            ["Attendance"] = new EntitySummaryDto
             {
                 Name = "Attendance",
                 DisplayName = "Attendance & Punches",
@@ -120,9 +126,9 @@ namespace UabIndia.Api.Services
                 Table = "AttendanceRecords",
                 ApiEndpoint = "/api/v1/hrms/attendance",
                 Icon = "UserCheck",
-                KeyField = "id",
+                KeyField = "id"
             },
-            new EntitySummaryDto
+            ["Branch"] = new EntitySummaryDto
             {
                 Name = "Branch",
                 DisplayName = "Operating Branches",
@@ -131,9 +137,9 @@ namespace UabIndia.Api.Services
                 Table = "Branches",
                 ApiEndpoint = "/api/v1/platform/org/branches",
                 Icon = "Building",
-                KeyField = "id",
+                KeyField = "id"
             },
-            new EntitySummaryDto
+            ["BusinessUnit"] = new EntitySummaryDto
             {
                 Name = "BusinessUnit",
                 DisplayName = "Business Units",
@@ -142,9 +148,9 @@ namespace UabIndia.Api.Services
                 Table = "BusinessUnits",
                 ApiEndpoint = "/api/v1/platform/org/business-units",
                 Icon = "Layers",
-                KeyField = "id",
+                KeyField = "id"
             },
-            new EntitySummaryDto
+            ["CostCenter"] = new EntitySummaryDto
             {
                 Name = "CostCenter",
                 DisplayName = "Cost Centers",
@@ -153,9 +159,9 @@ namespace UabIndia.Api.Services
                 Table = "CostCenters",
                 ApiEndpoint = "/api/v1/platform/org/cost-centers",
                 Icon = "PieChart",
-                KeyField = "id",
+                KeyField = "id"
             },
-            new EntitySummaryDto
+            ["Company"] = new EntitySummaryDto
             {
                 Name = "Company",
                 DisplayName = "Companies",
@@ -164,9 +170,9 @@ namespace UabIndia.Api.Services
                 Table = "Companies",
                 ApiEndpoint = "/api/v1/companies",
                 Icon = "Landmark",
-                KeyField = "id",
+                KeyField = "id"
             },
-            new EntitySummaryDto
+            ["Item"] = new EntitySummaryDto
             {
                 Name = "Item",
                 DisplayName = "Inventory Items (SKU)",
@@ -175,9 +181,9 @@ namespace UabIndia.Api.Services
                 Table = "Items",
                 ApiEndpoint = "/api/v1/inventory/items",
                 Icon = "Package",
-                KeyField = "id",
+                KeyField = "id"
             },
-            new EntitySummaryDto
+            ["Warehouse"] = new EntitySummaryDto
             {
                 Name = "Warehouse",
                 DisplayName = "Warehouses & Depots",
@@ -186,9 +192,9 @@ namespace UabIndia.Api.Services
                 Table = "Warehouses",
                 ApiEndpoint = "/api/v1/inventory/warehouses",
                 Icon = "Warehouse",
-                KeyField = "id",
+                KeyField = "id"
             },
-            new EntitySummaryDto
+            ["Invoice"] = new EntitySummaryDto
             {
                 Name = "Invoice",
                 DisplayName = "Customer Invoices",
@@ -197,9 +203,9 @@ namespace UabIndia.Api.Services
                 Table = "Invoices",
                 ApiEndpoint = "/api/v1/invoices",
                 Icon = "Receipt",
-                KeyField = "id",
+                KeyField = "id"
             },
-            new EntitySummaryDto
+            ["SalaryStructure"] = new EntitySummaryDto
             {
                 Name = "SalaryStructure",
                 DisplayName = "Salary Structures",
@@ -208,13 +214,165 @@ namespace UabIndia.Api.Services
                 Table = "SalaryStructures",
                 ApiEndpoint = "/api/v1/payroll/structures",
                 Icon = "Calculator",
-                KeyField = "id",
+                KeyField = "id"
             },
+            ["PurchaseRequest"] = new EntitySummaryDto
+            {
+                Name = "PurchaseRequest",
+                DisplayName = "Purchase Requisitions",
+                Category = "Procurement",
+                Description = "Internal purchase requisitions, approval matrices, and vendor selection.",
+                Table = "PurchaseRequests",
+                ApiEndpoint = "/api/v1/procurement/requests",
+                Icon = "ShoppingCart",
+                KeyField = "id"
+            },
+            ["Holiday"] = new EntitySummaryDto
+            {
+                Name = "Holiday",
+                DisplayName = "Holiday Calendar",
+                Category = "HRMS",
+                Description = "Statutory, national, and regional holiday calendars.",
+                Table = "Holidays",
+                ApiEndpoint = "/api/v1/hrms/holidays",
+                Icon = "Calendar",
+                KeyField = "id"
+            },
+            ["BiometricDevice"] = new EntitySummaryDto
+            {
+                Name = "BiometricDevice",
+                DisplayName = "Biometric Devices",
+                Category = "HRMS",
+                Description = "Biometric time-clocks, facial scanners, and IoT attendance relays.",
+                Table = "BiometricDevices",
+                ApiEndpoint = "/api/v1/hrms/biometric-devices",
+                Icon = "Cpu",
+                KeyField = "id"
+            },
+            ["SalesReturn"] = new EntitySummaryDto
+            {
+                Name = "SalesReturn",
+                DisplayName = "Sales Returns & Credit Notes",
+                Category = "Sales",
+                Description = "Customer returns, RMA processing, and credit note vouchers.",
+                Table = "SalesReturns",
+                ApiEndpoint = "/api/v1/sales/returns",
+                Icon = "RotateCcw",
+                KeyField = "id"
+            },
+            ["AccountingPeriod"] = new EntitySummaryDto
+            {
+                Name = "AccountingPeriod",
+                DisplayName = "Accounting Periods",
+                Category = "Finance",
+                Description = "Fiscal year accounting periods, book locks, and financial closures.",
+                Table = "AccountingPeriods",
+                ApiEndpoint = "/api/v1/finance/periods",
+                Icon = "CalendarDays",
+                KeyField = "id"
+            }
         };
 
-        public Task<List<EntitySummaryDto>> GetDiscoverableEntitiesAsync(CancellationToken ct = default)
+        private static readonly HashSet<string> InternalTechnicalEntities = new(StringComparer.OrdinalIgnoreCase)
         {
-            return Task.FromResult(SystemEntities.ToList());
+            "IdentityUserRole", "IdentityUserClaim", "IdentityUserLogin", "IdentityUserToken",
+            "IdentityRoleClaim", "RolePermission", "UserPermission", "UserRole", "RefreshToken",
+            "EntityFieldValue", "UiPageVersion", "ApplicationDbContextModelSnapshot"
+        };
+
+        public async Task<List<EntitySummaryDto>> GetDiscoverableEntitiesAsync(CancellationToken ct = default)
+        {
+            var discovered = new Dictionary<string, EntitySummaryDto>(StringComparer.OrdinalIgnoreCase);
+
+            // 1. Reflect across ALL EF Core relational models in ApplicationDbContext
+            foreach (var entityType in _db.Model.GetEntityTypes())
+            {
+                var clrType = entityType.ClrType;
+                var entityName = clrType.Name;
+
+                if (InternalTechnicalEntities.Contains(entityName) || entityName.StartsWith("<>"))
+                {
+                    continue;
+                }
+
+                if (CuratedEntities.TryGetValue(entityName, out var curated))
+                {
+                    discovered[entityName] = curated;
+                }
+                else
+                {
+                    // Dynamically infer category from namespace
+                    var ns = clrType.Namespace ?? string.Empty;
+                    var category = "General";
+                    if (ns.Contains(".HRMS")) category = "HRMS";
+                    else if (ns.Contains(".Finance")) category = "Finance";
+                    else if (ns.Contains(".Sales")) category = "Sales";
+                    else if (ns.Contains(".Procurement")) category = "Procurement";
+                    else if (ns.Contains(".Inventory")) category = "Inventory";
+                    else if (ns.Contains(".Manufacturing")) category = "Manufacturing";
+                    else if (ns.Contains(".Projects")) category = "Projects";
+                    else if (ns.Contains(".Payroll")) category = "Payroll";
+                    else if (ns.Contains(".Assets")) category = "Assets";
+                    else if (ns.Contains(".CRM")) category = "CRM";
+                    else if (ns.Contains(".Administration")) category = "Administration";
+                    else if (ns.Contains(".Compliance")) category = "Compliance";
+
+                    var pk = entityType.FindPrimaryKey()?.Properties.FirstOrDefault()?.Name;
+                    var keyField = pk != null ? char.ToLowerInvariant(pk[0]) + pk.Substring(1) : "id";
+                    var tableName = entityType.GetTableName() ?? entityName;
+
+                    discovered[entityName] = new EntitySummaryDto
+                    {
+                        Name = entityName,
+                        DisplayName = HumanizeIdentifier(entityName),
+                        Category = category,
+                        Description = $"Dynamic, database-governed business registry for {HumanizeIdentifier(entityName)}.",
+                        Table = tableName,
+                        ApiEndpoint = $"/api/v1/dynamic-entities/{entityName}",
+                        Icon = InferIconForCategory(category),
+                        KeyField = keyField
+                    };
+                }
+            }
+
+            // 2. Reflect any tenant custom entities from EntityFieldDefinitions
+            try
+            {
+                var tenantId = _tenantAccessor.GetTenantId();
+                var customEntityNames = await _db.EntityFieldDefinitions
+                    .AsNoTracking()
+                    .Where(d => d.TenantId == tenantId && !d.IsDeleted)
+                    .Select(d => d.EntityName)
+                    .Distinct()
+                    .ToListAsync(ct);
+
+                foreach (var customName in customEntityNames)
+                {
+                    if (!discovered.ContainsKey(customName))
+                    {
+                        discovered[customName] = new EntitySummaryDto
+                        {
+                            Name = customName,
+                            DisplayName = HumanizeIdentifier(customName),
+                            Category = "Custom Objects",
+                            Description = $"Tenant custom business entity configured in runtime.",
+                            Table = "CustomEntityRecords",
+                            ApiEndpoint = $"/api/v1/dynamic-entities/{customName}",
+                            Icon = "Sparkles",
+                            KeyField = "id"
+                        };
+                    }
+                }
+            }
+            catch
+            {
+                // Graceful fallback if tenant context not ready
+            }
+
+            return discovered.Values
+                .OrderBy(e => e.Category)
+                .ThenBy(e => e.DisplayName)
+                .ToList();
         }
 
         public Task<List<EntityFieldMetaDto>> GetEntityFieldsAsync(string entityName, CancellationToken ct = default)
@@ -229,67 +387,100 @@ namespace UabIndia.Api.Services
 
             // Fetch tenant custom fields from EntityFieldDefinitions
             var tenantId = _tenantAccessor.GetTenantId();
-            var query = _db.EntityFieldDefinitions
-                .AsNoTracking()
-                .Where(d => d.TenantId == tenantId && d.EntityName.ToLower() == normalizedName.ToLower() && d.IsActive && !d.IsDeleted);
-
-            var customDefs = await query
-                .OrderBy(d => d.SortOrder)
-                .ToListAsync(ct);
-
-            var result = new List<EntityFieldMetaDto>(coreFields);
-            var sortIndex = coreFields.Count + 10;
-
-            foreach (var def in customDefs)
+            try
             {
-                List<SelectOptionDto>? options = null;
-                if (!string.IsNullOrWhiteSpace(def.OptionsJson))
+                var query = _db.EntityFieldDefinitions
+                    .AsNoTracking()
+                    .Where(d => d.TenantId == tenantId && d.EntityName.ToLower() == normalizedName.ToLower() && d.IsActive && !d.IsDeleted);
+
+                var customDefs = await query
+                    .OrderBy(d => d.SortOrder)
+                    .ToListAsync(ct);
+
+                var result = new List<EntityFieldMetaDto>(coreFields);
+                var sortIndex = coreFields.Count + 10;
+
+                foreach (var def in customDefs)
                 {
-                    try
+                    List<SelectOptionDto>? options = null;
+                    if (!string.IsNullOrWhiteSpace(def.OptionsJson))
                     {
-                        var rawOptions = JsonSerializer.Deserialize<List<string>>(def.OptionsJson);
-                        if (rawOptions != null)
+                        try
                         {
-                            options = rawOptions.Select(o => new SelectOptionDto { Value = o, Label = o }).ToList();
+                            var rawOptions = JsonSerializer.Deserialize<List<string>>(def.OptionsJson);
+                            if (rawOptions != null)
+                            {
+                                options = rawOptions.Select(o => new SelectOptionDto { Value = o, Label = o }).ToList();
+                            }
+                        }
+                        catch
+                        {
+                            // Ignore invalid JSON in options
                         }
                     }
-                    catch
+
+                    result.Add(new EntityFieldMetaDto
                     {
-                        // Fallback ignore invalid options
-                    }
+                        Key = def.FieldKey,
+                        Label = def.FieldLabel,
+                        Type = NormalizeFieldType(def.FieldType),
+                        IsRequired = def.IsRequired,
+                        IsReadOnly = false,
+                        IsCustom = true,
+                        Section = string.IsNullOrWhiteSpace(def.Section) ? "Custom Attributes" : def.Section,
+                        SortOrder = sortIndex++,
+                        Options = options,
+                    });
                 }
 
-                result.Add(new EntityFieldMetaDto
-                {
-                    Key = def.FieldKey,
-                    Label = def.FieldLabel,
-                    Type = NormalizeFieldType(def.FieldType),
-                    IsRequired = def.IsRequired,
-                    IsReadOnly = false,
-                    IsCustom = true,
-                    Section = string.IsNullOrWhiteSpace(def.Section) ? "Custom Attributes" : def.Section,
-                    SortOrder = sortIndex++,
-                    Options = options,
-                });
+                return result;
             }
-
-            return result;
+            catch
+            {
+                return coreFields;
+            }
         }
 
         public async Task<string> SynthesizePageSchemaJsonAsync(string entityName, string pageKey, Guid? companyId = null, Guid? projectId = null, CancellationToken ct = default)
         {
             var fields = await GetEntityFieldsAsync(entityName, companyId, projectId, ct);
-            var summary = SystemEntities.FirstOrDefault(e => e.Name.Equals(entityName, StringComparison.OrdinalIgnoreCase));
+            var discoverable = await GetDiscoverableEntitiesAsync(ct);
+            var summary = discoverable.FirstOrDefault(e => e.Name.Equals(entityName, StringComparison.OrdinalIgnoreCase));
 
             var title = summary?.DisplayName ?? HumanizeIdentifier(entityName);
             var subTitle = summary?.Description ?? $"Dynamic, database-governed registry for {title}.";
-            var apiEndpoint = summary?.ApiEndpoint ?? $"/api/v1/{entityName.ToLowerInvariant()}s";
+            var apiEndpoint = summary?.ApiEndpoint ?? $"/api/v1/dynamic-entities/{entityName}";
             var icon = summary?.Icon ?? "Layers";
 
-            // 1. Synthesize Columns (select top 8 non-textarea fields for default table visibility)
+            // 1. Synthesize Columns (filter technical and sensitive internal columns)
+            var technicalKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "accessfailedcount", "emailhash", "passwordhash", "concurrencystamp", "securitystamp",
+                "lockoutenabled", "lockoutend", "normalizedemail", "normalizedusername", "issystemadmin",
+                "businessid", "companyid", "tenantid", "twofactorenabled", "phonenumberconfirmed",
+                "emailconfirmed", "rowversion", "isdeleted", "createdby", "updatedby", "deletedby", "deletedat",
+                "passwordresettoken", "passwordresetexpires", "twofactorsecret", "refreshtoken", "refreshtokenexpiresat", "otp", "secret"
+            };
+
+            int ColumnPriority(string key)
+            {
+                var k = key.ToLowerInvariant();
+                if (k == "code" || k == "employeecode" || k == "invoicenumber" || k == "ordernumber") return 1;
+                if (k == "fullname" || k == "name" || k == "title") return 2;
+                if (k == "email" || k == "workemail") return 3;
+                if (k == "phone" || k == "phonenumber" || k == "mobile") return 4;
+                if (k == "role" || k == "roles" || k == "designation" || k == "department") return 5;
+                if (k == "status" || k == "isactive") return 6;
+                if (k.Contains("date") || k.Contains("at")) return 7;
+                if (k.Contains("amount") || k.Contains("price") || k.Contains("total") || k.Contains("rate") || k.Contains("salary")) return 8;
+                return 20;
+            }
+
             var columns = fields
-                .Where(f => f.Type != "textarea" && f.Type != "password")
-                .Take(10)
+                .Where(f => f.Type != "textarea" && f.Type != "password" && !technicalKeys.Contains(f.Key) && !f.Key.EndsWith("Id", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(f => ColumnPriority(f.Key))
+                .ThenBy(f => f.SortOrder)
+                .Take(8)
                 .Select((f, idx) => new
                 {
                     key = f.Key,
@@ -327,20 +518,21 @@ namespace UabIndia.Api.Services
                 });
             }
 
-            // 3. Synthesize Form Sections
+            // 3. Synthesize Form Sections with Enterprise Tab Ordering
             var groupedSections = fields
-                .GroupBy(f => string.IsNullOrWhiteSpace(f.Section) ? "General Details" : f.Section)
+                .GroupBy(f => string.IsNullOrWhiteSpace(f.Section) ? "General Information" : f.Section)
+                .OrderBy(g => GetSectionPriority(g.Key))
                 .Select(g => new
                 {
                     title = g.Key,
                     description = $"Configure {g.Key.ToLowerInvariant()} for this record.",
-                    fields = g.Select(f => new
+                    fields = g.OrderBy(f => f.SortOrder).Select(f => new
                     {
                         key = f.Key,
                         label = f.Label,
                         fieldType = f.Type,
                         required = f.IsRequired,
-                        placeholder = f.Placeholder ?? $"Enter {f.Label.ToLowerInvariant()}…",
+                        placeholder = f.Type == "boolean" ? null : (f.Placeholder ?? $"Enter {f.Label.ToLowerInvariant()}…"),
                         defaultValue = f.DefaultValue,
                         dependsOn = f.DependsOn,
                         filterParam = f.FilterParam,
@@ -405,7 +597,7 @@ namespace UabIndia.Api.Services
 
         private List<EntityFieldMetaDto> DiscoverFieldsFromEfCoreOrFallback(string entityName)
         {
-            // 1. Inspect EF Core relational model directly
+            // 1. Inspect EF Core relational model directly across ApplicationDbContext
             var efEntityType = _db.Model.GetEntityTypes()
                 .FirstOrDefault(t => t.ClrType.Name.Equals(entityName, StringComparison.OrdinalIgnoreCase));
 
@@ -417,7 +609,11 @@ namespace UabIndia.Api.Services
                 var excludedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
                     "Id", "TenantId", "IsDeleted", "CreatedAt", "CreatedBy", "UpdatedAt", "UpdatedBy",
-                    "RowVersion", "PasswordHash", "SecurityStamp", "ConcurrencyStamp"
+                    "DeletedAt", "DeletedBy", "RowVersion", "PasswordHash", "SecurityStamp", "ConcurrencyStamp",
+                    "AccessFailedCount", "LockoutEnabled", "LockoutEnd", "EmailHash", "NormalizedEmail",
+                    "NormalizedUserName", "TwoFactorEnabled", "PhoneNumberConfirmed", "EmailConfirmed",
+                    "IsSystemAdmin", "BusinessId", "CompanyId", "Claims", "Logins", "Tokens", "UserRoles",
+                    "PasswordResetToken", "PasswordResetExpires", "TwoFactorSecret", "RefreshToken", "RefreshTokenExpiresAt", "Otp", "Secret"
                 };
 
                 foreach (var prop in efEntityType.GetProperties())
@@ -429,6 +625,9 @@ namespace UabIndia.Api.Services
 
                     string fieldType;
                     List<SelectOptionDto>? options = null;
+                    string? lookupEndpoint = null;
+                    string? lookupValueKey = null;
+                    string? lookupLabelKey = null;
 
                     if (clrType == typeof(bool))
                     {
@@ -456,12 +655,38 @@ namespace UabIndia.Api.Services
                     }
                     else if (clrType == typeof(Guid))
                     {
-                        // Check if foreign key
-                        fieldType = prop.IsForeignKey() ? "lookup" : "text";
+                        if (prop.IsForeignKey())
+                        {
+                            fieldType = "lookup";
+                            var fk = efEntityType.GetForeignKeys().FirstOrDefault(f => f.Properties.Contains(prop));
+                            if (fk != null)
+                            {
+                                var principalName = fk.PrincipalEntityType.ClrType.Name;
+                                lookupEndpoint = CuratedEntities.TryGetValue(principalName, out var curated)
+                                    ? curated.ApiEndpoint
+                                    : $"/api/v1/dynamic-entities/{principalName}";
+                                lookupValueKey = "id";
+
+                                // Automatically identify appropriate label property on target entity
+                                var targetProps = fk.PrincipalEntityType.GetProperties();
+                                var nameProp = targetProps.FirstOrDefault(p =>
+                                    p.Name.Equals("Name", StringComparison.OrdinalIgnoreCase) ||
+                                    p.Name.Equals("Title", StringComparison.OrdinalIgnoreCase) ||
+                                    p.Name.Equals("FullName", StringComparison.OrdinalIgnoreCase) ||
+                                    p.Name.Equals("Code", StringComparison.OrdinalIgnoreCase));
+
+                                lookupLabelKey = nameProp != null
+                                    ? char.ToLowerInvariant(nameProp.Name[0]) + nameProp.Name.Substring(1)
+                                    : "name";
+                            }
+                        }
+                        else
+                        {
+                            fieldType = "text";
+                        }
                     }
                     else
                     {
-                        // String
                         var maxLen = prop.GetMaxLength();
                         if (nameLower.Contains("email")) fieldType = "email";
                         else if (nameLower.Contains("phone") || nameLower.Contains("mobile")) fieldType = "phone";
@@ -476,9 +701,13 @@ namespace UabIndia.Api.Services
 
                     var camelKey = char.ToLowerInvariant(prop.Name[0]) + prop.Name.Substring(1);
                     var section = "General Information";
-                    if (fieldType == "currency" || nameLower.Contains("gst") || nameLower.Contains("pan") || nameLower.Contains("bank") || nameLower.Contains("tax"))
+                    if (fieldType == "currency" || nameLower.Contains("gst") || nameLower.Contains("pan") || nameLower.Contains("bank") || nameLower.Contains("tax") || nameLower.Contains("iban") || nameLower.Contains("swift") || nameLower.Contains("routing") || nameLower.Contains("ifsc") || nameLower.Contains("currency") || nameLower.Contains("financialyear"))
                     {
                         section = "Financial & Statutory";
+                    }
+                    else if (nameLower.Contains("address") || nameLower.Contains("city") || nameLower.Contains("state") || nameLower.Contains("country") || nameLower.Contains("postal") || nameLower.Contains("zip") || nameLower.Contains("contact") || nameLower.Contains("phone") || nameLower.Contains("mobile") || nameLower.Contains("email") || nameLower.Contains("website") || nameLower.Contains("hr_") || nameLower.Contains("person"))
+                    {
+                        section = "Contact & Address";
                     }
                     else if (nameLower.Contains("department") || nameLower.Contains("designation") || nameLower.Contains("branch") || nameLower.Contains("location") || nameLower.Contains("company") || nameLower.Contains("manager"))
                     {
@@ -501,6 +730,9 @@ namespace UabIndia.Api.Services
                         Section = section,
                         SortOrder = sortIndex++,
                         Options = options,
+                        LookupEndpoint = lookupEndpoint,
+                        LookupValueKey = lookupValueKey,
+                        LookupLabelKey = lookupLabelKey
                     });
                 }
 
@@ -510,15 +742,34 @@ namespace UabIndia.Api.Services
                 }
             }
 
-            // 2. Fallback to hardcoded core catalog
-            return GetCoreFieldsForEntity(entityName);
+            // Universal dynamic baseline for non-EF entities
+            return new List<EntityFieldMetaDto>
+            {
+                new() { Key = "code", Label = "Code", Type = "text", IsRequired = true, Section = "General Information", SortOrder = 1, Placeholder = $"{entityName.ToUpperInvariant()}-001" },
+                new() { Key = "name", Label = "Name / Title", Type = "text", IsRequired = true, Section = "General Information", SortOrder = 2, Placeholder = $"Enter {HumanizeIdentifier(entityName)} name…" },
+                new() { Key = "description", Label = "Description", Type = "textarea", IsRequired = false, Section = "General Information", SortOrder = 3, Placeholder = "Add descriptive details…" },
+                new() { Key = "isActive", Label = "Active Status", Type = "boolean", IsRequired = true, Section = "General Information", SortOrder = 4, DefaultValue = "true" },
+            };
+        }
+
+        private static int GetSectionPriority(string section)
+        {
+            return section switch
+            {
+                "General Information" or "General Details" or "Identity" or "Basic Details" => 10,
+                "Contact & Address" or "Contact Details" or "Address & Operations" => 20,
+                "Financial & Statutory" or "Finance & Tax" or "Statutory" => 30,
+                "Deployment & Organization" or "Organization & Roles" => 40,
+                "Schedules & Timeline" or "Timeline" => 50,
+                "System & Settings" or "Audit & Settings" => 60,
+                _ => 100
+            };
         }
 
         private static string HumanizeIdentifier(string name)
         {
             if (string.IsNullOrWhiteSpace(name)) return string.Empty;
 
-            // Handle common acronyms
             var upper = name.ToUpperInvariant();
             if (upper == "GST" || upper == "GSTIN" || upper == "GSTNUMBER") return "GSTIN";
             if (upper == "PAN" || upper == "PANNUMBER") return "PAN Card";
@@ -528,16 +779,41 @@ namespace UabIndia.Api.Services
             if (upper == "UOM") return "Unit of Measure";
             if (upper == "CTC") return "Cost to Company (CTC)";
 
-            var sb = new System.Text.StringBuilder();
-            for (int i = 0; i < name.Length; i++)
+            // Normalize underscores and clean prefixes
+            var cleaned = name.Replace('_', ' ').Trim();
+            var words = System.Text.RegularExpressions.Regex.Replace(
+                cleaned,
+                @"(?<=[a-z])(?=[A-Z])|(?<=[A-Z]+)(?=[A-Z][a-z])",
+                " "
+            );
+
+            // Clean up acronyms like "H R" -> "HR", "P A N" -> "PAN"
+            words = System.Text.RegularExpressions.Regex.Replace(words, @"\bH\s+R\b", "HR", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            words = System.Text.RegularExpressions.Regex.Replace(words, @"\bI\s+D\b", "ID", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            words = System.Text.RegularExpressions.Regex.Replace(words, @"\bU\s+R\s+L\b", "URL", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            words = System.Text.RegularExpressions.Regex.Replace(words, @"\s+", " ").Trim();
+
+            return words;
+        }
+
+        private static string InferIconForCategory(string category)
+        {
+            return category switch
             {
-                if (i > 0 && char.IsUpper(name[i]) && (!char.IsUpper(name[i - 1]) || (i + 1 < name.Length && !char.IsUpper(name[i + 1]))))
-                {
-                    sb.Append(' ');
-                }
-                sb.Append(name[i]);
-            }
-            return sb.ToString().Trim();
+                "HRMS" => "Users",
+                "Finance" => "Receipt",
+                "Sales" => "ShoppingCart",
+                "Procurement" => "Truck",
+                "Inventory" => "Package",
+                "Manufacturing" => "Factory",
+                "Projects" => "Briefcase",
+                "Payroll" => "Calculator",
+                "Assets" => "Cpu",
+                "CRM" => "Target",
+                "Compliance" => "ShieldCheck",
+                "Organization" => "Building2",
+                _ => "Layers"
+            };
         }
 
         private static string NormalizeFieldType(string rawType)
@@ -555,191 +831,6 @@ namespace UabIndia.Api.Services
                 "lookup" => "lookup",
                 "status" or "badge" => "status",
                 _ => "text"
-            };
-        }
-
-        private static List<EntityFieldMetaDto> GetCoreFieldsForEntity(string entityName)
-        {
-            return entityName.ToLowerInvariant() switch
-            {
-                "employee" => new List<EntityFieldMetaDto>
-                {
-                    new() { Key = "employeeCode", Label = "Employee Code", Type = "text", IsRequired = true, Section = "Personal Details", SortOrder = 1, Placeholder = "EMP-0001" },
-                    new() { Key = "fullName", Label = "Full Name", Type = "text", IsRequired = true, Section = "Personal Details", SortOrder = 2, Placeholder = "First and Last Name" },
-                    new() { Key = "workEmail", Label = "Work Email", Type = "email", IsRequired = true, Section = "Personal Details", SortOrder = 3, Placeholder = "employee@company.com" },
-                    new() { Key = "phone", Label = "Phone Number", Type = "phone", IsRequired = false, Section = "Personal Details", SortOrder = 4, Placeholder = "+91 9876543210" },
-                    new() { Key = "gender", Label = "Gender", Type = "select", IsRequired = false, Section = "Personal Details", SortOrder = 5, Options = new() { new() { Value = "Male", Label = "Male" }, new() { Value = "Female", Label = "Female" }, new() { Value = "Other", Label = "Other" } } },
-                    new() { Key = "dateOfBirth", Label = "Date of Birth", Type = "date", IsRequired = false, Section = "Personal Details", SortOrder = 6 },
-                    new() { Key = "status", Label = "Employment Status", Type = "status", IsRequired = true, Section = "Employment", SortOrder = 10, DefaultValue = "Active", Options = new() { new() { Value = "Active", Label = "Active" }, new() { Value = "OnLeave", Label = "On Leave" }, new() { Value = "Inactive", Label = "Inactive" }, new() { Value = "Terminated", Label = "Terminated" } } },
-                    new() { Key = "employmentType", Label = "Employment Type", Type = "select", IsRequired = true, Section = "Employment", SortOrder = 11, DefaultValue = "Permanent", Options = new() { new() { Value = "Permanent", Label = "Permanent" }, new() { Value = "Contract", Label = "Contract" }, new() { Value = "Intern", Label = "Intern" }, new() { Value = "Probationary", Label = "Probationary" } } },
-                    new() { Key = "departmentId", Label = "Department", Type = "lookup", IsRequired = false, Section = "Employment", SortOrder = 12, LookupEndpoint = "/api/v1/lookup?type=departments", LookupValueKey = "id", LookupLabelKey = "name" },
-                    new() { Key = "designationId", Label = "Designation", Type = "lookup", IsRequired = false, Section = "Employment", SortOrder = 13, LookupEndpoint = "/api/v1/lookup?type=designations", LookupValueKey = "id", LookupLabelKey = "name" },
-                    new() { Key = "dateOfJoining", Label = "Date of Joining", Type = "date", IsRequired = true, Section = "Employment", SortOrder = 14 },
-                    new() { Key = "workLocation", Label = "Work Location", Type = "text", IsRequired = false, Section = "Employment", SortOrder = 15, Placeholder = "e.g. Bangalore Campus / Remote" },
-                    new() { Key = "monthlyCtc", Label = "Monthly CTC", Type = "currency", IsRequired = false, Section = "Compensation", SortOrder = 20, Placeholder = "₹ Monthly Gross" },
-                    new() { Key = "basicSalary", Label = "Basic Salary", Type = "currency", IsRequired = false, Section = "Compensation", SortOrder = 21, Placeholder = "₹ Basic Monthly" },
-                    new() { Key = "pan", Label = "PAN Card", Type = "text", IsRequired = false, Section = "Statutory & Compliance", SortOrder = 30, Placeholder = "ABCDE1234F" },
-                    new() { Key = "uan", Label = "UAN Number", Type = "text", IsRequired = false, Section = "Statutory & Compliance", SortOrder = 31, Placeholder = "Universal Account Number" },
-                    new() { Key = "esiNumber", Label = "ESI Number", Type = "text", IsRequired = false, Section = "Statutory & Compliance", SortOrder = 32 },
-                    new() { Key = "bankName", Label = "Bank Name", Type = "text", IsRequired = false, Section = "Banking Details", SortOrder = 40, Placeholder = "e.g. HDFC Bank" },
-                    new() { Key = "bankAccountNumber", Label = "Bank Account No.", Type = "text", IsRequired = false, Section = "Banking Details", SortOrder = 41 },
-                    new() { Key = "bankIfsc", Label = "IFSC Code", Type = "text", IsRequired = false, Section = "Banking Details", SortOrder = 42, Placeholder = "HDFC0001234" },
-                },
-
-                "department" => new List<EntityFieldMetaDto>
-                {
-                    new() { Key = "code", Label = "Department Code", Type = "text", IsRequired = true, Section = "General", SortOrder = 1, Placeholder = "DEP-01" },
-                    new() { Key = "name", Label = "Department Name", Type = "text", IsRequired = true, Section = "General", SortOrder = 2, Placeholder = "e.g. Engineering, Sales" },
-                    new() { Key = "description", Label = "Description", Type = "textarea", IsRequired = false, Section = "General", SortOrder = 3 },
-                    new() { Key = "isActive", Label = "Active Status", Type = "boolean", IsRequired = true, Section = "General", SortOrder = 4, DefaultValue = "true" },
-                },
-
-                "designation" => new List<EntityFieldMetaDto>
-                {
-                    new() { Key = "code", Label = "Designation Code", Type = "text", IsRequired = true, Section = "General", SortOrder = 1, Placeholder = "DES-01" },
-                    new() { Key = "name", Label = "Designation Title", Type = "text", IsRequired = true, Section = "General", SortOrder = 2, Placeholder = "e.g. Senior Software Engineer" },
-                    new() { Key = "level", Label = "Job Band / Level", Type = "text", IsRequired = false, Section = "General", SortOrder = 3, Placeholder = "L3 / Mid-Senior" },
-                    new() { Key = "description", Label = "Description", Type = "textarea", IsRequired = false, Section = "General", SortOrder = 4 },
-                    new() { Key = "isActive", Label = "Active Status", Type = "boolean", IsRequired = true, Section = "General", SortOrder = 5, DefaultValue = "true" },
-                },
-
-                "project" => new List<EntityFieldMetaDto>
-                {
-                    new() { Key = "code", Label = "Project Code", Type = "text", IsRequired = true, Section = "General", SortOrder = 1, Placeholder = "PRJ-001" },
-                    new() { Key = "name", Label = "Project Name", Type = "text", IsRequired = true, Section = "General", SortOrder = 2, Placeholder = "Client Implementation" },
-                    new() { Key = "clientName", Label = "Client Name", Type = "text", IsRequired = false, Section = "General", SortOrder = 3 },
-                    new() { Key = "status", Label = "Status", Type = "status", IsRequired = true, Section = "Schedule & Budget", SortOrder = 10, DefaultValue = "Active", Options = new() { new() { Value = "Planning", Label = "Planning" }, new() { Value = "Active", Label = "Active" }, new() { Value = "OnHold", Label = "On Hold" }, new() { Value = "Completed", Label = "Completed" } } },
-                    new() { Key = "startDate", Label = "Start Date", Type = "date", IsRequired = false, Section = "Schedule & Budget", SortOrder = 11 },
-                    new() { Key = "endDate", Label = "End Date", Type = "date", IsRequired = false, Section = "Schedule & Budget", SortOrder = 12 },
-                    new() { Key = "budget", Label = "Project Budget", Type = "currency", IsRequired = false, Section = "Schedule & Budget", SortOrder = 13 },
-                },
-
-                "shift" => new List<EntityFieldMetaDto>
-                {
-                    new() { Key = "code", Label = "Shift Code", Type = "text", IsRequired = true, Section = "General", SortOrder = 1, Placeholder = "SH-MORNING" },
-                    new() { Key = "name", Label = "Shift Name", Type = "text", IsRequired = true, Section = "General", SortOrder = 2, Placeholder = "General Morning Shift" },
-                    new() { Key = "startTime", Label = "Start Time", Type = "text", IsRequired = true, Section = "Timing & Rules", SortOrder = 3, Placeholder = "09:00" },
-                    new() { Key = "endTime", Label = "End Time", Type = "text", IsRequired = true, Section = "Timing & Rules", SortOrder = 4, Placeholder = "18:00" },
-                    new() { Key = "gracePeriodMinutes", Label = "Grace Period (Mins)", Type = "number", IsRequired = false, Section = "Timing & Rules", SortOrder = 5, DefaultValue = "15" },
-                    new() { Key = "isActive", Label = "Active Status", Type = "boolean", IsRequired = true, Section = "General", SortOrder = 6, DefaultValue = "true" },
-                },
-
-                "leave" => new List<EntityFieldMetaDto>
-                {
-                    new() { Key = "employeeId", Label = "Employee", Type = "lookup", IsRequired = true, Section = "Request Details", SortOrder = 1, LookupEndpoint = "/api/v1/lookup?type=employees", LookupValueKey = "id", LookupLabelKey = "name" },
-                    new() { Key = "leaveType", Label = "Leave Type", Type = "select", IsRequired = true, Section = "Request Details", SortOrder = 2, Options = new() { new() { Value = "Paid", Label = "Paid / Privilege Leave" }, new() { Value = "Casual", Label = "Casual Leave" }, new() { Value = "Sick", Label = "Sick Leave" }, new() { Value = "Unpaid", Label = "Leave Without Pay" } } },
-                    new() { Key = "startDate", Label = "Start Date", Type = "date", IsRequired = true, Section = "Request Details", SortOrder = 3 },
-                    new() { Key = "endDate", Label = "End Date", Type = "date", IsRequired = true, Section = "Request Details", SortOrder = 4 },
-                    new() { Key = "reason", Label = "Reason for Leave", Type = "textarea", IsRequired = false, Section = "Request Details", SortOrder = 5 },
-                    new() { Key = "status", Label = "Status", Type = "status", IsRequired = true, Section = "Approval", SortOrder = 10, DefaultValue = "Pending", Options = new() { new() { Value = "Pending", Label = "Pending" }, new() { Value = "Approved", Label = "Approved" }, new() { Value = "Rejected", Label = "Rejected" } } },
-                },
-
-                "attendance" => new List<EntityFieldMetaDto>
-                {
-                    new() { Key = "employeeId", Label = "Employee", Type = "lookup", IsRequired = true, Section = "Punch Record", SortOrder = 1, LookupEndpoint = "/api/v1/lookup?type=employees", LookupValueKey = "id", LookupLabelKey = "name" },
-                    new() { Key = "punchDate", Label = "Punch Date", Type = "date", IsRequired = true, Section = "Punch Record", SortOrder = 2 },
-                    new() { Key = "checkInTime", Label = "Check-In Time", Type = "text", IsRequired = false, Section = "Punch Record", SortOrder = 3 },
-                    new() { Key = "checkOutTime", Label = "Check-Out Time", Type = "text", IsRequired = false, Section = "Punch Record", SortOrder = 4 },
-                    new() { Key = "status", Label = "Day Status", Type = "status", IsRequired = true, Section = "Punch Record", SortOrder = 5, DefaultValue = "Present", Options = new() { new() { Value = "Present", Label = "Present" }, new() { Value = "Absent", Label = "Absent" }, new() { Value = "Late", Label = "Late" }, new() { Value = "HalfDay", Label = "Half Day" } } },
-                },
-
-                "branch" => new List<EntityFieldMetaDto>
-                {
-                    new() { Key = "code", Label = "Branch Code", Type = "text", IsRequired = true, Section = "General", SortOrder = 1, Placeholder = "BR-01" },
-                    new() { Key = "name", Label = "Branch Name", Type = "text", IsRequired = true, Section = "General", SortOrder = 2, Placeholder = "Mumbai Regional Office" },
-                    new() { Key = "city", Label = "City", Type = "text", IsRequired = false, Section = "Location", SortOrder = 3 },
-                    new() { Key = "state", Label = "State", Type = "text", IsRequired = false, Section = "Location", SortOrder = 4 },
-                    new() { Key = "gstin", Label = "Branch GSTIN", Type = "text", IsRequired = false, Section = "Location", SortOrder = 5 },
-                    new() { Key = "isActive", Label = "Is Active", Type = "boolean", IsRequired = true, Section = "General", SortOrder = 6, DefaultValue = "true" },
-                },
-
-                "businessunit" => new List<EntityFieldMetaDto>
-                {
-                    new() { Key = "code", Label = "BU Code", Type = "text", IsRequired = true, Section = "General", SortOrder = 1, Placeholder = "BU-TECH" },
-                    new() { Key = "name", Label = "Business Unit Title", Type = "text", IsRequired = true, Section = "General", SortOrder = 2, Placeholder = "Cloud Solutions" },
-                    new() { Key = "description", Label = "Description", Type = "textarea", IsRequired = false, Section = "General", SortOrder = 3 },
-                    new() { Key = "isActive", Label = "Is Active", Type = "boolean", IsRequired = true, Section = "General", SortOrder = 4, DefaultValue = "true" },
-                },
-
-                "costcenter" => new List<EntityFieldMetaDto>
-                {
-                    new() { Key = "code", Label = "Cost Center Code", Type = "text", IsRequired = true, Section = "General", SortOrder = 1, Placeholder = "CC-RND" },
-                    new() { Key = "name", Label = "Cost Center Name", Type = "text", IsRequired = true, Section = "General", SortOrder = 2, Placeholder = "R&D Software Labs" },
-                    new() { Key = "costCenterType", Label = "Type", Type = "select", IsRequired = false, Section = "General", SortOrder = 3, Options = new() { new() { Value = "Cost Center", Label = "Cost Center" }, new() { Value = "Profit Center", Label = "Profit Center" }, new() { Value = "Revenue Center", Label = "Revenue Center" } } },
-                    new() { Key = "isActive", Label = "Is Active", Type = "boolean", IsRequired = true, Section = "General", SortOrder = 4, DefaultValue = "true" },
-                },
-
-                "company" => new List<EntityFieldMetaDto>
-                {
-                    new() { Key = "name", Label = "Company Name", Type = "text", IsRequired = true, Section = "Corporate Identity", SortOrder = 1, Placeholder = "UAB India Private Limited" },
-                    new() { Key = "legalName", Label = "Legal Registered Name", Type = "text", IsRequired = false, Section = "Corporate Identity", SortOrder = 2 },
-                    new() { Key = "gstin", Label = "Corporate GSTIN", Type = "text", IsRequired = false, Section = "Statutory", SortOrder = 3, Placeholder = "27AAAAA0000A1Z5" },
-                    new() { Key = "pan", Label = "Company PAN", Type = "text", IsRequired = false, Section = "Statutory", SortOrder = 4 },
-                    new() { Key = "cin", Label = "Corporate CIN", Type = "text", IsRequired = false, Section = "Statutory", SortOrder = 5 },
-                    new() { Key = "city", Label = "City", Type = "text", IsRequired = false, Section = "Registered Address", SortOrder = 6 },
-                    new() { Key = "state", Label = "State", Type = "text", IsRequired = false, Section = "Registered Address", SortOrder = 7 },
-                },
-
-                "customer" => new List<EntityFieldMetaDto>
-                {
-                    new() { Key = "code", Label = "Customer Code", Type = "text", IsRequired = true, Section = "Account Details", SortOrder = 1, Placeholder = "CUST-001" },
-                    new() { Key = "name", Label = "Customer Name / Org", Type = "text", IsRequired = true, Section = "Account Details", SortOrder = 2, Placeholder = "Acme Corp Ltd" },
-                    new() { Key = "email", Label = "Billing Email", Type = "email", IsRequired = false, Section = "Account Details", SortOrder = 3 },
-                    new() { Key = "phone", Label = "Contact Phone", Type = "phone", IsRequired = false, Section = "Account Details", SortOrder = 4 },
-                    new() { Key = "gstin", Label = "GST Number", Type = "text", IsRequired = false, Section = "Billing & Tax", SortOrder = 5, Placeholder = "GSTIN" },
-                    new() { Key = "city", Label = "City", Type = "text", IsRequired = false, Section = "Billing & Tax", SortOrder = 6 },
-                    new() { Key = "status", Label = "Account Status", Type = "status", IsRequired = true, Section = "Account Details", SortOrder = 7, DefaultValue = "Active", Options = new() { new() { Value = "Active", Label = "Active" }, new() { Value = "Inactive", Label = "Inactive" } } },
-                },
-
-                "vendor" => new List<EntityFieldMetaDto>
-                {
-                    new() { Key = "code", Label = "Vendor Code", Type = "text", IsRequired = true, Section = "Vendor Profile", SortOrder = 1, Placeholder = "VEND-001" },
-                    new() { Key = "name", Label = "Vendor Name", Type = "text", IsRequired = true, Section = "Vendor Profile", SortOrder = 2, Placeholder = "Supplier Enterprises" },
-                    new() { Key = "email", Label = "Contact Email", Type = "email", IsRequired = false, Section = "Vendor Profile", SortOrder = 3 },
-                    new() { Key = "phone", Label = "Phone", Type = "phone", IsRequired = false, Section = "Vendor Profile", SortOrder = 4 },
-                    new() { Key = "gstin", Label = "Vendor GSTIN", Type = "text", IsRequired = false, Section = "Commercial & Terms", SortOrder = 5 },
-                    new() { Key = "paymentTerms", Label = "Payment Terms", Type = "select", IsRequired = false, Section = "Commercial & Terms", SortOrder = 6, Options = new() { new() { Value = "Net 15", Label = "Net 15 Days" }, new() { Value = "Net 30", Label = "Net 30 Days" }, new() { Value = "Immediate", Label = "Immediate / Advance" } } },
-                    new() { Key = "status", Label = "Status", Type = "status", IsRequired = true, Section = "Vendor Profile", SortOrder = 7, DefaultValue = "Active", Options = new() { new() { Value = "Active", Label = "Active" }, new() { Value = "Blacklisted", Label = "Blacklisted" } } },
-                },
-
-                "item" => new List<EntityFieldMetaDto>
-                {
-                    new() { Key = "code", Label = "Item SKU Code", Type = "text", IsRequired = true, Section = "Item Master", SortOrder = 1, Placeholder = "SKU-1001" },
-                    new() { Key = "name", Label = "Item Name", Type = "text", IsRequired = true, Section = "Item Master", SortOrder = 2, Placeholder = "Office Ergonomic Desk" },
-                    new() { Key = "category", Label = "Item Category", Type = "text", IsRequired = false, Section = "Item Master", SortOrder = 3 },
-                    new() { Key = "hsnCode", Label = "HSN / SAC Code", Type = "text", IsRequired = false, Section = "Valuation & Tax", SortOrder = 4 },
-                    new() { Key = "standardRate", Label = "Standard Unit Price", Type = "currency", IsRequired = false, Section = "Valuation & Tax", SortOrder = 5, Placeholder = "₹ Unit Rate" },
-                    new() { Key = "unitOfMeasure", Label = "UOM", Type = "select", IsRequired = true, Section = "Item Master", SortOrder = 6, DefaultValue = "Pcs", Options = new() { new() { Value = "Pcs", Label = "Pieces (Pcs)" }, new() { Value = "Kg", Label = "Kilograms (Kg)" }, new() { Value = "Box", Label = "Boxes (Box)" }, new() { Value = "Meter", Label = "Meters (M)" } } },
-                    new() { Key = "isActive", Label = "Is Active", Type = "boolean", IsRequired = true, Section = "Item Master", SortOrder = 7, DefaultValue = "true" },
-                },
-
-                "warehouse" => new List<EntityFieldMetaDto>
-                {
-                    new() { Key = "code", Label = "Warehouse Code", Type = "text", IsRequired = true, Section = "Facility Details", SortOrder = 1, Placeholder = "WH-CENTRAL" },
-                    new() { Key = "name", Label = "Warehouse Name", Type = "text", IsRequired = true, Section = "Facility Details", SortOrder = 2, Placeholder = "Central Depot Warehouse" },
-                    new() { Key = "city", Label = "City", Type = "text", IsRequired = false, Section = "Location", SortOrder = 3 },
-                    new() { Key = "state", Label = "State", Type = "text", IsRequired = false, Section = "Location", SortOrder = 4 },
-                    new() { Key = "isActive", Label = "Is Active", Type = "boolean", IsRequired = true, Section = "Facility Details", SortOrder = 5, DefaultValue = "true" },
-                },
-
-                "invoice" => new List<EntityFieldMetaDto>
-                {
-                    new() { Key = "invoiceNumber", Label = "Invoice Number", Type = "text", IsRequired = true, Section = "Invoice Header", SortOrder = 1, Placeholder = "INV-2026-001" },
-                    new() { Key = "invoiceDate", Label = "Invoice Date", Type = "date", IsRequired = true, Section = "Invoice Header", SortOrder = 2 },
-                    new() { Key = "dueDate", Label = "Due Date", Type = "date", IsRequired = false, Section = "Invoice Header", SortOrder = 3 },
-                    new() { Key = "customerName", Label = "Customer", Type = "text", IsRequired = true, Section = "Invoice Header", SortOrder = 4 },
-                    new() { Key = "totalAmount", Label = "Total Invoice Amount", Type = "currency", IsRequired = true, Section = "Financials", SortOrder = 5 },
-                    new() { Key = "taxAmount", Label = "Tax (GST)", Type = "currency", IsRequired = false, Section = "Financials", SortOrder = 6 },
-                    new() { Key = "status", Label = "Invoice Status", Type = "status", IsRequired = true, Section = "Financials", SortOrder = 7, DefaultValue = "Unpaid", Options = new() { new() { Value = "Draft", Label = "Draft" }, new() { Value = "Sent", Label = "Sent" }, new() { Value = "Paid", Label = "Paid" }, new() { Value = "Overdue", Label = "Overdue" } } },
-                },
-
-                _ => new List<EntityFieldMetaDto>
-                {
-                    new() { Key = "code", Label = "Code", Type = "text", IsRequired = true, Section = "General", SortOrder = 1 },
-                    new() { Key = "name", Label = "Name", Type = "text", IsRequired = true, Section = "General", SortOrder = 2 },
-                    new() { Key = "description", Label = "Description", Type = "textarea", IsRequired = false, Section = "General", SortOrder = 3 },
-                    new() { Key = "isActive", Label = "Is Active", Type = "boolean", IsRequired = true, Section = "General", SortOrder = 4, DefaultValue = "true" },
-                }
             };
         }
     }

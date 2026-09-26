@@ -12,5 +12,7 @@ namespace UabIndia.Api.Services
         Task<DashboardSchemaDto> GetDashboardSchemaAsync(ISet<string> enabledModuleKeys);
         Task<PageSchemaDto?> GetPageSchemaAsync(string pageKey);
         Task<List<ModuleMetaDto>> GetRichEnabledModulesAsync(Guid tenantId);
+        Task<UiShellConfigDto> GetShellConfigAsync(Guid tenantId);
+        Task<bool> SaveShellConfigAsync(Guid tenantId, UiShellConfigDto config);
     }
 }

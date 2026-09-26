@@ -56,7 +56,44 @@ export type ErpListBulkAction = {
   onClick: (rowIds: string[]) => void;
 };
 
-const SKIP_DISCOVER = new Set(["id", "key", "tenantId", "companyId", "projectId", "isDeleted", "createdBy", "updatedBy"]);
+const SKIP_DISCOVER = new Set([
+  "id",
+  "key",
+  "tenantid",
+  "companyid",
+  "projectid",
+  "businessid",
+  "isdeleted",
+  "createdby",
+  "updatedby",
+  "deletedby",
+  "deletedat",
+  "accessfailedcount",
+  "concurrencystamp",
+  "securitystamp",
+  "passwordhash",
+  "emailhash",
+  "lockoutenabled",
+  "lockoutend",
+  "normalizedemail",
+  "normalizedusername",
+  "issystemadmin",
+  "twofactorenabled",
+  "phonenumberconfirmed",
+  "emailconfirmed",
+  "rowversion",
+  "passwordresettoken",
+  "passwordresetexpires",
+  "twofactorsecret",
+  "refreshtoken",
+  "refreshtokenexpiresat",
+  "otp",
+  "secret",
+  "salt",
+  "connectionstring",
+  "apisecret",
+  "privatekey",
+]);
 
 export function slugListColumnKey(label: string) {
   const words = label
@@ -104,7 +141,7 @@ export function discoverRowColumns<T>(rows: T[], declared: ErpListColumn[]): Erp
   if (!sample) return declared;
 
   for (const key of Object.keys(sample)) {
-    if (SKIP_DISCOVER.has(key) || known.has(key.toLowerCase())) continue;
+    if (SKIP_DISCOVER.has(key.toLowerCase()) || known.has(key.toLowerCase())) continue;
     const value = sample[key];
     if (value != null && typeof value === "object" && !Array.isArray(value) && !(value instanceof Date)) continue;
     extras.push({
@@ -132,12 +169,22 @@ export function getRowFieldValue<T>(row: T, key: string): unknown {
 export function formatListCell(value: unknown, dataType?: ErpListColumn["dataType"]): string {
   if (value == null || value === "") return "—";
   if (typeof value === "boolean") return value ? "Yes" : "No";
-  if (dataType === "currency" && typeof value === "number") return `₹${value.toLocaleString("en-IN")}`;
+  if (dataType === "currency") {
+    const num = typeof value === "number" ? value : parseFloat(String(value).replace(/[^0-9.-]+/g, ""));
+    if (!Number.isNaN(num)) return `₹${num.toLocaleString("en-IN")}`;
+  }
   if (dataType === "date" || (typeof value === "string" && /^\d{4}-\d{2}-\d{2}/.test(value))) {
     const date = new Date(String(value));
     return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString("en-IN");
   }
   if (Array.isArray(value)) return value.map((item) => String(item)).join(", ");
+  if (typeof value === "object" && value !== null) {
+    const obj = value as Record<string, unknown>;
+    if (typeof obj.name === "string") return obj.name;
+    if (typeof obj.label === "string") return obj.label;
+    if (typeof obj.title === "string") return obj.title;
+    if (typeof obj.code === "string") return obj.code;
+  }
   return String(value);
 }
 

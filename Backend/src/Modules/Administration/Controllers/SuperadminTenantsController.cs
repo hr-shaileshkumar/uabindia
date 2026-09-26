@@ -38,7 +38,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
 
     [ApiController]
     [Route("api/v1/superadmin/tenants")]
-    [Authorize]
+    [Authorize(Policy = "SuperAdminOnly")]
     public class SuperadminTenantsController : ControllerBase
     {
         private readonly ApplicationDbContext _db;
@@ -50,6 +50,26 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             _provisioningService = provisioningService;
         }
 
+        private bool IsAuthorizedPlatformAdmin()
+        {
+            if (User.HasClaim("is_system_admin", "true"))
+            {
+                return true;
+            }
+
+            var isSysAdminClaim = User.FindFirst("is_system_admin")?.Value;
+            if (string.Equals(isSysAdminClaim, "true", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            var roleClaims = User.Claims
+                .Where(c => c.Type.EndsWith("/role", StringComparison.OrdinalIgnoreCase) || c.Type.EndsWith("role", StringComparison.OrdinalIgnoreCase))
+                .Select(c => c.Value);
+
+            return RoleCatalog.HasAnyRole(roleClaims, SystemRole.SuperAdmin);
+        }
+
         [HttpGet]
         public async Task<IActionResult> ListTenants(
             [FromQuery] int page = 1,
@@ -57,6 +77,11 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             [FromQuery] string? search = null,
             [FromQuery] string? status = null)
         {
+            if (!IsAuthorizedPlatformAdmin())
+            {
+                return Forbid();
+            }
+
             if (page < 1) page = 1;
             if (limit < 1) limit = 20;
 
@@ -92,9 +117,13 @@ namespace UabIndia.Api.Modules.Administration.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "SUPERADMIN,SuperAdmin,ADMIN,Admin")]
         public async Task<IActionResult> CreateTenant([FromBody] ProvisionSuperadminTenantDto dto)
         {
+            if (!IsAuthorizedPlatformAdmin())
+            {
+                return Forbid();
+            }
+
             if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Subdomain) || string.IsNullOrWhiteSpace(dto.AdminEmail))
             {
                 return BadRequest(new { success = false, error = "Tenant name, subdomain, and admin email are required" });
@@ -126,9 +155,13 @@ namespace UabIndia.Api.Modules.Administration.Controllers
         }
 
         [HttpPatch("{id}/status")]
-        [Authorize(Roles = "SUPERADMIN,SuperAdmin,ADMIN,Admin")]
         public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateTenantStatusDto dto)
         {
+            if (!IsAuthorizedPlatformAdmin())
+            {
+                return Forbid();
+            }
+
             var tenant = await _db.Tenants.IgnoreQueryFilters().FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
             if (tenant == null)
             {

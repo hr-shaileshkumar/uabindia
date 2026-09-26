@@ -13,7 +13,7 @@ namespace UabIndia.Identity.Services
         private readonly IConfiguration _config;
         public JwtService(IConfiguration config) { _config = config; }
 
-        public string GenerateToken(Guid userId, Guid tenantId, string[] roles, TimeSpan expires)
+        public string GenerateToken(Guid userId, Guid tenantId, string[] roles, TimeSpan expires, bool isSystemAdmin = false)
         {
             var keyValue = _config["Jwt:Key"];
             if (string.IsNullOrWhiteSpace(keyValue))
@@ -30,11 +30,16 @@ namespace UabIndia.Identity.Services
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyValue));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            var baseClaims = new[]
+            var baseClaims = new System.Collections.Generic.List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
                 new Claim("tenant_id", tenantId.ToString())
             };
+
+            if (isSystemAdmin)
+            {
+                baseClaims.Add(new Claim("is_system_admin", "true"));
+            }
 
             var roleClaims = (roles ?? Array.Empty<string>()).Select(r => new Claim(ClaimTypes.Role, r));
             var claims = baseClaims.Concat(roleClaims);

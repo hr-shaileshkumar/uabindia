@@ -69,7 +69,7 @@ namespace UabIndia.Api.Services
 
             var now = DateTime.UtcNow;
             var pendingEvents = await db.OutboxMessages
-                .Where(m => !m.IsProcessed && m.RetryCount < MaxRetries)
+                .Where(m => !m.IsProcessed && m.RetryCount < MaxRetries && (m.NextRetryUtc == null || m.NextRetryUtc <= now))
                 .OrderBy(m => m.OccurredAtUtc)
                 .Take(BatchSize)
                 .ToListAsync(cancellationToken);
@@ -90,6 +90,7 @@ namespace UabIndia.Api.Services
                     // Mark successfully processed
                     evt.IsProcessed = true;
                     evt.ProcessedAtUtc = DateTime.UtcNow;
+                    evt.NextRetryUtc = null;
                     evt.Error = null;
                 }
                 catch (Exception ex)
@@ -98,12 +99,15 @@ namespace UabIndia.Api.Services
                     if (evt.RetryCount >= MaxRetries)
                     {
                         evt.Error = $"[DEAD_LETTER_EXHAUSTED] Max {MaxRetries} retries reached. Reason: {ex.Message}";
+                        evt.NextRetryUtc = null;
                         _logger.LogCritical(ex, "Outbox event {EventType} (ID: {Id}) moved to dead-letter state after {Retries} attempts.", evt.EventType, evt.Id, evt.RetryCount);
                     }
                     else
                     {
+                        var backoffSeconds = (int)Math.Min(Math.Pow(2, evt.RetryCount) * 5, 1800);
+                        evt.NextRetryUtc = DateTime.UtcNow.AddSeconds(backoffSeconds);
                         evt.Error = $"[Attempt {evt.RetryCount}/{MaxRetries}] {ex.Message}";
-                        _logger.LogWarning(ex, "Failed attempt {Attempt} for outbox event {EventType} (ID: {Id}). Will retry.", evt.RetryCount, evt.EventType, evt.Id);
+                        _logger.LogWarning(ex, "Failed attempt {Attempt} for outbox event {EventType} (ID: {Id}). Scheduled retry in {Backoff}s.", evt.RetryCount, evt.EventType, evt.Id, backoffSeconds);
                     }
                 }
             }

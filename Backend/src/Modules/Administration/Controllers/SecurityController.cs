@@ -32,12 +32,14 @@ namespace UabIndia.Api.Modules.Administration.Controllers
         }
 
         [HttpGet("device-sessions")]
+        [HttpGet("sessions")]
+        [HttpGet("/api/v1/security/sessions")]
         public async Task<IActionResult> DeviceSessions()
         {
             var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (!Guid.TryParse(userIdClaim, out var userId))
             {
-                return Ok(new { sessions = Array.Empty<DeviceSessionDto>() });
+                return Ok(new { data = Array.Empty<DeviceSessionDto>(), sessions = Array.Empty<DeviceSessionDto>() });
             }
 
             var data = await _db.RefreshTokens
@@ -53,16 +55,19 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(new { sessions = data });
+            return Ok(new { data = data, items = data, sessions = data, total = data.Count });
         }
 
         // ===== PASSWORD POLICY =====
 
         [HttpGet("password-policy")]
+        [HttpGet("password-policies")]
+        [HttpGet("/api/v1/security/password-policies")]
         public async Task<IActionResult> PasswordPolicy()
         {
             var policy = await EnsurePolicyAsync();
-            return Ok(MapPassword(policy));
+            var mapped = MapPassword(policy);
+            return Ok(new { data = new[] { mapped }, policy = mapped });
         }
 
         [HttpPut("password-policy")]
@@ -112,12 +117,14 @@ namespace UabIndia.Api.Modules.Administration.Controllers
         }
 
         [HttpGet("mfa-enrollments")]
+        [HttpGet("mfa")]
+        [HttpGet("/api/v1/security/mfa")]
         public async Task<IActionResult> MfaEnrollments()
         {
             var rows = await _db.MfaEnrollments.AsNoTracking()
                 .OrderByDescending(e => e.CreatedAt)
                 .ToListAsync();
-            return Ok(rows);
+            return Ok(new { data = rows, items = rows, total = rows.Count });
         }
 
         [HttpGet("directory-users")]
@@ -197,12 +204,15 @@ namespace UabIndia.Api.Modules.Administration.Controllers
         // ===== SSO =====
 
         [HttpGet("sso-providers")]
+        [HttpGet("sso")]
+        [HttpGet("/api/v1/security/sso")]
         public async Task<IActionResult> SsoProviders()
         {
             var rows = await _db.SsoIdentityProviders.AsNoTracking()
                 .OrderByDescending(p => p.CreatedAt)
                 .ToListAsync();
-            return Ok(rows.Select(MapSso));
+            var list = rows.Select(MapSso).ToList();
+            return Ok(new { data = list, items = list, total = list.Count });
         }
 
         [HttpPost("sso-providers")]
@@ -317,12 +327,14 @@ namespace UabIndia.Api.Modules.Administration.Controllers
         // ===== IP RULES =====
 
         [HttpGet("ip-rules")]
+        [HttpGet("ip-restrictions")]
+        [HttpGet("/api/v1/security/ip-restrictions")]
         public async Task<IActionResult> IpRules()
         {
             var rows = await _db.IpAccessRules.AsNoTracking()
                 .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync();
-            return Ok(rows);
+            return Ok(new { data = rows, items = rows, total = rows.Count });
         }
 
         [HttpPost("ip-rules")]

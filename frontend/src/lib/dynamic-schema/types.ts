@@ -23,7 +23,25 @@ export type DynamicFieldType =
   | "email"
   | "url"
   | "password"
-  | "file";
+  | "image"
+  | "file"
+  | "radio"
+  | "multiselect"
+  | "richtext"
+  | "rating"
+  | "formula"
+  | "signature"
+  | "gps"
+  | "custom";
+
+export interface DynamicConditionalRules {
+  visibleWhen?: string;
+  requiredWhen?: string;
+  readonlyWhen?: string;
+  disabledWhen?: string;
+  defaultWhen?: string;
+  validationWhen?: string;
+}
 
 export interface DynamicSelectOption {
   value: string;
@@ -40,6 +58,7 @@ export interface DynamicFormField {
   defaultValue?: any;
   helpText?: string;
   sortOrder?: number;
+  colSpan?: 1 | 2 | 3 | 4; // Visual Drag & Drop grid column span
   options?: DynamicSelectOption[];
   optionsEndpoint?: string;
   lookupValueKey?: string;
@@ -47,6 +66,12 @@ export interface DynamicFormField {
   dependsOn?: string; // Parent field key for cascading lookups (e.g. "stateId")
   filterParam?: string; // Query param name sent to optionsEndpoint (defaults to dependsOn)
   isCustom?: boolean;
+  conditionalRules?: DynamicConditionalRules;
+  security?: {
+    maskType?: "none" | "full" | "partial" | "lastFour";
+    restrictedRoles?: string[];
+    restrictedPermissions?: string[];
+  };
   validation?: {
     min?: number;
     max?: number;
@@ -85,6 +110,7 @@ export interface DynamicLineItemSection {
 export interface DynamicFormSection {
   title: string;
   description?: string;
+  gridCols?: 1 | 2 | 3 | 4; // Visual Drag & Drop section column count (default 2)
   fields: DynamicFormField[];
   lineItems?: DynamicLineItemSection;
 }
@@ -99,6 +125,11 @@ export interface DynamicColumn {
   sortOrder?: number;
   width?: string;
   format?: string;
+  security?: {
+    maskType?: "none" | "full" | "partial" | "lastFour";
+    restrictedRoles?: string[];
+    restrictedPermissions?: string[];
+  };
 }
 
 export interface DynamicFilter {
@@ -129,13 +160,81 @@ export interface DynamicKpiMetric {
   subtext?: string;
 }
 
+export type ErpPageFamily =
+  | "information"
+  | "data_entry"
+  | "process"
+  | "configuration"
+  | "supporting";
+
+export type ErpPageType =
+  | "dashboard"
+  | "list"
+  | "detail"
+  | "form"
+  | "edit"
+  | "master"
+  | "transaction"
+  | "workflow"
+  | "calendar"
+  | "kanban"
+  | "report"
+  | "analytics"
+  | "wizard"
+  | "import"
+  | "search"
+  | "configuration"
+  | "approval"
+  | "timeline"
+  | "document"
+  | "audit"
+  | "notification"
+  | "portal"
+  | "exception"
+  | "map"
+  | "scheduler";
+
+export interface WorkflowTransition {
+  action: string;
+  label: string;
+  fromState: string;
+  toState: string;
+  variant?: "primary" | "secondary" | "success" | "danger" | "warning";
+  requiredPermission?: string;
+  requiresRemarks?: boolean;
+}
+
+export interface DynamicWorkflowConfig {
+  enabled: boolean;
+  stateField?: string;
+  initialState?: string;
+  states: Array<{
+    name: string;
+    label: string;
+    tone?: "positive" | "warning" | "negative" | "info" | "neutral";
+    isFinal?: boolean;
+  }>;
+  transitions: WorkflowTransition[];
+}
+
+export interface LinkedEntityConfig {
+  key: string;
+  label: string;
+  entityName: string;
+  foreignKey: string;
+  apiEndpoint: string;
+  columns: Array<{ key: string; label: string; dataType?: string }>;
+}
+
 export interface DynamicPageSchema {
   schemaVersion: string;
   pageKey: string;
   title: string;
   subTitle?: string;
   entityName: string;
-  viewType: "table" | "cards" | "split";
+  pageFamily?: ErpPageFamily;
+  pageType?: ErpPageType;
+  viewType: "table" | "cards" | "split" | "kanban";
   apiEndpoint: string;
   idField?: string;
   kpiMetrics?: DynamicKpiMetric[];
@@ -145,6 +244,16 @@ export interface DynamicPageSchema {
     sections: DynamicFormSection[];
   };
   actions: DynamicAction[];
+  layout?: {
+    type?: "tabs" | "accordion" | "wizard" | "split" | "drawer" | "fullPage" | "modal";
+    columns?: 1 | 2 | 3 | 4;
+    density?: "compact" | "standard" | "comfortable";
+  };
+  workflowConfig?: DynamicWorkflowConfig;
+  workflow?: DynamicWorkflowConfig;
+  linkedEntities?: LinkedEntityConfig[];
+  hasAttachments?: boolean;
+  hasTimeline?: boolean;
 }
 
 export interface UiPageSummary {

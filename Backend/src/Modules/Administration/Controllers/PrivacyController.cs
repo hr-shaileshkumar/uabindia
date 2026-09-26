@@ -15,6 +15,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
     /// </summary>
     [ApiController]
     [Route("api/v1/[controller]")]
+    [Route("api/v1/administration/privacy")]
     [Authorize]
     public class PrivacyController : ControllerBase
     {

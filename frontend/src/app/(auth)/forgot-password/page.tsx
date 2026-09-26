@@ -68,6 +68,9 @@ export default function ForgotPasswordPage() {
         homeHref={withPublicAudience("/", audience)}
         audience={audience}
         variant="forgot-password"
+        profile={profile}
+        headerContent={headerContent}
+        allowedPaths={allowedPaths}
       >
         <PublicAuthCard
           title="Forgot password"

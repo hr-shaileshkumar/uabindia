@@ -91,10 +91,15 @@ namespace UabIndia.Infrastructure.Services
             var gst = GstCalculator.Calculate(taxable, taxRate, GstCalculator.IsInterState(companyState, vendor?.State));
             var (discount, total) = DocumentLineMath.ApplyBillDiscount(gst.InvoiceTotal, command.DiscountAmount);
 
+            var targetCompanyId = po?.CompanyId ?? _tenantAccessor.GetCompanyId();
+            var targetProjectId = po?.ProjectId ?? _tenantAccessor.GetProjectId();
+
             var invoice = new PurchaseInvoice
             {
                 TenantId = tenantId,
-                InvoiceNumber = await _numbers.NextAsync("PurchaseInvoice", "BILL-", 5, cancellationToken),
+                CompanyId = targetCompanyId,
+                ProjectId = targetProjectId,
+                InvoiceNumber = await _numbers.NextAsync("PurchaseInvoice", "BILL-", 5, targetCompanyId, targetProjectId, null, cancellationToken),
                 InvoiceDate = command.InvoiceDate == default ? DateTime.UtcNow.Date : command.InvoiceDate,
                 VendorId = vendorId,
                 PurchaseOrderId = po?.Id,

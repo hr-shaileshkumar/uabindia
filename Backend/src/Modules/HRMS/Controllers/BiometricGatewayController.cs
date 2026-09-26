@@ -13,6 +13,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
 {
     [ApiController]
     [Route("api/v1/hrms/attendance/biometric")]
+    [Route("api/v1/hrms/biometric")]
     public class BiometricGatewayController : ControllerBase
     {
         private readonly ApplicationDbContext _db;

@@ -37,4 +37,4 @@ echo   - http://localhost:5000
 echo   - https://localhost:5001
 echo.
 
-dotnet watch run --project Backend\src\UabIndia.Api\UabIndia.Api.csproj
+dotnet watch run --project "%~dp0Backend\src\UabIndia.Api\UabIndia.Api.csproj"

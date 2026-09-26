@@ -174,17 +174,48 @@ export function UniversalBulkImportModal({
 
     try {
       setIsImporting(true);
-      // Attempt batch upload or individual record dispatch
+      const normalizedEntity = (entityName || "record").toLowerCase().replace(/\s+/g, "");
+      const entityKey = normalizedEntity.endsWith("s") ? normalizedEntity : `${normalizedEntity}s`;
+
+      // 1. Primary path: Call the backend's transactional batch import engine
+      let batchSuccess = false;
       try {
-        await apiClient.post(`${apiEndpoint}/bulk`, { records: validData });
+        const batchRes = await apiClient.post("/data-import/batch", {
+          entityKey,
+          records: validData,
+          runAsync: validData.length > 100,
+        });
+        const batchData = batchRes.data?.data;
+        if (batchData?.backgroundJobId) {
+          notifySuccess(
+            `Import queued in background (${batchData.totalRecords || validData.length} records). Processing asynchronously.`
+          );
+        } else if (typeof batchData?.successCount === "number") {
+          notifySuccess(
+            `Successfully imported ${batchData.successCount} of ${batchData.totalRecords || validData.length} ${entityName} record(s).`
+          );
+        } else {
+          notifySuccess(`Successfully imported ${validData.length} ${entityName} record(s).`);
+        }
+        batchSuccess = true;
       } catch {
-        // Fallback: post records individually if no explicit /bulk endpoint
-        for (const item of validData) {
-          await apiClient.post(apiEndpoint, item);
+        // Fallback: try ${apiEndpoint}/bulk
+        try {
+          await apiClient.post(`${apiEndpoint}/bulk`, { records: validData });
+          notifySuccess(`Successfully imported ${validData.length} ${entityName} record(s).`);
+          batchSuccess = true;
+        } catch {
+          // If neither batch endpoint exists, post records in parallel batches to prevent browser lockup
+          const BATCH_SIZE = 10;
+          for (let i = 0; i < validData.length; i += BATCH_SIZE) {
+            const chunk = validData.slice(i, i + BATCH_SIZE);
+            await Promise.all(chunk.map((item) => apiClient.post(apiEndpoint, item)));
+          }
+          notifySuccess(`Successfully imported ${validData.length} ${entityName} record(s).`);
+          batchSuccess = true;
         }
       }
 
-      notifySuccess(`Successfully imported ${validData.length} ${entityName} record(s).`);
       onOpenChange(false);
       onImportComplete?.();
     } catch (err) {

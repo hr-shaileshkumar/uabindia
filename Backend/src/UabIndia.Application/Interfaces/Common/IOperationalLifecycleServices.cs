@@ -39,6 +39,7 @@ namespace UabIndia.Application.Interfaces
         Task CreateAsync(string moduleKey, string entityType, Guid entityId, string? comments, Guid requestedBy, CancellationToken cancellationToken = default);
         Task ApproveAsync(Guid id, Guid performedBy, string? comments, CancellationToken cancellationToken = default);
         Task RejectAsync(Guid id, Guid performedBy, string? comments, CancellationToken cancellationToken = default);
+        Task EscalateAsync(Guid id, Guid performedBy, string? reason, CancellationToken cancellationToken = default);
     }
 
     public interface IBankReconciliationService
@@ -152,7 +153,36 @@ namespace UabIndia.Application.Interfaces
         Task<JobApplicationResult> ApplyAsync(ApplyForJobCommand command, CancellationToken cancellationToken = default);
         Task<CandidateScreening> ScheduleScreeningAsync(Guid candidateId, ScheduleScreeningCommand command, CancellationToken cancellationToken = default);
         Task<CandidateScreening> SubmitScreeningAsync(Guid screeningId, SubmitScreeningCommand command, CancellationToken cancellationToken = default);
+        Task<OfferLetter> IssueOfferLetterAsync(IssueOfferLetterCommand command, CancellationToken cancellationToken = default);
+        Task<OfferLetter> AcceptOfferLetterAsync(Guid offerLetterId, CancellationToken cancellationToken = default);
+        Task<OfferLetter> RejectOfferLetterAsync(Guid offerLetterId, string? rejectionReason, CancellationToken cancellationToken = default);
+        Task<Employee> ConvertCandidateToEmployeeAsync(Guid offerLetterId, CancellationToken cancellationToken = default);
+        Task<AppointmentLetter> IssueAppointmentLetterAsync(IssueAppointmentLetterCommand command, CancellationToken cancellationToken = default);
     }
+
+    public sealed record IssueOfferLetterCommand(
+        Guid CandidateId,
+        decimal OfferSalary,
+        DateTime JoiningDate,
+        DateTime ExpiryDate,
+        string? JoiningDesignation,
+        string? Department,
+        string? ReportingManager,
+        string? OfferTerms);
+
+    public sealed record IssueAppointmentLetterCommand(
+        Guid EmployeeId,
+        DateTime JoiningDate,
+        string Designation,
+        string Department,
+        string? WorkLocation,
+        decimal AnnualCtc,
+        decimal MonthlyGross,
+        int ProbationMonths,
+        int NoticePeriodDays,
+        string? TermsAndConditions,
+        string? SignatoryName,
+        string? SignatoryDesignation);
 
     public sealed record ScheduleScreeningCommand(
         string ScreeningType,

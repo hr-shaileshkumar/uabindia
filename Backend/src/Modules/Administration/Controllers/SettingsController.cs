@@ -12,6 +12,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
 {
     [ApiController]
     [Route("api/v1/[controller]")]
+    [Route("api/v1/administration")]
     [Authorize(Policy = "AdminOnly")]
     [Authorize(Policy = "Module:platform")]
     public class SettingsController : ControllerBase

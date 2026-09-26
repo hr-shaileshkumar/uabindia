@@ -20,6 +20,7 @@ namespace UabIndia.Api.Modules.Assets.Controllers
     [ApiController]
     [Route("api/v1/[controller]")]
     [Route("api/[controller]")]
+    [Route("api/v1/hrms/assets")]
     [Authorize(Policy = "Module:hrms")]
     public class AssetsController : ControllerBase
     {

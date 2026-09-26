@@ -13,6 +13,7 @@ namespace UabIndia.Api.Modules.Procurement.Controllers
 {
     [ApiController]
     [Route("api/v1/[controller]")]
+    [Route("api/v1/procurement/vendors")]
     [Authorize]
     public class VendorsController : ControllerBase
     {
@@ -60,10 +61,15 @@ namespace UabIndia.Api.Modules.Procurement.Controllers
         public async Task<IActionResult> Create([FromBody] CreateVendorDto dto)
         {
             var tenantId = _tenantAccessor.GetTenantId();
+            var targetCompanyId = dto.CompanyId ?? _tenantAccessor.GetCompanyId();
+            var targetProjectId = dto.ProjectId ?? _tenantAccessor.GetProjectId();
+
             var vendor = new Vendor
             {
+                CompanyId = targetCompanyId,
+                ProjectId = targetProjectId,
                 VendorCode = string.IsNullOrWhiteSpace(dto.VendorCode)
-                    ? await _numbers.NextAsync("Vendor", "VEN-", 5)
+                    ? await _numbers.NextAsync("Vendor", "VEN-", 5, targetCompanyId, targetProjectId)
                     : dto.VendorCode.Trim(),
                 VendorName = dto.VendorName,
                 VendorType = dto.VendorType ?? "Supplier",
@@ -134,6 +140,8 @@ namespace UabIndia.Api.Modules.Procurement.Controllers
 
     public class CreateVendorDto
     {
+        public Guid? CompanyId { get; set; }
+        public Guid? ProjectId { get; set; }
         public string VendorCode { get; set; } = string.Empty;
         public string VendorName { get; set; } = string.Empty;
         public string? VendorType { get; set; }

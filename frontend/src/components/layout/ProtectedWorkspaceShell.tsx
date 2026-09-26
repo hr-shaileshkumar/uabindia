@@ -19,6 +19,7 @@ import { getPortalTheme } from "@/lib/workspace/portals";
 import { getSchemaRouteRule } from "@/lib/workspace/route-access";
 import { canonicalizeProtectedPath, OWNER_PATH_PREFIXES, matchesAnyPrefix } from "@/lib/workspace/route-config";
 import { withPublicAudience } from "@/lib/public-audience";
+import { hasTenantScopedHost } from "@/lib/tenant-host";
 import { publicApi } from "@/services/modules";
 import { cn } from "@/lib/utils";
 
@@ -213,7 +214,7 @@ export function ProtectedWorkspaceShell({ children }: { children: ReactNode }) {
       "platform.access",
       "platform.view",
     ]);
-  const isSuperAdminRoute = pathname.startsWith("/superadmin");
+  const isSuperAdminRoute = pathname.startsWith("/superadmin") || pathname.startsWith("/administration/tenants");
   const _shellStatus = useMemo(() => {
     if (schemaError && !usingCache) {
       return { label: "Schema issue", tone: "critical" as const };
@@ -316,7 +317,8 @@ export function ProtectedWorkspaceShell({ children }: { children: ReactNode }) {
     if (loading || permissionsLoading || schemaLoading) return;
 
     if (!user) {
-      const audience = matchesAnyPrefix(pathname, OWNER_PATH_PREFIXES) ? "platform" : "tenant";
+      const isTenantHost = typeof window !== "undefined" && hasTenantScopedHost(window.location.hostname);
+      const audience = !isTenantHost && matchesAnyPrefix(pathname, OWNER_PATH_PREFIXES) ? "platform" : "tenant";
       router.replace(withPublicAudience(`/login?next=${encodeURIComponent(pathname)}`, audience));
       return;
     }
@@ -371,7 +373,7 @@ export function ProtectedWorkspaceShell({ children }: { children: ReactNode }) {
   ]);
 
   useEffect(() => {
-    if (!user || role === "super_admin") {
+    if (!user || isSuperAdmin) {
       return;
     }
 
@@ -398,8 +400,21 @@ export function ProtectedWorkspaceShell({ children }: { children: ReactNode }) {
   };
 
 
-  if (!mounted || loading || permissionsLoading || schemaLoading || !user || (permissionFetchFailed && !isSuperAdmin)) {
+  // Instant zero-latency workspace rendering when session is already cached
+  const hasCachedSession = Boolean(user && (usingCache || navigationReady || workspaceModules.length > 0));
+
+  if (!mounted) {
     return <ProtectedShellLoading />;
+  }
+
+  if (!hasCachedSession) {
+    if (loading || permissionsLoading || schemaLoading || !user || (permissionFetchFailed && !isSuperAdmin)) {
+      return <ProtectedShellLoading />;
+    }
+  } else {
+    if (!loading && !user) {
+      return <ProtectedShellLoading />;
+    }
   }
 
   if (schemaConfigured && !routeAllowed) {
@@ -410,12 +425,12 @@ export function ProtectedWorkspaceShell({ children }: { children: ReactNode }) {
 
   return (
     <div className={cn("relative flex h-[100dvh] min-h-[100dvh] bg-background text-foreground flex-col overflow-hidden", portal.shellClassName)}>
-      <Header onMenuClick={handleShellMenuClick} />
+      <Header onMenuClick={handleShellMenuClick} onSearchClick={() => setSearchOpen(true)} />
       <div className="flex flex-1 min-h-0 overflow-hidden bg-slate-50/60 dark:bg-slate-950">
         <Sidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
-        <main id="erp-workspace-content" className="relative isolate min-h-0 flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6 scrollbar-thin">
-          <div className="mx-auto w-full max-w-[1600px]">
-            <WorkspaceBreadcrumb className="mb-3 sm:mb-4" />
+        <main id="erp-workspace-content" className="relative isolate min-h-0 flex-1 overflow-y-auto p-3.5 sm:p-5 lg:p-6 scrollbar-thin">
+          <div className="mx-auto w-full max-w-[1920px] 2xl:max-w-full">
+            <WorkspaceBreadcrumb className="mb-2.5 sm:mb-3" />
             <div key={workspaceScopeKey}>{children}</div>
           </div>
         </main>

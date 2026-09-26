@@ -19,6 +19,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
 {
     [ApiController]
     [Route("api/v1/[controller]")]
+    [Route("api/v1/administration/users")]
     [Authorize(Policy = "AdminOnly")]
     [Authorize(Policy = "Module:platform")]
     public class UsersController : ControllerBase
@@ -42,10 +43,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
 
         private bool IsSuperAdmin()
         {
-            var roleClaims = User.Claims
-                .Where(c => c.Type == ClaimTypes.Role || c.Type.EndsWith("/role", StringComparison.OrdinalIgnoreCase))
-                .Select(c => c.Value);
-            return RoleCatalog.HasAnyRole(roleClaims, SystemRole.SuperAdmin);
+            return User.HasClaim("is_system_admin", "true");
         }
 
         [HttpGet]

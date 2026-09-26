@@ -18,6 +18,9 @@ namespace UabIndia.Api.Modules.Administration.Controllers
 {
     [ApiController]
     [Route("api/v1/[controller]")]
+    [Route("api/v1/audit-logs")]
+    [Route("api/v1/administration/audit-logs")]
+    [Route("api/v1/security/access-logs")]
     [Authorize(Policy = "AdminOnly")]
     [Authorize(Policy = "Module:platform")]
     [DisableRateLimiting] // SuperAdmin-only controller — auth gates are sufficient; skip global IP rate limit
@@ -32,10 +35,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
 
         private bool IsSuperAdmin()
         {
-            var roleClaims = User.Claims
-                .Where(c => c.Type == ClaimTypes.Role || c.Type.EndsWith("/role", StringComparison.OrdinalIgnoreCase))
-                .Select(c => c.Value);
-            return RoleCatalog.HasAnyRole(roleClaims, SystemRole.SuperAdmin);
+            return User.HasClaim("is_system_admin", "true");
         }
 
         [HttpGet]
@@ -83,7 +83,9 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                     Action = a.Action ?? string.Empty,
                     PerformedAt = a.PerformedAt,
                     PerformedBy = a.PerformedBy,
-                    Ip = a.Ip
+                    Ip = a.Ip,
+                    OldValue = a.OldValue,
+                    NewValue = a.NewValue
                 })
                 .ToListAsync();
 

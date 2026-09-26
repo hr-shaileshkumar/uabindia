@@ -13,6 +13,7 @@ namespace UabIndia.Core.Entities
         public DateTime? ProcessedAtUtc { get; set; }
         public string? Error { get; set; }
         public int RetryCount { get; set; } = 0;
+        public DateTime? NextRetryUtc { get; set; }
         public bool IsProcessed { get; set; } = false;
     }
 }

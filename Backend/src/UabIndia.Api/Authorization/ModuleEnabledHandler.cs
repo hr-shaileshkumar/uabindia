@@ -35,7 +35,9 @@ namespace UabIndia.Api.Authorization
                 .Select(c => c.Value)
                 .ToList();
 
-            if (RoleCatalog.HasAnyRole(roleClaims, SystemRole.SuperAdmin))
+            if (context.User.HasClaim("is_system_admin", "true") ||
+                string.Equals(context.User.FindFirst("is_system_admin")?.Value, "true", StringComparison.OrdinalIgnoreCase) ||
+                RoleCatalog.HasAnyRole(roleClaims, SystemRole.SuperAdmin))
             {
                 context.Succeed(requirement);
                 return;

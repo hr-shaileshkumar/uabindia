@@ -29,6 +29,50 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             _logger = logger;
         }
 
+        [HttpGet("templates")]
+        public IActionResult GetTemplates()
+        {
+            var templates = new[]
+            {
+                new { id = "tpl-corporate", name = "Enterprise Corporate", category = "Corporate", status = "Active", isDefault = true, previewUrl = "/preview/corporate" },
+                new { id = "tpl-manufacturing", name = "Industrial & Manufacturing", category = "Industrial", status = "Active", isDefault = false, previewUrl = "/preview/manufacturing" },
+                new { id = "tpl-services", name = "Professional Consulting & Services", category = "Services", status = "Active", isDefault = false, previewUrl = "/preview/services" },
+                new { id = "tpl-technology", name = "SaaS & Modern Tech", category = "Technology", status = "Active", isDefault = false, previewUrl = "/preview/technology" }
+            };
+            return Ok(new { data = templates, items = templates, total = templates.Length });
+        }
+
+        [HttpGet("themes")]
+        public IActionResult GetThemes()
+        {
+            var themes = new[]
+            {
+                new { id = "thm-navy", name = "Royal Navy & Slate", primaryColor = "#1e3a8a", accentColor = "#3b82f6", mode = "Dark/Light", status = "Active", isDefault = true },
+                new { id = "thm-emerald", name = "Emerald Forest", primaryColor = "#065f46", accentColor = "#10b981", mode = "Light", status = "Active", isDefault = false },
+                new { id = "thm-crimson", name = "Crimson Executive", primaryColor = "#881337", accentColor = "#f43f5e", mode = "Light", status = "Active", isDefault = false },
+                new { id = "thm-midnight", name = "Midnight Obsidian", primaryColor = "#0f172a", accentColor = "#6366f1", mode = "Dark", status = "Active", isDefault = false }
+            };
+            return Ok(new { data = themes, items = themes, total = themes.Length });
+        }
+
+        [HttpGet("settings")]
+        public IActionResult GetSettings()
+        {
+            var settings = new
+            {
+                id = "web-config-main",
+                siteTitle = "UAB India Enterprise ERP",
+                tagline = "Autonomous Next-Generation Cloud ERP & CRM",
+                metaDescription = "Enterprise resource planning, hrms, finance, inventory and procurement for modern enterprises.",
+                primaryDomain = "uabindia.com",
+                enableSeoIndexing = true,
+                contactEmail = "support@uabindia.com",
+                contactPhone = "+91 98765 43210",
+                copyrightText = $"© {DateTime.UtcNow.Year} UAB India. All rights reserved."
+            };
+            return Ok(new { data = new[] { settings }, settings });
+        }
+
         [HttpGet("pages")]
         public async Task<IActionResult> GetPages()
         {
@@ -149,10 +193,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
 
         private bool IsSuperAdmin()
         {
-            var roleClaims = User.Claims
-                .Where(c => c.Type == ClaimTypes.Role || c.Type.EndsWith("/role", StringComparison.OrdinalIgnoreCase))
-                .Select(c => c.Value);
-            return RoleCatalog.HasAnyRole(roleClaims, SystemRole.SuperAdmin);
+            return User.HasClaim("is_system_admin", "true");
         }
 
     }

@@ -124,6 +124,7 @@ export function WorkspaceBrand() {
           width={120}
           height={28}
           className="h-7 w-auto max-w-[8.5rem] object-contain dark:brightness-110"
+          style={{ width: "auto", height: "auto" }}
           priority
           unoptimized
           onError={() => setBroken((previous) => (previous.includes(src) ? previous : [...previous, src]))}

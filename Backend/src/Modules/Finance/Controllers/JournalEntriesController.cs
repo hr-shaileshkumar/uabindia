@@ -13,6 +13,8 @@ namespace UabIndia.Api.Modules.Finance.Controllers
 {
     [ApiController]
     [Route("api/v1/[controller]")]
+    [Route("api/v1/finance/journal-entries")]
+    [Route("api/v1/journal-entries")]
     [Authorize]
     public class JournalEntriesController : ControllerBase
     {

@@ -319,9 +319,55 @@ export const hrmsApi = {
     },
   },
   recruitment: {
-    jobPostings: (page = 1, limit = 20) =>
-      apiClient.get(`/recruitment/job-postings?page=${page}&limit=${limit}`),
-    createJobPosting: (data: ApiPayload) => apiClient.post("/recruitment/job-postings", data),
+    getStaffingPlans: (params?: { department?: string; year?: number }) =>
+      apiClient.get("/hrms/recruitment/staffing-plans", { params }),
+    createStaffingPlan: (data: ApiPayload) =>
+      apiClient.post("/hrms/recruitment/staffing-plans", data),
+    approveStaffingPlan: (id: string) =>
+      apiClient.post(`/hrms/recruitment/staffing-plans/${id}/approve`, {}),
+    deleteStaffingPlan: (id: string) =>
+      apiClient.delete(`/hrms/recruitment/staffing-plans/${id}`),
+
+    jobPostings: (page = 1, limit = 50) =>
+      apiClient.get(`/hrms/recruitment/job-postings?page=${page}&limit=${limit}`),
+    createJobPosting: (data: ApiPayload) =>
+      apiClient.post("/hrms/recruitment/job-postings", data),
+    publishJobPosting: (id: string) =>
+      apiClient.post(`/hrms/recruitment/job-postings/${id}/publish`, {}),
+    closeJobPosting: (id: string) =>
+      apiClient.post(`/hrms/recruitment/job-postings/${id}/close`, {}),
+    deleteJobPosting: (id: string) =>
+      apiClient.delete(`/hrms/recruitment/job-postings/${id}`),
+
+    getApplications: (params?: { page?: number; limit?: number; jobPostingId?: string }) =>
+      apiClient.get("/hrms/recruitment/applications", { params }),
+    getCandidates: (params?: { page?: number; limit?: number; search?: string }) =>
+      apiClient.get("/hrms/recruitment/candidates", { params }),
+    updateCandidateStatus: (id: string, status: string, notes?: string) =>
+      apiClient.put(`/hrms/recruitment/candidates/${id}/status`, { status, notes }),
+
+    scheduleScreening: (candidateId: string, data: ApiPayload) =>
+      apiClient.post(`/hrms/recruitment/candidates/${candidateId}/screenings`, data),
+    submitScreeningResults: (screeningId: string, data: ApiPayload) =>
+      apiClient.post(`/hrms/recruitment/screenings/${screeningId}/submit`, data),
+
+    getOfferLetters: (params?: { page?: number; limit?: number }) =>
+      apiClient.get("/hrms/recruitment/offer-letters", { params }),
+    issueOfferLetter: (candidateId: string, data: ApiPayload) =>
+      apiClient.post(`/hrms/recruitment/candidates/${candidateId}/offer-letters`, data),
+    acceptOfferLetter: (id: string) =>
+      apiClient.post(`/hrms/recruitment/offer-letters/${id}/accept`, {}),
+    rejectOfferLetter: (id: string, reason?: string) =>
+      apiClient.post(`/hrms/recruitment/offer-letters/${id}/reject`, { reason }),
+    convertToEmployee: (offerId: string) =>
+      apiClient.post(`/hrms/recruitment/offer-letters/${offerId}/convert-to-employee`, {}),
+
+    getAppointmentLetters: (params?: { page?: number; limit?: number }) =>
+      apiClient.get("/hrms/recruitment/appointment-letters", { params }),
+    getAppointmentLetter: (id: string) =>
+      apiClient.get(`/hrms/recruitment/appointment-letters/${id}`),
+    issueAppointmentLetter: (data: ApiPayload) =>
+      apiClient.post("/hrms/recruitment/appointment-letters", data),
   },
   appraisals: {
     cycles: {

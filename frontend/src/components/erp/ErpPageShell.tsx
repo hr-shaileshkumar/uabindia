@@ -11,7 +11,6 @@ import type { ReactNode } from "react";
 import {
   Plus,
   X,
-  Search,
   Download,
   SlidersHorizontal,
 } from "lucide-react";
@@ -187,24 +186,14 @@ export function ErpPageShell<T = any>(
     searchValue.trim() || filterOptions.some((o) => o.value && o.value !== "all")
   );
 
-  /* Extra filter controls */
+  /* Extra filter controls — dropdowns only; search is in the list toolbar */
   const extraFilters = (
     <>
-      {onSearchChange ? (
-        <div className="relative flex items-center min-w-56 sm:min-w-72 flex-1 max-w-sm">
-          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-          <input
-            type="text"
-            className="h-8.5 w-full rounded-lg border border-slate-200 bg-white !pl-9 pr-3 text-xs text-slate-800 placeholder-slate-400 shadow-2xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
-            placeholder={searchPlaceholder}
-            value={searchValue}
-            onChange={(e) => onSearchChange(e.target.value)}
-          />
-        </div>
-      ) : null}
       {filterOptions.map((opt) => (
         <select
           key={opt.key}
+          id={`shell-filter-${opt.key}`}
+          name={`shell_filter_${opt.key}`}
           value={opt.value}
           onChange={(e) => opt.onChange(e.target.value)}
           className="h-8.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-700 shadow-2xs focus:border-blue-500 focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
@@ -362,21 +351,17 @@ export function ErpPageShell<T = any>(
           hasList ? (
             list.filterBar
           ) : onSearchChange || filterOptions.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-2.5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200/80 bg-white/90 p-2.5 shadow-2xs backdrop-blur-xs dark:border-slate-800 dark:bg-slate-900/90">
               <SlidersHorizontal className="h-3.5 w-3.5 text-slate-400" />
               {extraFilters}
             </div>
           ) : null
         }
-        pagination={pagination}
+        pagination={hasList ? undefined : pagination}
       >
-        <div className="space-y-4">
+        <div className="space-y-3.5 sm:space-y-4">
           {children}
-          {hasList && (
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
-              {list.table}
-            </div>
-          )}
+          {hasList && list.table}
         </div>
       </StandardPageLayout>
 

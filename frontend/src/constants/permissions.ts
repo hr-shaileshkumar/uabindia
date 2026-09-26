@@ -222,6 +222,25 @@ export const PERMISSIONS = {
   DOCUMENTS_EXPORT: "documents.export",
   AUDIT_VIEW: "audit.view",
   AUDIT_EXPORT: "audit.export",
+
+  ASSETS_VIEW: "assets.view",
+  ASSETS_CREATE: "assets.create",
+  ASSETS_EDIT: "assets.edit",
+  ASSETS_DELETE: "assets.delete",
+  ASSETS_DEPRECIATION: "assets.depreciation",
+
+  BUDGETING_VIEW: "budgeting.view",
+  BUDGETING_MANAGE: "budgeting.manage",
+
+  FIELD_SERVICE_VIEW: "fieldservice.view",
+  FIELD_SERVICE_MANAGE: "fieldservice.manage",
+  FIELD_SERVICE_DISPATCH: "fieldservice.dispatch",
+
+  TAX_ENGINE_VIEW: "taxengine.view",
+  TAX_ENGINE_GENERATE: "taxengine.generate",
+
+  PRICING_RULES_VIEW: "pricingrules.view",
+  PRICING_RULES_MANAGE: "pricingrules.manage",
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

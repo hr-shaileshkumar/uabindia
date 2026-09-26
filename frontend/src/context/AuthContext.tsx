@@ -188,9 +188,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const isSuperAdmin = Boolean(
-    user?.isSystemAdmin || !![...(user?.roles || []), user?.role].some((role) => isSuperAdminRole(role))
-  );
+  const isSuperAdmin = Boolean(user?.isSystemAdmin);
 
   const value = useMemo(
     () => ({

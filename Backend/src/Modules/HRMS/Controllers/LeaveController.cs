@@ -524,6 +524,8 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
         }
 
         [HttpGet("holidays")]
+        [HttpGet("/api/v1/hrms/holidays")]
+        [HttpGet("/api/v1/holidays")]
         public async Task<IActionResult> GetHolidays([FromQuery] int? year)
         {
             var query = _db.Holidays.AsNoTracking();
@@ -549,6 +551,8 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
 
         [Authorize(Policy = "AdminOnly")]
         [HttpPost("holidays")]
+        [HttpPost("/api/v1/hrms/holidays")]
+        [HttpPost("/api/v1/holidays")]
         public async Task<IActionResult> CreateHoliday([FromBody] CreateHolidayDto dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -575,6 +579,47 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                 IsOptional = holiday.IsOptional,
                 Description = holiday.Description
             });
+        }
+
+        [Authorize(Policy = "AdminOnly")]
+        [HttpPut("holidays/{id:guid}")]
+        [HttpPut("/api/v1/hrms/holidays/{id:guid}")]
+        public async Task<IActionResult> UpdateHoliday(Guid id, [FromBody] CreateHolidayDto dto)
+        {
+            var holiday = await _db.Holidays.FirstOrDefaultAsync(h => h.Id == id);
+            if (holiday == null) return NotFound(new { message = "Holiday not found." });
+
+            holiday.Name = dto.Name;
+            holiday.Date = dto.Date;
+            holiday.Type = dto.Type;
+            holiday.IsOptional = dto.IsOptional;
+            holiday.Description = dto.Description;
+            holiday.UpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync();
+            return Ok(new HolidayDto
+            {
+                Id = holiday.Id,
+                Name = holiday.Name,
+                Date = holiday.Date,
+                Type = holiday.Type,
+                IsOptional = holiday.IsOptional,
+                Description = holiday.Description
+            });
+        }
+
+        [Authorize(Policy = "AdminOnly")]
+        [HttpDelete("holidays/{id:guid}")]
+        [HttpDelete("/api/v1/hrms/holidays/{id:guid}")]
+        public async Task<IActionResult> DeleteHoliday(Guid id)
+        {
+            var holiday = await _db.Holidays.FirstOrDefaultAsync(h => h.Id == id);
+            if (holiday == null) return NotFound(new { message = "Holiday not found." });
+
+            holiday.IsDeleted = true;
+            holiday.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+            return Ok(new { message = "Holiday deleted successfully." });
         }
 
         [HttpPost("requests")]

@@ -37,7 +37,11 @@ export function resolvePublicAudience(
   requestedAudience: string | null | undefined,
   hasTenantContext: boolean
 ): PublicAudience {
-  return normalizePublicAudience(requestedAudience) ?? (hasTenantContext ? "tenant" : "platform");
+  if (hasTenantContext) {
+    return "tenant";
+  }
+
+  return normalizePublicAudience(requestedAudience) ?? "platform";
 }
 
 const readSearchParamValue = (value: PublicAudienceSearchParamValue): string | null => {
@@ -59,9 +63,9 @@ export function hasPublicTenantContextForRequest({
   requestedAudience?: PublicAudienceSearchParamValue;
   tenant?: PublicAudienceSearchParamValue;
 }): boolean {
-  const normalizedRequestedAudience = normalizePublicAudience(readSearchParamValue(requestedAudience));
-  if (normalizedRequestedAudience) {
-    return normalizedRequestedAudience === "tenant";
+  const hostname = normalizeHostname(host);
+  if (hostname && hasTenantScopedHost(hostname)) {
+    return true;
   }
 
   const queryTenant = readSearchParamValue(tenant)?.trim().toLowerCase();
@@ -69,12 +73,12 @@ export function hasPublicTenantContextForRequest({
     return true;
   }
 
-  const hostname = normalizeHostname(host);
-  if (!hostname || isLocalhostHostname(hostname)) {
-    return false;
+  const normalizedRequestedAudience = normalizePublicAudience(readSearchParamValue(requestedAudience));
+  if (normalizedRequestedAudience) {
+    return normalizedRequestedAudience === "tenant";
   }
 
-  return hasTenantScopedHost(hostname);
+  return false;
 }
 
 export function resolvePublicAudienceFromRequest({
@@ -88,6 +92,11 @@ export function resolvePublicAudienceFromRequest({
   requestedAudience?: PublicAudienceSearchParamValue;
   tenant?: PublicAudienceSearchParamValue;
 }): PublicAudience {
+  const hostname = normalizeHostname(host);
+  if (hostname && hasTenantScopedHost(hostname)) {
+    return "tenant";
+  }
+
   const normalizedRequestedAudience = readSearchParamValue(requestedAudience);
   return resolvePublicAudience(
     normalizedRequestedAudience,

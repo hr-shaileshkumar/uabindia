@@ -9,6 +9,14 @@ export const appApi = {
     subscriptions: () => apiClient.get("/modules/subscriptions"),
     updateSubscriptions: (data: { subscriptions: { moduleKey: string; isEnabled: boolean }[] }) =>
       apiClient.post("/modules/subscriptions", data),
+    getMapping: (tenantId?: string) =>
+      apiClient.get<any>(`/modules/mapping${tenantId ? `?tenantId=${encodeURIComponent(tenantId)}` : ""}`),
+    updateMapping: (data: { modules: any[] }, tenantId?: string) =>
+      apiClient.put<any>(`/modules/mapping${tenantId ? `?tenantId=${encodeURIComponent(tenantId)}` : ""}`, data),
+    updateModulePages: (moduleKey: string, data: { pages: any[] }, tenantId?: string) =>
+      apiClient.put<any>(`/modules/mapping/${encodeURIComponent(moduleKey)}/pages${tenantId ? `?tenantId=${encodeURIComponent(tenantId)}` : ""}`, data),
+    resetMapping: (tenantId?: string) =>
+      apiClient.post<any>(`/modules/mapping/reset${tenantId ? `?tenantId=${encodeURIComponent(tenantId)}` : ""}`, {}),
   },
   licensing: {
     apiKeys: () => apiClient.get("/integrations/api-keys"),
@@ -61,10 +69,27 @@ export const appApi = {
     upsert: (data: ApiPayload) => apiClient.post("/workflows/definitions", data),
   },
   approvals: {
-    list: (status = "Pending") => apiClient.get(`/approvals?status=${status}`),
+    list: (status = "Pending") => apiClient.get(`/approvals?status=${encodeURIComponent(status)}`),
     create: (data: ApiPayload) => apiClient.post("/approvals", data),
     approve: (id: string, data?: OptionalApiPayload) => apiClient.post(`/approvals/${id}/approve`, data || {}),
     reject: (id: string, data?: OptionalApiPayload) => apiClient.post(`/approvals/${id}/reject`, data || {}),
+    bulkApprove: (data: { requestIds: string[]; comments?: string }) => apiClient.post("/approvals/bulk-approve", data),
+    escalate: (id: string, data?: { reason?: string }) => apiClient.post(`/approvals/${id}/escalate`, data || {}),
+  },
+  dataExport: {
+    listEntities: () => apiClient.get("/data-export/entities"),
+    generate: (data: { entityKey: string; format?: "csv" | "tsv" | "json"; maxRecords?: number; runAsync?: boolean }) =>
+      apiClient.post("/data-export/generate", data),
+  },
+  pageActions: {
+    execute: (data: {
+      pageKey: string;
+      actionKey: string;
+      actionType?: string;
+      entityId?: string;
+      selectedIds?: string[];
+      parameters?: Record<string, unknown>;
+    }) => apiClient.post("/page-actions/execute", data),
   },
   uiShell: {
     getNavigation: () => apiClient.get("/ui-shell/navigation"),

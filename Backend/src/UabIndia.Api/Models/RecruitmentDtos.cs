@@ -46,6 +46,8 @@ namespace UabIndia.Api.Models
         public DateTime ClosingDate { get; set; }
 
         public int? NumberOfPositions { get; set; } = 1;
+
+        public Guid? StaffingPlanId { get; set; }
     }
 
     public class UpdateJobPostingDto
@@ -81,6 +83,8 @@ namespace UabIndia.Api.Models
         public string? Status { get; set; }
 
         public int? NumberOfPositions { get; set; }
+
+        public Guid? StaffingPlanId { get; set; }
     }
 
     public class JobPostingDto
@@ -102,6 +106,8 @@ namespace UabIndia.Api.Models
         public bool IsActive { get; set; }
         public int ApplicationCount { get; set; }
         public int? NumberOfPositions { get; set; }
+        public Guid? StaffingPlanId { get; set; }
+        public string? StaffingPlanCode { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 
@@ -274,6 +280,8 @@ namespace UabIndia.Api.Models
 
         [StringLength(100)]
         public string? ReportingManager { get; set; }
+
+        public string? OfferTerms { get; set; }
     }
 
     public class UpdateOfferLetterDto
@@ -290,6 +298,8 @@ namespace UabIndia.Api.Models
 
         [StringLength(100)]
         public string? ReportingManager { get; set; }
+
+        public string? OfferTerms { get; set; }
 
         public string? Status { get; set; }
     }
@@ -308,11 +318,71 @@ namespace UabIndia.Api.Models
         public string? JoiningDesignation { get; set; }
         public string? Department { get; set; }
         public string? ReportingManager { get; set; }
+        public string? OfferTerms { get; set; }
         public string Status { get; set; } = string.Empty;
         public DateTime? AcceptedDate { get; set; }
         public DateTime? RejectedDate { get; set; }
         public string? RejectionReason { get; set; }
         public bool IsJoined { get; set; }
+        public Guid? EmployeeId { get; set; }
+        public string? EmployeeCode { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    #endregion
+
+    #region AppointmentLetter DTOs
+
+    public class CreateAppointmentLetterDto
+    {
+        [Required]
+        public Guid EmployeeId { get; set; }
+
+        public DateTime JoiningDate { get; set; } = DateTime.UtcNow;
+
+        [Required]
+        public string Designation { get; set; } = string.Empty;
+
+        [Required]
+        public string Department { get; set; } = string.Empty;
+
+        public string? WorkLocation { get; set; }
+
+        public decimal AnnualCtc { get; set; }
+
+        public decimal MonthlyGross { get; set; }
+
+        public int ProbationMonths { get; set; } = 6;
+
+        public int NoticePeriodDays { get; set; } = 30;
+
+        public string? TermsAndConditions { get; set; }
+
+        public string? SignatoryName { get; set; }
+
+        public string? SignatoryDesignation { get; set; }
+    }
+
+    public class AppointmentLetterDto
+    {
+        public Guid Id { get; set; }
+        public string LetterNumber { get; set; } = string.Empty;
+        public Guid EmployeeId { get; set; }
+        public string EmployeeName { get; set; } = string.Empty;
+        public string EmployeeCode { get; set; } = string.Empty;
+        public DateTime IssueDate { get; set; }
+        public DateTime JoiningDate { get; set; }
+        public string Designation { get; set; } = string.Empty;
+        public string Department { get; set; } = string.Empty;
+        public string WorkLocation { get; set; } = string.Empty;
+        public decimal AnnualCtc { get; set; }
+        public decimal MonthlyGross { get; set; }
+        public int ProbationMonths { get; set; }
+        public int NoticePeriodDays { get; set; }
+        public string? TermsAndConditions { get; set; }
+        public string SignatoryName { get; set; } = string.Empty;
+        public string SignatoryDesignation { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
     }
 

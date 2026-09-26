@@ -21,6 +21,8 @@ export function ErpMasterSelect({
     <div>
       <label className="erp-label">{label}</label>
       <select
+        id={`master-select-${label.toLowerCase().replace(/[^a-z0-9]/g, "-")}`}
+        name={`master_select_${label.toLowerCase().replace(/[^a-z0-9]/g, "_")}`}
         className="erp-select mt-1 cursor-pointer"
         value={value}
         disabled={disabled}

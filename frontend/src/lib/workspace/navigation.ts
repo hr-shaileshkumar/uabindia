@@ -31,6 +31,7 @@ export type WorkspaceModule = {
   enabled: boolean;
   groups: WorkspaceNavGroup[];
   pageCount: number;
+  section?: string | null;
 };
 
 export type WorkspacePageMatch = {
@@ -82,7 +83,7 @@ export type SidebarNavSection = {
 const SIDEBAR_SECTION_DEFS: Array<{ id: string; label: string; keys: readonly string[] }> = [
   { id: "work", label: "My Work", keys: ["ess", "mss", "workflow", "notifications"] },
   { id: "people", label: "People & Talent", keys: ["hrms", "payroll"] },
-  { id: "commerce", label: "Supply Chain & Sales", keys: ["sales", "crm", "procurement", "inventory"] },
+  { id: "commerce", label: "Supply Chain & Sales", keys: ["sales", "crm", "procurement", "inventory", "manufacturing"] },
   { id: "finance", label: "Finance & Accounts", keys: ["finance", "reports"] },
   { id: "ops", label: "Operations & Delivery", keys: ["projects", "helpdesk", "communication", "documents", "ai"] },
   { id: "administration", label: "Administration", keys: ["platform", "company", "superadmin", "security", "settings", "integrations"] },
@@ -94,9 +95,9 @@ export function groupWorkspaceModulesForSidebar(modules: WorkspaceModule[]): Sid
   const sections: SidebarNavSection[] = [];
 
   for (const def of SIDEBAR_SECTION_DEFS) {
-    const sectionModules = def.keys
-      .map((key) => remaining.find((module) => module.key === key))
-      .filter((module): module is WorkspaceModule => Boolean(module));
+    const sectionModules = remaining
+      .filter((module) => module.section === def.id || (!module.section && def.keys.includes(module.key)))
+      .sort((a, b) => a.sortOrder - b.sortOrder);
 
     for (const mod of sectionModules) {
       used.add(mod.key);
@@ -107,7 +108,10 @@ export function groupWorkspaceModulesForSidebar(modules: WorkspaceModule[]): Sid
     }
   }
 
-  const overflow = remaining.filter((module) => !used.has(module.key));
+  const overflow = remaining
+    .filter((module) => !used.has(module.key))
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+
   if (overflow.length > 0) {
     sections.push({ id: "more", label: "More", modules: overflow });
   }
@@ -157,6 +161,7 @@ const FALLBACK_HOME_BY_MODULE: Record<string, string> = {
   payroll: ROUTES.PAYROLL_HOME,
   finance: ROUTES.FINANCE_HOME,
   inventory: ROUTES.INVENTORY_HOME,
+  manufacturing: "/manufacturing",
   procurement: ROUTES.PROCUREMENT_HOME,
   crm: ROUTES.CRM_HOME,
   sales: ROUTES.SALES_HOME,
@@ -208,14 +213,82 @@ function buildFallbackWorkspaceModule(definition: ModuleDefinition): WorkspaceMo
   };
 }
 
-export function buildFallbackWorkspaceModules(enabledModules: Module[] = []): WorkspaceModule[] {
+export type WorkspaceAccessContext = {
+  userRole?: string | null;
+  hasPermission?: (permission: string | string[]) => boolean;
+  companyId?: string | null;
+  projectId?: string | null;
+  isSuperAdmin?: boolean;
+};
+
+export function isItemAccessible(item: NavItemDto, access?: WorkspaceAccessContext): boolean {
+  if (!access) return true;
+  if (access.isSuperAdmin) return true;
+
+  // 1. Role check: If allowedRoles is specified, userRole must match
+  if (item.allowedRoles && item.allowedRoles.length > 0) {
+    const userRoleLower = (access.userRole ?? "").trim().toLowerCase();
+    const matchesRole = item.allowedRoles.some(
+      (role) => role.trim().toLowerCase() === userRoleLower
+    );
+    if (!matchesRole) return false;
+  }
+
+  // 2. Permission check: If requiredPermissions is specified, user must have them
+  if (item.requiredPermissions && item.requiredPermissions.length > 0 && access.hasPermission) {
+    if (!access.hasPermission(item.requiredPermissions)) {
+      return false;
+    }
+  }
+
+  // 3. Company check: If allowedCompanyIds is specified, active company must match
+  if (item.allowedCompanyIds && item.allowedCompanyIds.length > 0) {
+    if (!access.companyId || !item.allowedCompanyIds.includes(access.companyId)) {
+      return false;
+    }
+  }
+
+  // 4. Project check: If allowedProjectIds is specified, active project must match
+  if (item.allowedProjectIds && item.allowedProjectIds.length > 0) {
+    if (!access.projectId || !item.allowedProjectIds.includes(access.projectId)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export function isModuleAccessible(module: NavModuleDto, access?: WorkspaceAccessContext): boolean {
+  if (!access) return true;
+  if (access.isSuperAdmin) return true;
+  if (module.allowedRoles && module.allowedRoles.length > 0) {
+    const userRoleLower = (access.userRole ?? "").trim().toLowerCase();
+    const matchesRole = module.allowedRoles.some(
+      (role) => role.trim().toLowerCase() === userRoleLower
+    );
+    if (!matchesRole) return false;
+  }
+  return true;
+}
+
+export function buildFallbackWorkspaceModules(
+  enabledModules: Module[] = [],
+  accessContext?: WorkspaceAccessContext
+): WorkspaceModule[] {
   const enabledKeys = new Set(enabledModules.map((module) => module.key));
   // Use sidebar-visible registry so hidden modules (like administration) don't appear in sidebar
   const registryDefinitions = listSidebarVisibleModuleRegistry().filter((definition) => !definition.sourceModuleKey);
 
   const modules = registryDefinitions
     .filter((definition) => enabledKeys.size === 0 || enabledKeys.has(definition.key))
-    .map((definition) => buildFallbackWorkspaceModule(definition));
+    .map((definition) => buildFallbackWorkspaceModule(definition))
+    .filter((module) => {
+      if (!accessContext || accessContext.isSuperAdmin) return true;
+      if (accessContext.hasPermission && !accessContext.hasPermission(`module:${module.key}`)) {
+        return false;
+      }
+      return true;
+    });
 
   return sortWorkspaceModules(modules);
 }
@@ -278,7 +351,8 @@ function materializeWorkspaceModule(
   sortOrder: number,
   moduleMeta: Module | undefined,
   groups: WorkspaceNavGroup[],
-  fallbackHomeHref?: string | null
+  fallbackHomeHref?: string | null,
+  section?: string | null
 ): WorkspaceModule | null {
   const normalizedGroups = groups.filter((group) => group.items.length > 0);
   const pageCount = normalizedGroups.reduce((count, group) => count + group.items.length, 0);
@@ -296,27 +370,41 @@ function materializeWorkspaceModule(
       ...normalizedGroups.flatMap((group) => group.items.map((item) => deriveRootPath(item.path))),
     ]);
 
+  const effectiveDisplayName = (moduleMeta as any)?.customDisplayName || (moduleMeta as any)?.displayName || displayName;
+  const effectiveSortOrder = typeof (moduleMeta as any)?.customSortOrder === "number"
+    ? (moduleMeta as any).customSortOrder
+    : (typeof (moduleMeta as any)?.order === "number" ? (moduleMeta as any).order : sortOrder);
+  const effectiveIcon = (moduleMeta as any)?.customIcon || (moduleMeta as any)?.icon || icon;
+  const effectiveSection = (moduleMeta as any)?.customSection ?? section ?? null;
+
   return {
     key: moduleKey,
-    label: getModuleLabel(moduleKey, displayName),
+    label: getModuleLabel(moduleKey, effectiveDisplayName),
     description: moduleMeta?.description || description || getModuleDescription(moduleKey),
-    icon: getModuleIcon(moduleKey, icon || moduleMeta?.icon),
+    icon: getModuleIcon(moduleKey, effectiveIcon),
     homeHref,
-    sortOrder,
+    sortOrder: effectiveSortOrder,
     enabled: moduleMeta?.isEnabled !== false,
     groups: normalizedGroups,
     pageCount,
+    section: effectiveSection,
   };
 }
 
-function splitLegacyErpModule(module: NavModuleDto, moduleMeta?: Module): WorkspaceModule[] {
+function splitLegacyErpModule(
+  module: NavModuleDto,
+  moduleMeta?: Module,
+  moduleMetaByKey?: Map<string, Module>,
+  accessContext?: WorkspaceAccessContext
+): WorkspaceModule[] {
   const groupedItems = sortGroups(module.groups).map((group, groupIndex) => ({
     label: group.label?.trim() || "Pages",
     sortOrder: typeof group.sortOrder === "number" ? group.sortOrder : groupIndex,
-    items: sortItems(group.items),
+    items: sortItems(group.items.filter((item) => isItemAccessible(item, accessContext))),
   }));
 
   const splitModules = LEGACY_ERP_SEGMENTS.map((segment) => {
+    const segmentMeta = moduleMetaByKey?.get(segment.key);
     const segmentGroups = groupedItems
       .map((group) => ({
         ...group,
@@ -329,13 +417,14 @@ function splitLegacyErpModule(module: NavModuleDto, moduleMeta?: Module): Worksp
 
     return materializeWorkspaceModule(
       segment.key,
-      segment.label,
-      segment.icon,
+      (segmentMeta as any)?.customDisplayName || (segmentMeta as any)?.displayName || segment.label,
+      (segmentMeta as any)?.customIcon || segment.icon,
       segment.description,
-      segment.sortOrder,
-      moduleMeta,
+      typeof (segmentMeta as any)?.customSortOrder === "number" ? (segmentMeta as any).customSortOrder : segment.sortOrder,
+      segmentMeta || moduleMeta,
       segmentGroups,
-      getFallbackHomeHref(segment.key)
+      getFallbackHomeHref(segment.key),
+      (segmentMeta as any)?.customSection
     );
   }).filter((workspaceModule): workspaceModule is WorkspaceModule => Boolean(workspaceModule));
 
@@ -368,24 +457,29 @@ function splitLegacyErpModule(module: NavModuleDto, moduleMeta?: Module): Worksp
   return overflowModule ? [...splitModules, overflowModule] : splitModules;
 }
 
-export function buildWorkspaceModules(navigationModules: NavModuleDto[], enabledModules: Module[] = []): WorkspaceModule[] {
+export function buildWorkspaceModules(
+  navigationModules: NavModuleDto[],
+  enabledModules: Module[] = [],
+  accessContext?: WorkspaceAccessContext
+): WorkspaceModule[] {
   const moduleMetaByKey = new Map(enabledModules.map((module) => [module.key, module]));
 
   const workspaceModules = navigationModules
     .slice()
+    .filter((module) => isModuleAccessible(module, accessContext))
     .sort((left, right) => left.sortOrder - right.sortOrder || left.displayName.localeCompare(right.displayName))
     .flatMap((module, moduleIndex) => {
       const moduleMeta = moduleMetaByKey.get(module.key);
 
       if (module.key === "erp") {
-        return splitLegacyErpModule(module, moduleMeta);
+        return splitLegacyErpModule(module, moduleMeta, moduleMetaByKey, accessContext);
       }
 
       const groups = sortGroups(module.groups)
         .map((group, groupIndex) => ({
           label: group.label?.trim() || "Pages",
           sortOrder: typeof group.sortOrder === "number" ? group.sortOrder : groupIndex,
-          items: sortItems(group.items),
+          items: sortItems(group.items.filter((item) => isItemAccessible(item, accessContext))),
         }))
         .filter((group) => group.items.length > 0);
 
@@ -397,7 +491,8 @@ export function buildWorkspaceModules(navigationModules: NavModuleDto[], enabled
         typeof module.sortOrder === "number" ? module.sortOrder : moduleIndex,
         moduleMeta,
         groups,
-        resolveWorkspaceModuleHomeHref(module, moduleMeta)
+        resolveWorkspaceModuleHomeHref(module, moduleMeta),
+        module.section
       );
     })
     .filter((module): module is WorkspaceModule => Boolean(module));

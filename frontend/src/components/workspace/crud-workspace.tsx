@@ -50,23 +50,32 @@ type CrudCardProps = {
 };
 
 export function CrudCard({
+  title,
+  description,
   badge,
   actions,
   children,
 }: CrudCardProps) {
-  const showHeader = Boolean(badge || actions);
+  const showHeader = Boolean(title || description || badge || actions);
+
+  if (!showHeader) {
+    return <div className="w-full min-w-0">{children}</div>;
+  }
+
   return (
     <section className="erp-crud-card">
-      {showHeader ? (
-        <div className="erp-crud-card-header">
-          {badge || actions ? (
-            <div className="erp-crud-card-aside ml-auto">
-              {badge}
-              {actions}
-            </div>
-          ) : null}
+      <div className="erp-crud-card-header">
+        <div>
+          {title ? <h2 className="erp-crud-card-title">{title}</h2> : null}
+          {description ? <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{description}</div> : null}
         </div>
-      ) : null}
+        {badge || actions ? (
+          <div className="erp-crud-card-aside ml-auto">
+            {badge}
+            {actions}
+          </div>
+        ) : null}
+      </div>
       <div className="erp-crud-card-body">{children}</div>
     </section>
   );

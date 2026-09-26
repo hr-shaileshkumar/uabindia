@@ -6,11 +6,9 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import EmployeeProfile360, {
   type EmployeeProfile360Data,
 } from "@/features/hrms/components/EmployeeProfile360";
-import EmployeeForm, { type EmployeeFormValues } from "@/features/hrms/components/EmployeeForm";
-import DynamicFieldsSection from "@/components/DynamicFieldsSection";
 import { hrmsApi } from "@/services/modules";
 import { PERMISSIONS } from "@/constants/permissions";
-import { ArrowLeft, Edit3, X } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 export default function EmployeeDetailPage() {
   const params = useParams();
@@ -18,8 +16,6 @@ export default function EmployeeDetailPage() {
   const id = params?.id as string;
 
   const [profile, setProfile] = useState<EmployeeProfile360Data | null>(null);
-  const [initialFormValues, setInitialFormValues] = useState<Partial<EmployeeFormValues> | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,13 +29,6 @@ export default function EmployeeDetailPage() {
           const res = await hrmsApi.hrms.employees.getProfile360(id);
           if (res.data) {
             setProfile(res.data);
-            setInitialFormValues({
-              fullName: res.data.fullName ?? "",
-              employeeCode: res.data.employeeCode ?? "",
-              companyId: res.data.companyId ?? "",
-              projectId: res.data.projectId ?? "",
-              status: res.data.status ?? "Active",
-            });
             return;
           }
         } catch {
@@ -94,13 +83,6 @@ export default function EmployeeDetailPage() {
         };
 
         setProfile(normalizedProfile);
-        setInitialFormValues({
-          fullName: emp.fullName ?? "",
-          employeeCode: emp.employeeCode ?? "",
-          companyId: emp.companyId ?? "",
-          projectId: emp.projectId ?? "",
-          status: emp.status ?? "Active",
-        });
       } catch (err) {
         setError(err instanceof Error ? err.message : "Employee profile not found");
       } finally {
@@ -153,36 +135,11 @@ export default function EmployeeDetailPage() {
           </button>
         </div>
 
-        {/* 360 Workspace or Edit Form View */}
-        {isEditing ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Edit3 className="h-5 w-5 text-indigo-600" />
-                Edit Employee Record ({profile.employeeCode})
-              </h2>
-              <button
-                type="button"
-                onClick={() => setIsEditing(false)}
-                className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <EmployeeForm
-              initialValues={initialFormValues ?? {}}
-              employeeId={id}
-              title="Update Employee Master"
-            />
-
-            <div className="max-w-2xl mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
-              <DynamicFieldsSection entityName="Employee" recordId={id} editable />
-            </div>
-          </div>
-        ) : (
-          <EmployeeProfile360 data={profile} onEditClick={() => setIsEditing(true)} />
-        )}
+        {/* 360 Panoramic Workspace */}
+        <EmployeeProfile360
+          data={profile}
+          onEditClick={() => router.push(`/hrms/employees?edit=${id}`)}
+        />
       </div>
     </ProtectedRoute>
   );

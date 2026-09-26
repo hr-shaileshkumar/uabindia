@@ -15,6 +15,10 @@ namespace UabIndia.Api.Models
         public string? BasePath { get; set; }
         public int SortOrder { get; set; }
         public string Version { get; set; } = "0001";
+        public string? CustomDisplayName { get; set; }
+        public int? CustomSortOrder { get; set; }
+        public string? CustomIcon { get; set; }
+        public string? CustomSection { get; set; }
     }
 
     // ─────────────────────────────────────────────────────────────────────────────
@@ -33,6 +37,8 @@ namespace UabIndia.Api.Models
         public string? Icon { get; set; }
         public string? HomeHref { get; set; }
         public int SortOrder { get; set; }
+        public string? Section { get; set; }
+        public List<string>? AllowedRoles { get; set; }
         public List<NavGroupDto> Groups { get; set; } = new();
     }
 
@@ -51,6 +57,9 @@ namespace UabIndia.Api.Models
         public string? Icon { get; set; }
         public int SortOrder { get; set; }
         public List<string> RequiredPermissions { get; set; } = new();
+        public List<string>? AllowedRoles { get; set; }
+        public List<string>? AllowedCompanyIds { get; set; }
+        public List<string>? AllowedProjectIds { get; set; }
     }
 
     // ─────────────────────────────────────────────────────────────────────────────
@@ -206,5 +215,59 @@ namespace UabIndia.Api.Models
     public class UpdateWorkflowSchemaDto
     {
         public string WorkflowJson { get; set; } = "{}";
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Dynamic UI Shell Visibility Configuration (Topbar, Public Header, Scopes)
+    // ─────────────────────────────────────────────────────────────────────────────
+    public class UiShellConfigDto
+    {
+        public TopbarConfigDto Topbar { get; set; } = new();
+        public PublicHeaderConfigDto PublicHeader { get; set; } = new();
+    }
+
+    public class TopbarConfigDto
+    {
+        public bool ShowCompanySwitcher { get; set; } = true;
+        public bool ShowProjectSwitcher { get; set; } = true;
+        public bool ShowNotifications { get; set; } = true;
+        public bool ShowGlobalSearch { get; set; } = true;
+        public bool ShowQuickRefresh { get; set; } = true;
+        public List<ProfileLinkDto> ProfileLinks { get; set; } = new()
+        {
+            new() { Label = "My Profile", Href = "/profile", Icon = "UserRound" },
+            new() { Label = "Employee Self-Service", Href = "/ess", Icon = "Users" },
+            new() { Label = "Manager Self-Service", Href = "/mss", Icon = "Users", RequiredRole = "Manager" },
+            new() { Label = "Workspace Settings", Href = "/platform/settings", Icon = "Settings", RequiredRole = "Admin" },
+        };
+    }
+
+    public class ProfileLinkDto
+    {
+        public string Label { get; set; } = string.Empty;
+        public string Href { get; set; } = string.Empty;
+        public string Icon { get; set; } = "Link";
+        public string? RequiredRole { get; set; }
+        public string? RequiredPermission { get; set; }
+    }
+
+    public class PublicHeaderConfigDto
+    {
+        public List<PublicHeaderNavLinkDto> NavLinks { get; set; } = new()
+        {
+            new() { Label = "About", Href = "/about" },
+            new() { Label = "Careers", Href = "/careers" },
+            new() { Label = "Contact", Href = "/contact" },
+        };
+        public bool ShowLoginButton { get; set; } = true;
+        public string PrimaryCtaLabel { get; set; } = "Login";
+        public string PrimaryCtaHref { get; set; } = "/login";
+    }
+
+    public class PublicHeaderNavLinkDto
+    {
+        public string Label { get; set; } = string.Empty;
+        public string Href { get; set; } = string.Empty;
+        public string? Target { get; set; }
     }
 }

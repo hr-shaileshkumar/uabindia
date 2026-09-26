@@ -19,6 +19,8 @@ using UabIndia.Infrastructure.Services;
 using UabIndia.Infrastructure.Services.Payments;
 using UabIndia.Infrastructure.Services.Payroll;
 using UabIndia.Infrastructure.Services.Tax;
+using UabIndia.Application.Common.Cqrs;
+using UabIndia.Application.Common.PageActions;
 
 namespace UabIndia.Api.Extensions
 {
@@ -116,7 +118,9 @@ namespace UabIndia.Api.Extensions
             return services;
         }
 
-        public static IServiceCollection AddEnterpriseBusinessServices(this IServiceCollection services)
+        public static IServiceCollection AddEnterpriseBusinessServices(
+            this IServiceCollection services,
+            IConfiguration? configuration = null)
         {
             // Context & Tenants
             services.AddScoped<IRequestContext, HttpRequestContext>();
@@ -130,6 +134,33 @@ namespace UabIndia.Api.Extensions
             services.AddScoped<IWebsiteContentService, WebsiteContentService>();
             services.AddSingleton<RoleMappingResolver>();
             services.AddScoped<InputSanitizer>();
+
+            // Storage Providers (Local by default, configurable to S3 or Azure Blob)
+            services.AddHttpClient("S3StorageClient");
+            services.AddHttpClient("AzureBlobStorageClient");
+
+            var storageProviderType = configuration?["Storage:Provider"]?.ToLowerInvariant();
+            switch (storageProviderType)
+            {
+                case "s3":
+                case "minio":
+                case "r2":
+                    services.AddScoped<IStorageProvider, S3StorageProvider>();
+                    break;
+                case "azure":
+                case "azureblob":
+                    services.AddScoped<IStorageProvider, AzureBlobStorageProvider>();
+                    break;
+                default:
+                    services.AddScoped<IStorageProvider, LocalStorageProvider>();
+                    break;
+            }
+
+            // Security ABAC Data Scope Evaluator
+            services.AddScoped<IDataScopeEvaluator, DataScopeEvaluator>();
+
+            // Safe Business Rule Engine
+            services.AddSingleton<IBusinessRuleEvaluator, BusinessRuleEvaluator>();
 
             // Security & Encryption
             services.AddSingleton<IEncryptionService, AesEncryptionService>();
@@ -230,6 +261,13 @@ namespace UabIndia.Api.Extensions
 
             // AI Copilot
             services.AddScoped<IAiCopilotService, AiCopilotService>();
+
+            // CQRS & Application Dispatcher
+            services.AddScoped<IDispatcher, ApplicationDispatcher>();
+            services.AddScoped<ICommandHandler<ExecutePageActionCommand, PageActionResult>, ExecutePageActionCommandHandler>();
+            services.AddScoped<IPageActionHandler, WorkflowTriggerPageActionHandler>();
+            services.AddScoped<IPageActionHandler, StatusTransitionPageActionHandler>();
+            services.AddScoped<IPageActionHandler, CloneRecordPageActionHandler>();
 
             return services;
         }

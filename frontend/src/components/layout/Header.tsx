@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useTheme } from "next-themes";
+import { useEffect, useRef, useState } from "react";
 import {
   Bell,
   LogOut,
@@ -9,14 +10,15 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   RefreshCw,
+  Search,
   Settings,
   Shield,
   Sun,
   UserRound,
   Users,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { HeaderSearch } from "./HeaderSearch";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
@@ -28,9 +30,13 @@ import { cn } from "@/lib/utils";
 import { ROUTES } from "@/constants/routes";
 import { useSignalRNotifications } from "@/context/SignalRNotificationContext";
 import { SecurityMultiFactorAuthModal } from "@/features/administration/components/SecurityMultiFactorAuthModal";
+import { usePermissions } from "@/context/PermissionContext";
+import { PERMISSIONS } from "@/constants/permissions";
+import { getNormalizedRoleSet } from "@/lib/auth/role-utils";
 
 type HeaderProps = {
   onMenuClick?: () => void;
+  onSearchClick?: () => void;
 };
 
 function GlobalRefreshButton() {
@@ -237,7 +243,8 @@ function NotificationBell() {
 }
 
 function ProfileDropdown() {
-  const { user, logout } = useAuth();
+  const { user, logout, isSuperAdmin: authIsSuperAdmin } = useAuth();
+  const { hasPermission, isSuperAdmin: permIsSuperAdmin } = usePermissions();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -245,6 +252,21 @@ function ProfileDropdown() {
   const [mfaOpen, setMfaOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useClickOutside(ref, () => setOpen(false));
+
+  const isSuperAdmin = authIsSuperAdmin || permIsSuperAdmin;
+  const userRoleSet = getNormalizedRoleSet([...(user?.roles || []), user?.role]);
+  const isManagerOrAdmin = userRoleSet.has("admin") || userRoleSet.has("manager") || userRoleSet.has("tenant_owner");
+
+  const canAccessMss =
+    isSuperAdmin ||
+    isManagerOrAdmin ||
+    hasPermission([PERMISSIONS.HRMS_VIEW, PERMISSIONS.EMPLOYEE_APPROVE, PERMISSIONS.LEAVE_APPROVE]);
+
+  const canAccessSettings =
+    isSuperAdmin ||
+    userRoleSet.has("admin") ||
+    userRoleSet.has("tenant_owner") ||
+    hasPermission([PERMISSIONS.PLATFORM_SETTINGS_VIEW, PERMISSIONS.PLATFORM_MANAGE]);
 
   useEffect(() => setMounted(true), []);
 
@@ -307,14 +329,16 @@ function ProfileDropdown() {
                 <Users className="h-3.5 w-3.5 text-slate-500" />
                 <span>Employee Self-Service</span>
               </Link>
-              <Link
-                href={ROUTES.MANAGER_SELF_SERVICE}
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-3 px-4 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
-              >
-                <Users className="h-3.5 w-3.5 text-indigo-500" />
-                <span>Manager Self-Service</span>
-              </Link>
+              {canAccessMss && (
+                <Link
+                  href={ROUTES.MANAGER_SELF_SERVICE}
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 px-4 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
+                >
+                  <Users className="h-3.5 w-3.5 text-indigo-500" />
+                  <span>Manager Self-Service</span>
+                </Link>
+              )}
               <button
                 type="button"
                 onClick={() => {
@@ -326,14 +350,16 @@ function ProfileDropdown() {
                 <Shield className="h-3.5 w-3.5 text-blue-600" />
                 <span>2FA & SSO Security</span>
               </button>
-              <Link
-                href={ROUTES.PLATFORM_SETTINGS}
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-3 px-4 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
-              >
-                <Settings className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
-                <span>Workspace Settings</span>
-              </Link>
+              {canAccessSettings && (
+                <Link
+                  href={ROUTES.PLATFORM_SETTINGS}
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 px-4 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
+                >
+                  <Settings className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
+                  <span>Workspace Settings</span>
+                </Link>
+              )}
             </div>
             {mounted ? (
               <div className="border-t border-slate-100 py-1 dark:border-slate-800">
@@ -366,7 +392,8 @@ function ProfileDropdown() {
   );
 }
 
-export function Header({ onMenuClick }: HeaderProps) {
+export function Header({ onMenuClick, onSearchClick }: HeaderProps) {
+  const { isSuperAdmin } = useAuth();
   const isSidebarCollapsed = useNavigationStore((state) => state.isSidebarCollapsed);
   const toggleSidebar = useNavigationStore((state) => state.toggleSidebar);
 
@@ -391,12 +418,28 @@ export function Header({ onMenuClick }: HeaderProps) {
         <WorkspaceBrand />
       </div>
 
-      {/* Center: Topbar Search Input & Live Dropdown */}
-      <HeaderSearch />
+      {/* Center: Global Quick Command Search (SAP Fiori / Stripe Style) */}
+      <div className="hidden md:flex flex-1 max-w-sm lg:max-w-md mx-3">
+        <button
+          type="button"
+          onClick={onSearchClick}
+          className="group flex h-8.5 w-full items-center justify-between rounded-xl border border-slate-200/90 bg-slate-50/80 px-3 text-xs text-slate-500 shadow-2xs transition-all hover:border-blue-300 hover:bg-white hover:text-slate-700 dark:border-slate-800 dark:bg-slate-950/60 dark:hover:bg-slate-900"
+          title="Search anything (Ctrl+K)"
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <Search className="h-3.5 w-3.5 text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
+            <span className="truncate">Search modules, records, employees...</span>
+          </div>
+          <kbd className="inline-flex items-center gap-0.5 rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-mono font-medium text-slate-400 shadow-2xs dark:border-slate-700 dark:bg-slate-800 shrink-0">
+            Ctrl K
+          </kbd>
+        </button>
+      </div>
 
       {/* Right Utility Cluster */}
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-        <TenantSubdomainSwitcher />
+
+        {isSuperAdmin && <TenantSubdomainSwitcher />}
         <OrgContextSwitcher />
         <GlobalRefreshButton />
         <NotificationBell />

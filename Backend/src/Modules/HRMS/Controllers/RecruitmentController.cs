@@ -16,7 +16,8 @@ using UabIndia.Infrastructure.Data;
 namespace UabIndia.Api.Modules.HRMS.Controllers
 {
     [ApiController]
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/recruitment")]
+    [Route("api/v1/hrms/recruitment")]
     [Authorize]
     public class RecruitmentController : ControllerBase
     {
@@ -83,8 +84,16 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                     Status = JobStatus.Draft,
                     IsActive = false,
                     CreatedBy = Guid.TryParse(userId, out var userGuid) ? userGuid : (Guid?)null,
-                    NumberOfPositions = dto.NumberOfPositions ?? 1
+                    NumberOfPositions = dto.NumberOfPositions ?? 1,
+                    StaffingPlanId = dto.StaffingPlanId
                 };
+
+                if (dto.StaffingPlanId.HasValue)
+                {
+                    var plan = await _db.StaffingPlans.FirstOrDefaultAsync(p => p.Id == dto.StaffingPlanId.Value && p.TenantId == tenantId && !p.IsDeleted);
+                    if (plan != null && string.IsNullOrWhiteSpace(jobPosting.Department))
+                        jobPosting.Department = plan.Department;
+                }
 
                 await _recruitmentRepo.CreateJobPostingAsync(jobPosting);
                 await InvalidateJobPostingCache(tenantId);
@@ -105,6 +114,8 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
         /// Get all job postings for the tenant.
         /// </summary>
         [HttpGet("job-postings")]
+        [HttpGet("postings")]
+        [HttpGet("")]
         public async Task<IActionResult> GetJobPostings([FromQuery] int page = 1, [FromQuery] int limit = 10)
         {
             if (page < 1) page = 1;
@@ -125,9 +136,12 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                     .Where(jp => jp.TenantId == tenantId && !jp.IsDeleted)
                     .CountAsync();
 
+                var list = jobPostings.Select(MapJobPostingToDto).ToList();
                 var response = new
                 {
-                    jobPostings = jobPostings.Select(MapJobPostingToDto),
+                    data = list,
+                    items = list,
+                    jobPostings = list,
                     total,
                     page,
                     limit
@@ -266,6 +280,8 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                 }
                 if (dto.NumberOfPositions.HasValue)
                     jobPosting.NumberOfPositions = dto.NumberOfPositions.Value;
+                if (dto.StaffingPlanId.HasValue)
+                    jobPosting.StaffingPlanId = dto.StaffingPlanId.Value;
 
                 await _recruitmentRepo.UpdateJobPostingAsync(jobPosting);
                 await InvalidateJobPostingCache(tenantId);
@@ -595,6 +611,420 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
 
         #endregion
 
+        #region Applications & Candidates
+
+        [HttpGet("applications")]
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<IActionResult> GetAllApplications([FromQuery] int page = 1, [FromQuery] int limit = 50, [FromQuery] Guid? jobPostingId = null)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var query = _db.JobApplications.AsNoTracking()
+                .Include(a => a.Candidate)
+                .Include(a => a.JobPosting)
+                .Where(a => a.TenantId == tenantId && !a.IsDeleted);
+
+            if (jobPostingId.HasValue)
+                query = query.Where(a => a.JobPostingId == jobPostingId.Value);
+
+            var total = await query.CountAsync();
+            var rows = await query
+                .OrderByDescending(a => a.ApplicationDate)
+                .Skip((page - 1) * limit)
+                .Take(limit)
+                .Select(a => new
+                {
+                    a.Id,
+                    a.CandidateId,
+                    CandidateName = $"{a.Candidate.FirstName} {a.Candidate.LastName}",
+                    a.Candidate.Email,
+                    a.Candidate.PhoneNumber,
+                    a.Candidate.CurrentCompany,
+                    a.Candidate.CurrentDesignation,
+                    a.Candidate.YearsOfExperience,
+                    a.Candidate.Resume,
+                    a.Candidate.CoverLetter,
+                    a.JobPostingId,
+                    JobTitle = a.JobPosting.Title,
+                    Department = a.JobPosting.Department,
+                    Status = a.Status.ToString(),
+                    CandidateStatus = a.Candidate.Status.ToString(),
+                    OverallRating = a.Candidate.OverallRating.ToString(),
+                    a.ScreeningRound,
+                    a.ApplicationDate,
+                    a.Candidate.InterviewDate
+                })
+                .ToListAsync();
+
+            return Ok(new
+            {
+                success = true,
+                data = rows,
+                items = rows,
+                total,
+                page,
+                limit
+            });
+        }
+
+        [HttpGet("candidates")]
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<IActionResult> GetAllCandidates([FromQuery] int page = 1, [FromQuery] int limit = 50, [FromQuery] string? search = null)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var query = _db.Candidates.AsNoTracking()
+                .Include(c => c.JobPosting)
+                .Where(c => c.TenantId == tenantId && !c.IsDeleted);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var q = search.Trim().ToLower();
+                query = query.Where(c => c.FirstName.ToLower().Contains(q) || c.LastName.ToLower().Contains(q) || c.Email.ToLower().Contains(q) || c.PhoneNumber.Contains(q));
+            }
+
+            var total = await query.CountAsync();
+            var candidates = await query
+                .OrderByDescending(c => c.AppliedDate)
+                .Skip((page - 1) * limit)
+                .Take(limit)
+                .Select(c => new
+                {
+                    c.Id,
+                    c.FirstName,
+                    c.LastName,
+                    FullName = $"{c.FirstName} {c.LastName}",
+                    c.Email,
+                    c.PhoneNumber,
+                    c.CurrentCompany,
+                    c.CurrentDesignation,
+                    c.YearsOfExperience,
+                    c.Resume,
+                    c.CoverLetter,
+                    Status = c.Status.ToString(),
+                    OverallRating = c.OverallRating.ToString(),
+                    c.SourceOfRecruit,
+                    c.Notes,
+                    c.AppliedDate,
+                    c.InterviewDate,
+                    c.InterviewFeedback,
+                    c.JobPostingId,
+                    JobTitle = c.JobPosting != null ? c.JobPosting.Title : "General"
+                })
+                .ToListAsync();
+
+            return Ok(new
+            {
+                success = true,
+                data = candidates,
+                items = candidates,
+                total,
+                page,
+                limit
+            });
+        }
+
+        #endregion
+
+        #region Offer Letter Endpoints
+
+        [HttpGet("offer-letters")]
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<IActionResult> GetAllOfferLetters([FromQuery] int page = 1, [FromQuery] int limit = 50)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var query = _db.OfferLetters.AsNoTracking()
+                .Include(o => o.Candidate)
+                .Include(o => o.JobPosting)
+                .Include(o => o.Employee)
+                .Where(o => o.TenantId == tenantId && !o.IsDeleted);
+
+            var total = await query.CountAsync();
+            var offers = await query
+                .OrderByDescending(o => o.CreatedAt)
+                .Skip((page - 1) * limit)
+                .Take(limit)
+                .Select(o => new
+                {
+                    o.Id,
+                    o.CandidateId,
+                    CandidateName = o.Candidate != null ? $"{o.Candidate.FirstName} {o.Candidate.LastName}" : "Unknown",
+                    CandidateEmail = o.Candidate != null ? o.Candidate.Email : string.Empty,
+                    CandidatePhone = o.Candidate != null ? o.Candidate.PhoneNumber : string.Empty,
+                    o.JobPostingId,
+                    JobTitle = o.JobPosting != null ? o.JobPosting.Title : "Unknown",
+                    o.Department,
+                    o.JoiningDesignation,
+                    o.OfferSalary,
+                    AnnualCtc = o.OfferSalary,
+                    MonthlyGross = Math.Round(o.OfferSalary / 12m, 2),
+                    o.OfferDate,
+                    o.ExpiryDate,
+                    o.JoiningDate,
+                    o.ReportingManager,
+                    o.OfferTerms,
+                    Status = o.Status.ToString(),
+                    o.AcceptedDate,
+                    o.RejectedDate,
+                    o.RejectionReason,
+                    o.IsJoined,
+                    o.EmployeeId,
+                    EmployeeCode = o.Employee != null ? o.Employee.EmployeeCode : null,
+                    o.CreatedAt
+                })
+                .ToListAsync();
+
+            return Ok(new
+            {
+                success = true,
+                data = offers,
+                items = offers,
+                total,
+                page,
+                limit
+            });
+        }
+
+        [HttpPost("candidates/{candidateId:guid}/offer-letters")]
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<IActionResult> IssueOfferLetter(Guid candidateId, [FromBody] CreateOfferLetterDto dto)
+        {
+            try
+            {
+                var offer = await _lifecycle.IssueOfferLetterAsync(new IssueOfferLetterCommand(
+                    candidateId,
+                    dto.OfferSalary,
+                    dto.JoiningDate ?? DateTime.UtcNow.AddDays(15),
+                    dto.ExpiryDate,
+                    dto.JoiningDesignation,
+                    dto.Department,
+                    dto.ReportingManager,
+                    dto.OfferTerms));
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Formal offer letter issued successfully.",
+                    data = offer
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost("offer-letters/{id:guid}/accept")]
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<IActionResult> AcceptOfferLetter(Guid id)
+        {
+            try
+            {
+                var offer = await _lifecycle.AcceptOfferLetterAsync(id);
+                return Ok(new
+                {
+                    success = true,
+                    message = "Candidate offer marked as accepted.",
+                    data = offer
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost("offer-letters/{id:guid}/reject")]
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<IActionResult> RejectOfferLetter(Guid id, [FromBody] RejectOfferDto? dto)
+        {
+            try
+            {
+                var offer = await _lifecycle.RejectOfferLetterAsync(id, dto?.Reason);
+                return Ok(new
+                {
+                    success = true,
+                    message = "Offer letter marked as rejected.",
+                    data = offer
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost("offer-letters/{id:guid}/convert-to-employee")]
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<IActionResult> ConvertOfferToEmployee(Guid id)
+        {
+            try
+            {
+                var employee = await _lifecycle.ConvertCandidateToEmployeeAsync(id);
+                return Ok(new
+                {
+                    success = true,
+                    message = $"Candidate successfully onboarded as Employee ({employee.EmployeeCode})!",
+                    data = new
+                    {
+                        employee.Id,
+                        employee.EmployeeCode,
+                        employee.FullName,
+                        employee.WorkEmail,
+                        employee.DateOfJoining,
+                        employee.Status
+                    }
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        #endregion
+
+        #region Appointment Letter Endpoints
+
+        [HttpGet("appointment-letters")]
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<IActionResult> GetAllAppointmentLetters([FromQuery] int page = 1, [FromQuery] int limit = 50)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var query = _db.AppointmentLetters.AsNoTracking()
+                .Include(a => a.Employee)
+                .Where(a => a.TenantId == tenantId && !a.IsDeleted);
+
+            var total = await query.CountAsync();
+            var letters = await query
+                .OrderByDescending(a => a.CreatedAt)
+                .Skip((page - 1) * limit)
+                .Take(limit)
+                .Select(a => new
+                {
+                    a.Id,
+                    a.LetterNumber,
+                    a.EmployeeId,
+                    EmployeeName = a.Employee != null ? a.Employee.FullName : "Unknown",
+                    EmployeeCode = a.Employee != null ? a.Employee.EmployeeCode : string.Empty,
+                    EmployeeEmail = a.Employee != null ? a.Employee.WorkEmail : string.Empty,
+                    EmployeePhone = a.Employee != null ? a.Employee.Phone : string.Empty,
+                    a.IssueDate,
+                    a.JoiningDate,
+                    a.Designation,
+                    a.Department,
+                    a.WorkLocation,
+                    a.AnnualCtc,
+                    a.MonthlyGross,
+                    a.ProbationMonths,
+                    a.NoticePeriodDays,
+                    a.TermsAndConditions,
+                    a.SignatoryName,
+                    a.SignatoryDesignation,
+                    a.Status,
+                    a.CreatedAt
+                })
+                .ToListAsync();
+
+            return Ok(new
+            {
+                success = true,
+                data = letters,
+                items = letters,
+                total,
+                page,
+                limit
+            });
+        }
+
+        [HttpGet("appointment-letters/{id:guid}")]
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<IActionResult> GetAppointmentLetterById(Guid id)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var letter = await _db.AppointmentLetters.AsNoTracking()
+                .Include(a => a.Employee)
+                .Where(a => a.Id == id && a.TenantId == tenantId && !a.IsDeleted)
+                .Select(a => new
+                {
+                    a.Id,
+                    a.LetterNumber,
+                    a.EmployeeId,
+                    EmployeeName = a.Employee != null ? a.Employee.FullName : "Unknown",
+                    EmployeeCode = a.Employee != null ? a.Employee.EmployeeCode : string.Empty,
+                    EmployeeEmail = a.Employee != null ? a.Employee.WorkEmail : string.Empty,
+                    EmployeePhone = a.Employee != null ? a.Employee.Phone : string.Empty,
+                    a.IssueDate,
+                    a.JoiningDate,
+                    a.Designation,
+                    a.Department,
+                    a.WorkLocation,
+                    a.AnnualCtc,
+                    a.MonthlyGross,
+                    a.ProbationMonths,
+                    a.NoticePeriodDays,
+                    a.TermsAndConditions,
+                    a.SignatoryName,
+                    a.SignatoryDesignation,
+                    a.Status,
+                    a.CreatedAt
+                })
+                .FirstOrDefaultAsync();
+
+            if (letter == null)
+                return NotFound(new { success = false, message = "Appointment letter not found" });
+
+            return Ok(new { success = true, data = letter });
+        }
+
+        [HttpPost("appointment-letters")]
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<IActionResult> IssueAppointmentLetter([FromBody] CreateAppointmentLetterDto dto)
+        {
+            if (dto.EmployeeId == Guid.Empty)
+                return BadRequest(new { success = false, message = "Employee ID is required." });
+
+            try
+            {
+                var letter = await _lifecycle.IssueAppointmentLetterAsync(new IssueAppointmentLetterCommand(
+                    dto.EmployeeId,
+                    dto.JoiningDate,
+                    dto.Designation,
+                    dto.Department,
+                    dto.WorkLocation,
+                    dto.AnnualCtc,
+                    dto.MonthlyGross,
+                    dto.ProbationMonths,
+                    dto.NoticePeriodDays,
+                    dto.TermsAndConditions,
+                    dto.SignatoryName,
+                    dto.SignatoryDesignation));
+
+                return Ok(new
+                {
+                    success = true,
+                    message = $"Official Appointment Letter ({letter.LetterNumber}) issued successfully.",
+                    data = letter
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        #endregion
+
         #region Helper Methods
 
         private static TEnum? TryParseEnum<TEnum>(string? value) where TEnum : struct, Enum
@@ -623,6 +1053,8 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                 IsActive = jobPosting.IsActive,
                 ApplicationCount = jobPosting.ApplicationCount,
                 NumberOfPositions = jobPosting.NumberOfPositions,
+                StaffingPlanId = jobPosting.StaffingPlanId,
+                StaffingPlanCode = jobPosting.StaffingPlan?.PlanCode,
                 CreatedAt = jobPosting.CreatedAt
             };
         }
@@ -684,5 +1116,10 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
         }
 
         #endregion
+    }
+
+    public class RejectOfferDto
+    {
+        public string? Reason { get; set; }
     }
 }

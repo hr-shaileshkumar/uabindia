@@ -22,11 +22,16 @@ namespace UabIndia.Api.Modules.Administration.Controllers
     {
         private readonly ApplicationDbContext _db;
         private readonly ITenantAccessor _tenantAccessor;
+        private readonly IStorageProvider _storageProvider;
 
-        public DocumentsController(ApplicationDbContext db, ITenantAccessor tenantAccessor)
+        public DocumentsController(
+            ApplicationDbContext db,
+            ITenantAccessor tenantAccessor,
+            IStorageProvider storageProvider)
         {
             _db = db;
             _tenantAccessor = tenantAccessor;
+            _storageProvider = storageProvider;
         }
 
         private Guid GetUserId()
@@ -157,19 +162,15 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                 ? scopedProjectId
                 : projectId;
 
-            var tenantFolder = Path.Combine(AppContext.BaseDirectory, "uploads", "documents", tenantId.ToString("N"));
-            Directory.CreateDirectory(tenantFolder);
-
             var safeFileName = Path.GetFileName(file.FileName);
-            var storedName = $"{Guid.NewGuid():N}_{safeFileName}";
-            var absolutePath = Path.Combine(tenantFolder, storedName);
-
-            await using (var stream = System.IO.File.Create(absolutePath))
-            {
-                await file.CopyToAsync(stream);
-            }
-
-            var relativePath = Path.Combine("uploads", "documents", tenantId.ToString("N"), storedName).Replace("\\", "/");
+            await using var stream = file.OpenReadStream();
+            var relativePath = await _storageProvider.UploadFileAsync(
+                stream,
+                safeFileName,
+                string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType,
+                tenantId,
+                "documents",
+                HttpContext.RequestAborted);
 
             var doc = new DocumentRecord
             {
@@ -229,11 +230,15 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                 }
             }
 
-            var absolutePath = Path.Combine(AppContext.BaseDirectory, doc.StoragePath.Replace('/', Path.DirectorySeparatorChar));
-            if (!System.IO.File.Exists(absolutePath)) return NotFound(new { message = "File not found on storage." });
-
-            var fileBytes = await System.IO.File.ReadAllBytesAsync(absolutePath);
-            return File(fileBytes, doc.ContentType, doc.FileName);
+            try
+            {
+                var fileStream = await _storageProvider.DownloadFileAsync(doc.StoragePath, tenantId, HttpContext.RequestAborted);
+                return File(fileStream, doc.ContentType, doc.FileName);
+            }
+            catch (FileNotFoundException)
+            {
+                return NotFound(new { message = "File not found on storage." });
+            }
         }
 
         [HttpDelete("{id:guid}")]
@@ -254,6 +259,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             var isAdmin = RoleCatalog.IsAdminLike(roles);
             if (!isAdmin && doc.UploadedByUserId != userId) return Forbid();
 
+            await _storageProvider.DeleteFileAsync(doc.StoragePath, tenantId, HttpContext.RequestAborted);
             doc.IsDeleted = true;
             await _db.SaveChangesAsync();
             return Ok();

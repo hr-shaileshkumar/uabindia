@@ -143,6 +143,7 @@ export default function RegisterPage() {
       if (res.data.token) {
         localStorage.setItem("uab_auth_token", res.data.token);
         localStorage.setItem("uab_current_tenant", res.data.tenant.subdomain);
+        document.cookie = `access_token=${res.data.token}; path=/; max-age=604800; SameSite=Lax`;
         document.cookie = `uab_auth_token=${res.data.token}; path=/; max-age=604800; SameSite=Lax`;
         document.cookie = `uab_tenant_subdomain=${res.data.tenant.subdomain}; path=/; max-age=604800; SameSite=Lax`;
       }

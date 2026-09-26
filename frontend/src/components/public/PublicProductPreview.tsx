@@ -7,7 +7,7 @@ type PublicProductPreviewProps = {
   compact?: boolean;
 };
 
-/** Abstract product UI preview — no fake metrics or customer names. */
+/** Abstract product UI preview — minimalist clean enterprise dashboard graphic. */
 export default function PublicProductPreview({ className, compact = false }: PublicProductPreviewProps) {
   return (
     <div
@@ -17,6 +17,7 @@ export default function PublicProductPreview({ className, compact = false }: Pub
         className,
       )}
     >
+      {/* Top Window Bar */}
       <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50/90 px-3.5 py-2.5">
         <span className="h-2 w-2 rounded-full bg-slate-300" />
         <span className="h-2 w-2 rounded-full bg-slate-300" />
@@ -25,6 +26,7 @@ export default function PublicProductPreview({ className, compact = false }: Pub
       </div>
 
       <div className={cn("flex", compact ? "min-h-[168px]" : "min-h-[240px]")}>
+        {/* Left Mini Sidebar */}
         <div className="hidden w-16 shrink-0 space-y-2.5 border-r border-slate-100 bg-slate-50/60 p-2.5 sm:block">
           <div className="h-7 rounded-md bg-slate-900/90" />
           {[70, 55, 62, 48].map((width, index) => (
@@ -32,6 +34,7 @@ export default function PublicProductPreview({ className, compact = false }: Pub
           ))}
         </div>
 
+        {/* Main Content Area */}
         <div className={cn("min-w-0 flex-1 space-y-2.5", compact ? "p-3" : "p-4")}>
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -41,8 +44,9 @@ export default function PublicProductPreview({ className, compact = false }: Pub
             <div className="h-7 w-16 rounded-md bg-slate-900" />
           </div>
 
+          {/* Module App Cards */}
           <div className="grid grid-cols-3 gap-2">
-            {["People", "Payroll", "Finance"].map((label) => (
+            {["PEOPLE", "PAYROLL", "FINANCE"].map((label) => (
               <div key={label} className="rounded-lg border border-slate-100 bg-slate-50/80 p-2">
                 <p className="text-[9px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
                 <div className="mt-1.5 h-2.5 w-10 rounded bg-slate-200" />
@@ -50,6 +54,7 @@ export default function PublicProductPreview({ className, compact = false }: Pub
             ))}
           </div>
 
+          {/* Bottom Bar Chart Analytics */}
           {!compact ? (
             <div className="rounded-lg border border-slate-100 bg-gradient-to-br from-slate-50 to-blue-50/40 p-3">
               <div className="flex h-16 items-end gap-1">

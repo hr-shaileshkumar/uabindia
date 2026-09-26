@@ -8,7 +8,20 @@ namespace UabIndia.Application.Interfaces
 {
     public interface IDocumentNumberService
     {
-        Task<string> NextAsync(string entityName, string prefix, int padding = 5, CancellationToken cancellationToken = default);
+        Task<string> NextAsync(
+            string entityName,
+            string prefix,
+            int padding,
+            Guid? companyId,
+            Guid? projectId = null,
+            string? fiscalYear = null,
+            CancellationToken cancellationToken = default);
+
+        Task<string> NextAsync(
+            string entityName,
+            string prefix,
+            int padding = 5,
+            CancellationToken cancellationToken = default);
     }
 
     public interface ILedgerPostingService

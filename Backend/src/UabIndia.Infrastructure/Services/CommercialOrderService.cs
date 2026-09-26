@@ -32,10 +32,15 @@ namespace UabIndia.Infrastructure.Services
             var lines = DocumentLineCommands.WithItem(command.Lines);
             var (taxable, tax, discount, total) = Totals(lines, command.TotalAmount, 0m, command.DiscountAmount);
 
+            var targetCompanyId = _tenantAccessor.GetCompanyId();
+            var targetProjectId = _tenantAccessor.GetProjectId();
+
             var order = new SalesOrder
             {
+                CompanyId = targetCompanyId,
+                ProjectId = targetProjectId,
                 SONumber = string.IsNullOrWhiteSpace(command.SoNumber)
-                    ? await _numbers.NextAsync("SalesOrder", "SO-", 5, cancellationToken)
+                    ? await _numbers.NextAsync("SalesOrder", "SO-", 5, targetCompanyId, targetProjectId, null, cancellationToken)
                     : command.SoNumber.Trim(),
                 SODate = command.SoDate == default ? DateTime.UtcNow.Date : command.SoDate,
                 CustomerId = command.CustomerId,
@@ -65,10 +70,15 @@ namespace UabIndia.Infrastructure.Services
             var lines = DocumentLineCommands.WithItem(command.Lines);
             var (taxable, tax, discount, total) = Totals(lines, command.TotalAmount, 0m, command.DiscountAmount);
 
+            var targetCompanyId = _tenantAccessor.GetCompanyId();
+            var targetProjectId = _tenantAccessor.GetProjectId();
+
             var order = new PurchaseOrder
             {
+                CompanyId = targetCompanyId,
+                ProjectId = targetProjectId,
                 PONumber = string.IsNullOrWhiteSpace(command.PoNumber)
-                    ? await _numbers.NextAsync("PurchaseOrder", "PO-", 5, cancellationToken)
+                    ? await _numbers.NextAsync("PurchaseOrder", "PO-", 5, targetCompanyId, targetProjectId, null, cancellationToken)
                     : command.PoNumber,
                 PODate = command.PoDate == default ? DateTime.UtcNow.Date : command.PoDate,
                 VendorId = command.VendorId,
@@ -137,10 +147,15 @@ namespace UabIndia.Infrastructure.Services
                 (discount, total) = DocumentLineMath.ApplyBillDiscount(command.TotalAmount, command.DiscountAmount);
             }
 
+            var targetCompanyId = _tenantAccessor.GetCompanyId();
+            var targetProjectId = _tenantAccessor.GetProjectId();
+
             var quotation = new SalesQuotation
             {
+                CompanyId = targetCompanyId,
+                ProjectId = targetProjectId,
                 QuotationNumber = string.IsNullOrWhiteSpace(command.QuotationNumber)
-                    ? await _numbers.NextAsync("SalesQuotation", "QT-", 5, cancellationToken)
+                    ? await _numbers.NextAsync("SalesQuotation", "QT-", 5, targetCompanyId, targetProjectId, null, cancellationToken)
                     : command.QuotationNumber.Trim(),
                 QuotationDate = quotationDate,
                 CustomerId = command.CustomerId,

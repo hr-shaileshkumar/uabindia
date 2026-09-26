@@ -45,6 +45,7 @@ import apiClient from "@/services/apiClient";
 import { ROUTES } from "@/constants/routes";
 import { StatusBadge } from "@/components/workspace/status-badge";
 import { DashboardAnalyticsWidgets } from "./DashboardAnalyticsWidgets";
+import { MetadataDashboardCanvas } from "./MetadataDashboardCanvas";
 
 type ExecutiveData = {
   summary: {
@@ -98,15 +99,25 @@ type ExecutiveData = {
   timestamp: string;
 };
 
-const DEFAULT_SPEND_PIE = [
-  { name: "Personnel & Payroll", value: 45, color: "#6366f1" },
-  { name: "Direct Procurement (SCM)", value: 28, color: "#0ea5e9" },
-  { name: "Logistics & Global Fleet", value: 15, color: "#10b981" },
-  { name: "Operational Overhead", value: 12, color: "#f59e0b" },
-];
+const EMPTY_SUMMARY = {
+  totalEmployees: 0,
+  activeEmployees: 0,
+  todayAttendance: 0,
+  attendanceRate: 0,
+  totalPOs: 0,
+  openPOs: 0,
+  totalBills: 0,
+  pendingBills: 0,
+  totalBillValue: 0,
+  pendingGrns: 0,
+  monthlyPayrollRuns: 0,
+  totalDisbursed: 0,
+  totalAssets: 0,
+  pendingApprovals: 0,
+};
 
 export function GlobalExecutiveDashboard() {
-  const [activeTab, setActiveTab] = useState<"overview" | "regions" | "financials">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "regions" | "financials" | "canvas">("overview");
 
   const { data, isLoading } = useQuery<ExecutiveData>({
     queryKey: ["reports", "executive-dashboard"],
@@ -117,40 +128,10 @@ export function GlobalExecutiveDashboard() {
     refetchInterval: 30_000,
   });
 
-  const summary = data?.summary || {
-    totalEmployees: 124,
-    activeEmployees: 118,
-    todayAttendance: 112,
-    attendanceRate: 94.9,
-    totalPOs: 48,
-    openPOs: 12,
-    totalBills: 64,
-    pendingBills: 7,
-    totalBillValue: 14200000,
-    pendingGrns: 4,
-    monthlyPayrollRuns: 1,
-    totalDisbursed: 8450000,
-    totalAssets: 380,
-    pendingApprovals: 9,
-  };
-
-  const regions = data?.regions || [
-    { name: "Global Corporate HQ", code: "HQ", employees: 34, activeProjects: 4, status: "Optimal", lat: 28.6139, lng: 77.2090 },
-    { name: "APAC - Singapore Hub", code: "APAC", employees: 26, activeProjects: 3, status: "Optimal", lat: 1.3521, lng: 103.8198 },
-    { name: "EMEA - London Center", code: "EMEA", employees: 22, activeProjects: 2, status: "Optimal", lat: 51.5074, lng: -0.1278 },
-    { name: "Americas - New York Hub", code: "AMER", employees: 24, activeProjects: 3, status: "Optimal", lat: 40.7128, lng: -74.0060 },
-    { name: "Middle East - Dubai", code: "ME", employees: 18, activeProjects: 2, status: "Optimal", lat: 25.2048, lng: 55.2708 },
-    { name: "Global Field Units", code: "FIELD", employees: 14, activeProjects: 5, status: "Active", lat: 19.0760, lng: 72.8777 }
-  ];
-
-  const financialTrends = data?.financialTrends || [
-    { quarter: "Q1", revenue: 14500000, spend: 8200000, payroll: 4100000, margin: 2200000 },
-    { quarter: "Q2", revenue: 16800000, spend: 9100000, payroll: 4400000, margin: 3300000 },
-    { quarter: "Q3", revenue: 19200000, spend: 10400000, payroll: 4800000, margin: 4000000 },
-    { quarter: "Q4 (Est)", revenue: 22500000, spend: 11800000, payroll: 5200000, margin: 5500000 },
-  ];
-
-  const spendPieData = data?.spendDistribution && data.spendDistribution.length > 0 ? data.spendDistribution : DEFAULT_SPEND_PIE;
+  const summary = data?.summary || EMPTY_SUMMARY;
+  const regions = data?.regions || [];
+  const financialTrends = data?.financialTrends || [];
+  const spendPieData = data?.spendDistribution && data.spendDistribution.length > 0 ? data.spendDistribution : [];
 
   return (
     <div className="space-y-6 pb-12">
@@ -229,11 +210,27 @@ export function GlobalExecutiveDashboard() {
           >
             Financial & Spend BI
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("canvas")}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 transition ${
+              activeTab === "canvas"
+                ? "bg-indigo-600 text-white font-bold shadow-inner"
+                : "hover:text-white text-indigo-300"
+            }`}
+          >
+            <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+            <span>Customizable Canvas (Metadata)</span>
+          </button>
         </div>
       </div>
 
-      {/* Primary KPI Metrics Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {activeTab === "canvas" ? (
+        <MetadataDashboardCanvas dashboardKey="executive_overview" />
+      ) : (
+        <>
+          {/* Primary KPI Metrics Grid */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* Metric 1 */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
           <div className="flex items-center justify-between">
@@ -250,7 +247,7 @@ export function GlobalExecutiveDashboard() {
             </span>
           </div>
           <p className="mt-1 text-xs text-slate-500">
-            {summary.todayAttendance} punches synced today across 6 regional hubs.
+            {summary.todayAttendance} punches synced today across {regions.length} regional hub{regions.length === 1 ? "" : "s"}.
           </p>
         </div>
 
@@ -303,7 +300,7 @@ export function GlobalExecutiveDashboard() {
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-2xl font-black text-slate-900 dark:text-white">{summary.pendingApprovals}</span>
             <span className="inline-flex items-center text-xs font-bold text-indigo-600">
-              Avg SLA: 4.2h
+              Live Queue
             </span>
           </div>
           <p className="mt-1 text-xs text-slate-500">
@@ -335,36 +332,42 @@ export function GlobalExecutiveDashboard() {
               </div>
             </div>
 
-            <div className="h-72 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={financialTrends} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0.0} />
-                    </linearGradient>
-                    <linearGradient id="colorMargin" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                  <XAxis dataKey="quarter" stroke="#94a3b8" fontSize={12} tickLine={false} />
-                  <YAxis
-                    stroke="#94a3b8"
-                    fontSize={11}
-                    tickLine={false}
-                    tickFormatter={(v) => `₹${(v / 10000000).toFixed(1)}Cr`}
-                  />
-                  <Tooltip
-                    formatter={(v: any) => [`₹${(Number(v) / 100000).toFixed(1)} Lakhs`]}
-                    contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", fontSize: "12px" }}
-                  />
-                  <Area type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRev)" />
-                  <Area type="monotone" dataKey="margin" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorMargin)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+            {financialTrends.length === 0 ? (
+              <div className="flex h-72 items-center justify-center text-xs text-slate-400">
+                No financial velocity data recorded for this period.
+              </div>
+            ) : (
+              <div className="h-72 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={financialTrends} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4} />
+                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0.0} />
+                      </linearGradient>
+                      <linearGradient id="colorMargin" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                    <XAxis dataKey="quarter" stroke="#94a3b8" fontSize={12} tickLine={false} />
+                    <YAxis
+                      stroke="#94a3b8"
+                      fontSize={11}
+                      tickLine={false}
+                      tickFormatter={(v) => `₹${(v / 10000000).toFixed(1)}Cr`}
+                    />
+                    <Tooltip
+                      formatter={(v: any) => [`₹${(Number(v) / 100000).toFixed(1)} Lakhs`]}
+                      contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", fontSize: "12px" }}
+                    />
+                    <Area type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRev)" />
+                    <Area type="monotone" dataKey="margin" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorMargin)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </div>
 
           {/* Spend Category Breakdown (Donut) */}
@@ -372,38 +375,46 @@ export function GlobalExecutiveDashboard() {
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">Spend Distribution</h3>
             <p className="text-xs text-slate-500 mb-4">Enterprise operating budget allocation</p>
 
-            <div className="h-52 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={spendPieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={55}
-                    outerRadius={80}
-                    paddingAngle={4}
-                    dataKey="value"
-                  >
-                    {spendPieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(v: any) => [`${v}%`]} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-
-            <div className="mt-2 space-y-2 text-xs">
-              {spendPieData.map((item) => (
-                <div key={item.name} className="flex items-center justify-between text-slate-600 dark:text-slate-400">
-                  <span className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: item.color }} />
-                    <span className="truncate">{item.name}</span>
-                  </span>
-                  <span className="font-bold text-slate-900 dark:text-white">{item.value}%</span>
+            {spendPieData.length === 0 ? (
+              <div className="flex h-52 items-center justify-center text-xs text-slate-400">
+                No spend distribution data available.
+              </div>
+            ) : (
+              <>
+                <div className="h-52 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={spendPieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={55}
+                        outerRadius={80}
+                        paddingAngle={4}
+                        dataKey="value"
+                      >
+                        {spendPieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(v: any) => [`${v}%`]} />
+                    </PieChart>
+                  </ResponsiveContainer>
                 </div>
-              ))}
-            </div>
+
+                <div className="mt-2 space-y-2 text-xs">
+                  {spendPieData.map((item) => (
+                    <div key={item.name} className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+                      <span className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: item.color }} />
+                        <span className="truncate">{item.name}</span>
+                      </span>
+                      <span className="font-bold text-slate-900 dark:text-white">{item.value}%</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -422,41 +433,47 @@ export function GlobalExecutiveDashboard() {
               <p className="text-xs text-slate-500">Live operational status and workforce distribution across world nodes</p>
             </div>
             <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full dark:bg-indigo-950 dark:text-indigo-400">
-              6 Active World Zones
+              {regions.length} Active World Zone{regions.length === 1 ? "" : "s"}
             </span>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {regions.map((reg) => (
-              <div
-                key={reg.code}
-                className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:border-indigo-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-xs font-black text-slate-800 dark:bg-slate-800 dark:text-slate-200">
-                      {reg.code}
+          {regions.length === 0 ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-xs text-slate-400 dark:border-slate-800 dark:bg-slate-900">
+              No regional operations hubs configured yet.
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {regions.map((reg) => (
+                <div
+                  key={reg.code}
+                  className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:border-indigo-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-xs font-black text-slate-800 dark:bg-slate-800 dark:text-slate-200">
+                        {reg.code}
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 transition">
+                          {reg.name}
+                        </h4>
+                        <p className="text-[11px] text-slate-400">{reg.activeProjects} Active Projects</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 transition">
-                        {reg.name}
-                      </h4>
-                      <p className="text-[11px] text-slate-400">{reg.activeProjects} Active Projects</p>
-                    </div>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      {reg.status}
+                    </span>
                   </div>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    {reg.status}
-                  </span>
-                </div>
 
-                <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs dark:border-slate-800">
-                  <span className="text-slate-500">Workforce On-Duty</span>
-                  <span className="font-bold text-slate-900 dark:text-white">{reg.employees} Staff</span>
+                  <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs dark:border-slate-800">
+                    <span className="text-slate-500">Workforce On-Duty</span>
+                    <span className="font-bold text-slate-900 dark:text-white">{reg.employees} Staff</span>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -470,30 +487,38 @@ export function GlobalExecutiveDashboard() {
             </div>
           </div>
 
-          <div className="h-80 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={financialTrends} margin={{ top: 20, right: 10, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis dataKey="quarter" stroke="#94a3b8" fontSize={12} tickLine={false} />
-                <YAxis
-                  stroke="#94a3b8"
-                  fontSize={11}
-                  tickLine={false}
-                  tickFormatter={(v) => `₹${(v / 10000000).toFixed(1)}Cr`}
-                />
-                <Tooltip
-                  formatter={(v: any) => [`₹${(Number(v) / 100000).toFixed(1)} Lakhs`]}
-                  contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", fontSize: "12px" }}
-                />
-                <Legend />
-                <Bar dataKey="revenue" name="Total Revenue" fill="#6366f1" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="spend" name="SCM & Ops Spend" fill="#0ea5e9" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="payroll" name="Payroll Outflow" fill="#f59e0b" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="margin" name="Operating Margin" fill="#10b981" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          {financialTrends.length === 0 ? (
+            <div className="flex h-80 items-center justify-center text-xs text-slate-400">
+              No quarterly spend or outflow records available.
+            </div>
+          ) : (
+            <div className="h-80 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={financialTrends} margin={{ top: 20, right: 10, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                  <XAxis dataKey="quarter" stroke="#94a3b8" fontSize={12} tickLine={false} />
+                  <YAxis
+                    stroke="#94a3b8"
+                    fontSize={11}
+                    tickLine={false}
+                    tickFormatter={(v) => `₹${(v / 10000000).toFixed(1)}Cr`}
+                  />
+                  <Tooltip
+                    formatter={(v: any) => [`₹${(Number(v) / 100000).toFixed(1)} Lakhs`]}
+                    contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", fontSize: "12px" }}
+                  />
+                  <Legend />
+                  <Bar dataKey="revenue" name="Total Revenue" fill="#6366f1" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="spend" name="SCM & Ops Spend" fill="#0ea5e9" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="payroll" name="Payroll Outflow" fill="#f59e0b" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="margin" name="Operating Margin" fill="#10b981" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
+      )}
+        </>
       )}
     </div>
   );

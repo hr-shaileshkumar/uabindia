@@ -56,6 +56,8 @@ namespace UabIndia.Infrastructure.Data
         public DbSet<Permission> Permissions { get; set; }
         public DbSet<RolePermission> RolePermissions { get; set; }
         public DbSet<UserPermission> UserPermissions { get; set; }
+        public DbSet<DataScope> DataScopes { get; set; }
+        public DbSet<RoleDataScope> RoleDataScopes { get; set; }
         public DbSet<Employee> Employees { get; set; }
         public DbSet<AttendanceRecord> AttendanceRecords { get; set; }
         public DbSet<BiometricDevice> BiometricDevices { get; set; }
@@ -102,6 +104,10 @@ namespace UabIndia.Infrastructure.Data
         public DbSet<EntityFieldValue> EntityFieldValues { get; set; }
         public DbSet<UiPageDefinition> UiPageDefinitions { get; set; }
         public DbSet<UiPageVersion> UiPageVersions { get; set; }
+        public DbSet<UiViewDefinition> UiViewDefinitions { get; set; }
+        public DbSet<DashboardDefinition> DashboardDefinitions { get; set; }
+        public DbSet<WidgetDefinition> WidgetDefinitions { get; set; }
+        public DbSet<DashboardWidget> DashboardWidgets { get; set; }
         public DbSet<DocumentRecord> DocumentRecords { get; set; }
         public DbSet<NotificationMessage> NotificationMessages { get; set; }
         public DbSet<CommunicationTemplate> CommunicationTemplates { get; set; }
@@ -143,6 +149,7 @@ namespace UabIndia.Infrastructure.Data
         // Sales & CRM
         public DbSet<Customer> Customers { get; set; }
         public DbSet<CrmLead> CrmLeads { get; set; }
+        public DbSet<CrmContact> CrmContacts { get; set; }
         public DbSet<SalesQuotation> SalesQuotations { get; set; }
         public DbSet<SalesQuotationItem> SalesQuotationItems { get; set; }
         public DbSet<SalesOrder> SalesOrders { get; set; }
@@ -200,11 +207,13 @@ namespace UabIndia.Infrastructure.Data
         public DbSet<AppraisalCompetency> AppraisalCompetencies { get; set; }
 
         // Recruitment Module
+        public DbSet<StaffingPlan> StaffingPlans { get; set; }
         public DbSet<JobPosting> JobPostings { get; set; }
         public DbSet<Candidate> Candidates { get; set; }
         public DbSet<CandidateScreening> CandidateScreenings { get; set; }
         public DbSet<JobApplication> JobApplications { get; set; }
         public DbSet<OfferLetter> OfferLetters { get; set; }
+        public DbSet<AppointmentLetter> AppointmentLetters { get; set; }
 
         // Training & Development Module
         public DbSet<TrainingCourse> TrainingCourses { get; set; }
@@ -339,6 +348,14 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<RolePermission>().ToTable("RolePermissions");
             modelBuilder.Entity<UserPermission>().ToTable("UserPermissions");
             modelBuilder.Entity<UserPermission>().HasIndex("TenantId", "UserId", "Module", "PageKey", "Action");
+            modelBuilder.Entity<DataScope>().ToTable("DataScopes");
+            modelBuilder.Entity<RoleDataScope>().ToTable("RoleDataScopes");
+            modelBuilder.Entity<RoleDataScope>().HasIndex("TenantId", "RoleId", "DataScopeId");
+            modelBuilder.Entity<DashboardDefinition>().ToTable("DashboardDefinitions");
+            modelBuilder.Entity<WidgetDefinition>().ToTable("WidgetDefinitions");
+            modelBuilder.Entity<DashboardWidget>().ToTable("DashboardWidgets");
+            modelBuilder.Entity<DashboardDefinition>().HasIndex("TenantId", "DashboardKey");
+            modelBuilder.Entity<WidgetDefinition>().HasIndex("TenantId", "WidgetKey");
             modelBuilder.Entity<Employee>().ToTable("Employees");
             modelBuilder.Entity<AttendanceRecord>().ToTable("AttendanceRecords");
             modelBuilder.Entity<AttendanceCorrection>().ToTable("AttendanceCorrections");
@@ -368,6 +385,8 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<EntityFieldValue>().ToTable("EntityFieldValues");
             modelBuilder.Entity<UiPageDefinition>().ToTable("UiPageDefinitions");
             modelBuilder.Entity<UiPageVersion>().ToTable("UiPageVersions");
+            modelBuilder.Entity<UiViewDefinition>().ToTable("UiViewDefinitions");
+            modelBuilder.Entity<UiViewDefinition>().HasIndex(e => new { e.TenantId, e.PageKey, e.Scope, e.UserId });
             modelBuilder.Entity<DocumentRecord>().ToTable("DocumentRecords");
             modelBuilder.Entity<NotificationMessage>().ToTable("NotificationMessages");
             modelBuilder.Entity<CommunicationTemplate>().ToTable("CommunicationTemplates");
@@ -687,6 +706,7 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<EntityFieldValue>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<UiPageDefinition>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<UiPageVersion>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<UiViewDefinition>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<DocumentRecord>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == null || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
             modelBuilder.Entity<NotificationMessage>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == null || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()));
             modelBuilder.Entity<HelpdeskTicket>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == null || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
@@ -905,6 +925,13 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<CandidateScreening>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<JobApplication>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<OfferLetter>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<StaffingPlan>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<AppointmentLetter>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<DataScope>().HasQueryFilter(e => !e.IsDeleted && (_tenantAccessor.IncludeAllTenants() || e.TenantId == _tenantAccessor.GetTenantId()));
+            modelBuilder.Entity<RoleDataScope>().HasQueryFilter(e => !e.IsDeleted && (_tenantAccessor.IncludeAllTenants() || e.TenantId == _tenantAccessor.GetTenantId()));
+            modelBuilder.Entity<DashboardDefinition>().HasQueryFilter(e => !e.IsDeleted && (_tenantAccessor.IncludeAllTenants() || e.TenantId == _tenantAccessor.GetTenantId()));
+            modelBuilder.Entity<WidgetDefinition>().HasQueryFilter(e => !e.IsDeleted && (_tenantAccessor.IncludeAllTenants() || e.TenantId == _tenantAccessor.GetTenantId()));
+            modelBuilder.Entity<DashboardWidget>().HasQueryFilter(e => !e.IsDeleted && (_tenantAccessor.IncludeAllTenants() || e.TenantId == _tenantAccessor.GetTenantId()));
         }
 
         public override int SaveChanges()

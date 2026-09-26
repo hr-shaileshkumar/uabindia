@@ -169,6 +169,13 @@ namespace UabIndia.Api.Services
             await UabIndia.Infrastructure.Data.Migrations.MigrationBootstrap.EnsureExtendedSchemaAsync(
                 db, _logger, ct);
 
+            var config = scope.ServiceProvider.GetService<IConfiguration>();
+            if (config != null && config.GetValue<bool>("Database:ApplyPartitionedSchemas", false))
+            {
+                await UabIndia.Infrastructure.Data.Migrations.MigrationBootstrap.ApplyEnterpriseSchemaPartitioningAsync(
+                    db, _logger, ct);
+            }
+
             _logger.LogInformation("Applying database migrations…");
             if (db.Database.IsRelational())
             {

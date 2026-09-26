@@ -173,8 +173,17 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                 };
                 roles = roleSet.ToArray();
             }
+            else
+            {
+                // Non-system-admin tenant users must NEVER possess the platform SuperAdmin role
+                roles = roles.Where(r => !RoleCatalog.IsInRole(r, SystemRole.SuperAdmin)).ToArray();
+                if (roles.Length == 0)
+                {
+                    roles = new[] { RoleCatalog.AdminRoleName };
+                }
+            }
 
-            var access = _jwt.GenerateToken(userId, tenantId, roles, TimeSpan.FromMinutes(15));
+            var access = _jwt.GenerateToken(userId, tenantId, roles, TimeSpan.FromMinutes(15), user.IsSystemAdmin);
             var refresh = _refresh.GenerateRefreshToken();
             var hash = _refresh.HashToken(refresh);
             var expires = DateTime.UtcNow.AddDays(30);
@@ -303,7 +312,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                 roles = roleSet.ToArray();
             }
 
-            var newAccess = _jwt.GenerateToken(userId, tenantId, roles, TimeSpan.FromMinutes(15));
+            var newAccess = _jwt.GenerateToken(userId, tenantId, roles, TimeSpan.FromMinutes(15), user?.IsSystemAdmin ?? false);
             SetAuthCookies(newAccess, newRefresh, newExpires);
             return Ok(new
             {
@@ -385,6 +394,15 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                 };
                 roles = roleSet.ToArray();
             }
+            else
+            {
+                // Non-system-admin tenant users must NEVER possess the platform SuperAdmin role
+                roles = roles.Where(r => !RoleCatalog.IsInRole(r, SystemRole.SuperAdmin)).ToArray();
+                if (roles.Length == 0)
+                {
+                    roles = new[] { RoleCatalog.AdminRoleName };
+                }
+            }
 
             var employeeId = await _db.Employees.AsNoTracking()
                 .IgnoreQueryFilters()
@@ -435,18 +453,18 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                     (ur, r) => r.Name)
                 .ToListAsync();
 
-            var isSuperAdminByRole = RoleCatalog.HasAnyRole(userRoleNames, SystemRole.SuperAdmin);
+            var isPlatformSuperAdmin = user?.IsSystemAdmin == true;
 
             object capabilities = new
             {
-                isSuperAdmin = user?.IsSystemAdmin == true || isSuperAdminByRole,
-                includeDeletedByDefault = user?.IsSystemAdmin == true || isSuperAdminByRole,
-                includeAllTenantsByDefault = user?.IsSystemAdmin == true || isSuperAdminByRole,
-                canRestoreDeleted = user?.IsSystemAdmin == true || isSuperAdminByRole,
-                canHardDelete = user?.IsSystemAdmin == true || isSuperAdminByRole,
+                isSuperAdmin = isPlatformSuperAdmin,
+                includeDeletedByDefault = isPlatformSuperAdmin,
+                includeAllTenantsByDefault = isPlatformSuperAdmin,
+                canRestoreDeleted = isPlatformSuperAdmin,
+                canHardDelete = isPlatformSuperAdmin,
             };
 
-            if (user?.IsSystemAdmin == true || isSuperAdminByRole)
+            if (isPlatformSuperAdmin)
             {
                 return Ok(new { mode = "open", permissions = new[] { "*" }, capabilities });
             }

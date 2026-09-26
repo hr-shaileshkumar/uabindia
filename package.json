@@ -3,9 +3,12 @@
   "scripts": {
     "dev": "npm --prefix frontend run dev",
     "dev:clean": "npm --prefix frontend run dev:clean",
-    "api": "dotnet run --project Backend/src/UabIndia.Api/UabIndia.Api.csproj --urls http://127.0.0.1:5000",
+    "api": "powershell -NoProfile -Command \"Get-Process UabIndia.Api -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue\"; dotnet run --project Backend/src/UabIndia.Api/UabIndia.Api.csproj --urls http://127.0.0.1:5000",
+    "api:watch": "cmd /c run-backend.bat",
     "build": "npm --prefix frontend run build",
     "start": "npm --prefix frontend run start",
-    "lint": "npm --prefix frontend run lint"
+    "lint": "npm --prefix frontend run lint",
+    "typecheck": "npm --prefix frontend run typecheck",
+    "test": "npm --prefix frontend run test"
   }
 }

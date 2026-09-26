@@ -27,7 +27,7 @@ const TabsList = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivEl
     <div
       ref={ref}
       role="tablist"
-      className={`flex min-h-10 max-w-full items-center gap-1 overflow-x-auto rounded-[var(--erp-radius-control)] border border-[var(--erp-border)] bg-slate-50 p-1 text-slate-600 [scrollbar-width:thin] ${className}`}
+      className={`flex min-h-10 max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-slate-200/90 bg-slate-100/80 p-1 text-slate-600 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-400 [scrollbar-width:thin] ${className}`}
       {...props}
     />
   )
@@ -53,10 +53,10 @@ const TabsTrigger = React.forwardRef<HTMLButtonElement, TabsTriggerProps>(
         aria-selected={isActive}
         tabIndex={isActive ? 0 : -1}
         data-erp-tabs-trigger="true"
-        className={`inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--erp-primary) focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${
+        className={`inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer ${
           isActive
-            ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/80"
-            : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"
+            ? "bg-white text-slate-900 shadow-xs ring-1 ring-slate-200/90 font-bold dark:bg-slate-800 dark:text-white dark:ring-slate-700"
+            : "text-slate-600 hover:bg-white/60 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-200"
         } ${className}`}
         onClick={() => context.onValueChange(value)}
         {...props}
@@ -82,7 +82,7 @@ const TabsContent = React.forwardRef<HTMLDivElement, TabsContentProps>(
         ref={ref}
         role="tabpanel"
         tabIndex={0}
-        className={`mt-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--erp-primary) focus-visible:ring-offset-2 ${className}`}
+        className={`mt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${className}`}
         {...props}
       />
     );
