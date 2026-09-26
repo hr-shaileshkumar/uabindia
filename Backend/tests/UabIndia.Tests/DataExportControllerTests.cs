@@ -145,5 +145,27 @@ namespace UabIndia.Tests
             Assert.Contains("Tata Consultancy Enterprise", jsonString);
             Assert.Contains("CUST-EXPORT-01", jsonString);
         }
+
+        [Fact]
+        public async Task StreamExport_DelimitedCsv_ReturnsFileWithUtf8BOM()
+        {
+            _db.Employees.Add(new Employee
+            {
+                TenantId = _tenantId,
+                EmployeeCode = "STREAM-01",
+                FullName = "Vikram Aditya",
+                WorkEmail = "vikram@uab.com",
+                Status = "Active"
+            });
+            await _db.SaveChangesAsync();
+
+            var result = await _controller.StreamExport("employees", null, CancellationToken.None) as FileContentResult;
+            Assert.NotNull(result);
+            Assert.Contains("text/csv", result.ContentType);
+
+            var content = Encoding.UTF8.GetString(result.FileContents);
+            Assert.Contains("Vikram Aditya", content);
+            Assert.Contains("STREAM-01", content);
+        }
     }
 }

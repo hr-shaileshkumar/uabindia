@@ -120,6 +120,15 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             return File(csvBytes, contentType, $"{entityKey}_export_{DateTime.UtcNow:yyyyMMdd_HHmmss}.{extension}");
         }
 
+        [HttpGet("stream")]
+        [HttpPost("stream")]
+        public async Task<IActionResult> StreamExport([FromQuery] string? entity, [FromBody] ExportRequestDto? body, CancellationToken ct)
+        {
+            var req = body ?? new ExportRequestDto();
+            if (!string.IsNullOrWhiteSpace(entity)) req.EntityKey = entity;
+            return await GenerateExport(req, ct);
+        }
+
         private async Task<List<Dictionary<string, object?>>> QueryEntityDataAsync(
             Guid tenantId,
             string entityKey,
@@ -262,6 +271,42 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                         ["PerformedBy"] = a.PerformedBy,
                         ["TimestampUtc"] = a.PerformedAt.ToString("O")
                     }).ToList();
+                    break;
+                }
+                default:
+                {
+                    var normalized = entityKey.Replace("-", "").Replace("_", "");
+                    var efEntityType = _db.Model.GetEntityTypes().FirstOrDefault(t =>
+                        string.Equals(t.ClrType.Name.Replace("_", ""), normalized, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(t.GetTableName()?.Replace("_", ""), normalized, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(t.ClrType.Name.Replace("_", "").TrimEnd('s'), normalized.TrimEnd('s'), StringComparison.OrdinalIgnoreCase));
+
+                    if (efEntityType != null)
+                    {
+                        var setMethod = typeof(DbContext).GetMethod(nameof(DbContext.Set), Type.EmptyTypes)?
+                            .MakeGenericMethod(efEntityType.ClrType);
+
+                        if (setMethod?.Invoke(_db, null) is IQueryable<object> query)
+                        {
+                            var list = await query.AsNoTracking().Take(5000).ToListAsync(ct);
+                            var props = efEntityType.GetProperties()
+                                .Where(p => !p.Name.Contains("Password", StringComparison.OrdinalIgnoreCase) 
+                                         && !p.Name.Contains("Security", StringComparison.OrdinalIgnoreCase) 
+                                         && !p.Name.Contains("Secret", StringComparison.OrdinalIgnoreCase) 
+                                         && !p.Name.Contains("Hash", StringComparison.OrdinalIgnoreCase))
+                                .ToList();
+
+                            results = list.Select(item =>
+                            {
+                                var dict = new Dictionary<string, object?>();
+                                foreach (var p in props)
+                                {
+                                    dict[p.Name] = _db.Entry(item).Property(p.Name).CurrentValue?.ToString();
+                                }
+                                return dict;
+                            }).ToList();
+                        }
+                    }
                     break;
                 }
             }
