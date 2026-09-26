@@ -73,6 +73,7 @@ export interface DynamicFormField {
     restrictedPermissions?: string[];
   };
   requiredPermission?: string;
+  currencyCode?: string;
   validation?: {
     min?: number;
     max?: number;
@@ -94,6 +95,7 @@ export interface DynamicLineItemColumn {
   readOnly?: boolean;
   placeholder?: string;
   formula?: string; // Formula for auto computation, e.g. "quantity * unitPrice"
+  currencyCode?: string;
 }
 
 export interface DynamicLineItemSection {
@@ -126,6 +128,7 @@ export interface DynamicColumn {
   sortOrder?: number;
   width?: string;
   format?: string;
+  currencyCode?: string;
   security?: {
     maskType?: "none" | "full" | "partial" | "lastFour";
     restrictedRoles?: string[];

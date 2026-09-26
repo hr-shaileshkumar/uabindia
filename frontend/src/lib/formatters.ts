@@ -77,3 +77,23 @@ export function formatRelativeTime(dateInput: Date | string | null | undefined):
 
   return formatDateTime(date, 'en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
+
+export function formatDate(
+  dateInput: Date | string | null | undefined,
+  locale: string = 'en-IN'
+): string {
+  if (!dateInput) return '-';
+  const str = typeof dateInput === 'string' ? dateInput.slice(0, 10) : dateInput;
+  try {
+    const d = new Date(str);
+    if (isNaN(d.getTime())) return String(dateInput);
+    return d.toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch {
+    return String(dateInput);
+  }
+}
+
+export function getCurrencySymbol(currencyCode: string = 'INR'): string {
+  const code = (currencyCode || 'INR').toUpperCase();
+  return CURRENCY_SYMBOLS[code] || `${code} `;
+}

@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { CheckCircle2, XCircle, Calendar, IndianRupee, Lock, Sparkles, Eye, EyeOff } from "lucide-react";
+import { CheckCircle2, XCircle, Calendar, Lock, Sparkles, Eye, EyeOff } from "lucide-react";
 import apiClient from "@/services/apiClient";
 import type { DynamicColumn, DynamicFormField, DynamicSelectOption } from "@/lib/dynamic-schema/types";
+import { formatCurrency, formatDate, getCurrencySymbol } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 
 /**
@@ -111,27 +112,22 @@ export function renderDynamicTableCell(column: DynamicColumn, value: any, row?: 
     case "currency": {
       const num = typeof value === "number" ? value : parseFloat(String(value).replace(/[^0-9.-]/g, ""));
       if (isNaN(num)) return String(value);
+      const currCode = column.currencyCode || row?.currency || row?.currencyCode || "INR";
+      const locale = currCode.toUpperCase() === "INR" ? "en-IN" : "en-US";
       return (
         <span className="font-mono font-medium text-slate-900 dark:text-slate-100">
-          ₹ {num.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {formatCurrency(num, currCode, locale)}
         </span>
       );
     }
 
     case "date": {
-      const str = String(value).slice(0, 10);
-      try {
-        const d = new Date(str);
-        if (isNaN(d.getTime())) return str;
-        return (
-          <span className="inline-flex items-center gap-1 text-slate-700 dark:text-slate-300 text-xs font-mono">
-            <Calendar className="h-3 w-3 text-slate-400" />
-            {d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
-          </span>
-        );
-      } catch {
-        return str;
-      }
+      return (
+        <span className="inline-flex items-center gap-1 text-slate-700 dark:text-slate-300 text-xs font-mono">
+          <Calendar className="h-3 w-3 text-slate-400 shrink-0" />
+          {formatDate(value)}
+        </span>
+      );
     }
 
     case "boolean": {
@@ -597,8 +593,8 @@ export function DynamicFieldInput({
         />
       ) : field.fieldType === "currency" ? (
         <div className="relative">
-          <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400 text-xs font-semibold">
-            <IndianRupee className="h-3.5 w-3.5" />
+          <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400 text-xs font-semibold font-mono select-none">
+            {getCurrencySymbol(field.currencyCode || "INR")}
           </span>
           <input
             id={`field-${field.key}`}
