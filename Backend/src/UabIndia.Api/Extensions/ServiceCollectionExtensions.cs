@@ -79,6 +79,7 @@ namespace UabIndia.Api.Extensions
             }
 
             services.AddScoped<ICacheService, DistributedCacheService>();
+            services.AddScoped<ITenantCacheService, TenantMemoryCacheService>();
             return services;
         }
 

@@ -42,6 +42,7 @@ import {
 import { platformApi } from "@/services/modules/administration";
 import { appApi } from "@/services/modules";
 import apiClient from "@/services/apiClient";
+import { useDynamicEntityQuery } from "@/hooks/useDynamicEntityQuery";
 import { usePermissions } from "@/context/PermissionContext";
 import { useOrgContext } from "@/context/OrgContext";
 import { notifyError, notifySuccess } from "@/lib/notifications";
@@ -214,11 +215,7 @@ export function DynamicPage({
   const [schemaLoading, setSchemaLoading] = useState(() => !schema);
   const [schemaError, setSchemaError] = useState<string | null>(null);
 
-  // Data state
-  const [records, setRecords] = useState<any[]>([]);
-  const [serverTotalRecords, setServerTotalRecords] = useState<number | null>(null);
-  const [loadingData, setLoadingData] = useState(false);
-  const [dataError, setDataError] = useState<string | null>(null);
+  // Filter & Search input state
   const [search, setSearch] = useState("");
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
@@ -241,6 +238,46 @@ export function DynamicPage({
   const [activeTimelineRecord, setActiveTimelineRecord] = useState<any | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+
+  // Debounced search for zero-lag typing
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // ── TanStack Query Enterprise Data Layer (Phase 2 P0) ──
+  const {
+    records,
+    serverTotalRecords,
+    isLoading: isDataLoading,
+    isFetching: isDataFetching,
+    error: queryError,
+    refetch: queryRefetch,
+  } = useDynamicEntityQuery({
+    apiEndpoint: schema?.apiEndpoint,
+    companyId: effectiveCompanyId,
+    projectId: effectiveProjectId,
+    page: currentPage,
+    pageSize,
+    search: debouncedSearch,
+    filterValues,
+    quickFilterValues,
+    sortKey,
+    sortDirection,
+    filterAst,
+    enabled: Boolean(schema?.apiEndpoint),
+  });
+
+  const [isActionLoading, setIsActionLoading] = useState(false);
+  const loadingData = isDataLoading || isDataFetching || isActionLoading;
+  const dataError = queryError ? getApiErrorMessage(queryError, "Failed to load data.") : null;
+
+  const fetchData = useCallback(async () => {
+    await queryRefetch();
+  }, [queryRefetch]);
 
   // Saved Views store integration
   const pageCustomization = usePageCustomizationStore((state) => state.pages[pageKey]);
@@ -445,129 +482,6 @@ export function DynamicPage({
   useEffect(() => {
     void loadSchema();
   }, [loadSchema]);
-
-  // Fetch entity data
-  const fetchData = useCallback(async () => {
-    if (!schema?.apiEndpoint) return;
-    try {
-      setLoadingData(true);
-      setDataError(null);
-      const params: Record<string, string> = {};
-      if (effectiveCompanyId) params.companyId = effectiveCompanyId;
-      if (effectiveProjectId) params.projectId = effectiveProjectId;
-      params.page = String(currentPage);
-      params.limit = String(pageSize);
-      params.pageSize = String(pageSize);
-
-      const activeSearch = search.trim() || Object.values(quickFilterValues).find((v) => v?.trim())?.trim();
-      if (activeSearch) {
-        params.search = activeSearch;
-      }
-      for (const [key, val] of Object.entries(filterValues)) {
-        if (val && val !== "all") {
-          const cleanKey = key.replace(/^__/, "");
-          params[cleanKey] = val;
-        }
-      }
-      for (const [key, val] of Object.entries(quickFilterValues)) {
-        if (val && val.trim()) {
-          params[key] = val.trim();
-        }
-      }
-      if (sortKey) {
-        params.sortKey = sortKey;
-        params.sortBy = sortKey;
-        params.sortField = sortKey;
-        params.sortDir = sortDirection;
-        params.sortDirection = sortDirection;
-      }
-      if (filterAst && filterAst.rules.length > 0) {
-        params.filterAst = JSON.stringify(filterAst);
-      }
-
-      const res = await apiClient.get(schema.apiEndpoint, { params });
-      const raw = res.data;
-      let list: any[] = [];
-      let total: number | null = null;
-
-      if (raw && typeof raw === "object") {
-        if (typeof raw.total === "number") total = raw.total;
-        else if (typeof raw.totalCount === "number") total = raw.totalCount;
-        else if (typeof raw.count === "number") total = raw.count;
-        else if (typeof raw.recordsCount === "number") total = raw.recordsCount;
-        else if (typeof raw.totalRecords === "number") total = raw.totalRecords;
-      }
-
-      if (Array.isArray(raw)) {
-        list = raw;
-      } else if (Array.isArray(raw?.items)) {
-        list = raw.items;
-      } else if (Array.isArray(raw?.data)) {
-        list = raw.data;
-      } else if (Array.isArray(raw?.data?.items)) {
-        list = raw.data.items;
-      } else if (Array.isArray(raw?.employees)) {
-        list = raw.employees;
-      } else if (Array.isArray(raw?.templates)) {
-        list = raw.templates;
-      } else if (Array.isArray(raw?.subscriptions)) {
-        list = raw.subscriptions;
-      } else if (Array.isArray(raw?.rows)) {
-        list = raw.rows;
-      } else if (Array.isArray(raw?.stages)) {
-        list = raw.stages;
-      } else if (Array.isArray(raw?.requests)) {
-        list = raw.requests;
-      } else if (Array.isArray(raw?.invoices)) {
-        list = raw.invoices;
-      } else if (Array.isArray(raw?.orders)) {
-        list = raw.orders;
-      } else if (Array.isArray(raw?.candidates)) {
-        list = raw.candidates;
-      } else if (Array.isArray(raw?.tasks)) {
-        list = raw.tasks;
-      } else if (Array.isArray(raw?.jobs)) {
-        list = raw.jobs;
-      } else if (raw && typeof raw === "object") {
-        const found = Object.values(raw).find((v) => Array.isArray(v));
-        if (Array.isArray(found)) {
-          list = found;
-        }
-      }
-      setRecords(list);
-      setServerTotalRecords(total !== null ? total : (Array.isArray(raw) ? raw.length : null));
-    } catch (err) {
-      setDataError(getApiErrorMessage(err, "Failed to load data."));
-    } finally {
-      setLoadingData(false);
-    }
-  }, [
-    schema?.apiEndpoint,
-    effectiveCompanyId,
-    effectiveProjectId,
-    currentPage,
-    pageSize,
-    search,
-    filterValues,
-    quickFilterValues,
-    filterAst,
-    sortKey,
-    sortDirection,
-  ]);
-
-  const isTypingSearch = Boolean(search.trim() || Object.values(quickFilterValues).some((v) => v?.trim()));
-
-  useEffect(() => {
-    if (!schema?.apiEndpoint) return;
-    if (!isTypingSearch) {
-      void fetchData();
-      return;
-    }
-    const timer = setTimeout(() => {
-      void fetchData();
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [fetchData, schema?.apiEndpoint, isTypingSearch]);
 
   useEffect(() => {
     if (pageKey) {
@@ -989,7 +903,7 @@ export function DynamicPage({
   const handleBulkDelete = async (selectedRows: any[]) => {
     if (!selectedRows || selectedRows.length === 0) return;
     try {
-      setLoadingData(true);
+      setIsActionLoading(true);
       const idKey = schema?.idField || "id";
       for (const row of selectedRows) {
         const id = row[idKey] || row.id;
@@ -1002,7 +916,7 @@ export function DynamicPage({
     } catch (err) {
       notifyError(getApiErrorMessage(err, "Failed to delete selected records."));
     } finally {
-      setLoadingData(false);
+      setIsActionLoading(false);
     }
   };
 
@@ -1037,7 +951,7 @@ export function DynamicPage({
   // Generic Page Action Execution Handler
   const handleExecutePageAction = async (actionKey: string, actionType = "custom", targetId?: string, selectedIds?: string[]) => {
     try {
-      setLoadingData(true);
+      setIsActionLoading(true);
       const res = await appApi.pageActions.execute({
         pageKey: schema.pageKey || schema.entityName || "generic",
         actionKey,
@@ -1063,7 +977,7 @@ export function DynamicPage({
     } catch (err) {
       notifyError(getApiErrorMessage(err, "Failed to execute page action."));
     } finally {
-      setLoadingData(false);
+      setIsActionLoading(false);
     }
   };
 
