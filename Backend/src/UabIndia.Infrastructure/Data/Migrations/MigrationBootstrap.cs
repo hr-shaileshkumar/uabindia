@@ -246,6 +246,7 @@ END;
             await EnsurePerformanceIndexesAsync(db, logger, cancellationToken);
             await EnsureEnterprisePolicyTablesAsync(db, logger, cancellationToken);
             await EnsureTenantWebhooksTablesAsync(db, logger, cancellationToken);
+            await EnsureUiViewDefinitionsTableAsync(db, logger, cancellationToken);
             logger?.LogInformation("Extended schema already current ({Version}); skipping column bootstrap.", ExtendedSchemaVersion);
             return;
         }
@@ -253,6 +254,7 @@ END;
         await EnsureCriticalUserColumnsAsync(db, logger, cancellationToken);
         await EnsureSubscriptionTablesAsync(db, logger, cancellationToken);
         await EnsureOutboxMessagesTableAsync(db, logger, cancellationToken);
+        await EnsureUiViewDefinitionsTableAsync(db, logger, cancellationToken);
         await EnsureBusinessIdColumnsAsync(db, logger, cancellationToken);
         await EnsureTenantWebhooksTablesAsync(db, logger, cancellationToken);
 
@@ -1063,6 +1065,54 @@ END;
         catch (System.Exception ex)
         {
             logger?.LogWarning(ex, "Could not ensure OutboxMessages table via DDL.");
+        }
+    }
+
+    public static async Task EnsureUiViewDefinitionsTableAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        const string sql = @"
+IF OBJECT_ID(N'dbo.UiViewDefinitions', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.UiViewDefinitions (
+        Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY DEFAULT NEWID(),
+        TenantId UNIQUEIDENTIFIER NOT NULL,
+        BusinessId NVARCHAR(100) NULL,
+        PageKey NVARCHAR(100) NOT NULL,
+        Name NVARCHAR(200) NOT NULL,
+        Scope NVARCHAR(50) NOT NULL DEFAULT 'Personal',
+        TargetRole NVARCHAR(100) NULL,
+        UserId UNIQUEIDENTIFIER NULL,
+        FiltersJson NVARCHAR(MAX) NOT NULL DEFAULT '{}',
+        ColumnsJson NVARCHAR(MAX) NOT NULL DEFAULT '[]',
+        SortKey NVARCHAR(100) NULL,
+        SortDir NVARCHAR(20) NOT NULL DEFAULT 'asc',
+        GroupBy NVARCHAR(100) NULL,
+        Density NVARCHAR(50) NOT NULL DEFAULT 'normal',
+        IsDefault BIT NOT NULL DEFAULT 0,
+        CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        UpdatedAt DATETIME2 NULL,
+        CreatedBy UNIQUEIDENTIFIER NULL,
+        IsDeleted BIT NOT NULL DEFAULT 0
+    );
+
+    CREATE NONCLUSTERED INDEX IX_UiViewDefinitions_Tenant_PageKey 
+    ON dbo.UiViewDefinitions (TenantId, PageKey);
+
+    CREATE NONCLUSTERED INDEX IX_UiViewDefinitions_UserId 
+    ON dbo.UiViewDefinitions (UserId);
+END;
+";
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+            logger?.LogInformation("Ensured UiViewDefinitions table and indexes exist.");
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure UiViewDefinitions table via DDL.");
         }
     }
 

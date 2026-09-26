@@ -234,7 +234,9 @@ export const administrationApi = {
       if (options?.companyId) params.append("companyId", options.companyId);
       if (options?.projectId) params.append("projectId", options.projectId);
       const qs = params.toString();
-      return apiClient.get(`/ui-pages/${encodeURIComponent(pageKey)}${qs ? `?${qs}` : ""}`);
+      return apiClient.get(`/ui-pages/${encodeURIComponent(pageKey)}${qs ? `?${qs}` : ""}`, {
+        headers: { "X-Silent-Error": "1" },
+      });
     },
     create: (data: ApiPayload) => apiClient.post("/ui-pages", data),
     saveDraft: (pageKey: string, data: ApiPayload) =>

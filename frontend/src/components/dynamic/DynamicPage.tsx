@@ -205,9 +205,13 @@ export function DynamicPage({
   const effectiveCompanyId = companyId || ctxCompanyId || undefined;
   const effectiveProjectId = projectId || ctxProjectId || undefined;
 
-  // Schema state
-  const [schema, setSchema] = useState<DynamicPageSchema | null>(initialSchema || null);
-  const [schemaLoading, setSchemaLoading] = useState(!initialSchema);
+  // Schema state - seeded synchronously from catalog for instant (0ms) layout reflection
+  const [schema, setSchema] = useState<DynamicPageSchema | null>(() => {
+    if (initialSchema) return initialSchema;
+    const cat = getCatalogSchema(pageKey);
+    return cat ? pageSchemaToDynamicSchema(cat) : null;
+  });
+  const [schemaLoading, setSchemaLoading] = useState(() => !schema);
   const [schemaError, setSchemaError] = useState<string | null>(null);
 
   // Data state
@@ -332,7 +336,9 @@ export function DynamicPage({
     }
 
     try {
-      setSchemaLoading(true);
+      if (!schema) {
+        setSchemaLoading(true);
+      }
       setSchemaError(null);
       let foundSchema: DynamicPageSchema | null = null;
 
@@ -549,13 +555,19 @@ export function DynamicPage({
     sortDirection,
   ]);
 
+  const isTypingSearch = Boolean(search.trim() || Object.values(quickFilterValues).some((v) => v?.trim()));
+
   useEffect(() => {
     if (!schema?.apiEndpoint) return;
+    if (!isTypingSearch) {
+      void fetchData();
+      return;
+    }
     const timer = setTimeout(() => {
       void fetchData();
     }, 250);
     return () => clearTimeout(timer);
-  }, [fetchData, schema?.apiEndpoint]);
+  }, [fetchData, schema?.apiEndpoint, isTypingSearch]);
 
   useEffect(() => {
     if (pageKey) {

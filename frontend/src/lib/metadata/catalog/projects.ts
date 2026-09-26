@@ -125,7 +125,7 @@ export const projectSchemas: Record<string, PageSchema> = {
     entityName: "ProjectTask",
     moduleKey: "projects",
     viewType: "table",
-    apiEndpoint: "/api/v1/project-tasks",
+    apiEndpoint: "/project-tasks",
     icon: "CheckSquare",
     requiredPermission: "projects.read",
     columns: [

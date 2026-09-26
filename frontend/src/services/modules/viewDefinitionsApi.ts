@@ -46,7 +46,8 @@ export const viewDefinitionsApi = {
   async getViews(pageKey: string): Promise<ApiViewDefinition[]> {
     try {
       const response = await apiClient.get<{ data: ApiViewDefinition[]; count: number }>(
-        `/views/${encodeURIComponent(pageKey)}`
+        `/views/${encodeURIComponent(pageKey)}`,
+        { headers: { "X-Silent-Error": "1" } }
       );
       return response.data?.data || [];
     } catch (err) {
@@ -56,20 +57,28 @@ export const viewDefinitionsApi = {
   },
 
   async createView(payload: CreateViewPayload): Promise<ApiViewDefinition> {
-    const response = await apiClient.post<ApiViewDefinition>("/views", payload);
+    const response = await apiClient.post<ApiViewDefinition>("/views", payload, {
+      headers: { "X-Silent-Error": "1" },
+    });
     return response.data;
   },
 
   async updateView(id: string, payload: Partial<CreateViewPayload>): Promise<ApiViewDefinition> {
-    const response = await apiClient.put<ApiViewDefinition>(`/views/${id}`, payload);
+    const response = await apiClient.put<ApiViewDefinition>(`/views/${id}`, payload, {
+      headers: { "X-Silent-Error": "1" },
+    });
     return response.data;
   },
 
   async setDefaultView(id: string): Promise<void> {
-    await apiClient.post(`/views/${id}/default`);
+    await apiClient.post(`/views/${id}/default`, null, {
+      headers: { "X-Silent-Error": "1" },
+    });
   },
 
   async deleteView(id: string): Promise<void> {
-    await apiClient.delete(`/views/${id}`);
+    await apiClient.delete(`/views/${id}`, {
+      headers: { "X-Silent-Error": "1" },
+    });
   },
 };

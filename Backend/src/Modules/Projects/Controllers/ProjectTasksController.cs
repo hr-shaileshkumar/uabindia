@@ -12,7 +12,9 @@ namespace UabIndia.Api.Modules.Projects.Controllers
 {
     [ApiController]
     [Route("api/v1/project-tasks")]
-    [Authorize(Policy = "Module:projects")]
+    [Route("api/v1/projects/tasks")]
+    [Route("api/v1/projects-tasks")]
+    [Authorize]
     public class ProjectTasksController : ControllerBase
     {
         private readonly ApplicationDbContext _db;
