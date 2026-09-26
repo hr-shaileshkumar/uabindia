@@ -338,12 +338,12 @@ export function DynamicForm({
     }
   };
 
-  const evaluateCondition = (expression: string | undefined | null): boolean => {
-    if (!expression || typeof expression !== "string" || !expression.trim()) return true;
-    const expr = expression.trim();
+  const evaluateSingleCondition = (expr: string): boolean => {
+    expr = expr.trim();
+    if (!expr) return true;
 
     // Negation check, e.g. "!taxExempt"
-    if (expr.startsWith("!") && !expr.includes("==") && !expr.includes("!=")) {
+    if (expr.startsWith("!") && !expr.includes("==") && !expr.includes("!=") && !expr.includes(">") && !expr.includes("<")) {
       const field = expr.substring(1).trim();
       return !Boolean(formData[field]);
     }
@@ -367,9 +367,9 @@ export function DynamicForm({
       expected = true;
     } else if (expected === "false") {
       expected = false;
-    } else if (expected === "null") {
+    } else if (expected === "null" || expected === "undefined") {
       expected = null;
-    } else if (!isNaN(Number(expected))) {
+    } else if (!isNaN(Number(expected)) && expected !== "") {
       expected = Number(expected);
     }
 
@@ -391,6 +391,23 @@ export function DynamicForm({
       default:
         return true;
     }
+  };
+
+  const evaluateCondition = (expression: string | undefined | null): boolean => {
+    if (!expression || typeof expression !== "string" || !expression.trim()) return true;
+    const expr = expression.trim();
+
+    // Support compound OR (||)
+    if (expr.includes("||")) {
+      return expr.split("||").some((part) => evaluateCondition(part.trim()));
+    }
+
+    // Support compound AND (&&)
+    if (expr.includes("&&")) {
+      return expr.split("&&").every((part) => evaluateCondition(part.trim()));
+    }
+
+    return evaluateSingleCondition(expr);
   };
 
   const isFieldVisible = (f: DynamicFormField): boolean => {
@@ -446,7 +463,60 @@ export function DynamicForm({
           }
         }
 
-        // 2. Regex Pattern check
+        // 2. Email format validation
+        if (f.fieldType === "email" && val && typeof val === "string" && val.trim()) {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(val.trim())) {
+            newErrors[f.key] = `${cleanFieldLabel(f.label)} must be a valid email address.`;
+            if (firstErrorSecIndex === -1) firstErrorSecIndex = secIdx;
+            continue;
+          }
+        }
+
+        // 3. Phone format validation
+        if (f.fieldType === "phone" && val && typeof val === "string" && val.trim()) {
+          const cleanDigits = val.replace(/[^0-9]/g, "");
+          if (cleanDigits.length < 7 || cleanDigits.length > 15) {
+            newErrors[f.key] = `${cleanFieldLabel(f.label)} must be a valid phone number (7-15 digits).`;
+            if (firstErrorSecIndex === -1) firstErrorSecIndex = secIdx;
+            continue;
+          }
+        }
+
+        // 4. URL format validation
+        if (f.fieldType === "url" && val && typeof val === "string" && val.trim()) {
+          try {
+            new URL(val.trim().startsWith("http") ? val.trim() : `https://${val.trim()}`);
+          } catch {
+            newErrors[f.key] = `${cleanFieldLabel(f.label)} must be a valid URL.`;
+            if (firstErrorSecIndex === -1) firstErrorSecIndex = secIdx;
+            continue;
+          }
+        }
+
+        // 5. Indian PAN format validation
+        const isPanField = f.key.toLowerCase() === "pan" || f.key.toLowerCase().endsWith("pannumber");
+        if (isPanField && val && typeof val === "string" && val.trim()) {
+          const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i;
+          if (!panRegex.test(val.trim())) {
+            newErrors[f.key] = `${cleanFieldLabel(f.label)} must be a valid 10-character PAN (e.g. ABCDE1234F).`;
+            if (firstErrorSecIndex === -1) firstErrorSecIndex = secIdx;
+            continue;
+          }
+        }
+
+        // 6. Indian GSTIN format validation
+        const isGstField = f.key.toLowerCase() === "gstin" || f.key.toLowerCase().endsWith("gstnumber");
+        if (isGstField && val && typeof val === "string" && val.trim()) {
+          const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i;
+          if (!gstRegex.test(val.trim())) {
+            newErrors[f.key] = `${cleanFieldLabel(f.label)} must be a valid 15-character GSTIN (e.g. 29ABCDE1234F1Z5).`;
+            if (firstErrorSecIndex === -1) firstErrorSecIndex = secIdx;
+            continue;
+          }
+        }
+
+        // 7. Regex Pattern check
         if (f.validation?.pattern && typeof val === "string" && val.trim()) {
           try {
             const regex = new RegExp(f.validation.pattern);
@@ -459,7 +529,7 @@ export function DynamicForm({
           }
         }
 
-        // 3. Min boundary check
+        // 8. Min boundary check
         if (f.validation?.min !== undefined && val !== undefined && val !== "") {
           if (f.fieldType === "number" || f.fieldType === "currency" || f.fieldType === "decimal") {
             const numVal = Number(val);
@@ -473,7 +543,7 @@ export function DynamicForm({
           }
         }
 
-        // 4. Max boundary check
+        // 9. Max boundary check
         if (f.validation?.max !== undefined && val !== undefined && val !== "") {
           if (f.fieldType === "number" || f.fieldType === "currency" || f.fieldType === "decimal") {
             const numVal = Number(val);
