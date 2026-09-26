@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using UabIndia.Application.Interfaces;
 using UabIndia.Application.Models;
 using UabIndia.Core.Entities;
+using UabIndia.Core.Services;
 using UabIndia.Infrastructure.Data;
 
 namespace UabIndia.Infrastructure.Services
@@ -19,11 +20,13 @@ namespace UabIndia.Infrastructure.Services
     {
         private readonly ApplicationDbContext _db;
         private readonly ITenantAccessor _tenantAccessor;
+        private readonly ITenantCacheService _tenantCache;
 
-        public LookupService(ApplicationDbContext db, ITenantAccessor tenantAccessor)
+        public LookupService(ApplicationDbContext db, ITenantAccessor tenantAccessor, ITenantCacheService tenantCache)
         {
             _db = db;
             _tenantAccessor = tenantAccessor;
+            _tenantCache = tenantCache;
         }
 
         private Guid TenantId => _tenantAccessor.GetTenantId();
@@ -34,6 +37,26 @@ namespace UabIndia.Infrastructure.Services
             var limit = Math.Clamp(query.Limit <= 0 ? 100 : query.Limit, 1, 500);
             var search = query.Search?.Trim().ToLowerInvariant();
 
+            // When no dynamic search filter is provided, use tenant-isolated memory cache (P1)
+            if (string.IsNullOrEmpty(search))
+            {
+                var cacheKey = $"{normalizedType}:{query.CompanyId?.ToString("N") ?? "all"}:{query.ParentId?.ToString("N") ?? "all"}:{limit}";
+                var cached = await _tenantCache.GetOrSetLookupAsync(
+                    cacheKey,
+                    async () => await FetchLookupItemsFromDbAsync(normalizedType, query, limit, search, ct),
+                    TimeSpan.FromMinutes(30));
+
+                if (cached != null)
+                {
+                    return cached;
+                }
+            }
+
+            return await FetchLookupItemsFromDbAsync(normalizedType, query, limit, search, ct);
+        }
+
+        private async Task<LookupResultDto> FetchLookupItemsFromDbAsync(string normalizedType, LookupQuery query, int limit, string? search, CancellationToken ct)
+        {
             List<LookupItemDto> items;
 
             switch (normalizedType)
@@ -659,7 +682,7 @@ namespace UabIndia.Infrastructure.Services
 
             return new LookupResultDto
             {
-                Type = lookupType ?? string.Empty,
+                Type = normalizedType,
                 Items = items,
                 Total = items.Count
             };
