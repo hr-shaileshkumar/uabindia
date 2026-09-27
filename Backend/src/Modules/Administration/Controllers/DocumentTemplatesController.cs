@@ -107,6 +107,16 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             return Content(html, "text/html", Encoding.UTF8);
         }
 
+        [HttpPost("render-pdf")]
+        [HttpGet("render-pdf")]
+        public IActionResult RenderPdf([FromBody] RenderDocumentRequest? request)
+        {
+            var req = request ?? new RenderDocumentRequest();
+            var pdfBytes = GenerateSimplePdf(req);
+            var filename = $"{(string.IsNullOrWhiteSpace(req.DocumentNumber) ? "document" : req.DocumentNumber)}_{DateTime.UtcNow:yyyyMMdd}.pdf";
+            return File(pdfBytes, "application/pdf", filename);
+        }
+
         private static string GenerateDocumentHtml(RenderDocumentRequest req)
         {
             var company = WebUtility.HtmlEncode(req.CompanyName ?? "UAB INDIA ENTERPRISES PRIVATE LIMITED");
@@ -275,6 +285,93 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             sb.Append("</body>\n</html>");
 
             return sb.ToString();
+        }
+
+        private static byte[] GenerateSimplePdf(RenderDocumentRequest req)
+        {
+            var sb = new StringBuilder();
+            var docNum = string.IsNullOrWhiteSpace(req.DocumentNumber) ? "DOC-001" : req.DocumentNumber;
+            var title = string.IsNullOrWhiteSpace(req.Title) ? "Official Document" : req.Title;
+            var company = string.IsNullOrWhiteSpace(req.CompanyName) ? "UAB INDIA ENTERPRISES PVT LTD" : req.CompanyName;
+            var party = string.IsNullOrWhiteSpace(req.PartyName) ? "Recipient" : req.PartyName;
+            var total = req.GrandTotal.ToString("N2", CultureInfo.InvariantCulture);
+
+            var streamContent = new StringBuilder();
+            streamContent.AppendLine("BT");
+            streamContent.AppendLine("/F1 18 Tf");
+            streamContent.AppendLine("50 780 Td");
+            streamContent.AppendLine($"({EscapePdf(company)}) Tj");
+            streamContent.AppendLine("ET");
+
+            streamContent.AppendLine("BT");
+            streamContent.AppendLine("/F1 14 Tf");
+            streamContent.AppendLine("50 750 Td");
+            streamContent.AppendLine($"({EscapePdf(title)} - {EscapePdf(docNum)}) Tj");
+            streamContent.AppendLine("ET");
+
+            streamContent.AppendLine("BT");
+            streamContent.AppendLine("/F1 10 Tf");
+            streamContent.AppendLine("50 720 Td");
+            streamContent.AppendLine($"({EscapePdf($"Date: {req.Date ?? DateTime.UtcNow.ToString("dd MMM yyyy", CultureInfo.InvariantCulture)}")}) Tj");
+            streamContent.AppendLine("0 -16 Td");
+            streamContent.AppendLine($"({EscapePdf($"Recipient: {party}")}) Tj");
+            streamContent.AppendLine("0 -20 Td");
+            streamContent.AppendLine($"({EscapePdf($"Total Amount: {req.Currency} {total}")}) Tj");
+
+            if (req.LineItems != null && req.LineItems.Count > 0)
+            {
+                streamContent.AppendLine("0 -25 Td");
+                streamContent.AppendLine("(Line Items:) Tj");
+                foreach (var item in req.LineItems)
+                {
+                    streamContent.AppendLine("0 -14 Td");
+                    streamContent.AppendLine($"({EscapePdf($" - {item.Description}: Qty {item.Quantity} @ {item.UnitPrice:N2} = {item.LineTotal:N2}")}) Tj");
+                }
+            }
+
+            streamContent.AppendLine("ET");
+
+            var streamBytes = Encoding.ASCII.GetBytes(streamContent.ToString());
+            var streamLen = streamBytes.Length;
+
+            var objects = new List<string>
+            {
+                "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n",
+                "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n",
+                "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n",
+                $"4 0 obj\n<< /Length {streamLen} >>\nstream\n{streamContent}endstream\nendobj\n",
+                "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n"
+            };
+
+            sb.Append("%PDF-1.4\n");
+            var offsets = new List<int>();
+            int currentOffset = Encoding.ASCII.GetByteCount(sb.ToString());
+
+            foreach (var obj in objects)
+            {
+                offsets.Add(currentOffset);
+                sb.Append(obj);
+                currentOffset += Encoding.ASCII.GetByteCount(obj);
+            }
+
+            int xrefOffset = currentOffset;
+            sb.Append($"xref\n0 {objects.Count + 1}\n");
+            sb.Append("0000000000 65535 f \n");
+            foreach (var off in offsets)
+            {
+                sb.Append($"{off:D10} 00000 n \n");
+            }
+
+            sb.Append("trailer\n");
+            sb.Append($"<< /Size {objects.Count + 1} /Root 1 0 R >>\n");
+            sb.Append($"startxref\n{xrefOffset}\n%%EOF\n");
+
+            return Encoding.ASCII.GetBytes(sb.ToString());
+        }
+
+        private static string EscapePdf(string text)
+        {
+            return text.Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)");
         }
     }
 }

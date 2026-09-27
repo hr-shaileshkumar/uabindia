@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   Heart,
   MessageSquare,
@@ -42,6 +43,8 @@ export interface ErpFrappeTableViewProps {
   onPageChange?: (page: number) => void;
   onPageSizeChange?: (size: number) => void;
   density?: "compact" | "normal" | "comfortable";
+  enableVirtualization?: boolean;
+  virtualScrollHeight?: number | string;
 }
 
 export function ErpFrappeTableView({
@@ -68,8 +71,11 @@ export function ErpFrappeTableView({
   onPageChange,
   onPageSizeChange,
   density = "normal",
+  enableVirtualization,
+  virtualScrollHeight,
 }: ErpFrappeTableViewProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const tableContainerRef = useRef<HTMLDivElement>(null);
 
   // Filter out any artificial "actions" or "select" columns from table header
   const dataColumns = useMemo(
@@ -90,6 +96,17 @@ export function ErpFrappeTableView({
     return rows.slice(startIndex, startIndex + pageSize);
   }, [rows, totalRecords, startIndex, pageSize]);
 
+  // High-volume virtualization configuration
+  const isVirtual = Boolean(enableVirtualization ?? (paginatedRows.length > 50));
+
+  const rowVirtualizer = useVirtualizer({
+    count: paginatedRows.length,
+    getScrollElement: () => tableContainerRef.current,
+    estimateSize: () => (density === "compact" ? 36 : density === "comfortable" ? 52 : 44),
+    overscan: 10,
+    enabled: isVirtual,
+  });
+
   const allVisibleIds = useMemo(
     () => paginatedRows.map((r, i) => String(r[idField] || r.id || i)),
     [paginatedRows, idField]
@@ -109,6 +126,169 @@ export function ErpFrappeTableView({
   const handleToggleRow = (id: string) => {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const virtualRows = rowVirtualizer.getVirtualItems();
+  const totalVirtualSize = rowVirtualizer.getTotalSize();
+  const paddingTop = virtualRows.length > 0 ? virtualRows[0].start : 0;
+  const paddingBottom =
+    virtualRows.length > 0
+      ? totalVirtualSize - virtualRows[virtualRows.length - 1].end
+      : 0;
+
+  const renderRow = (
+    row: any,
+    rIdx: number,
+    measureRef?: (el: HTMLTableRowElement | null) => void
+  ) => {
+    const rowId = String(row[idField] || row.id || row.code || rIdx);
+    const isSelected = selectedIds.includes(rowId);
+    const isFav = Boolean(favorites[rowId]);
+    const relTime = getRelativeTime ? getRelativeTime(row) : `${(rIdx % 5) + 1} d`;
+    const commentCount = row.commentCount ?? 0;
+
+    const cellPaddingClass =
+      density === "compact"
+        ? "px-2.5 py-1.5 text-xs"
+        : density === "comfortable"
+        ? "px-4 py-3.5 text-sm"
+        : "px-3.5 py-2.5 text-xs";
+
+    const checkboxPaddingClass =
+      density === "compact"
+        ? "px-2 py-1.5"
+        : density === "comfortable"
+        ? "px-4 py-3.5"
+        : "px-3.5 py-2.5";
+
+    return (
+      <tr
+        key={rowId}
+        ref={measureRef}
+        data-index={rIdx}
+        className={cn(
+          "group transition-colors",
+          isSelected
+            ? "bg-indigo-50/50 dark:bg-indigo-950/20"
+            : "hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
+        )}
+      >
+        {/* Checkbox cell */}
+        <td className={cn("w-10 text-center", checkboxPaddingClass)}>
+          <input
+            id={`select-row-${rowId}`}
+            name={`select_row_${rowId}`}
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => handleToggleRow(rowId)}
+            className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/20 cursor-pointer dark:border-slate-600 dark:bg-slate-800"
+          />
+        </td>
+
+        {/* Data Cells */}
+        {dataColumns.map((col, cIdx) => {
+          const isFirst = cIdx === 0;
+          const val = row[col.key];
+          const rendered = renderCell ? renderCell(col, val, row) : null;
+
+          return (
+            <td
+              key={col.key}
+              style={col.width ? { width: col.width } : undefined}
+              className={cn(cellPaddingClass, "text-slate-700 dark:text-slate-200")}
+            >
+              {rendered !== null && rendered !== undefined ? (
+                rendered
+              ) : isFirst ? (
+                <button
+                  type="button"
+                  onClick={() => onEdit?.(row)}
+                  className="font-semibold text-indigo-600 hover:text-indigo-800 hover:underline dark:text-indigo-400 dark:hover:text-indigo-300 text-left truncate block max-w-[240px] cursor-pointer"
+                >
+                  {String(val ?? row.fullName ?? row.name ?? row.title ?? "-")}
+                </button>
+              ) : typeof val === "boolean" ? (
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border shadow-2xs",
+                    val
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                      : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
+                  )}
+                >
+                  {val ? <CheckCircle2 className="h-3 w-3 text-emerald-600" /> : <XCircle className="h-3 w-3 text-slate-400" />}
+                  <span>{val ? "Yes" : "No"}</span>
+                </span>
+              ) : (
+                <span className="truncate block max-w-[240px]">
+                  {String(val ?? "-")}
+                </span>
+              )}
+            </td>
+          );
+        })}
+
+        {/* Far Right Action Column (Relative time, Comments, Heart, Edit, Delete) */}
+        <td className={cn(cellPaddingClass, "text-right")}>
+          <div className="flex items-center justify-end gap-2.5 text-slate-400 text-xs">
+            {/* Relative timestamp */}
+            <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium whitespace-nowrap">
+              {relTime}
+            </span>
+
+            {/* Comments count badge */}
+            <button
+              type="button"
+              onClick={() => onOpenComments?.(row)}
+              className="inline-flex items-center gap-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+              title="View activity and comments"
+            >
+              <MessageSquare className="h-3 w-3" />
+              <span className="text-[11px]">{commentCount}</span>
+            </button>
+
+            {/* Favorite Heart toggle */}
+            <button
+              type="button"
+              onClick={() => onToggleFavorite(rowId)}
+              className="p-0.5 text-slate-300 hover:text-rose-500 transition-colors cursor-pointer"
+              title={isFav ? "Favorited" : "Mark as favorite"}
+            >
+              <Heart
+                className={cn(
+                  "h-3.5 w-3.5 transition-colors",
+                  isFav ? "fill-rose-500 text-rose-500" : "text-slate-300 dark:text-slate-600 hover:text-rose-500"
+                )}
+              />
+            </button>
+
+            {/* Hover Quick Actions */}
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              {onEdit && (
+                <button
+                  type="button"
+                  onClick={() => onEdit(row)}
+                  className="p-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
+                  title="Edit record"
+                >
+                  <Pencil className="h-3 w-3" />
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  type="button"
+                  onClick={() => onDelete(row)}
+                  className="p-1 text-slate-400 hover:text-rose-600 cursor-pointer"
+                  title="Delete record"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+          </div>
+        </td>
+      </tr>
     );
   };
 
@@ -157,9 +337,16 @@ export function ErpFrappeTableView({
       )}
 
       {/* ── MAIN TABLE ── */}
-      <div className="overflow-x-auto scrollbar-thin">
+      <div
+        ref={tableContainerRef}
+        className={cn(
+          "overflow-x-auto scrollbar-thin",
+          isVirtual && "max-h-[600px] overflow-y-auto"
+        )}
+        style={isVirtual && virtualScrollHeight ? { maxHeight: virtualScrollHeight } : undefined}
+      >
         <table className="w-full text-left text-xs border-collapse">
-          <thead>
+          <thead className={cn(isVirtual && "sticky top-0 z-10 shadow-2xs")}>
             <tr className="border-b border-slate-200/90 bg-slate-50/70 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:border-slate-800 dark:bg-slate-850 dark:text-slate-400 select-none">
               {/* Checkbox select-all column */}
               <th className="w-10 px-3.5 py-3 text-center">
@@ -256,155 +443,25 @@ export function ErpFrappeTableView({
                   {emptyMessage}
                 </td>
               </tr>
-            ) : (
-              paginatedRows.map((row, rIdx) => {
-                const rowId = String(row[idField] || row.id || row.code || rIdx);
-                const isSelected = selectedIds.includes(rowId);
-                const isFav = Boolean(favorites[rowId]);
-                const relTime = getRelativeTime ? getRelativeTime(row) : `${(rIdx % 5) + 1} d`;
-                const commentCount = row.commentCount ?? 0;
-
-                const cellPaddingClass =
-                  density === "compact"
-                    ? "px-2.5 py-1.5 text-xs"
-                    : density === "comfortable"
-                    ? "px-4 py-3.5 text-sm"
-                    : "px-3.5 py-2.5 text-xs";
-
-                const checkboxPaddingClass =
-                  density === "compact"
-                    ? "px-2 py-1.5"
-                    : density === "comfortable"
-                    ? "px-4 py-3.5"
-                    : "px-3.5 py-2.5";
-
-                return (
-                  <tr
-                    key={rowId}
-                    className={cn(
-                      "group transition-colors",
-                      isSelected
-                        ? "bg-indigo-50/50 dark:bg-indigo-950/20"
-                        : "hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
-                    )}
-                  >
-                    {/* Checkbox cell */}
-                    <td className={cn("w-10 text-center", checkboxPaddingClass)}>
-                      <input
-                        id={`select-row-${rowId}`}
-                        name={`select_row_${rowId}`}
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => handleToggleRow(rowId)}
-                        className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/20 cursor-pointer dark:border-slate-600 dark:bg-slate-800"
-                      />
-                    </td>
-
-                    {/* Data Cells */}
-                    {dataColumns.map((col, cIdx) => {
-                      const isFirst = cIdx === 0;
-                      const val = row[col.key];
-                      const rendered = renderCell ? renderCell(col, val, row) : null;
-
-                      return (
-                        <td
-                          key={col.key}
-                          style={col.width ? { width: col.width } : undefined}
-                          className={cn(cellPaddingClass, "text-slate-700 dark:text-slate-200")}
-                        >
-                          {rendered !== null && rendered !== undefined ? (
-                            rendered
-                          ) : isFirst ? (
-                            <button
-                              type="button"
-                              onClick={() => onEdit?.(row)}
-                              className="font-semibold text-indigo-600 hover:text-indigo-800 hover:underline dark:text-indigo-400 dark:hover:text-indigo-300 text-left truncate block max-w-[240px] cursor-pointer"
-                            >
-                              {String(val ?? row.fullName ?? row.name ?? row.title ?? "-")}
-                            </button>
-                          ) : typeof val === "boolean" ? (
-                            <span
-                              className={cn(
-                                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border shadow-2xs",
-                                val
-                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
-                                  : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
-                              )}
-                            >
-                              {val ? <CheckCircle2 className="h-3 w-3 text-emerald-600" /> : <XCircle className="h-3 w-3 text-slate-400" />}
-                              <span>{val ? "Yes" : "No"}</span>
-                            </span>
-                          ) : (
-                            <span className="truncate block max-w-[240px]">
-                              {String(val ?? "-")}
-                            </span>
-                          )}
-                        </td>
-                      );
-                    })}
-
-                    {/* Far Right Action Column (Relative time, Comments, Heart, Edit, Delete) */}
-                    <td className={cn(cellPaddingClass, "text-right")}>
-                      <div className="flex items-center justify-end gap-2.5 text-slate-400 text-xs">
-                        {/* Relative timestamp */}
-                        <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium whitespace-nowrap">
-                          {relTime}
-                        </span>
-
-                        {/* Comments count badge */}
-                        <button
-                          type="button"
-                          onClick={() => onOpenComments?.(row)}
-                          className="inline-flex items-center gap-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
-                          title="View activity and comments"
-                        >
-                          <MessageSquare className="h-3 w-3" />
-                          <span className="text-[11px]">{commentCount}</span>
-                        </button>
-
-                        {/* Favorite Heart toggle */}
-                        <button
-                          type="button"
-                          onClick={() => onToggleFavorite(rowId)}
-                          className="p-0.5 text-slate-300 hover:text-rose-500 transition-colors cursor-pointer"
-                          title={isFav ? "Favorited" : "Mark as favorite"}
-                        >
-                          <Heart
-                            className={cn(
-                              "h-3.5 w-3.5 transition-colors",
-                              isFav ? "fill-rose-500 text-rose-500" : "text-slate-300 dark:text-slate-600 hover:text-rose-500"
-                            )}
-                          />
-                        </button>
-
-                        {/* Hover Quick Actions */}
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {onEdit && (
-                            <button
-                              type="button"
-                              onClick={() => onEdit(row)}
-                              className="p-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
-                              title="Edit record"
-                            >
-                              <Pencil className="h-3 w-3" />
-                            </button>
-                          )}
-                          {onDelete && (
-                            <button
-                              type="button"
-                              onClick={() => onDelete(row)}
-                              className="p-1 text-slate-400 hover:text-rose-600 cursor-pointer"
-                              title="Delete record"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </td>
+            ) : isVirtual ? (
+              <>
+                {paddingTop > 0 && (
+                  <tr style={{ height: `${paddingTop}px` }}>
+                    <td colSpan={dataColumns.length + 2} />
                   </tr>
-                );
-              })
+                )}
+                {virtualRows.map((virtualRow) => {
+                  const row = paginatedRows[virtualRow.index];
+                  return renderRow(row, virtualRow.index, rowVirtualizer.measureElement);
+                })}
+                {paddingBottom > 0 && (
+                  <tr style={{ height: `${paddingBottom}px` }}>
+                    <td colSpan={dataColumns.length + 2} />
+                  </tr>
+                )}
+              </>
+            ) : (
+              paginatedRows.map((row, rIdx) => renderRow(row, rIdx))
             )}
           </tbody>
         </table>

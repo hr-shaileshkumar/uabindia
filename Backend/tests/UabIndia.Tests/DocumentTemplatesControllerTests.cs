@@ -60,5 +60,46 @@ namespace UabIndia.Tests
             Assert.Contains("Grand Total", contentResult.Content);
             Assert.Contains("118", contentResult.Content);
         }
+
+        [Fact]
+        public void RenderPdf_GeneratesValidPdfFileResult()
+        {
+            var controller = new DocumentTemplatesController();
+
+            var request = new DocumentTemplatesController.RenderDocumentRequest
+            {
+                TemplateKey = "tax_invoice",
+                Title = "Tax Invoice",
+                DocumentNumber = "INV-2026-PDF-01",
+                CompanyName = "Acme Corp India",
+                PartyName = "Global Logistics Ltd",
+                SubTotal = 50000m,
+                TaxAmount = 9000m,
+                GrandTotal = 59000m,
+                Currency = "INR",
+                LineItems = new List<DocumentTemplatesController.RenderLineItemDto>
+                {
+                    new()
+                    {
+                        Description = "Cloud Hosting",
+                        Quantity = 1,
+                        UnitPrice = 50000m,
+                        LineTotal = 59000m
+                    }
+                }
+            };
+
+            var result = controller.RenderPdf(request);
+
+            var fileResult = Assert.IsType<FileContentResult>(result);
+            Assert.Equal("application/pdf", fileResult.ContentType);
+            Assert.Contains("INV-2026-PDF-01", fileResult.FileDownloadName);
+            Assert.NotNull(fileResult.FileContents);
+            Assert.True(fileResult.FileContents.Length > 0);
+
+            // Verify standard PDF header %PDF-1.4
+            var header = System.Text.Encoding.ASCII.GetString(fileResult.FileContents, 0, 8);
+            Assert.StartsWith("%PDF-1.4", header);
+        }
     }
 }
