@@ -167,8 +167,18 @@ export function ErpFrappeTableView({
         key={rowId}
         ref={measureRef}
         data-index={rIdx}
+        onClick={(e) => {
+          const target = e.target as HTMLElement;
+          if (target.closest("input") || target.closest("button") || target.closest("a")) {
+            return;
+          }
+          if (onEdit) {
+            onEdit(row);
+          }
+        }}
         className={cn(
           "group transition-colors",
+          onEdit && "cursor-pointer",
           isSelected
             ? "bg-indigo-50/50 dark:bg-indigo-950/20"
             : "hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
@@ -198,16 +208,23 @@ export function ErpFrappeTableView({
               style={col.width ? { width: col.width } : undefined}
               className={cn(cellPaddingClass, "text-slate-700 dark:text-slate-200")}
             >
-              {rendered !== null && rendered !== undefined ? (
-                rendered
-              ) : isFirst ? (
+              {isFirst && onEdit ? (
                 <button
                   type="button"
-                  onClick={() => onEdit?.(row)}
-                  className="font-semibold text-indigo-600 hover:text-indigo-800 hover:underline dark:text-indigo-400 dark:hover:text-indigo-300 text-left truncate block max-w-[240px] cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(row);
+                  }}
+                  className="font-semibold text-indigo-600 hover:text-indigo-800 hover:underline dark:text-indigo-400 dark:hover:text-indigo-300 text-left truncate inline-flex items-center gap-1.5 cursor-pointer max-w-full"
                 >
-                  {String(val ?? row.fullName ?? row.name ?? row.title ?? "-")}
+                  {rendered !== null && rendered !== undefined ? (
+                    rendered
+                  ) : (
+                    <span>{String(val ?? row.fullName ?? row.name ?? row.title ?? "-")}</span>
+                  )}
                 </button>
+              ) : rendered !== null && rendered !== undefined ? (
+                rendered
               ) : typeof val === "boolean" ? (
                 <span
                   className={cn(

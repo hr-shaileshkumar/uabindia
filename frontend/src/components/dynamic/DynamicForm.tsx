@@ -42,6 +42,7 @@ interface DynamicFormProps {
   onDeleteAttachment?: (id: string) => Promise<void> | void;
   timelineEntries?: TimelineEntry[];
   onAddTimelineComment?: (comment: string) => Promise<void> | void;
+  showFooterActions?: boolean;
 }
 
 function getTabIcon(title: string) {
@@ -84,6 +85,7 @@ export function DynamicForm({
   onDeleteAttachment,
   timelineEntries,
   onAddTimelineComment,
+  showFooterActions = false,
 }: DynamicFormProps) {
   const { hasPermission, isSuperAdmin } = usePermissions();
   const { user } = useAuth();
@@ -808,34 +810,36 @@ export function DynamicForm({
         </div>
       )}
 
-      {/* Footer Form Action Bar: Cancel & Save/Update buttons */}
-      <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-800">
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={isSaving}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={isSaving}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 text-xs font-bold shadow-xs transition-colors cursor-pointer disabled:opacity-50"
-        >
-          {isSaving ? (
-            <>
-              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              <span>Saving…</span>
-            </>
-          ) : (
-            <>
-              <Save className="h-3.5 w-3.5" />
-              <span>{isEdit ? "Update Record" : "Save Record"}</span>
-            </>
-          )}
-        </button>
-      </div>
+      {/* Optional Footer Form Action Bar: Cancel & Save/Update buttons (when not rendered in sticky document header) */}
+      {showFooterActions && (
+        <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-800">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isSaving}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 text-xs font-bold shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+          >
+            {isSaving ? (
+              <>
+                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                <span>Saving…</span>
+              </>
+            ) : (
+              <>
+                <Save className="h-3.5 w-3.5" />
+                <span>{isEdit ? "Update Record" : "Save Record"}</span>
+              </>
+            )}
+          </button>
+        </div>
+      )}
     </form>
   );
 }

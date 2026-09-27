@@ -1207,16 +1207,6 @@ export function DynamicPage({
                 <div className="flex items-center gap-1.5 mr-1">
                   <button
                     type="button"
-                    onClick={() => handleExecutePageAction("submit_approval", "workflowTrigger", editingRecord.id)}
-                    className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors cursor-pointer"
-                    title="Submit for Approval"
-                  >
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    <span>Submit</span>
-                  </button>
-
-                  <button
-                    type="button"
                     onClick={handleCloneRecord}
                     className="inline-flex items-center gap-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                     title="Clone Record"
