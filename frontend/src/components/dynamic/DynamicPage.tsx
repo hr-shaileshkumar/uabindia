@@ -365,6 +365,27 @@ export function DynamicPage({
   const [isCustomizationOpen, setIsCustomizationOpen] = useState(false);
   const [hiddenColumnKeys, setHiddenColumnKeys] = useState<string[]>([]);
 
+  // Global Keyboard Accelerators (Ctrl+S / Cmd+S to submit active form, Escape to close/cancel)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (drawerMode !== "closed") {
+        if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+          e.preventDefault();
+          const formElement = document.getElementById("dynamic-record-form") as HTMLFormElement | null;
+          if (formElement) {
+            formElement.requestSubmit();
+          }
+        } else if (e.key === "Escape" && !deleteTarget && !isCustomizationOpen && !isImportModalOpen) {
+          e.preventDefault();
+          handleCloseDrawer();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [drawerMode, deleteTarget, isCustomizationOpen, isImportModalOpen, handleCloseDrawer]);
+
   // Load Page Schema (resolving company/project scope from backend)
   const loadSchema = useCallback(async () => {
     if (initialSchema) {
