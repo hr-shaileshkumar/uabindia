@@ -105,6 +105,17 @@ export const projectSchemas: Record<string, PageSchema> = {
             { key: "description", label: "Project Scope & Description", type: "textarea", span: 2 },
           ],
         },
+        {
+          key: "siteBranding",
+          label: "Site Office & Letterhead Branding Overrides",
+          fields: [
+            { key: "location", label: "Project City / Region", type: "text", span: 1 },
+            { key: "siteAddress", label: "Site / Project Office Address", type: "textarea", span: 2, placeholder: "e.g. Site Office, Metro Line-3 Depot, Aarey Colony, Mumbai 400065" },
+            { key: "clientLogoUrl", label: "Client Co-Branding Logo URL", type: "text", span: 1, placeholder: "https://..." },
+            { key: "siteSignatoryName", label: "Site In-Charge / Project Director", type: "text", span: 1, placeholder: "e.g. Er. Rajesh Verma" },
+            { key: "siteSignatoryTitle", label: "Signatory Designation", type: "text", span: 1, placeholder: "e.g. Chief Project Manager" },
+          ],
+        },
       ],
     },
     actions: [

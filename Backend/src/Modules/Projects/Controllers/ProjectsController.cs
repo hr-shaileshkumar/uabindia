@@ -81,6 +81,10 @@ namespace UabIndia.Api.Modules.Projects.Controllers
             CompletionPercentage = p.CompletionPercentage,
             ProjectManagerId = p.ProjectManagerId,
             Location = p.Location,
+            SiteAddress = p.SiteAddress,
+            ClientLogoUrl = p.ClientLogoUrl,
+            SiteSignatoryName = p.SiteSignatoryName,
+            SiteSignatoryTitle = p.SiteSignatoryTitle,
             CreatedAt = p.CreatedAt,
             UpdatedAt = p.UpdatedAt,
         };
@@ -242,6 +246,10 @@ namespace UabIndia.Api.Modules.Projects.Controllers
                 BillingType = dto.BillingType,
                 ProjectManagerId = dto.ProjectManagerId,
                 Location = dto.Location,
+                SiteAddress = dto.SiteAddress,
+                ClientLogoUrl = dto.ClientLogoUrl,
+                SiteSignatoryName = dto.SiteSignatoryName,
+                SiteSignatoryTitle = dto.SiteSignatoryTitle,
                 CreatedAt = DateTime.UtcNow,
             };
 
@@ -316,6 +324,10 @@ namespace UabIndia.Api.Modules.Projects.Controllers
             if (dto.CompletionPercentage.HasValue) project.CompletionPercentage = Math.Clamp(dto.CompletionPercentage.Value, 0, 100);
             if (dto.ProjectManagerId.HasValue) project.ProjectManagerId = dto.ProjectManagerId;
             if (dto.Location != null) project.Location = dto.Location;
+            if (dto.SiteAddress != null) project.SiteAddress = dto.SiteAddress;
+            if (dto.ClientLogoUrl != null) project.ClientLogoUrl = dto.ClientLogoUrl;
+            if (dto.SiteSignatoryName != null) project.SiteSignatoryName = dto.SiteSignatoryName;
+            if (dto.SiteSignatoryTitle != null) project.SiteSignatoryTitle = dto.SiteSignatoryTitle;
             if (dto.UpdatedBy.HasValue) project.UpdatedBy = dto.UpdatedBy;
 
             project.UpdatedAt = DateTime.UtcNow;

@@ -109,6 +109,7 @@ namespace UabIndia.Infrastructure.Data
         public DbSet<WidgetDefinition> WidgetDefinitions { get; set; }
         public DbSet<DashboardWidget> DashboardWidgets { get; set; }
         public DbSet<DocumentRecord> DocumentRecords { get; set; }
+        public DbSet<DocumentTemplate> DocumentTemplates { get; set; }
         public DbSet<NotificationMessage> NotificationMessages { get; set; }
         public DbSet<CommunicationTemplate> CommunicationTemplates { get; set; }
         public DbSet<HelpdeskTicket> HelpdeskTickets { get; set; }
@@ -388,6 +389,7 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<UiViewDefinition>().ToTable("UiViewDefinitions");
             modelBuilder.Entity<UiViewDefinition>().HasIndex(e => new { e.TenantId, e.PageKey, e.Scope, e.UserId });
             modelBuilder.Entity<DocumentRecord>().ToTable("DocumentRecords");
+            modelBuilder.Entity<DocumentTemplate>().ToTable("DocumentTemplates");
             modelBuilder.Entity<NotificationMessage>().ToTable("NotificationMessages");
             modelBuilder.Entity<CommunicationTemplate>().ToTable("CommunicationTemplates");
             modelBuilder.Entity<HelpdeskTicket>().ToTable("HelpdeskTickets");
@@ -708,6 +710,7 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<UiPageVersion>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<UiViewDefinition>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<DocumentRecord>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == null || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
+            modelBuilder.Entity<DocumentTemplate>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == null || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
             modelBuilder.Entity<NotificationMessage>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == null || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()));
             modelBuilder.Entity<HelpdeskTicket>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId() && (_tenantAccessor.GetCompanyIdOrEmpty() == Guid.Empty || e.CompanyId == null || e.CompanyId == _tenantAccessor.GetCompanyIdOrEmpty()) && (_tenantAccessor.GetProjectIdOrEmpty() == Guid.Empty || e.ProjectId == null || e.ProjectId == _tenantAccessor.GetProjectIdOrEmpty()));
             modelBuilder.Entity<CommunicationTemplate>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());

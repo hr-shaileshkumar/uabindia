@@ -4,8 +4,13 @@ using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using UabIndia.Core.Entities;
+using UabIndia.Application.Interfaces;
+using UabIndia.Infrastructure.Data;
 
 namespace UabIndia.Api.Modules.Administration.Controllers
 {
@@ -14,6 +19,19 @@ namespace UabIndia.Api.Modules.Administration.Controllers
     [Authorize]
     public class DocumentTemplatesController : ControllerBase
     {
+        private readonly ApplicationDbContext? _db;
+        private readonly ITenantAccessor? _tenantAccessor;
+
+        public DocumentTemplatesController()
+        {
+        }
+
+        public DocumentTemplatesController(ApplicationDbContext db, ITenantAccessor tenantAccessor)
+        {
+            _db = db;
+            _tenantAccessor = tenantAccessor;
+        }
+
         public class DocumentTemplateInfoDto
         {
             public string Key { get; set; } = string.Empty;
@@ -61,7 +79,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetTemplates()
+        public IActionResult GetTemplates([FromQuery] Guid? companyId = null, [FromQuery] Guid? projectId = null)
         {
             var templates = new List<DocumentTemplateInfoDto>
             {
@@ -99,13 +117,121 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                 }
             };
 
+            if (_db != null)
+            {
+                try
+                {
+                    var customTemplates = _db.DocumentTemplates
+                        .AsNoTracking()
+                        .Where(t => t.IsActive && (!companyId.HasValue || t.CompanyId == null || t.CompanyId == companyId.Value)
+                                               && (!projectId.HasValue || t.ProjectId == null || t.ProjectId == projectId.Value))
+                        .ToList();
+
+                    foreach (var ct in customTemplates)
+                    {
+                        var existing = templates.Find(t => t.Key.Equals(ct.TemplateKey, StringComparison.OrdinalIgnoreCase));
+                        if (existing != null)
+                        {
+                            existing.Name = ct.Name;
+                            existing.Category = ct.Category;
+                            existing.Description = ct.Description ?? existing.Description;
+                            existing.PageOrientation = ct.PageOrientation;
+                        }
+                        else
+                        {
+                            templates.Add(new DocumentTemplateInfoDto
+                            {
+                                Key = ct.TemplateKey,
+                                Name = ct.Name,
+                                Category = ct.Category,
+                                Description = ct.Description ?? "",
+                                PageOrientation = ct.PageOrientation
+                            });
+                        }
+                    }
+                }
+                catch
+                {
+                    // Fallback to built-in templates if DB table is initializing
+                }
+            }
+
             return Ok(new { data = templates });
+        }
+
+        [HttpPost("custom")]
+        public async Task<IActionResult> SaveCustomTemplate([FromBody] DocumentTemplate template)
+        {
+            if (_db == null || _tenantAccessor == null)
+                return StatusCode(501, new { message = "Database template storage not available in current context." });
+
+            if (template == null || string.IsNullOrWhiteSpace(template.TemplateKey) || string.IsNullOrWhiteSpace(template.Name))
+                return BadRequest(new { message = "TemplateKey and Name are required." });
+
+            var tenantId = _tenantAccessor.GetTenantId();
+            var existing = await _db.DocumentTemplates
+                .FirstOrDefaultAsync(t => t.TemplateKey == template.TemplateKey && t.TenantId == tenantId && t.CompanyId == template.CompanyId);
+
+            if (existing != null)
+            {
+                existing.Name = template.Name;
+                existing.Category = template.Category;
+                existing.Description = template.Description;
+                existing.PageOrientation = template.PageOrientation;
+                existing.HeaderLayout = template.HeaderLayout;
+                existing.HeaderHtml = template.HeaderHtml;
+                existing.BodyHtml = template.BodyHtml;
+                existing.FooterHtml = template.FooterHtml;
+                existing.TermsAndConditions = template.TermsAndConditions;
+                existing.WatermarkText = template.WatermarkText;
+                existing.HasDigitalSignature = template.HasDigitalSignature;
+                existing.IsActive = template.IsActive;
+                existing.UpdatedAt = DateTime.UtcNow;
+            }
+            else
+            {
+                template.TenantId = tenantId;
+                template.CreatedAt = DateTime.UtcNow;
+                _db.DocumentTemplates.Add(template);
+            }
+
+            await _db.SaveChangesAsync();
+            return Ok(new { message = "Document template saved successfully.", template });
         }
 
         [HttpPost("render")]
         public IActionResult RenderDocument([FromBody] RenderDocumentRequest request)
         {
             if (request == null) return BadRequest("Request body cannot be null.");
+
+            if (_db != null && string.IsNullOrWhiteSpace(request.CompanyName))
+            {
+                try
+                {
+                    var tenantId = _tenantAccessor?.GetTenantId();
+                    if (tenantId.HasValue && tenantId.Value != Guid.Empty)
+                    {
+                        var company = _db.Companies
+                            .AsNoTracking()
+                            .FirstOrDefault(c => c.TenantId == tenantId.Value && !c.IsDeleted);
+
+                        if (company != null)
+                        {
+                            request.CompanyName = company.Name;
+                            request.CompanyAddress = company.RegistrationAddress ?? company.OperationalAddress;
+                            request.CompanyGstin = company.TaxId;
+                            request.LogoUrl ??= company.LogoUrl;
+                            if (!string.IsNullOrWhiteSpace(company.BrandColor)) request.BrandColor = company.BrandColor;
+                            if (!string.IsNullOrWhiteSpace(company.AccentColor)) request.AccentColor = company.AccentColor;
+                            if (!string.IsNullOrWhiteSpace(company.LetterheadLayout)) request.HeaderLayout = company.LetterheadLayout;
+                        }
+                    }
+                }
+                catch
+                {
+                    // Ignore and use request defaults
+                }
+            }
 
             var html = GenerateDocumentHtml(request);
             return Content(html, "text/html", Encoding.UTF8);

@@ -42,6 +42,10 @@ namespace UabIndia.Core.Entities
 
         public Guid? ProjectManagerId { get; set; }
         public string? Location { get; set; }
+        public string? SiteAddress { get; set; }
+        public string? ClientLogoUrl { get; set; }
+        public string? SiteSignatoryName { get; set; }
+        public string? SiteSignatoryTitle { get; set; }
 
         public Guid? UpdatedBy { get; set; }
     }

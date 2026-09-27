@@ -415,6 +415,10 @@ namespace UabIndia.Api.Models
         public int CompletionPercentage { get; set; }
         public Guid? ProjectManagerId { get; set; }
         public string? Location { get; set; }
+        public string? SiteAddress { get; set; }
+        public string? ClientLogoUrl { get; set; }
+        public string? SiteSignatoryName { get; set; }
+        public string? SiteSignatoryTitle { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
     }
@@ -447,6 +451,10 @@ namespace UabIndia.Api.Models
         public string? BillingType { get; set; }
         public Guid? ProjectManagerId { get; set; }
         public string? Location { get; set; }
+        public string? SiteAddress { get; set; }
+        public string? ClientLogoUrl { get; set; }
+        public string? SiteSignatoryName { get; set; }
+        public string? SiteSignatoryTitle { get; set; }
     }
 
     public class UpdateProjectDto
@@ -476,6 +484,10 @@ namespace UabIndia.Api.Models
         public int? CompletionPercentage { get; set; }
         public Guid? ProjectManagerId { get; set; }
         public string? Location { get; set; }
+        public string? SiteAddress { get; set; }
+        public string? ClientLogoUrl { get; set; }
+        public string? SiteSignatoryName { get; set; }
+        public string? SiteSignatoryTitle { get; set; }
         public Guid? UpdatedBy { get; set; }
     }
 
