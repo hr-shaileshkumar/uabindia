@@ -229,18 +229,18 @@ export function UniversalExportModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl rounded-2xl border border-slate-200 bg-white p-0 shadow-2xl dark:border-slate-800 dark:bg-slate-900 overflow-hidden">
+      <DialogContent className="max-w-xl rounded-2xl border border-slate-200 bg-white p-0 shadow-2xl dark:border-slate-800 dark:bg-slate-900 overflow-hidden mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 px-6 py-4 bg-slate-50/50 dark:bg-slate-950/50">
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 px-5 py-3.5 bg-slate-50/50 dark:bg-slate-950/50">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
-              <Download className="h-5 w-5" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400 shrink-0">
+              <Download className="h-4.5 w-4.5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
                 Export {entityName || "Records"}
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 Configure export format, record scope, and select columns to download.
               </p>
             </div>
@@ -255,9 +255,9 @@ export function UniversalExportModal({
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto scrollbar-thin">
+        <div className="p-4 sm:p-5 space-y-4 max-h-[72vh] overflow-y-auto scrollbar-thin">
           {/* 1. Format Choice */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               1. Choose Export Format
             </label>
@@ -464,7 +464,7 @@ export function UniversalExportModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 px-6 py-3.5 bg-slate-50/50 dark:bg-slate-950/50">
+        <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 px-5 py-3 bg-slate-50/50 dark:bg-slate-950/50">
           <div className="text-xs text-slate-500">
             Ready to export: <strong className="text-slate-800 dark:text-slate-200">{targetRecords.length} records</strong>
           </div>

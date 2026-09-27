@@ -73,6 +73,7 @@ export function pageSchemaToDynamicSchema(cat: PageSchema): DynamicPageSchema {
     title: cat.title,
     subTitle: cat.subTitle,
     entityName: cat.entityName,
+    moduleKey: cat.moduleKey,
     pageFamily: cat.pageFamily as any,
     pageType: cat.pageType as any,
     viewType: cat.viewType === "kanban" ? "kanban" : cat.viewType === "split" ? "split" : "table",
@@ -206,7 +207,14 @@ export function DynamicPage({
   const router = useRouter();
   const { hasPermission, isSuperAdmin } = usePermissions();
   const { user } = useAuth();
-  const { companyId: ctxCompanyId, projectId: ctxProjectId } = useOrgContext();
+  const {
+    companyId: ctxCompanyId,
+    projectId: ctxProjectId,
+    companyName: ctxCompanyName,
+    companyLegalName: ctxCompanyLegalName,
+    companyAddress: ctxCompanyAddress,
+    companyGstin: ctxCompanyGstin,
+  } = useOrgContext();
 
   const effectiveCompanyId = companyId || ctxCompanyId || undefined;
   const effectiveProjectId = projectId || ctxProjectId || undefined;
@@ -941,9 +949,15 @@ export function DynamicPage({
           .map(([k, v]) => `${cleanFieldLabel(k)}: ${v}`)
           .join(" | ");
 
+    const activeCompanyName =
+      ctxCompanyLegalName || ctxCompanyName || (user as any)?.tenantName || "UAB INDIA ENTERPRISES PRIVATE LIMITED";
+
     printTabularReport({
       title: `${schema.title || schema.entityName || "Records"} Register`,
       reportNumber: `REG-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}`,
+      companyName: activeCompanyName,
+      companyAddress: ctxCompanyAddress || undefined,
+      companyGstin: ctxCompanyGstin || undefined,
       columns: cols,
       rows: filteredRecords,
       filterSummary: filterDesc || undefined,
@@ -1120,21 +1134,73 @@ export function DynamicPage({
         lineTotal: Number(it.lineTotal || it.amount || it.total || (Number(it.quantity || 1) * Number(it.unitPrice || 0))),
       }));
 
+      const isCompanyEntity =
+        schema.entityName?.toLowerCase() === "company" ||
+        schema.pageKey === "administration.companies";
+
+      const docCompanyName = isCompanyEntity
+        ? (editingRecord.legalName || editingRecord.name || ctxCompanyLegalName || ctxCompanyName || "UAB INDIA ENTERPRISES PRIVATE LIMITED")
+        : (ctxCompanyLegalName || ctxCompanyName || (user as any)?.tenantName || "UAB INDIA ENTERPRISES PRIVATE LIMITED");
+
+      const docCompanyAddress = isCompanyEntity
+        ? [
+            editingRecord.registrationAddress || editingRecord.operationalAddress,
+            editingRecord.city,
+            [editingRecord.state, editingRecord.postalCode].filter(Boolean).join(" - "),
+          ].filter(Boolean).join(", ") || ctxCompanyAddress || undefined
+        : ctxCompanyAddress || undefined;
+
+      const docCompanyGstin = isCompanyEntity
+        ? (editingRecord.gstin || editingRecord.taxId || ctxCompanyGstin || undefined)
+        : (ctxCompanyGstin || undefined);
+
+      const isCommercial = Boolean(
+        editingRecord.subTotal ||
+        editingRecord.grandTotal ||
+        editingRecord.totalAmount ||
+        (lineItems && lineItems.length > 0) ||
+        schema.moduleKey === "sales" ||
+        schema.moduleKey === "procurement" ||
+        schema.moduleKey === "accounting"
+      );
+
+      const partyLabel = isCommercial
+        ? "Issued / Billed To"
+        : schema.entityName
+        ? `${schema.entityName} Details`
+        : "Record Details";
+
+      const partyName = isCommercial
+        ? (editingRecord.customerName || editingRecord.vendorName || editingRecord.partyName || editingRecord.clientName)
+        : (editingRecord.name || editingRecord.fullName || editingRecord.title);
+
+      const partyAddress = isCommercial
+        ? (editingRecord.shippingAddress || editingRecord.billingAddress || editingRecord.address)
+        : undefined;
+
+      const partyGstin = isCommercial
+        ? (editingRecord.gstin || editingRecord.taxId)
+        : undefined;
+
       printRecordDocument({
         title: schema.title || schema.entityName || "Official Document",
         documentNumber: String(recordCode || editingRecord.orderNumber || editingRecord.invoiceNumber || editingRecord.id || ""),
         date: editingRecord.orderDate || editingRecord.invoiceDate || editingRecord.joiningDate || editingRecord.date || new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
         watermarkText: editingRecord.status === "Draft" || editingRecord.status === "Pending" ? String(editingRecord.status).toUpperCase() : undefined,
-        partyName: editingRecord.customerName || editingRecord.vendorName || editingRecord.employeeName || editingRecord.partyName || editingRecord.name || editingRecord.fullName,
-        partyAddress: editingRecord.shippingAddress || editingRecord.billingAddress || editingRecord.address,
-        partyGstin: editingRecord.gstin || editingRecord.taxId,
+        companyName: docCompanyName,
+        companyAddress: docCompanyAddress,
+        companyGstin: docCompanyGstin,
+        partyLabel,
+        partyName: partyName || undefined,
+        partyAddress,
+        partyGstin,
         summaryFields: Object.keys(summaryFields).length > 0 ? summaryFields : undefined,
         lineItems,
         subTotal: editingRecord.subTotal ? Number(editingRecord.subTotal) : undefined,
         taxAmount: editingRecord.taxAmount ? Number(editingRecord.taxAmount) : undefined,
         grandTotal: editingRecord.grandTotal || editingRecord.totalAmount ? Number(editingRecord.grandTotal || editingRecord.totalAmount) : undefined,
         notes: editingRecord.notes || editingRecord.termsAndConditions || editingRecord.remarks,
-        includeSignatureBlock: true,
+        includeSignatureBlock: isCommercial,
       });
     };
 
@@ -1165,8 +1231,8 @@ export function DynamicPage({
 
     return (
       <>
-        <div className="w-full bg-slate-50/60 p-4 sm:p-6 lg:p-8 dark:bg-slate-950/40">
-        <div className="mx-auto max-w-7xl 2xl:max-w-[1600px] space-y-6">
+        <div className="w-full bg-slate-50/60 p-3 sm:p-5 lg:p-6 dark:bg-slate-950/40">
+        <div className="w-full space-y-6">
 
           {/* Frappe Document Header Banner */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 dark:border-slate-800 pb-4">

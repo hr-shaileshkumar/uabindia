@@ -36,7 +36,7 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
   const content = (
     <div className="fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-4">
       <div
-        className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
+        className="fixed inset-0 bg-slate-950/35 backdrop-blur-[2px] transition-opacity animate-in fade-in duration-150"
         onClick={() => onOpenChange(false)}
       />
       <div

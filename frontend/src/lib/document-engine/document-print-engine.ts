@@ -18,6 +18,7 @@ export interface PrintDocumentOptions {
   companyAddress?: string;
   companyGstin?: string;
   companyPan?: string;
+  partyLabel?: string;
   partyName?: string;
   partyAddress?: string;
   partyGstin?: string;
@@ -40,14 +41,13 @@ export interface PrintDocumentOptions {
 
 export function printRecordDocument(options: PrintDocumentOptions): void {
   const companyName = options.companyName || "UAB INDIA ENTERPRISES PRIVATE LIMITED";
-  const companyAddress =
-    options.companyAddress ||
-    "Plot 42, Tech Horizon Park, Electronic City, Bengaluru, Karnataka - 560100";
-  const companyGstin = options.companyGstin || "29AABCU9603R1ZM";
+  const companyAddress = options.companyAddress || "";
+  const companyGstin = options.companyGstin || "";
   const title = options.title || "Official Document";
   const docNum = options.documentNumber || `DOC-${Date.now()}`;
   const date = options.date || new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
   const watermark = options.watermarkText || "";
+  const partyLabel = options.partyLabel || (options.lineItems && options.lineItems.length > 0 ? "Issued / Billed To:" : "Record Details:");
 
   const popup = window.open("", "_blank", "width=920,height=1050,resizable=yes,scrollbars=yes");
   if (!popup) return;
@@ -94,8 +94,8 @@ export function printRecordDocument(options: PrintDocumentOptions): void {
     <div class="header">
       <div>
         <div style="font-size: 18px; font-weight: 800; color: #0f172a;">${escapeHtml(companyName)}</div>
-        <div style="color: #64748b; font-size: 10px; margin-top: 2px;">${escapeHtml(companyAddress)}</div>
-        <div style="color: #475569; font-size: 10px; font-weight: 600;">GSTIN: ${escapeHtml(companyGstin)}</div>
+        ${companyAddress ? `<div style="color: #64748b; font-size: 10px; margin-top: 2px;">${escapeHtml(companyAddress)}</div>` : ""}
+        ${companyGstin ? `<div style="color: #475569; font-size: 10px; font-weight: 600;">GSTIN: ${escapeHtml(companyGstin)}</div>` : ""}
       </div>
       <div style="text-align: right;">
         <div class="doc-badge">${escapeHtml(title)}</div>
@@ -109,7 +109,7 @@ export function printRecordDocument(options: PrintDocumentOptions): void {
       options.partyName
         ? `<div class="grid-2">
       <div class="card">
-        <div style="font-weight: 700; color: #475569; margin-bottom: 2px; text-transform: uppercase; font-size: 9.5px;">Issued / Billed To:</div>
+        <div style="font-weight: 700; color: #475569; margin-bottom: 2px; text-transform: uppercase; font-size: 9.5px;">${escapeHtml(partyLabel)}</div>
         <div style="font-weight: 700; font-size: 11px;">${escapeHtml(options.partyName)}</div>
         ${options.partyAddress ? `<div style="color: #64748b;">${escapeHtml(options.partyAddress)}</div>` : ""}
         ${options.partyGstin ? `<div style="color: #475569; font-weight: 600;">GSTIN: ${escapeHtml(options.partyGstin)}</div>` : ""}
@@ -187,7 +187,7 @@ export function printRecordDocument(options: PrintDocumentOptions): void {
 
     <!-- Authorized Signatures -->
     ${
-      options.includeSignatureBlock !== false
+      options.includeSignatureBlock === true
         ? `<div class="signature-block">
       <div>
         <div style="height: 35px;"></div>
@@ -234,16 +234,19 @@ export interface PrintReportOptions {
 
 export function printTabularReport(options: PrintReportOptions): void {
   const companyName = options.companyName || "UAB INDIA ENTERPRISES PRIVATE LIMITED";
-  const companyAddress =
-    options.companyAddress ||
-    "Plot 42, Tech Horizon Park, Electronic City, Bengaluru, Karnataka - 560100";
-  const companyGstin = options.companyGstin || "29AABCU9603R1ZM";
+  const companyAddress = options.companyAddress || "";
+  const companyGstin = options.companyGstin || "";
   const title = options.title || "Data Report";
   const reportNum = options.reportNumber || `REP-${Date.now()}`;
   const date = options.date || new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
   const popup = window.open("", "_blank", "width=1100,height=850,resizable=yes,scrollbars=yes");
   if (!popup) return;
+
+  const headerMeta = [
+    companyAddress ? escapeHtml(companyAddress) : "",
+    companyGstin ? `GSTIN: ${escapeHtml(companyGstin)}` : "",
+  ].filter(Boolean).join(" &middot; ");
 
   const html = `<!doctype html>
 <html lang="en">
@@ -274,7 +277,7 @@ export function printTabularReport(options: PrintReportOptions): void {
     <div class="header">
       <div>
         <div style="font-size: 16px; font-weight: 800; color: #0f172a;">${escapeHtml(companyName)}</div>
-        <div style="color: #64748b; font-size: 9.5px;">${escapeHtml(companyAddress)} &middot; GSTIN: ${escapeHtml(companyGstin)}</div>
+        ${headerMeta ? `<div style="color: #64748b; font-size: 9.5px;">${headerMeta}</div>` : ""}
       </div>
       <div style="text-align: right;">
         <div class="doc-badge">${escapeHtml(title)}</div>

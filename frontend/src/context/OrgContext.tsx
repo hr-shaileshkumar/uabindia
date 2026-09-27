@@ -10,6 +10,9 @@ import { useQueryClient } from "@tanstack/react-query";
 type OrgContextState = {
   companyId: string | null;
   companyName: string | null;
+  companyLegalName?: string | null;
+  companyAddress?: string | null;
+  companyGstin?: string | null;
   projectId: string | null;
   projectName: string | null;
   financialYearKey: string | null;
@@ -27,6 +30,9 @@ type OrgContextValue = OrgContextState & {
 const STORAGE_KEYS = {
   companyId: "activeCompanyId",
   companyName: "activeCompanyName",
+  companyLegalName: "activeCompanyLegalName",
+  companyAddress: "activeCompanyAddress",
+  companyGstin: "activeCompanyGstin",
   projectId: "activeProjectId",
   projectName: "activeProjectName",
   financialYearKey: "activeFinancialYearKey",
@@ -38,6 +44,9 @@ const readStoredContext = (): OrgContextState => {
     return {
       companyId: null,
       companyName: null,
+      companyLegalName: null,
+      companyAddress: null,
+      companyGstin: null,
       projectId: null,
       projectName: null,
       financialYearKey: null,
@@ -47,6 +56,9 @@ const readStoredContext = (): OrgContextState => {
 
   const companyId = window.localStorage.getItem(STORAGE_KEYS.companyId) || null;
   const companyName = window.localStorage.getItem(STORAGE_KEYS.companyName) || null;
+  const companyLegalName = window.localStorage.getItem(STORAGE_KEYS.companyLegalName) || null;
+  const companyAddress = window.localStorage.getItem(STORAGE_KEYS.companyAddress) || null;
+  const companyGstin = window.localStorage.getItem(STORAGE_KEYS.companyGstin) || null;
   const projectId = window.localStorage.getItem(STORAGE_KEYS.projectId) || null;
   const projectName = window.localStorage.getItem(STORAGE_KEYS.projectName) || null;
   const financialYearKey = window.localStorage.getItem(STORAGE_KEYS.financialYearKey) || null;
@@ -55,6 +67,9 @@ const readStoredContext = (): OrgContextState => {
   return {
     companyId,
     companyName,
+    companyLegalName,
+    companyAddress,
+    companyGstin,
     projectId,
     projectName,
     financialYearKey,
@@ -82,6 +97,12 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
     else window.localStorage.removeItem(STORAGE_KEYS.companyId);
     if (next.companyName) window.localStorage.setItem(STORAGE_KEYS.companyName, next.companyName);
     else window.localStorage.removeItem(STORAGE_KEYS.companyName);
+    if (next.companyLegalName) window.localStorage.setItem(STORAGE_KEYS.companyLegalName, next.companyLegalName);
+    else window.localStorage.removeItem(STORAGE_KEYS.companyLegalName);
+    if (next.companyAddress) window.localStorage.setItem(STORAGE_KEYS.companyAddress, next.companyAddress);
+    else window.localStorage.removeItem(STORAGE_KEYS.companyAddress);
+    if (next.companyGstin) window.localStorage.setItem(STORAGE_KEYS.companyGstin, next.companyGstin);
+    else window.localStorage.removeItem(STORAGE_KEYS.companyGstin);
     if (next.projectId) window.localStorage.setItem(STORAGE_KEYS.projectId, next.projectId);
     else window.localStorage.removeItem(STORAGE_KEYS.projectId);
     if (next.projectName) window.localStorage.setItem(STORAGE_KEYS.projectName, next.projectName);
@@ -148,6 +169,9 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
     setContext({
       companyId: null,
       companyName: null,
+      companyLegalName: null,
+      companyAddress: null,
+      companyGstin: null,
       projectId: null,
       projectName: null,
     });
@@ -162,6 +186,9 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
       const cleared: OrgContextState = {
         companyId: null,
         companyName: null,
+        companyLegalName: null,
+        companyAddress: null,
+        companyGstin: null,
         projectId: null,
         projectName: null,
         financialYearKey: null,
@@ -172,6 +199,9 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
       if (typeof window === "undefined") return;
       window.localStorage.removeItem(STORAGE_KEYS.companyId);
       window.localStorage.removeItem(STORAGE_KEYS.companyName);
+      window.localStorage.removeItem(STORAGE_KEYS.companyLegalName);
+      window.localStorage.removeItem(STORAGE_KEYS.companyAddress);
+      window.localStorage.removeItem(STORAGE_KEYS.companyGstin);
       window.localStorage.removeItem(STORAGE_KEYS.projectId);
       window.localStorage.removeItem(STORAGE_KEYS.projectName);
       window.localStorage.removeItem(STORAGE_KEYS.financialYearKey);
@@ -269,14 +299,48 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
           selectedCompany?.companyName ||
           selectedCompany?.CompanyName;
 
+        const realLegalName =
+          selectedCompany?.legalName ||
+          selectedCompany?.LegalName ||
+          realCompName ||
+          null;
+
+        const realGstin =
+          selectedCompany?.taxId ||
+          selectedCompany?.TaxId ||
+          selectedCompany?.gstin ||
+          selectedCompany?.Gstin ||
+          null;
+
+        const addrParts = [
+          selectedCompany?.registrationAddress ||
+            selectedCompany?.RegistrationAddress ||
+            selectedCompany?.operationalAddress ||
+            selectedCompany?.OperationalAddress,
+          selectedCompany?.city || selectedCompany?.City,
+          [
+            selectedCompany?.state || selectedCompany?.State,
+            selectedCompany?.postalCode || selectedCompany?.PostalCode,
+          ]
+            .filter(Boolean)
+            .join(" - "),
+        ].filter(Boolean);
+        const realAddress = addrParts.length > 0 ? addrParts.join(", ") : null;
+
         if (
           selectedCompany &&
-          realCompName &&
-          (current.companyName !== realCompName || /^company\s*\d+$/i.test(current.companyName || ""))
+          (current.companyName !== realCompName ||
+            current.companyLegalName !== realLegalName ||
+            current.companyAddress !== realAddress ||
+            current.companyGstin !== realGstin ||
+            /^company\s*\d+$/i.test(current.companyName || ""))
         ) {
           const next: OrgContextState = {
             ...current,
             companyName: realCompName,
+            companyLegalName: realLegalName,
+            companyAddress: realAddress,
+            companyGstin: realGstin,
           };
           setState(next);
           persistState(next);

@@ -205,8 +205,12 @@ export function ErpFrappeTableView({
           return (
             <td
               key={col.key}
-              style={col.width ? { width: col.width } : undefined}
-              className={cn(cellPaddingClass, "text-slate-700 dark:text-slate-200")}
+              style={!isFirst && col.width ? { width: col.width, minWidth: col.width } : undefined}
+              className={cn(
+                cellPaddingClass,
+                "text-slate-700 dark:text-slate-200",
+                isFirst ? "font-semibold min-w-[180px]" : "whitespace-nowrap"
+              )}
             >
               {isFirst && onEdit ? (
                 <button
@@ -238,7 +242,7 @@ export function ErpFrappeTableView({
                   <span>{val ? "Yes" : "No"}</span>
                 </span>
               ) : (
-                <span className="truncate block max-w-[240px]">
+                <span className={cn("truncate block", isFirst ? "max-w-full" : "max-w-[240px]")}>
                   {String(val ?? "-")}
                 </span>
               )}
@@ -247,7 +251,7 @@ export function ErpFrappeTableView({
         })}
 
         {/* Far Right Action Column (Relative time, Comments, Heart, Edit, Delete) */}
-        <td className={cn(cellPaddingClass, "text-right")}>
+        <td className={cn(cellPaddingClass, "w-36 min-w-[140px] text-right whitespace-nowrap")}>
           <div className="flex items-center justify-end gap-2.5 text-slate-400 text-xs">
             {/* Relative timestamp */}
             <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium whitespace-nowrap">
@@ -379,13 +383,17 @@ export function ErpFrappeTableView({
               </th>
 
               {/* Data Columns */}
-              {dataColumns.map((col) => {
+              {dataColumns.map((col, cIdx) => {
                 const isCurrentSort = sortKey === col.key;
+                const isFirst = cIdx === 0;
                 return (
                   <th
                     key={col.key}
-                    style={col.width ? { width: col.width } : undefined}
-                    className="px-3.5 py-3 font-bold"
+                    style={!isFirst && col.width ? { width: col.width, minWidth: col.width } : undefined}
+                    className={cn(
+                      "px-3.5 py-3 font-bold",
+                      isFirst ? "min-w-[180px] w-auto" : "whitespace-nowrap"
+                    )}
                   >
                     {onSortChange ? (
                       <button
@@ -422,7 +430,7 @@ export function ErpFrappeTableView({
               })}
 
               {/* Far Right Header: Count & Meta */}
-              <th className="px-4 py-3 text-right font-medium normal-case text-slate-400">
+              <th className="w-36 min-w-[140px] px-3.5 py-3 text-right font-medium normal-case text-slate-400 whitespace-nowrap">
                 <div className="flex items-center justify-end gap-1.5">
                   <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
                     {total > 0

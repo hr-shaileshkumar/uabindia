@@ -237,6 +237,7 @@ export interface DynamicPageSchema {
   title: string;
   subTitle?: string;
   entityName: string;
+  moduleKey?: string;
   pageFamily?: ErpPageFamily;
   pageType?: ErpPageType;
   viewType: "table" | "cards" | "split" | "kanban";
