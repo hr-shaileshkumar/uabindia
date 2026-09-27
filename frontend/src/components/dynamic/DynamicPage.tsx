@@ -23,10 +23,12 @@ import {
   ChevronDown,
   Heart,
   MessageSquare,
+  Trash2,
 } from "lucide-react";
 import { SideDrawer } from "@/components/ui/side-drawer";
 import { UniversalDeleteDialog } from "@/components/workspace/templates/UniversalDeleteDialog";
 import { UniversalBulkImportModal } from "@/components/workspace/UniversalBulkImportModal";
+import { PageCustomizationModal } from "./PageCustomizationModal";
 import { DynamicForm } from "./DynamicForm";
 import { renderDynamicTableCell, cleanFieldLabel } from "./DynamicFieldRegistry";
 import { DynamicRecordTimeline } from "./engine/DynamicRecordTimeline";
@@ -360,6 +362,7 @@ export function DynamicPage({
 
   // Bulk Import and Column Visibility state
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isCustomizationOpen, setIsCustomizationOpen] = useState(false);
   const [hiddenColumnKeys, setHiddenColumnKeys] = useState<string[]>([]);
 
   // Load Page Schema (resolving company/project scope from backend)
@@ -837,6 +840,9 @@ export function DynamicPage({
       const successMsg = res.data?.message || "Record deleted successfully.";
       notifySuccess(successMsg);
       setDeleteTarget(null);
+      if (drawerMode !== "closed") {
+        handleCloseDrawer();
+      }
       await fetchData();
     } catch (err) {
       notifyError(getApiErrorMessage(err, "Failed to delete record."));
@@ -926,8 +932,8 @@ export function DynamicPage({
     try {
       setIsActionLoading(true);
       const idKey = schema?.idField || "id";
-      for (const row of selectedRows) {
-        const id = row[idKey] || row.id;
+      for (const item of selectedRows) {
+        const id = typeof item === "string" ? item : (item[idKey] || item.id);
         if (id) {
           await apiClient.delete(`${schema.apiEndpoint}/${id}`);
         }
@@ -1030,6 +1036,33 @@ export function DynamicPage({
       }
     };
 
+    const handleCloneRecord = () => {
+      if (!editingRecord) return;
+      const cloned = { ...editingRecord };
+      const idKey = schema.idField || "id";
+      delete cloned[idKey];
+      delete cloned.id;
+      delete cloned._id;
+      delete cloned.createdAt;
+      delete cloned.updatedAt;
+      delete cloned.created_at;
+      delete cloned.updated_at;
+      delete cloned.createdBy;
+      delete cloned.updatedBy;
+      delete cloned.created_by;
+      delete cloned.updated_by;
+      delete cloned.rowVersion;
+
+      if (cloned.name) cloned.name = `${cloned.name} (Copy)`;
+      if (cloned.title) cloned.title = `${cloned.title} (Copy)`;
+      if (cloned.fullName) cloned.fullName = `${cloned.fullName} (Copy)`;
+      if (cloned.code) cloned.code = `${cloned.code}-COPY`;
+
+      setEditingRecord(cloned);
+      setDrawerMode("create");
+      notifySuccess("Record Cloned", "Review cloned fields and click Save to create new record.");
+    };
+
     const handlePrintRecord = () => {
       if (!editingRecord) {
         window.print();
@@ -1107,7 +1140,8 @@ export function DynamicPage({
           ];
 
     return (
-      <div className="w-full bg-slate-50/60 p-4 sm:p-6 lg:p-8 dark:bg-slate-950/40">
+      <>
+        <div className="w-full bg-slate-50/60 p-4 sm:p-6 lg:p-8 dark:bg-slate-950/40">
         <div className="mx-auto max-w-7xl 2xl:max-w-[1600px] space-y-6">
 
           {/* Frappe Document Header Banner */}
@@ -1162,13 +1196,25 @@ export function DynamicPage({
 
                   <button
                     type="button"
-                    onClick={() => handleExecutePageAction("clone", "cloneRecord", editingRecord.id)}
+                    onClick={handleCloneRecord}
                     className="inline-flex items-center gap-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                     title="Clone Record"
                   >
                     <Layers className="h-3.5 w-3.5" />
                     <span>Clone</span>
                   </button>
+
+                  {canDelete && (
+                    <button
+                      type="button"
+                      onClick={() => setDeleteTarget(editingRecord)}
+                      className="inline-flex items-center gap-1 rounded-lg border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/40 px-2.5 py-1.5 text-xs font-semibold text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors cursor-pointer"
+                      title="Delete Record"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span>Delete</span>
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -1245,7 +1291,7 @@ export function DynamicPage({
               workflow={schema.workflowConfig || schema.workflow}
               hasAttachments={Boolean(schema.hasAttachments)}
               hasTimeline={Boolean(schema.hasTimeline)}
-              formId={schema.pageKey}
+              formId="dynamic-record-form"
               onWorkflowTransition={async (transition, remarks) => {
                 if (!editingRecord?.id) return;
                 const stateField = (schema.workflowConfig || schema.workflow)?.stateField || "status";
@@ -1281,6 +1327,15 @@ export function DynamicPage({
           </div>
         </div>
       </div>
+      <UniversalDeleteDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title={`Delete ${schema.entityName || "Record"}`}
+        entityName={deleteTarget?.fullName || deleteTarget?.name || deleteTarget?.code || "Record"}
+        onConfirm={handleDeleteConfirm}
+        loading={isDeleting}
+      />
+    </>
     );
   }
 
@@ -1299,9 +1354,7 @@ export function DynamicPage({
           onPrintList={handlePrintList}
           density={density}
           onDensityChange={(d) => setDensityInStore(pageKey, d)}
-          onCustomize={() => {
-            // column visibility toggle
-          }}
+          onCustomize={() => setIsCustomizationOpen(true)}
           onToggleSidebar={() => {
             if (typeof window !== "undefined") {
               const event = new KeyboardEvent("keydown", { key: "k", ctrlKey: true });
@@ -1396,6 +1449,14 @@ export function DynamicPage({
               }
             }}
             onDelete={canDelete ? (row) => setDeleteTarget(row) : undefined}
+            onCreateInLane={
+              canCreate
+                ? (status) => {
+                    setEditingRecord({ status });
+                    setDrawerMode("create");
+                  }
+                : undefined
+            }
             idField={schema.idField || "id"}
           />
         )}
@@ -1536,6 +1597,23 @@ export function DynamicPage({
           required: schema.form?.sections?.some((s) => s.fields?.some((f) => f.key === c.key && f.required)),
         }))}
         onImportComplete={() => void fetchData()}
+      />
+
+      <PageCustomizationModal
+        open={isCustomizationOpen}
+        onOpenChange={setIsCustomizationOpen}
+        pageKey={pageKey}
+        columns={schema.columns || []}
+        hiddenColumnKeys={hiddenColumnKeys}
+        onToggleColumn={(key) => {
+          setHiddenColumnKeys((prev) =>
+            prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+          );
+        }}
+        onResetColumns={() => setHiddenColumnKeys([])}
+        density={density}
+        onDensityChange={(d) => setDensityInStore(pageKey, d)}
+        isSuperAdmin={isSuperAdmin}
       />
     </>
   );
