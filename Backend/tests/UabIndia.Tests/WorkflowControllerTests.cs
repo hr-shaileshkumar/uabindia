@@ -189,9 +189,9 @@ namespace UabIndia.Tests
             Assert.Equal("Submitted", updatedPo.Status);
 
             // Verify audit log created
-            var auditLog = await db.AuditLogs.FirstOrDefaultAsync(a => a.EntityId == po.Id && a.Action.Contains("WorkflowTransition"));
+            var auditLog = await db.AuditLogs.FirstOrDefaultAsync(a => a.EntityId == po.Id && a.Action != null && a.Action.Contains("WorkflowTransition"));
             Assert.NotNull(auditLog);
-            Assert.Equal(tenantId, auditLog.TenantId);
+            Assert.Equal(tenantId, auditLog!.TenantId);
             Assert.Equal("Draft", auditLog.OldValue);
             Assert.Contains("Submitted", auditLog.NewValue);
         }

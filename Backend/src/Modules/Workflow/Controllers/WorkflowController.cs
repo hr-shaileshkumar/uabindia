@@ -321,7 +321,7 @@ namespace UabIndia.Api.Modules.Workflow.Controllers
             var result = new WorkflowTransitionResultDto
             {
                 EntityId = request.EntityId,
-                EntityType = request.EntityType,
+                EntityType = request.EntityType ?? string.Empty,
                 Action = request.Action,
                 FromState = request.FromState,
                 ToState = request.ToState,

@@ -83,9 +83,9 @@ namespace UabIndia.Tests
             Assert.Equal("ABCDE1234F", response.Data.UnmaskedValue);
 
             // Verify Audit Log entry created
-            var audit = await db.AuditLogs.FirstOrDefaultAsync(a => a.EntityId == emp.Id && a.Action.Contains("FieldUnmask"));
+            var audit = await db.AuditLogs.FirstOrDefaultAsync(a => a.EntityId == emp.Id && a.Action != null && a.Action.Contains("FieldUnmask"));
             Assert.NotNull(audit);
-            Assert.Equal(tenantId, audit.TenantId);
+            Assert.Equal(tenantId, audit!.TenantId);
             Assert.Equal("Masked", audit.OldValue);
             Assert.Contains("Statutory income tax compliance verification", audit.NewValue);
             Assert.Equal(userId, audit.PerformedBy);
