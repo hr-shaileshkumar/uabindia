@@ -14,6 +14,11 @@ type OrgContextState = {
   companyLogoUrl?: string | null;
   companyAddress?: string | null;
   companyGstin?: string | null;
+  companyBrandColor?: string | null;
+  companyAccentColor?: string | null;
+  companyLetterheadLayout?: string | null;
+  companySignatoryName?: string | null;
+  companySignatoryDesignation?: string | null;
   projectId: string | null;
   projectName: string | null;
   financialYearKey: string | null;
@@ -35,6 +40,11 @@ const STORAGE_KEYS = {
   companyLogoUrl: "activeCompanyLogoUrl",
   companyAddress: "activeCompanyAddress",
   companyGstin: "activeCompanyGstin",
+  companyBrandColor: "activeCompanyBrandColor",
+  companyAccentColor: "activeCompanyAccentColor",
+  companyLetterheadLayout: "activeCompanyLetterheadLayout",
+  companySignatoryName: "activeCompanySignatoryName",
+  companySignatoryDesignation: "activeCompanySignatoryDesignation",
   projectId: "activeProjectId",
   projectName: "activeProjectName",
   financialYearKey: "activeFinancialYearKey",
@@ -50,6 +60,11 @@ const readStoredContext = (): OrgContextState => {
       companyLogoUrl: null,
       companyAddress: null,
       companyGstin: null,
+      companyBrandColor: null,
+      companyAccentColor: null,
+      companyLetterheadLayout: null,
+      companySignatoryName: null,
+      companySignatoryDesignation: null,
       projectId: null,
       projectName: null,
       financialYearKey: null,
@@ -63,6 +78,11 @@ const readStoredContext = (): OrgContextState => {
   const companyLogoUrl = window.localStorage.getItem(STORAGE_KEYS.companyLogoUrl) || null;
   const companyAddress = window.localStorage.getItem(STORAGE_KEYS.companyAddress) || null;
   const companyGstin = window.localStorage.getItem(STORAGE_KEYS.companyGstin) || null;
+  const companyBrandColor = window.localStorage.getItem(STORAGE_KEYS.companyBrandColor) || null;
+  const companyAccentColor = window.localStorage.getItem(STORAGE_KEYS.companyAccentColor) || null;
+  const companyLetterheadLayout = window.localStorage.getItem(STORAGE_KEYS.companyLetterheadLayout) || null;
+  const companySignatoryName = window.localStorage.getItem(STORAGE_KEYS.companySignatoryName) || null;
+  const companySignatoryDesignation = window.localStorage.getItem(STORAGE_KEYS.companySignatoryDesignation) || null;
   const projectId = window.localStorage.getItem(STORAGE_KEYS.projectId) || null;
   const projectName = window.localStorage.getItem(STORAGE_KEYS.projectName) || null;
   const financialYearKey = window.localStorage.getItem(STORAGE_KEYS.financialYearKey) || null;
@@ -75,6 +95,11 @@ const readStoredContext = (): OrgContextState => {
     companyLogoUrl,
     companyAddress,
     companyGstin,
+    companyBrandColor,
+    companyAccentColor,
+    companyLetterheadLayout,
+    companySignatoryName,
+    companySignatoryDesignation,
     projectId,
     projectName,
     financialYearKey,
@@ -110,6 +135,16 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
     else window.localStorage.removeItem(STORAGE_KEYS.companyAddress);
     if (next.companyGstin) window.localStorage.setItem(STORAGE_KEYS.companyGstin, next.companyGstin);
     else window.localStorage.removeItem(STORAGE_KEYS.companyGstin);
+    if (next.companyBrandColor) window.localStorage.setItem(STORAGE_KEYS.companyBrandColor, next.companyBrandColor);
+    else window.localStorage.removeItem(STORAGE_KEYS.companyBrandColor);
+    if (next.companyAccentColor) window.localStorage.setItem(STORAGE_KEYS.companyAccentColor, next.companyAccentColor);
+    else window.localStorage.removeItem(STORAGE_KEYS.companyAccentColor);
+    if (next.companyLetterheadLayout) window.localStorage.setItem(STORAGE_KEYS.companyLetterheadLayout, next.companyLetterheadLayout);
+    else window.localStorage.removeItem(STORAGE_KEYS.companyLetterheadLayout);
+    if (next.companySignatoryName) window.localStorage.setItem(STORAGE_KEYS.companySignatoryName, next.companySignatoryName);
+    else window.localStorage.removeItem(STORAGE_KEYS.companySignatoryName);
+    if (next.companySignatoryDesignation) window.localStorage.setItem(STORAGE_KEYS.companySignatoryDesignation, next.companySignatoryDesignation);
+    else window.localStorage.removeItem(STORAGE_KEYS.companySignatoryDesignation);
     if (next.projectId) window.localStorage.setItem(STORAGE_KEYS.projectId, next.projectId);
     else window.localStorage.removeItem(STORAGE_KEYS.projectId);
     if (next.projectName) window.localStorage.setItem(STORAGE_KEYS.projectName, next.projectName);
@@ -180,6 +215,11 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
       companyLogoUrl: null,
       companyAddress: null,
       companyGstin: null,
+      companyBrandColor: null,
+      companyAccentColor: null,
+      companyLetterheadLayout: null,
+      companySignatoryName: null,
+      companySignatoryDesignation: null,
       projectId: null,
       projectName: null,
     });
@@ -198,6 +238,11 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
         companyLogoUrl: null,
         companyAddress: null,
         companyGstin: null,
+        companyBrandColor: null,
+        companyAccentColor: null,
+        companyLetterheadLayout: null,
+        companySignatoryName: null,
+        companySignatoryDesignation: null,
         projectId: null,
         projectName: null,
         financialYearKey: null,
@@ -212,6 +257,11 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
       window.localStorage.removeItem(STORAGE_KEYS.companyLogoUrl);
       window.localStorage.removeItem(STORAGE_KEYS.companyAddress);
       window.localStorage.removeItem(STORAGE_KEYS.companyGstin);
+      window.localStorage.removeItem(STORAGE_KEYS.companyBrandColor);
+      window.localStorage.removeItem(STORAGE_KEYS.companyAccentColor);
+      window.localStorage.removeItem(STORAGE_KEYS.companyLetterheadLayout);
+      window.localStorage.removeItem(STORAGE_KEYS.companySignatoryName);
+      window.localStorage.removeItem(STORAGE_KEYS.companySignatoryDesignation);
       window.localStorage.removeItem(STORAGE_KEYS.projectId);
       window.localStorage.removeItem(STORAGE_KEYS.projectName);
       window.localStorage.removeItem(STORAGE_KEYS.financialYearKey);
@@ -342,6 +392,31 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
         ].filter(Boolean);
         const realAddress = addrParts.length > 0 ? addrParts.join(", ") : null;
 
+        const realBrandColor =
+          selectedCompany?.brandColor ||
+          selectedCompany?.BrandColor ||
+          "#0f172a";
+
+        const realAccentColor =
+          selectedCompany?.accentColor ||
+          selectedCompany?.AccentColor ||
+          "#2563eb";
+
+        const realLetterheadLayout =
+          selectedCompany?.letterheadLayout ||
+          selectedCompany?.LetterheadLayout ||
+          "modern-split";
+
+        const realSignatoryName =
+          selectedCompany?.signatoryName ||
+          selectedCompany?.SignatoryName ||
+          null;
+
+        const realSignatoryDesignation =
+          selectedCompany?.signatoryDesignation ||
+          selectedCompany?.SignatoryDesignation ||
+          null;
+
         if (
           selectedCompany &&
           (current.companyName !== realCompName ||
@@ -349,6 +424,11 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
             current.companyLogoUrl !== realLogoUrl ||
             current.companyAddress !== realAddress ||
             current.companyGstin !== realGstin ||
+            current.companyBrandColor !== realBrandColor ||
+            current.companyAccentColor !== realAccentColor ||
+            current.companyLetterheadLayout !== realLetterheadLayout ||
+            current.companySignatoryName !== realSignatoryName ||
+            current.companySignatoryDesignation !== realSignatoryDesignation ||
             /^company\s*\d+$/i.test(current.companyName || ""))
         ) {
           const next: OrgContextState = {
@@ -358,6 +438,11 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
             companyLogoUrl: realLogoUrl,
             companyAddress: realAddress,
             companyGstin: realGstin,
+            companyBrandColor: realBrandColor,
+            companyAccentColor: realAccentColor,
+            companyLetterheadLayout: realLetterheadLayout,
+            companySignatoryName: realSignatoryName,
+            companySignatoryDesignation: realSignatoryDesignation,
           };
           setState(next);
           persistState(next);

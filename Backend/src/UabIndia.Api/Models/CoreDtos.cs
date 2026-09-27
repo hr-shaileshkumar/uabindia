@@ -281,6 +281,12 @@ namespace UabIndia.Api.Models
         public string? ContactPersonEmail { get; set; }
         public string? HR_PersonName { get; set; }
         public string? HR_PersonEmail { get; set; }
+        public string? BrandColor { get; set; }
+        public string? AccentColor { get; set; }
+        public string? LetterheadLayout { get; set; }
+        public string? SignatoryName { get; set; }
+        public string? SignatoryDesignation { get; set; }
+        public string? StampUrl { get; set; }
         public string? Notes { get; set; }
         public bool IsActive { get; set; }
     }
@@ -324,6 +330,12 @@ namespace UabIndia.Api.Models
         public string? ContactPersonEmail { get; set; }
         public string? HR_PersonName { get; set; }
         public string? HR_PersonEmail { get; set; }
+        public string? BrandColor { get; set; } = "#0f172a";
+        public string? AccentColor { get; set; } = "#2563eb";
+        public string? LetterheadLayout { get; set; } = "modern-split";
+        public string? SignatoryName { get; set; }
+        public string? SignatoryDesignation { get; set; }
+        public string? StampUrl { get; set; }
         public string? Notes { get; set; }
         public bool IsActive { get; set; } = true;
     }
@@ -365,6 +377,12 @@ namespace UabIndia.Api.Models
         public string? ContactPersonEmail { get; set; }
         public string? HR_PersonName { get; set; }
         public string? HR_PersonEmail { get; set; }
+        public string? BrandColor { get; set; }
+        public string? AccentColor { get; set; }
+        public string? LetterheadLayout { get; set; }
+        public string? SignatoryName { get; set; }
+        public string? SignatoryDesignation { get; set; }
+        public string? StampUrl { get; set; }
         public string? Notes { get; set; }
         public bool? IsActive { get; set; }
     }

@@ -84,6 +84,30 @@ describe("document-print-engine", () => {
       expect(html).toContain("&lt;b&gt;Hacked&lt;/b&gt; &amp; Co");
     });
 
+    it("renders document with custom brand color, accent color, and centered banner layout", () => {
+      const opts: PrintDocumentOptions = {
+        title: "Commercial Quotation",
+        companyName: "Acme Industrial Technologies Ltd",
+        brandColor: "#064e3b",
+        accentColor: "#f59e0b",
+        headerLayout: "centered-banner",
+        stampUrl: "https://example.com/stamp.png",
+        signatoryName: "Vikram Rathore",
+        signatoryDesignation: "Vice President - Operations",
+        includeSignatureBlock: true,
+      };
+
+      printRecordDocument(opts);
+
+      const html = mockWindow.document.write.mock.calls[0][0] as string;
+      expect(html).toContain("--brand-primary: #064e3b");
+      expect(html).toContain("--brand-accent: #f59e0b");
+      expect(html).toContain("Acme Industrial Technologies Ltd");
+      expect(html).toContain("Vikram Rathore");
+      expect(html).toContain("Vice President - Operations");
+      expect(html).toContain("https://example.com/stamp.png");
+    });
+
     it("does not render popup if window.open returns null", () => {
       vi.spyOn(window, "open").mockReturnValue(null);
       expect(() => printRecordDocument({})).not.toThrow();

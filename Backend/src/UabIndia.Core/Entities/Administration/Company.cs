@@ -39,6 +39,12 @@ namespace UabIndia.Core.Entities
         public string? ContactPersonEmail { get; set; }
         public string? HR_PersonName { get; set; }
         public string? HR_PersonEmail { get; set; }
+        public string? BrandColor { get; set; } = "#0f172a";
+        public string? AccentColor { get; set; } = "#2563eb";
+        public string? LetterheadLayout { get; set; } = "modern-split"; // modern-split, centered-banner, classic-left, minimal-ribbon
+        public string? SignatoryName { get; set; }
+        public string? SignatoryDesignation { get; set; }
+        public string? StampUrl { get; set; }
         public string? Notes { get; set; }
         public bool IsActive { get; set; } = true;
     }

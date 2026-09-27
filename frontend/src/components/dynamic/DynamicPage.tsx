@@ -215,6 +215,9 @@ export function DynamicPage({
     companyLogoUrl: ctxCompanyLogoUrl,
     companyAddress: ctxCompanyAddress,
     companyGstin: ctxCompanyGstin,
+    companyBrandColor: ctxCompanyBrandColor,
+    companyAccentColor: ctxCompanyAccentColor,
+    companyLetterheadLayout: ctxCompanyLetterheadLayout,
   } = useOrgContext();
 
   const effectiveCompanyId = companyId || ctxCompanyId || undefined;
@@ -960,6 +963,8 @@ export function DynamicPage({
       companyAddress: ctxCompanyAddress || undefined,
       companyGstin: ctxCompanyGstin || undefined,
       logoUrl: ctxCompanyLogoUrl || undefined,
+      brandColor: ctxCompanyBrandColor || undefined,
+      accentColor: ctxCompanyAccentColor || undefined,
       columns: cols,
       rows: filteredRecords,
       filterSummary: filterDesc || undefined,
@@ -1188,6 +1193,18 @@ export function DynamicPage({
         ? (editingRecord.logoUrl || ctxCompanyLogoUrl || undefined)
         : (ctxCompanyLogoUrl || undefined);
 
+      const docBrandColor = isCompanyEntity
+        ? (editingRecord.brandColor || ctxCompanyBrandColor || undefined)
+        : (ctxCompanyBrandColor || undefined);
+
+      const docAccentColor = isCompanyEntity
+        ? (editingRecord.accentColor || ctxCompanyAccentColor || undefined)
+        : (ctxCompanyAccentColor || undefined);
+
+      const docHeaderLayout = isCompanyEntity
+        ? (editingRecord.letterheadLayout || ctxCompanyLetterheadLayout || undefined)
+        : (ctxCompanyLetterheadLayout || undefined);
+
       printRecordDocument({
         title: schema.title || schema.entityName || "Official Document",
         documentNumber: String(recordCode || editingRecord.orderNumber || editingRecord.invoiceNumber || editingRecord.id || ""),
@@ -1197,6 +1214,9 @@ export function DynamicPage({
         companyAddress: docCompanyAddress,
         companyGstin: docCompanyGstin,
         logoUrl: docLogoUrl,
+        brandColor: docBrandColor,
+        accentColor: docAccentColor,
+        headerLayout: docHeaderLayout,
         partyLabel,
         partyName: partyName || undefined,
         partyAddress,

@@ -188,6 +188,12 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                         ContactPersonEmail = c.ContactPersonEmail,
                         HR_PersonName = c.HR_PersonName,
                         HR_PersonEmail = c.HR_PersonEmail,
+                        BrandColor = c.BrandColor,
+                        AccentColor = c.AccentColor,
+                        LetterheadLayout = c.LetterheadLayout,
+                        SignatoryName = c.SignatoryName,
+                        SignatoryDesignation = c.SignatoryDesignation,
+                        StampUrl = c.StampUrl,
                         Notes = c.Notes,
                         IsActive = c.IsActive
                     })
@@ -299,6 +305,12 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                         ContactPersonEmail = c.ContactPersonEmail,
                         HR_PersonName = c.HR_PersonName,
                         HR_PersonEmail = c.HR_PersonEmail,
+                        BrandColor = c.BrandColor,
+                        AccentColor = c.AccentColor,
+                        LetterheadLayout = c.LetterheadLayout,
+                        SignatoryName = c.SignatoryName,
+                        SignatoryDesignation = c.SignatoryDesignation,
+                        StampUrl = c.StampUrl,
                         Notes = c.Notes,
                         IsActive = c.IsActive
                     })
@@ -385,6 +397,12 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                 ContactPersonEmail = _sanitizer.Sanitize(dto.ContactPersonEmail),
                 HR_PersonName = _sanitizer.Sanitize(dto.HR_PersonName),
                 HR_PersonEmail = _sanitizer.Sanitize(dto.HR_PersonEmail),
+                BrandColor = !string.IsNullOrWhiteSpace(dto.BrandColor) ? _sanitizer.Sanitize(dto.BrandColor) : "#0f172a",
+                AccentColor = !string.IsNullOrWhiteSpace(dto.AccentColor) ? _sanitizer.Sanitize(dto.AccentColor) : "#2563eb",
+                LetterheadLayout = !string.IsNullOrWhiteSpace(dto.LetterheadLayout) ? _sanitizer.Sanitize(dto.LetterheadLayout) : "modern-split",
+                SignatoryName = _sanitizer.Sanitize(dto.SignatoryName),
+                SignatoryDesignation = _sanitizer.Sanitize(dto.SignatoryDesignation),
+                StampUrl = _sanitizer.Sanitize(dto.StampUrl),
                 Notes = dto.Notes,
                 IsActive = dto.IsActive,
                 TenantId = tenantId,
@@ -439,6 +457,12 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                     ContactPersonEmail = company.ContactPersonEmail,
                     HR_PersonName = company.HR_PersonName,
                     HR_PersonEmail = company.HR_PersonEmail,
+                    BrandColor = company.BrandColor,
+                    AccentColor = company.AccentColor,
+                    LetterheadLayout = company.LetterheadLayout,
+                    SignatoryName = company.SignatoryName,
+                    SignatoryDesignation = company.SignatoryDesignation,
+                    StampUrl = company.StampUrl,
                     Notes = company.Notes,
                     IsActive = company.IsActive
                 }
@@ -523,6 +547,12 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             if (!string.IsNullOrEmpty(dto.ContactPersonEmail)) company.ContactPersonEmail = _sanitizer.Sanitize(dto.ContactPersonEmail);
             if (!string.IsNullOrEmpty(dto.HR_PersonName)) company.HR_PersonName = _sanitizer.Sanitize(dto.HR_PersonName);
             if (!string.IsNullOrEmpty(dto.HR_PersonEmail)) company.HR_PersonEmail = _sanitizer.Sanitize(dto.HR_PersonEmail);
+            if (!string.IsNullOrEmpty(dto.BrandColor)) company.BrandColor = _sanitizer.Sanitize(dto.BrandColor);
+            if (!string.IsNullOrEmpty(dto.AccentColor)) company.AccentColor = _sanitizer.Sanitize(dto.AccentColor);
+            if (!string.IsNullOrEmpty(dto.LetterheadLayout)) company.LetterheadLayout = _sanitizer.Sanitize(dto.LetterheadLayout);
+            if (!string.IsNullOrEmpty(dto.SignatoryName)) company.SignatoryName = _sanitizer.Sanitize(dto.SignatoryName);
+            if (!string.IsNullOrEmpty(dto.SignatoryDesignation)) company.SignatoryDesignation = _sanitizer.Sanitize(dto.SignatoryDesignation);
+            if (!string.IsNullOrEmpty(dto.StampUrl)) company.StampUrl = _sanitizer.Sanitize(dto.StampUrl);
             if (!string.IsNullOrEmpty(dto.Notes)) company.Notes = _sanitizer.Sanitize(dto.Notes);
             if (dto.IsActive.HasValue) company.IsActive = dto.IsActive.Value;
 

@@ -180,6 +180,23 @@ export const administrationSchemas: Record<string, PageSchema> = {
             { key: "legalName", label: "Full Legal Entity Name (for Letterhead)", type: "text", required: true, span: 1, placeholder: "e.g. UAB India Enterprises Private Limited" },
             { key: "code", label: "Company Code", type: "text", readOnly: true, required: false, placeholder: "⚡ Auto-generated on save", span: 1 },
             { key: "logoUrl", label: "Logo URL (for Letterhead Header)", type: "text", span: 1, placeholder: "https://... or /assets/logo.png" },
+            { key: "brandColor", label: "Primary Brand Color (Hex)", type: "text", span: 1, placeholder: "#0f172a (Navy / Dark Slate)" },
+            { key: "accentColor", label: "Accent / Secondary Color (Hex)", type: "text", span: 1, placeholder: "#2563eb (Royal Blue / Gold)" },
+            { 
+              key: "letterheadLayout", 
+              label: "Letterhead Layout Style", 
+              type: "select", 
+              span: 1,
+              options: [
+                { label: "Modern Split (Left Logo / Right Address)", value: "modern-split" },
+                { label: "Centered Banner (Top Logo & Ribbon)", value: "centered-banner" },
+                { label: "Classic Left (Traditional Letterhead)", value: "classic-left" },
+                { label: "Minimal Ribbon (Eco & Compact)", value: "minimal-ribbon" }
+              ]
+            },
+            { key: "signatoryName", label: "Authorized Signatory Name", type: "text", span: 1, placeholder: "e.g. Rajesh Sharma" },
+            { key: "signatoryDesignation", label: "Signatory Title / Designation", type: "text", span: 1, placeholder: "e.g. Managing Director / Head HR" },
+            { key: "stampUrl", label: "Official Seal / Digital Stamp URL", type: "text", span: 1, placeholder: "https://... or /assets/stamp.png" },
             { key: "industry", label: "Industry Sector", type: "text", span: 1, placeholder: "Technology / Manufacturing / Retail" },
             { key: "isActive", label: "Active Status", type: "boolean", span: 1 },
           ],
