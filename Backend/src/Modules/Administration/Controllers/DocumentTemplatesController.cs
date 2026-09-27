@@ -120,8 +120,8 @@ namespace UabIndia.Api.Modules.Administration.Controllers
         private static string GenerateDocumentHtml(RenderDocumentRequest req)
         {
             var company = WebUtility.HtmlEncode(req.CompanyName ?? "UAB INDIA ENTERPRISES PRIVATE LIMITED");
-            var companyAddress = WebUtility.HtmlEncode(req.CompanyAddress ?? "Plot 42, Tech Horizon Park, Electronic City, Bengaluru, Karnataka - 560100");
-            var companyGstin = WebUtility.HtmlEncode(req.CompanyGstin ?? "29AABCU9603R1ZM");
+            var companyAddress = WebUtility.HtmlEncode(req.CompanyAddress ?? "");
+            var companyGstin = WebUtility.HtmlEncode(req.CompanyGstin ?? "");
             var title = WebUtility.HtmlEncode(req.Title);
             var docNum = WebUtility.HtmlEncode(req.DocumentNumber);
             var date = WebUtility.HtmlEncode(req.Date ?? DateTime.UtcNow.ToString("dd MMM yyyy", CultureInfo.InvariantCulture));
@@ -173,8 +173,10 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             sb.Append("<div class=\"header\">\n");
             sb.Append("  <div>\n");
             sb.Append($"    <div style=\"font-size: 18px; font-weight: 800; color: #0f172a;\">{company}</div>\n");
-            sb.Append($"    <div style=\"color: #64748b; font-size: 10px; margin-top: 2px;\">{companyAddress}</div>\n");
-            sb.Append($"    <div style=\"color: #475569; font-size: 10px; font-weight: 600;\">GSTIN: {companyGstin}</div>\n");
+            if (!string.IsNullOrWhiteSpace(companyAddress))
+                sb.Append($"    <div style=\"color: #64748b; font-size: 10px; margin-top: 2px;\">{companyAddress}</div>\n");
+            if (!string.IsNullOrWhiteSpace(companyGstin))
+                sb.Append($"    <div style=\"color: #475569; font-size: 10px; font-weight: 600;\">GSTIN: {companyGstin}</div>\n");
             sb.Append("  </div>\n");
             sb.Append("  <div style=\"text-align: right;\">\n");
             sb.Append($"    <div class=\"doc-badge\">{title}</div>\n");

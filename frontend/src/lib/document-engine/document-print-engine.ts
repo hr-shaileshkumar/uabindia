@@ -18,6 +18,7 @@ export interface PrintDocumentOptions {
   companyAddress?: string;
   companyGstin?: string;
   companyPan?: string;
+  logoUrl?: string;
   partyLabel?: string;
   partyName?: string;
   partyAddress?: string;
@@ -43,6 +44,7 @@ export function printRecordDocument(options: PrintDocumentOptions): void {
   const companyName = options.companyName || "UAB INDIA ENTERPRISES PRIVATE LIMITED";
   const companyAddress = options.companyAddress || "";
   const companyGstin = options.companyGstin || "";
+  const logoUrl = options.logoUrl || "";
   const title = options.title || "Official Document";
   const docNum = options.documentNumber || `DOC-${Date.now()}`;
   const date = options.date || new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
@@ -90,12 +92,15 @@ export function printRecordDocument(options: PrintDocumentOptions): void {
   <div class="doc-container">
     ${watermark ? `<div class="watermark">${escapeHtml(watermark)}</div>` : ""}
 
-    <!-- Top Corporate Header -->
+    <!-- Top Corporate Header / Letterhead -->
     <div class="header">
-      <div>
-        <div style="font-size: 18px; font-weight: 800; color: #0f172a;">${escapeHtml(companyName)}</div>
-        ${companyAddress ? `<div style="color: #64748b; font-size: 10px; margin-top: 2px;">${escapeHtml(companyAddress)}</div>` : ""}
-        ${companyGstin ? `<div style="color: #475569; font-size: 10px; font-weight: 600;">GSTIN: ${escapeHtml(companyGstin)}</div>` : ""}
+      <div style="display: flex; align-items: center; gap: 14px;">
+        ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="Logo" style="max-height: 48px; max-width: 130px; object-fit: contain;" />` : ""}
+        <div>
+          <div style="font-size: 18px; font-weight: 800; color: #0f172a;">${escapeHtml(companyName)}</div>
+          ${companyAddress ? `<div style="color: #64748b; font-size: 10px; margin-top: 2px;">${escapeHtml(companyAddress)}</div>` : ""}
+          ${companyGstin ? `<div style="color: #475569; font-size: 10px; font-weight: 600;">GSTIN: ${escapeHtml(companyGstin)}</div>` : ""}
+        </div>
       </div>
       <div style="text-align: right;">
         <div class="doc-badge">${escapeHtml(title)}</div>
@@ -229,6 +234,7 @@ export interface PrintReportOptions {
   companyName?: string;
   companyAddress?: string;
   companyGstin?: string;
+  logoUrl?: string;
   filterSummary?: string;
 }
 
@@ -236,6 +242,7 @@ export function printTabularReport(options: PrintReportOptions): void {
   const companyName = options.companyName || "UAB INDIA ENTERPRISES PRIVATE LIMITED";
   const companyAddress = options.companyAddress || "";
   const companyGstin = options.companyGstin || "";
+  const logoUrl = options.logoUrl || "";
   const title = options.title || "Data Report";
   const reportNum = options.reportNumber || `REP-${Date.now()}`;
   const date = options.date || new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -275,9 +282,12 @@ export function printTabularReport(options: PrintReportOptions): void {
 <body>
   <div class="report-container">
     <div class="header">
-      <div>
-        <div style="font-size: 16px; font-weight: 800; color: #0f172a;">${escapeHtml(companyName)}</div>
-        ${headerMeta ? `<div style="color: #64748b; font-size: 9.5px;">${headerMeta}</div>` : ""}
+      <div style="display: flex; align-items: center; gap: 12px;">
+        ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="Logo" style="max-height: 38px; max-width: 110px; object-fit: contain;" />` : ""}
+        <div>
+          <div style="font-size: 16px; font-weight: 800; color: #0f172a;">${escapeHtml(companyName)}</div>
+          ${headerMeta ? `<div style="color: #64748b; font-size: 9.5px;">${headerMeta}</div>` : ""}
+        </div>
       </div>
       <div style="text-align: right;">
         <div class="doc-badge">${escapeHtml(title)}</div>

@@ -212,6 +212,7 @@ export function DynamicPage({
     projectId: ctxProjectId,
     companyName: ctxCompanyName,
     companyLegalName: ctxCompanyLegalName,
+    companyLogoUrl: ctxCompanyLogoUrl,
     companyAddress: ctxCompanyAddress,
     companyGstin: ctxCompanyGstin,
   } = useOrgContext();
@@ -958,6 +959,7 @@ export function DynamicPage({
       companyName: activeCompanyName,
       companyAddress: ctxCompanyAddress || undefined,
       companyGstin: ctxCompanyGstin || undefined,
+      logoUrl: ctxCompanyLogoUrl || undefined,
       columns: cols,
       rows: filteredRecords,
       filterSummary: filterDesc || undefined,
@@ -1182,6 +1184,10 @@ export function DynamicPage({
         ? (editingRecord.gstin || editingRecord.taxId)
         : undefined;
 
+      const docLogoUrl = isCompanyEntity
+        ? (editingRecord.logoUrl || ctxCompanyLogoUrl || undefined)
+        : (ctxCompanyLogoUrl || undefined);
+
       printRecordDocument({
         title: schema.title || schema.entityName || "Official Document",
         documentNumber: String(recordCode || editingRecord.orderNumber || editingRecord.invoiceNumber || editingRecord.id || ""),
@@ -1190,6 +1196,7 @@ export function DynamicPage({
         companyName: docCompanyName,
         companyAddress: docCompanyAddress,
         companyGstin: docCompanyGstin,
+        logoUrl: docLogoUrl,
         partyLabel,
         partyName: partyName || undefined,
         partyAddress,
