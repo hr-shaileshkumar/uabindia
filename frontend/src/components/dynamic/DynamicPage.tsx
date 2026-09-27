@@ -28,6 +28,7 @@ import {
 import { SideDrawer } from "@/components/ui/side-drawer";
 import { UniversalDeleteDialog } from "@/components/workspace/templates/UniversalDeleteDialog";
 import { UniversalBulkImportModal } from "@/components/workspace/UniversalBulkImportModal";
+import { UniversalExportModal } from "@/components/workspace/UniversalExportModal";
 import { PageCustomizationModal } from "./PageCustomizationModal";
 import { DynamicForm } from "./DynamicForm";
 import { renderDynamicTableCell, cleanFieldLabel } from "./DynamicFieldRegistry";
@@ -362,6 +363,8 @@ export function DynamicPage({
 
   // Bulk Import and Column Visibility state
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [selectedExportIds, setSelectedExportIds] = useState<string[]>([]);
   const [isCustomizationOpen, setIsCustomizationOpen] = useState(false);
   const [hiddenColumnKeys, setHiddenColumnKeys] = useState<string[]>([]);
 
@@ -1361,7 +1364,10 @@ export function DynamicPage({
           onRefresh={() => void fetchData()}
           isRefreshing={loadingData}
           onImport={() => setIsImportModalOpen(true)}
-          onExportCsv={handleExportCsv}
+          onExportCsv={() => {
+            setSelectedExportIds([]);
+            setIsExportModalOpen(true);
+          }}
           onPrintList={handlePrintList}
           density={density}
           onDensityChange={(d) => setDensityInStore(pageKey, d)}
@@ -1495,7 +1501,10 @@ export function DynamicPage({
           <ErpReportView
             rows={filteredRecords}
             columns={schema.columns || []}
-            onExportCsv={handleExportCsv}
+            onExportCsv={() => {
+              setSelectedExportIds([]);
+              setIsExportModalOpen(true);
+            }}
             title={schema.title}
           />
         )}
@@ -1516,7 +1525,10 @@ export function DynamicPage({
             }
             onDelete={canDelete ? (row) => setDeleteTarget(row) : undefined}
             onBulkDelete={canDelete ? handleBulkDelete : undefined}
-            onExportSelected={(ids) => handleExportSelected(ids)}
+            onExportSelected={(ids) => {
+              setSelectedExportIds(ids);
+              setIsExportModalOpen(true);
+            }}
             favorites={favorites}
             onToggleFavorite={handleToggleFavorite}
             onOpenComments={(row) => setActiveTimelineRecord(row)}
@@ -1625,6 +1637,18 @@ export function DynamicPage({
         density={density}
         onDensityChange={(d) => setDensityInStore(pageKey, d)}
         isSuperAdmin={isSuperAdmin}
+      />
+
+      <UniversalExportModal
+        open={isExportModalOpen}
+        onOpenChange={setIsExportModalOpen}
+        entityName={schema.entityName || schema.title || "Record"}
+        pageKey={schema.pageKey || pageKey}
+        columns={schema.columns || []}
+        filteredRecords={filteredRecords}
+        allRecords={records}
+        selectedIds={selectedExportIds}
+        idField={schema.idField || "id"}
       />
     </>
   );

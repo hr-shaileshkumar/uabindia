@@ -49,7 +49,7 @@ export function printRecordDocument(options: PrintDocumentOptions): void {
   const date = options.date || new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
   const watermark = options.watermarkText || "";
 
-  const popup = window.open("", "_blank", "noopener,noreferrer,width=920,height=1050");
+  const popup = window.open("", "_blank", "width=920,height=1050,resizable=yes,scrollbars=yes");
   if (!popup) return;
 
   const html = `<!doctype html>
@@ -213,6 +213,9 @@ export function printRecordDocument(options: PrintDocumentOptions): void {
 </body>
 </html>`;
 
+  if (typeof popup.document.open === "function") {
+    popup.document.open();
+  }
   popup.document.write(html);
   popup.document.close();
 }
@@ -239,7 +242,7 @@ export function printTabularReport(options: PrintReportOptions): void {
   const reportNum = options.reportNumber || `REP-${Date.now()}`;
   const date = options.date || new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
-  const popup = window.open("", "_blank", "noopener,noreferrer,width=1100,height=850");
+  const popup = window.open("", "_blank", "width=1100,height=850,resizable=yes,scrollbars=yes");
   if (!popup) return;
 
   const html = `<!doctype html>
@@ -327,6 +330,9 @@ export function printTabularReport(options: PrintReportOptions): void {
 </body>
 </html>`;
 
+  if (typeof popup.document.open === "function") {
+    popup.document.open();
+  }
   popup.document.write(html);
   popup.document.close();
 }

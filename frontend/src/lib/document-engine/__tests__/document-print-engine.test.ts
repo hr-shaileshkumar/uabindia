@@ -53,7 +53,7 @@ describe("document-print-engine", () => {
 
       printRecordDocument(opts);
 
-      expect(window.open).toHaveBeenCalledWith("", "_blank", expect.stringContaining("noopener"));
+      expect(window.open).toHaveBeenCalledWith("", "_blank", expect.stringContaining("width=920"));
       expect(mockWindow.document.write).toHaveBeenCalledTimes(1);
       const html = mockWindow.document.write.mock.calls[0][0] as string;
 
