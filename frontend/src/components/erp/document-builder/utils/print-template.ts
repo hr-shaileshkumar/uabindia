@@ -67,12 +67,11 @@ export function printCommercialDocument(input: {
       ? "AED "
       : "₹");
   const isInterState = Boolean(input.igst && input.igst > 0);
-  const companyName = input.companyName || "UAB INDIA ENTERPRISES PRIVATE LIMITED";
-  const companyGstin = input.companyGstin || (isGlobal ? "TRN-100234892300003" : "07AABCU9603R1ZM");
-  const companyAddress =
-    input.companyAddress || "Plot 42, Tech Horizon Park, Electronic City, Bengaluru, Karnataka - 560100";
+  const companyName = input.companyName || "Corporate Enterprise";
+  const companyGstin = input.companyGstin || "";
+  const companyAddress = input.companyAddress || "";
   const placeOfSupply =
-    input.placeOfSupply || (isGlobal ? "International Export (Zero-Rated / Standard VAT)" : "29-Karnataka");
+    input.placeOfSupply || (isGlobal ? "International Export (Zero-Rated / Standard VAT)" : "");
   const amountInWords = numberToWordsInr(input.total);
 
   // Rows
@@ -178,13 +177,9 @@ export function printCommercialDocument(input: {
       <tr>
         <td style="width: 58%;">
           <div style="font-size: 18px; font-weight: 800; color: #0f172a; letter-spacing: -0.3px;">${escapeHtml(companyName)}</div>
-          <div style="color: #475569; font-size: 10px; margin-top: 2px;">${escapeHtml(companyAddress)}</div>
-          <div style="margin-top: 4px; font-size: 10.5px; font-weight: 600;">
-            GSTIN / UIN: <span style="font-family: monospace; color: #0f172a;">${escapeHtml(companyGstin)}</span> | State: Karnataka (29)
-          </div>
-          <div style="font-size: 10px; color: #64748b;">
-            PAN: ${escapeHtml(input.companyPan || "AABCU9603R")} | CIN: U72200KA2024PTC184920
-          </div>
+          ${companyAddress ? `<div style="color: #475569; font-size: 10px; margin-top: 2px;">${escapeHtml(companyAddress)}</div>` : ""}
+          ${companyGstin ? `<div style="margin-top: 4px; font-size: 10.5px; font-weight: 600;">GSTIN / UIN: <span style="font-family: monospace; color: #0f172a;">${escapeHtml(companyGstin)}</span></div>` : ""}
+          ${input.companyPan ? `<div style="font-size: 10px; color: #64748b;">PAN: ${escapeHtml(input.companyPan)}</div>` : ""}
         </td>
         <td style="width: 24%; text-align: center; vertical-align: middle;">
           <div class="badge">${escapeHtml(input.title.toUpperCase())}</div>
@@ -197,11 +192,15 @@ export function printCommercialDocument(input: {
       </tr>
     </table>
 
-    <!-- IRN Header Bar (if present or standard E-Invoice format) -->
+    ${
+      input.irn || input.ackNo
+        ? `<!-- IRN Header Bar -->
     <div class="irn-box">
-      <strong>IRN:</strong> ${escapeHtml(input.irn || "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")}<br/>
-      <strong>Ack No:</strong> ${escapeHtml(input.ackNo || "142410982348")} &nbsp;|&nbsp; <strong>Ack Date:</strong> ${escapeHtml(input.ackDate || input.date || "2026-08-22 14:30:00")}
-    </div>
+      ${input.irn ? `<strong>IRN:</strong> ${escapeHtml(input.irn)}<br/>` : ""}
+      ${input.ackNo ? `<strong>Ack No:</strong> ${escapeHtml(input.ackNo)} &nbsp;|&nbsp; ` : ""}<strong>Ack Date:</strong> ${escapeHtml(input.ackDate || input.date || new Date().toISOString())}
+    </div>`
+        : ""
+    }
 
     <!-- Meta Details Row -->
     <div class="grid-2">
@@ -237,11 +236,9 @@ export function printCommercialDocument(input: {
           Billed To (Customer / Buyer)
         </div>
         <div style="font-weight: 700; font-size: 11.5px; color: #0f172a;">${escapeHtml(input.party)}</div>
-        <div style="color: #475569; font-size: 10px;">${escapeHtml(input.partyAddress || "Commercial Complex, MG Road, Bangalore, Karnataka")}</div>
-        <div style="margin-top: 3px;">
-          <strong>GSTIN:</strong> <span style="font-family: monospace;">${escapeHtml(input.partyGstin || "29ABCDE1234F1Z5")}</span>
-        </div>
-        <div style="color: #64748b; font-size: 10px;">State: ${escapeHtml(input.partyState || "Karnataka (29)")}</div>
+        ${input.partyAddress ? `<div style="color: #475569; font-size: 10px;">${escapeHtml(input.partyAddress)}</div>` : ""}
+        ${input.partyGstin ? `<div style="margin-top: 3px;"><strong>GSTIN:</strong> <span style="font-family: monospace;">${escapeHtml(input.partyGstin)}</span></div>` : ""}
+        ${input.partyState ? `<div style="color: #64748b; font-size: 10px;">State: ${escapeHtml(input.partyState)}</div>` : ""}
       </div>
     </div>
 
@@ -277,17 +274,21 @@ export function printCommercialDocument(input: {
     <!-- Bottom Calculations & Bank Info -->
     <div class="totals-wrapper">
       <!-- Bank Account Details -->
-      <div class="bank-box">
+      ${
+        input.bankDetails?.bankName || input.bankDetails?.accountNo
+          ? `<div class="bank-box">
         <div style="font-weight: 700; border-bottom: 1px solid #cbd5e1; padding-bottom: 2px; margin-bottom: 4px; color: #1e293b;">
           Bank &amp; Payment Details
         </div>
-        <div><strong>Bank Name:</strong> ${escapeHtml(input.bankDetails?.bankName || "HDFC Bank Ltd")}</div>
+        ${input.bankDetails?.bankName ? `<div><strong>Bank Name:</strong> ${escapeHtml(input.bankDetails.bankName)}</div>` : ""}
         <div><strong>A/C Name:</strong> ${escapeHtml(companyName)}</div>
-        <div><strong>A/C No:</strong> <span style="font-family:monospace; font-weight:700;">${escapeHtml(input.bankDetails?.accountNo || "50200084920194")}</span></div>
-        <div><strong>IFSC Code:</strong> <span style="font-family:monospace; font-weight:700;">${escapeHtml(input.bankDetails?.ifscCode || "HDFC0001234")}</span></div>
-        <div><strong>Branch:</strong> ${escapeHtml(input.bankDetails?.branch || "Koramangala, Bangalore")}</div>
-        <div><strong>UPI ID:</strong> <span style="font-family:monospace; color:#2563eb;">${escapeHtml(input.bankDetails?.upiId || "uabindia@hdfcbank")}</span></div>
-      </div>
+        ${input.bankDetails?.accountNo ? `<div><strong>A/C No:</strong> <span style="font-family:monospace; font-weight:700;">${escapeHtml(input.bankDetails.accountNo)}</span></div>` : ""}
+        ${input.bankDetails?.ifscCode ? `<div><strong>IFSC Code:</strong> <span style="font-family:monospace; font-weight:700;">${escapeHtml(input.bankDetails.ifscCode)}</span></div>` : ""}
+        ${input.bankDetails?.branch ? `<div><strong>Branch:</strong> ${escapeHtml(input.bankDetails.branch)}</div>` : ""}
+        ${input.bankDetails?.upiId ? `<div><strong>UPI ID:</strong> <span style="font-family:monospace; color:#2563eb;">${escapeHtml(input.bankDetails.upiId)}</span></div>` : ""}
+      </div>`
+          : ""
+      }
 
       <!-- Financial Calculation Box -->
       <div class="calc-box">

@@ -33,6 +33,10 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             public string? CompanyName { get; set; }
             public string? CompanyAddress { get; set; }
             public string? CompanyGstin { get; set; }
+            public string? LogoUrl { get; set; }
+            public string? BrandColor { get; set; } = "#0f172a";
+            public string? AccentColor { get; set; } = "#2563eb";
+            public string? HeaderLayout { get; set; } = "modern-split";
             public string? PartyName { get; set; }
             public string? PartyAddress { get; set; }
             public string? PartyGstin { get; set; }
@@ -119,9 +123,12 @@ namespace UabIndia.Api.Modules.Administration.Controllers
 
         private static string GenerateDocumentHtml(RenderDocumentRequest req)
         {
-            var company = WebUtility.HtmlEncode(req.CompanyName ?? "UAB INDIA ENTERPRISES PRIVATE LIMITED");
+            var company = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(req.CompanyName) ? "Corporate Enterprise" : req.CompanyName);
             var companyAddress = WebUtility.HtmlEncode(req.CompanyAddress ?? "");
             var companyGstin = WebUtility.HtmlEncode(req.CompanyGstin ?? "");
+            var logoUrl = WebUtility.HtmlEncode(req.LogoUrl ?? "");
+            var brandColor = !string.IsNullOrWhiteSpace(req.BrandColor) && System.Text.RegularExpressions.Regex.IsMatch(req.BrandColor, "^#[0-9a-fA-F]{3,8}$") ? req.BrandColor : "#0f172a";
+            var accentColor = !string.IsNullOrWhiteSpace(req.AccentColor) && System.Text.RegularExpressions.Regex.IsMatch(req.AccentColor, "^#[0-9a-fA-F]{3,8}$") ? req.AccentColor : "#2563eb";
             var title = WebUtility.HtmlEncode(req.Title);
             var docNum = WebUtility.HtmlEncode(req.DocumentNumber);
             var date = WebUtility.HtmlEncode(req.Date ?? DateTime.UtcNow.ToString("dd MMM yyyy", CultureInfo.InvariantCulture));
@@ -137,23 +144,24 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             sb.Append("<style>\n");
             sb.Append("@page { size: A4 portrait; margin: 12mm; }\n");
             sb.Append("* { box-sizing: border-box; }\n");
+            sb.Append($":root {{ --brand-primary: {brandColor}; --brand-accent: {accentColor}; }}\n");
             sb.Append("body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #0f172a; margin: 0; padding: 16px; font-size: 11px; background: #fff; line-height: 1.4; }\n");
             sb.Append(".doc-container { max-width: 820px; margin: 0 auto; border: 1px solid #cbd5e1; padding: 18px; position: relative; }\n");
             if (!string.IsNullOrWhiteSpace(watermark))
             {
                 sb.Append(".watermark { position: absolute; top: 40%; left: 15%; transform: rotate(-35deg); font-size: 72px; font-weight: 800; color: rgba(148, 163, 184, 0.12); pointer-events: none; text-transform: uppercase; z-index: 0; letter-spacing: 4px; }\n");
             }
-            sb.Append(".header { display: flex; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 14px; position: relative; z-index: 1; }\n");
-            sb.Append(".doc-badge { display: inline-block; background: #0f172a; color: #fff; font-weight: 700; font-size: 12px; padding: 3px 10px; border-radius: 4px; text-transform: uppercase; margin-bottom: 4px; }\n");
+            sb.Append(".header { display: flex; justify-content: space-between; border-bottom: 2px solid var(--brand-primary); padding-bottom: 12px; margin-bottom: 14px; position: relative; z-index: 1; }\n");
+            sb.Append(".doc-badge { display: inline-block; background: var(--brand-primary); color: #fff; font-weight: 700; font-size: 12px; padding: 3px 10px; border-radius: 4px; text-transform: uppercase; margin-bottom: 4px; }\n");
             sb.Append(".grid-2 { display: flex; gap: 12px; margin-bottom: 14px; position: relative; z-index: 1; }\n");
             sb.Append(".card { flex: 1; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 10px; font-size: 10.5px; background: #f8fafc; }\n");
             sb.Append("table.data-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; position: relative; z-index: 1; }\n");
-            sb.Append("table.data-table th { background: #0f172a; color: #fff; font-size: 10px; font-weight: 600; padding: 6px 8px; border: 1px solid #0f172a; text-transform: uppercase; }\n");
+            sb.Append("table.data-table th { background: var(--brand-primary); color: #fff; font-size: 10px; font-weight: 600; padding: 6px 8px; border: 1px solid var(--brand-primary); text-transform: uppercase; }\n");
             sb.Append("table.data-table td { padding: 6px 8px; border: 1px solid #cbd5e1; font-size: 10.5px; }\n");
             sb.Append(".totals { display: flex; justify-content: flex-end; margin-bottom: 16px; position: relative; z-index: 1; }\n");
             sb.Append(".totals-box { width: 260px; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; }\n");
             sb.Append(".totals-row { display: flex; justify-content: space-between; padding: 5px 8px; border-bottom: 1px solid #e2e8f0; font-size: 11px; }\n");
-            sb.Append(".totals-row.grand { background: #0f172a; color: #fff; font-weight: 700; font-size: 12px; border-bottom: none; }\n");
+            sb.Append(".totals-row.grand { background: var(--brand-primary); color: #fff; font-weight: 700; font-size: 12px; border-bottom: none; }\n");
             sb.Append(".signature-block { display: flex; justify-content: space-between; margin-top: 24px; padding-top: 14px; border-top: 1px solid #cbd5e1; position: relative; z-index: 1; }\n");
             sb.Append("@media print {\n");
             sb.Append("  body { padding: 0; background: none; }\n");
@@ -294,7 +302,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             var sb = new StringBuilder();
             var docNum = string.IsNullOrWhiteSpace(req.DocumentNumber) ? "DOC-001" : req.DocumentNumber;
             var title = string.IsNullOrWhiteSpace(req.Title) ? "Official Document" : req.Title;
-            var company = string.IsNullOrWhiteSpace(req.CompanyName) ? "UAB INDIA ENTERPRISES PVT LTD" : req.CompanyName;
+            var company = string.IsNullOrWhiteSpace(req.CompanyName) ? "Corporate Enterprise" : req.CompanyName;
             var party = string.IsNullOrWhiteSpace(req.PartyName) ? "Recipient" : req.PartyName;
             var total = req.GrandTotal.ToString("N2", CultureInfo.InvariantCulture);
 

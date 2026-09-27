@@ -155,7 +155,21 @@ interface AppointmentLetter {
 }
 
 export default function RecruitmentHub() {
-  const { companyId, companyName, projectId, projectName } = useOrgContext();
+  const {
+    companyId,
+    companyName,
+    companyLegalName,
+    companyLogoUrl,
+    companyAddress,
+    companyGstin,
+    companyBrandColor,
+    companyAccentColor,
+    companyLetterheadLayout,
+    companySignatoryName,
+    companySignatoryDesignation,
+    projectId,
+    projectName,
+  } = useOrgContext();
   const [activeTab, setActiveTab] = useState<
     "staffing" | "openings" | "applications" | "interviews" | "offers" | "appointments"
   >("staffing");
@@ -546,9 +560,16 @@ export default function RecruitmentHub() {
       probationMonths: letter.probationMonths,
       noticePeriodDays: letter.noticePeriodDays,
       termsAndConditions: letter.termsAndConditions,
-      signatoryName: letter.signatoryName,
-      signatoryDesignation: letter.signatoryDesignation,
-      companyName: "UAB India Enterprise ERP",
+      signatoryName: letter.signatoryName || companySignatoryName || "Authorized Signatory",
+      signatoryDesignation: letter.signatoryDesignation || companySignatoryDesignation || "Head of People Operations",
+      companyName: companyLegalName || companyName || "Corporate Enterprise",
+      companyLegalName: companyLegalName || companyName || undefined,
+      companyAddress: companyAddress || undefined,
+      companyGstin: companyGstin || undefined,
+      companyLogoUrl: companyLogoUrl || undefined,
+      brandColor: companyBrandColor || undefined,
+      accentColor: companyAccentColor || undefined,
+      letterheadLayout: (companyLetterheadLayout as any) || undefined,
     });
     setPrintModalOpen(true);
   };
