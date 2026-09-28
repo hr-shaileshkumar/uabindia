@@ -450,6 +450,78 @@ namespace UabIndia.Infrastructure.Services
                     await _db.SaveChangesAsync();
                 }
 
+                // 14. Document Templates
+                if (!await _db.DocumentTemplates.AnyAsync(t => t.TenantId == tenantId))
+                {
+                    _db.DocumentTemplates.AddRange(
+                        new DocumentTemplate
+                        {
+                            Id = Guid.NewGuid(),
+                            TenantId = tenantId,
+                            CompanyId = company?.Id,
+                            TemplateKey = "tax_invoice",
+                            Name = "GST Tax Invoice",
+                            Category = "Commercial",
+                            Description = "Official GST-compliant tax invoice template with HSN codes, split CGST/SGST/IGST and bank details.",
+                            PageOrientation = "Portrait",
+                            HeaderLayout = "modern-split",
+                            HasDigitalSignature = true,
+                            IsDefault = true,
+                            IsActive = true,
+                            CreatedAt = DateTime.UtcNow
+                        },
+                        new DocumentTemplate
+                        {
+                            Id = Guid.NewGuid(),
+                            TenantId = tenantId,
+                            CompanyId = company?.Id,
+                            TemplateKey = "purchase_order",
+                            Name = "Procurement Purchase Order",
+                            Category = "Commercial",
+                            Description = "Standard enterprise purchase order with billing/shipping addresses and line items.",
+                            PageOrientation = "Portrait",
+                            HeaderLayout = "centered-banner",
+                            HasDigitalSignature = true,
+                            IsDefault = true,
+                            IsActive = true,
+                            CreatedAt = DateTime.UtcNow
+                        },
+                        new DocumentTemplate
+                        {
+                            Id = Guid.NewGuid(),
+                            TenantId = tenantId,
+                            CompanyId = company?.Id,
+                            TemplateKey = "offer_letter",
+                            Name = "Talent Acquisition Offer Letter",
+                            Category = "HRMS",
+                            Description = "Official candidate employment offer letter with compensation structure and joining terms.",
+                            PageOrientation = "Portrait",
+                            HeaderLayout = "classic-left",
+                            HasDigitalSignature = true,
+                            IsDefault = true,
+                            IsActive = true,
+                            CreatedAt = DateTime.UtcNow
+                        },
+                        new DocumentTemplate
+                        {
+                            Id = Guid.NewGuid(),
+                            TenantId = tenantId,
+                            CompanyId = company?.Id,
+                            TemplateKey = "appointment_letter",
+                            Name = "Executive Appointment Letter",
+                            Category = "HRMS",
+                            Description = "Formal confirmation of appointment with duties, reporting lines, and probation terms.",
+                            PageOrientation = "Portrait",
+                            HeaderLayout = "modern-split",
+                            HasDigitalSignature = true,
+                            IsDefault = true,
+                            IsActive = true,
+                            CreatedAt = DateTime.UtcNow
+                        }
+                    );
+                    await _db.SaveChangesAsync();
+                }
+
                 result.Message = $"Seeding complete! Employees: {result.EmployeesCreated}, Items: {result.ItemsCreated}, Invoices: {result.InvoicesCreated}, Attendance: {result.AttendanceCreated}, Accounts: {result.AccountsCreated}, Customers: {result.CustomersCreated}, Vendors: {result.VendorsCreated}.";
                 _logger.LogInformation("Demo seeding completed: {Message}", result.Message);
             }

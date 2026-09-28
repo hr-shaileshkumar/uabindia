@@ -21,6 +21,10 @@ type OrgContextState = {
   companySignatoryDesignation?: string | null;
   projectId: string | null;
   projectName: string | null;
+  projectSiteAddress?: string | null;
+  projectClientLogoUrl?: string | null;
+  projectSignatoryName?: string | null;
+  projectSignatoryTitle?: string | null;
   financialYearKey: string | null;
   financialYearLabel: string | null;
 };
@@ -47,6 +51,10 @@ const STORAGE_KEYS = {
   companySignatoryDesignation: "activeCompanySignatoryDesignation",
   projectId: "activeProjectId",
   projectName: "activeProjectName",
+  projectSiteAddress: "activeProjectSiteAddress",
+  projectClientLogoUrl: "activeProjectClientLogoUrl",
+  projectSignatoryName: "activeProjectSignatoryName",
+  projectSignatoryTitle: "activeProjectSignatoryTitle",
   financialYearKey: "activeFinancialYearKey",
   financialYearLabel: "activeFinancialYearLabel",
 };
@@ -67,6 +75,10 @@ const readStoredContext = (): OrgContextState => {
       companySignatoryDesignation: null,
       projectId: null,
       projectName: null,
+      projectSiteAddress: null,
+      projectClientLogoUrl: null,
+      projectSignatoryName: null,
+      projectSignatoryTitle: null,
       financialYearKey: null,
       financialYearLabel: null,
     };
@@ -85,6 +97,10 @@ const readStoredContext = (): OrgContextState => {
   const companySignatoryDesignation = window.localStorage.getItem(STORAGE_KEYS.companySignatoryDesignation) || null;
   const projectId = window.localStorage.getItem(STORAGE_KEYS.projectId) || null;
   const projectName = window.localStorage.getItem(STORAGE_KEYS.projectName) || null;
+  const projectSiteAddress = window.localStorage.getItem(STORAGE_KEYS.projectSiteAddress) || null;
+  const projectClientLogoUrl = window.localStorage.getItem(STORAGE_KEYS.projectClientLogoUrl) || null;
+  const projectSignatoryName = window.localStorage.getItem(STORAGE_KEYS.projectSignatoryName) || null;
+  const projectSignatoryTitle = window.localStorage.getItem(STORAGE_KEYS.projectSignatoryTitle) || null;
   const financialYearKey = window.localStorage.getItem(STORAGE_KEYS.financialYearKey) || null;
   const financialYearLabel = window.localStorage.getItem(STORAGE_KEYS.financialYearLabel) || null;
 
@@ -102,6 +118,10 @@ const readStoredContext = (): OrgContextState => {
     companySignatoryDesignation,
     projectId,
     projectName,
+    projectSiteAddress,
+    projectClientLogoUrl,
+    projectSignatoryName,
+    projectSignatoryTitle,
     financialYearKey,
     financialYearLabel,
   };
@@ -149,6 +169,14 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
     else window.localStorage.removeItem(STORAGE_KEYS.projectId);
     if (next.projectName) window.localStorage.setItem(STORAGE_KEYS.projectName, next.projectName);
     else window.localStorage.removeItem(STORAGE_KEYS.projectName);
+    if (next.projectSiteAddress) window.localStorage.setItem(STORAGE_KEYS.projectSiteAddress, next.projectSiteAddress);
+    else window.localStorage.removeItem(STORAGE_KEYS.projectSiteAddress);
+    if (next.projectClientLogoUrl) window.localStorage.setItem(STORAGE_KEYS.projectClientLogoUrl, next.projectClientLogoUrl);
+    else window.localStorage.removeItem(STORAGE_KEYS.projectClientLogoUrl);
+    if (next.projectSignatoryName) window.localStorage.setItem(STORAGE_KEYS.projectSignatoryName, next.projectSignatoryName);
+    else window.localStorage.removeItem(STORAGE_KEYS.projectSignatoryName);
+    if (next.projectSignatoryTitle) window.localStorage.setItem(STORAGE_KEYS.projectSignatoryTitle, next.projectSignatoryTitle);
+    else window.localStorage.removeItem(STORAGE_KEYS.projectSignatoryTitle);
     if (next.financialYearKey) window.localStorage.setItem(STORAGE_KEYS.financialYearKey, next.financialYearKey);
     else window.localStorage.removeItem(STORAGE_KEYS.financialYearKey);
     if (next.financialYearLabel) window.localStorage.setItem(STORAGE_KEYS.financialYearLabel, next.financialYearLabel);
@@ -222,6 +250,10 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
       companySignatoryDesignation: null,
       projectId: null,
       projectName: null,
+      projectSiteAddress: null,
+      projectClientLogoUrl: null,
+      projectSignatoryName: null,
+      projectSignatoryTitle: null,
     });
   }, [setContext]);
 
@@ -487,14 +519,28 @@ export const OrgContextProvider = ({ children }: { children: React.ReactNode }) 
             selectedProject?.projectName ||
             selectedProject?.ProjectName;
 
+          const realSiteAddress = selectedProject?.siteAddress || selectedProject?.SiteAddress || null;
+          const realClientLogoUrl = selectedProject?.clientLogoUrl || selectedProject?.ClientLogoUrl || null;
+          const realSiteSignatoryName = selectedProject?.siteSignatoryName || selectedProject?.SiteSignatoryName || null;
+          const realSiteSignatoryTitle = selectedProject?.siteSignatoryTitle || selectedProject?.SiteSignatoryTitle || null;
+
           if (
             selectedProject &&
             realProjName &&
-            (current.projectName !== realProjName || /^project\s*\d+$/i.test(current.projectName || ""))
+            (current.projectName !== realProjName ||
+              current.projectSiteAddress !== realSiteAddress ||
+              current.projectClientLogoUrl !== realClientLogoUrl ||
+              current.projectSignatoryName !== realSiteSignatoryName ||
+              current.projectSignatoryTitle !== realSiteSignatoryTitle ||
+              /^project\s*\d+$/i.test(current.projectName || ""))
           ) {
             const next: OrgContextState = {
               ...current,
               projectName: realProjName,
+              projectSiteAddress: realSiteAddress,
+              projectClientLogoUrl: realClientLogoUrl,
+              projectSignatoryName: realSiteSignatoryName,
+              projectSignatoryTitle: realSiteSignatoryTitle,
             };
             setState(next);
             persistState(next);

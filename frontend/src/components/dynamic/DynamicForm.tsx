@@ -24,6 +24,7 @@ import { notifyError } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
 import { usePermissions } from "@/context/PermissionContext";
 import { useAuth } from "@/context/AuthContext";
+import { LetterheadPreviewCard } from "@/features/administration/components/LetterheadPreviewCard";
 
 interface DynamicFormProps {
   sections: DynamicFormSection[];
@@ -725,6 +726,31 @@ export function DynamicForm({
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* Live Letterhead Stationery Preview for Company Branding Sections */}
+          {currentTab.fields.some(
+            (f) => f.key === "letterheadLayout" || f.key === "brandColor" || f.key === "accentColor"
+          ) && (
+            <div className="pt-4 border-t border-slate-200/80 dark:border-slate-800">
+              <LetterheadPreviewCard
+                companyName={formData.name}
+                legalName={formData.legalName}
+                logoUrl={formData.logoUrl}
+                brandColor={formData.brandColor}
+                accentColor={formData.accentColor}
+                letterheadLayout={formData.letterheadLayout}
+                address={formData.registrationAddress || formData.address}
+                city={formData.city}
+                state={formData.state}
+                postalCode={formData.postalCode}
+                gstin={formData.gstin}
+                pan={formData.pan}
+                signatoryName={formData.signatoryName}
+                signatoryDesignation={formData.signatoryDesignation}
+                stampUrl={formData.stampUrl}
+              />
             </div>
           )}
 

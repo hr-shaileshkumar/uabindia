@@ -247,6 +247,7 @@ END;
             await EnsureEnterprisePolicyTablesAsync(db, logger, cancellationToken);
             await EnsureTenantWebhooksTablesAsync(db, logger, cancellationToken);
             await EnsureUiViewDefinitionsTableAsync(db, logger, cancellationToken);
+            await EnsureDocumentTemplatesAndProjectBrandingAsync(db, logger, cancellationToken);
             logger?.LogInformation("Extended schema already current ({Version}); skipping column bootstrap.", ExtendedSchemaVersion);
             return;
         }
@@ -423,6 +424,7 @@ END;
         await EnsureEnterprisePolicyTablesAsync(db, logger, cancellationToken);
         await EnsureManufacturingAndFleetTablesAsync(db, logger, cancellationToken);
         await EnsureFieldServiceWmsAndBudgetingTablesAsync(db, logger, cancellationToken);
+        await EnsureDocumentTemplatesAndProjectBrandingAsync(db, logger, cancellationToken);
         await MarkExtendedSchemaCurrentAsync(db, cancellationToken);
         logger?.LogInformation("Extended schema bootstrap complete ({Version}).", ExtendedSchemaVersion);
     }
@@ -2375,6 +2377,83 @@ END;
         catch (Exception ex)
         {
             logger?.LogWarning(ex, "Could not apply Enterprise Schema Partitioning SQL migration.");
+        }
+    }
+
+    private static async Task EnsureDocumentTemplatesAndProjectBrandingAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        const string sql = @"
+IF OBJECT_ID(N'dbo.DocumentTemplates', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.DocumentTemplates (
+        [Id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+        [TenantId] UNIQUEIDENTIFIER NOT NULL,
+        [CompanyId] UNIQUEIDENTIFIER NULL,
+        [ProjectId] UNIQUEIDENTIFIER NULL,
+        [TemplateKey] NVARCHAR(100) NOT NULL,
+        [Name] NVARCHAR(200) NOT NULL,
+        [Category] NVARCHAR(50) NOT NULL DEFAULT 'Commercial',
+        [Description] NVARCHAR(500) NULL,
+        [PageOrientation] NVARCHAR(20) NOT NULL DEFAULT 'Portrait',
+        [HeaderLayout] NVARCHAR(50) NOT NULL DEFAULT 'modern-split',
+        [HeaderHtml] NVARCHAR(MAX) NULL,
+        [BodyHtml] NVARCHAR(MAX) NULL,
+        [FooterHtml] NVARCHAR(MAX) NULL,
+        [TermsAndConditions] NVARCHAR(MAX) NULL,
+        [WatermarkText] NVARCHAR(200) NULL,
+        [HasBarcode] BIT NOT NULL DEFAULT 0,
+        [HasQrCode] BIT NOT NULL DEFAULT 0,
+        [HasDigitalSignature] BIT NOT NULL DEFAULT 1,
+        [IsDefault] BIT NOT NULL DEFAULT 1,
+        [IsActive] BIT NOT NULL DEFAULT 1,
+        [CreatedAt] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+        [UpdatedAt] DATETIME2 NULL,
+        [CreatedBy] UNIQUEIDENTIFIER NULL,
+        [BusinessId] NVARCHAR(100) NULL,
+        [IsDeleted] BIT NOT NULL DEFAULT 0
+    );
+    CREATE NONCLUSTERED INDEX [IX_DocumentTemplates_Tenant_Key]
+    ON dbo.DocumentTemplates ([TenantId], [TemplateKey], [IsDeleted]);
+END;
+
+IF OBJECT_ID(N'dbo.Projects', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.Projects', 'SiteAddress') IS NULL
+        ALTER TABLE dbo.Projects ADD SiteAddress NVARCHAR(500) NULL;
+    IF COL_LENGTH('dbo.Projects', 'ClientLogoUrl') IS NULL
+        ALTER TABLE dbo.Projects ADD ClientLogoUrl NVARCHAR(500) NULL;
+    IF COL_LENGTH('dbo.Projects', 'SiteSignatoryName') IS NULL
+        ALTER TABLE dbo.Projects ADD SiteSignatoryName NVARCHAR(200) NULL;
+    IF COL_LENGTH('dbo.Projects', 'SiteSignatoryTitle') IS NULL
+        ALTER TABLE dbo.Projects ADD SiteSignatoryTitle NVARCHAR(200) NULL;
+END;
+
+IF OBJECT_ID(N'dbo.Companies', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.Companies', 'BrandColor') IS NULL
+        ALTER TABLE dbo.Companies ADD BrandColor NVARCHAR(50) NULL;
+    IF COL_LENGTH('dbo.Companies', 'AccentColor') IS NULL
+        ALTER TABLE dbo.Companies ADD AccentColor NVARCHAR(50) NULL;
+    IF COL_LENGTH('dbo.Companies', 'LetterheadLayout') IS NULL
+        ALTER TABLE dbo.Companies ADD LetterheadLayout NVARCHAR(50) NULL;
+    IF COL_LENGTH('dbo.Companies', 'SignatoryName') IS NULL
+        ALTER TABLE dbo.Companies ADD SignatoryName NVARCHAR(200) NULL;
+    IF COL_LENGTH('dbo.Companies', 'SignatoryDesignation') IS NULL
+        ALTER TABLE dbo.Companies ADD SignatoryDesignation NVARCHAR(200) NULL;
+    IF COL_LENGTH('dbo.Companies', 'StampUrl') IS NULL
+        ALTER TABLE dbo.Companies ADD StampUrl NVARCHAR(500) NULL;
+END;
+";
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure DocumentTemplates and project branding schema.");
         }
     }
 }

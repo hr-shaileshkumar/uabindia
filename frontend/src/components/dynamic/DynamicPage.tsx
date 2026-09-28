@@ -218,6 +218,11 @@ export function DynamicPage({
     companyBrandColor: ctxCompanyBrandColor,
     companyAccentColor: ctxCompanyAccentColor,
     companyLetterheadLayout: ctxCompanyLetterheadLayout,
+    projectName: ctxProjectName,
+    projectSiteAddress: ctxProjectSiteAddress,
+    projectClientLogoUrl: ctxProjectClientLogoUrl,
+    projectSignatoryName: ctxProjectSignatoryName,
+    projectSignatoryTitle: ctxProjectSignatoryTitle,
   } = useOrgContext();
 
   const effectiveCompanyId = companyId || ctxCompanyId || undefined;
@@ -992,32 +997,10 @@ export function DynamicPage({
     }
   };
 
-  // Export Selected Rows Handler
+  // Export Selected Rows Handler (routes through Universal Multi-Format Export Modal)
   const handleExportSelected = (selectedIds: string[]) => {
-    const idKey = schema?.idField || "id";
-    const selectedRecords = filteredRecords.filter((r) =>
-      selectedIds.includes(String(r[idKey] || r.id))
-    );
-    if (selectedRecords.length === 0) {
-      notifyError("No selected records to export.");
-      return;
-    }
-    const cols = visibleColumns;
-    const headers = cols.map((c) => `"${c.label}"`).join(",");
-    const rows = selectedRecords.map((rec) =>
-      cols.map((c) => `"${String(rec[c.key] ?? "").replace(/"/g, '""')}"`).join(",")
-    );
-    const csvContent = "\uFEFF" + [headers, ...rows].join("\r\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `${schema.pageKey || "export"}_selected_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    notifySuccess(`Exported ${selectedRecords.length} selected record(s).`);
+    setSelectedExportIds(selectedIds);
+    setIsExportModalOpen(true);
   };
 
   // Generic Page Action Execution Handler
@@ -1146,8 +1129,8 @@ export function DynamicPage({
         schema.pageKey === "administration.companies";
 
       const docCompanyName = isCompanyEntity
-        ? (editingRecord.legalName || editingRecord.name || ctxCompanyLegalName || ctxCompanyName || "UAB INDIA ENTERPRISES PRIVATE LIMITED")
-        : (ctxCompanyLegalName || ctxCompanyName || (user as any)?.tenantName || "UAB INDIA ENTERPRISES PRIVATE LIMITED");
+        ? (editingRecord.legalName || editingRecord.name || ctxCompanyLegalName || ctxCompanyName || "Enterprise Organization")
+        : (ctxCompanyLegalName || ctxCompanyName || (user as any)?.tenantName || "Enterprise Organization");
 
       const docCompanyAddress = isCompanyEntity
         ? [
@@ -1217,6 +1200,11 @@ export function DynamicPage({
         brandColor: docBrandColor,
         accentColor: docAccentColor,
         headerLayout: docHeaderLayout,
+        projectName: ctxProjectName || undefined,
+        projectSiteAddress: ctxProjectSiteAddress || undefined,
+        projectClientLogoUrl: ctxProjectClientLogoUrl || undefined,
+        projectSignatoryName: ctxProjectSignatoryName || undefined,
+        projectSignatoryTitle: ctxProjectSignatoryTitle || undefined,
         partyLabel,
         partyName: partyName || undefined,
         partyAddress,

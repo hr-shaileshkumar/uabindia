@@ -17,6 +17,7 @@ import {
   ChevronDown,
   ChevronUp,
   Columns3,
+  Download,
   Inbox,
   RotateCcw,
   Rows3,
@@ -27,6 +28,8 @@ import { erpButtonClassName } from "@/components/workspace/styles";
 import { ErpCreateButton } from "@/components/workspace/page-kit";
 import { ErpFloatingBulkBar } from "@/components/workspace/floating-bulk-bar";
 import { BulkImportModal } from "@/components/workspace/BulkImportModal";
+import { UniversalExportModal } from "@/components/workspace/UniversalExportModal";
+import type { DynamicColumn } from "@/lib/dynamic-schema/types";
 import { useTableKeyboardNav } from "@/components/workspace/useTableKeyboardNav";
 import { cn } from "@/lib/utils";
 import {
@@ -151,9 +154,10 @@ function patchRowNode(
   onToggle: () => void,
   rowKey: string,
   isFocused?: boolean,
+  onRowClick?: () => void,
 ) {
   const selectCell = (
-    <td key="__select" className="erp-td w-10 text-center">
+    <td key="__select" className="erp-td w-10 text-center" onClick={(e) => e.stopPropagation()}>
       <input
         id={`table-row-select-${rowKey}`}
         name={`table_row_select_${rowKey}`}
@@ -166,14 +170,25 @@ function patchRowNode(
     </td>
   );
 
+  const handleClick = (e: React.MouseEvent) => {
+    if (!onRowClick) return;
+    const target = e.target as HTMLElement | null;
+    if (target?.closest("input, button, a, select, textarea, [data-prevent-row-click]")) {
+      return;
+    }
+    onRowClick();
+  };
+
   if (!isValidElement(node)) {
     return (
       <tr
         key={rowKey}
+        onClick={handleClick}
         className={cn(
           "erp-tr",
           selected && "erp-tr-selected",
           isFocused && "ring-2 ring-blue-500/40 bg-blue-50/30 dark:bg-blue-950/20",
+          onRowClick && "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60",
         )}
       >
         {selectCell}
@@ -183,7 +198,7 @@ function patchRowNode(
     );
   }
 
-  const element = node as ReactElement<{ className?: string; children?: ReactNode }>;
+  const element = node as ReactElement<{ className?: string; children?: ReactNode; onClick?: (e: React.MouseEvent) => void }>;
   const className = String(element.props.className ?? "");
   const looksLikeRow = element.type === "tr" || className.includes("erp-tr");
 
@@ -198,6 +213,7 @@ function patchRowNode(
       onToggle,
       rowKey,
       isFocused,
+      onRowClick,
     );
   }
 
@@ -211,10 +227,17 @@ function patchRowNode(
 
   return cloneElement(element, {
     key: element.key ?? rowKey,
+    onClick: (e: React.MouseEvent) => {
+      element.props.onClick?.(e);
+      if (!e.defaultPrevented) {
+        handleClick(e);
+      }
+    },
     className: cn(
       className,
       selected && "erp-tr-selected",
       isFocused && "ring-2 ring-blue-500/40 bg-blue-50/30 dark:bg-blue-950/20",
+      onRowClick && "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60",
     ),
     children: nextChildren,
   });
@@ -283,6 +306,7 @@ export function useErpListView<T>({
   const [columnsOpen, setColumnsOpen] = useState(false);
   const [columnSearch, setColumnSearch] = useState("");
   const [importOpen, setImportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [density, setDensity] = useState<"compact" | "normal">("normal");
 
   // Sorting state
@@ -377,14 +401,9 @@ export function useErpListView<T>({
       : []),
     {
       key: "export",
-      label: `Export CSV (${selected.length})`,
+      label: selected.length > 0 ? `Export (${selected.length} selected)...` : "Export Data...",
       category: "data",
-      onClick: () =>
-        exportListCsv(
-          selectedRows,
-          headerColumns.filter((column) => !column.locked),
-          listKey,
-        ),
+      onClick: () => setExportOpen(true),
     },
     ...bulkActions.map((action) => ({
       ...action,
@@ -424,6 +443,15 @@ export function useErpListView<T>({
             <span>Import CSV</span>
           </button>
         )}
+        <button
+          type="button"
+          className={cn(erpButtonClassName.secondary, "cursor-pointer")}
+          onClick={() => setExportOpen(true)}
+          title="Export data (CSV, Excel, JSON)"
+        >
+          <Download className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Export</span>
+        </button>
         <button
           type="button"
           title={density === "compact" ? "Switch to comfortable view" : "Switch to compact view"}
@@ -619,6 +647,7 @@ export function useErpListView<T>({
                       ),
                     id,
                     focusedIndex === index,
+                    onRowClick ? () => onRowClick(row) : undefined,
                   );
                 })}
                 {!loading && sortedRows.length === 0 ? (
@@ -732,14 +761,25 @@ export function useErpListView<T>({
         <ErpFloatingBulkBar
           selectedCount={selected.length}
           onDeselectAll={() => setSelected([])}
-          onExportCsv={() =>
-            exportListCsv(
-              selectedRows,
-              headerColumns.filter((column) => !column.locked),
-              listKey,
-            )
-          }
+          onExportCsv={() => setExportOpen(true)}
           onBulkDelete={onBulkDelete ? () => onBulkDelete(selectedRows) : undefined}
+        />
+
+        {/* Universal Multi-Format Export Modal */}
+        <UniversalExportModal
+          open={exportOpen}
+          onOpenChange={setExportOpen}
+          entityName={listKey || "Records"}
+          columns={allColumns.map((col) => ({
+            key: col.key,
+            label: col.label,
+            dataType: (col.dataType as DynamicColumn["dataType"]) || "string",
+            hidden: !visibleKeys.includes(col.key),
+          }))}
+          filteredRecords={sortedRows}
+          allRecords={rows}
+          selectedIds={selected}
+          idField="id"
         />
       </div>
     ),

@@ -25,6 +25,11 @@ export interface PrintDocumentOptions {
   signatoryName?: string;
   signatoryDesignation?: string;
   stampUrl?: string;
+  projectName?: string;
+  projectSiteAddress?: string;
+  projectClientLogoUrl?: string;
+  projectSignatoryName?: string;
+  projectSignatoryTitle?: string;
   partyLabel?: string;
   partyName?: string;
   partyAddress?: string;
@@ -47,10 +52,12 @@ export interface PrintDocumentOptions {
 }
 
 export function printRecordDocument(options: PrintDocumentOptions): void {
-  const companyName = options.companyName || "UAB INDIA ENTERPRISES PRIVATE LIMITED";
+  const companyName = options.companyName || "Enterprise Organization";
   const companyAddress = options.companyAddress || "";
   const companyGstin = options.companyGstin || "";
   const logoUrl = options.logoUrl || "";
+  const siteAddress = options.projectSiteAddress || "";
+  const clientLogoUrl = options.projectClientLogoUrl || "";
   const brandColor = options.brandColor && /^#[0-9a-fA-F]{3,8}$/.test(options.brandColor) ? options.brandColor : "#0f172a";
   const accentColor = options.accentColor && /^#[0-9a-fA-F]{3,8}$/.test(options.accentColor) ? options.accentColor : "#2563eb";
   const headerLayout = options.headerLayout || "modern-split";
@@ -59,8 +66,8 @@ export function printRecordDocument(options: PrintDocumentOptions): void {
   const date = options.date || new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
   const watermark = options.watermarkText || "";
   const partyLabel = options.partyLabel || (options.lineItems && options.lineItems.length > 0 ? "Issued / Billed To:" : "Record Details:");
-  const signatoryName = options.signatoryName || "Authorized Signatory";
-  const signatoryTitle = options.signatoryDesignation || "Head of People & Operations";
+  const signatoryName = options.projectSignatoryName || options.signatoryName || "Authorized Signatory";
+  const signatoryTitle = options.projectSignatoryTitle || options.signatoryDesignation || "Head of People & Operations";
   const stampUrl = options.stampUrl || "";
 
   const popup = window.open("", "_blank", "width=920,height=1050,resizable=yes,scrollbars=yes");
@@ -70,9 +77,13 @@ export function printRecordDocument(options: PrintDocumentOptions): void {
     if (headerLayout === "centered-banner") {
       return `
         <div style="text-align: center; margin-bottom: 12px; position: relative; z-index: 1;">
-          ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="Logo" style="max-height: 52px; max-width: 160px; object-fit: contain; margin-bottom: 6px;" />` : ""}
+          <div style="display: flex; justify-content: center; align-items: center; gap: 14px; margin-bottom: 6px;">
+            ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="Logo" style="max-height: 52px; max-width: 160px; object-fit: contain;" />` : ""}
+            ${clientLogoUrl ? `<img src="${escapeHtml(clientLogoUrl)}" alt="Client Logo" style="max-height: 44px; max-width: 140px; object-fit: contain; border-left: 1px solid #cbd5e1; padding-left: 12px;" />` : ""}
+          </div>
           <div style="font-size: 20px; font-weight: 800; color: var(--brand-primary); letter-spacing: -0.02em;">${escapeHtml(companyName)}</div>
-          ${companyAddress ? `<div style="color: #64748b; font-size: 10px; margin-top: 2px;">${escapeHtml(companyAddress)}</div>` : ""}
+          ${siteAddress ? `<div style="color: #0f172a; font-weight: 600; font-size: 10px; margin-top: 2px;">Site Office: ${escapeHtml(siteAddress)}</div>` : ""}
+          ${companyAddress ? `<div style="color: #64748b; font-size: 10px; margin-top: 2px;">${siteAddress ? "Regd Office: " : ""}${escapeHtml(companyAddress)}</div>` : ""}
           ${companyGstin ? `<div style="color: #475569; font-size: 10px; font-weight: 600; margin-top: 1px;">GSTIN: ${escapeHtml(companyGstin)}</div>` : ""}
           <div style="height: 3px; background: linear-gradient(90deg, var(--brand-primary), var(--brand-accent), var(--brand-primary)); margin: 10px auto; width: 100%; border-radius: 2px;"></div>
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
@@ -88,9 +99,13 @@ export function printRecordDocument(options: PrintDocumentOptions): void {
       return `
         <div style="border-top: 3px solid var(--brand-primary); border-bottom: 1px solid var(--brand-accent); padding: 10px 0; margin-bottom: 14px; display: flex; justify-content: space-between; position: relative; z-index: 1;">
           <div>
-            ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="Logo" style="max-height: 42px; max-width: 120px; object-fit: contain; margin-bottom: 4px;" /><br/>` : ""}
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+              ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="Logo" style="max-height: 42px; max-width: 120px; object-fit: contain;" />` : ""}
+              ${clientLogoUrl ? `<img src="${escapeHtml(clientLogoUrl)}" alt="Client Logo" style="max-height: 38px; max-width: 110px; object-fit: contain; border-left: 1px solid #cbd5e1; padding-left: 10px;" />` : ""}
+            </div>
             <div style="font-size: 18px; font-weight: 800; color: var(--brand-primary);">${escapeHtml(companyName)}</div>
-            ${companyAddress ? `<div style="color: #64748b; font-size: 10px; margin-top: 2px;">${escapeHtml(companyAddress)}</div>` : ""}
+            ${siteAddress ? `<div style="color: #0f172a; font-weight: 600; font-size: 10px; margin-top: 2px;">Site Office: ${escapeHtml(siteAddress)}</div>` : ""}
+            ${companyAddress ? `<div style="color: #64748b; font-size: 10px; margin-top: 2px;">${siteAddress ? "Regd Office: " : ""}${escapeHtml(companyAddress)}</div>` : ""}
             ${companyGstin ? `<div style="color: #475569; font-size: 10px; font-weight: 600;">GSTIN: ${escapeHtml(companyGstin)}</div>` : ""}
           </div>
           <div style="text-align: right;">
@@ -108,6 +123,7 @@ export function printRecordDocument(options: PrintDocumentOptions): void {
           <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
             <div style="display: flex; align-items: center; gap: 10px;">
               ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="Logo" style="max-height: 36px; max-width: 100px; object-fit: contain;" />` : ""}
+              ${clientLogoUrl ? `<img src="${escapeHtml(clientLogoUrl)}" alt="Client Logo" style="max-height: 32px; max-width: 90px; object-fit: contain; border-left: 1px solid #cbd5e1; padding-left: 8px;" />` : ""}
               <div>
                 <div style="font-size: 16px; font-weight: 800; color: var(--brand-primary);">${escapeHtml(companyName)}</div>
                 ${companyGstin ? `<span style="color: #64748b; font-size: 9.5px;">GSTIN: ${escapeHtml(companyGstin)}</span>` : ""}
@@ -118,7 +134,8 @@ export function printRecordDocument(options: PrintDocumentOptions): void {
               <div style="font-size: 11px; font-weight: 700; color: var(--brand-primary);">#${escapeHtml(docNum)} | ${escapeHtml(date)}</div>
             </div>
           </div>
-          ${companyAddress ? `<div style="color: #64748b; font-size: 9.5px; padding-top: 4px;">${escapeHtml(companyAddress)}</div>` : ""}
+          ${siteAddress ? `<div style="color: #0f172a; font-weight: 600; font-size: 9.5px; padding-top: 4px;">Site Office: ${escapeHtml(siteAddress)}</div>` : ""}
+          ${companyAddress ? `<div style="color: #64748b; font-size: 9.5px; padding-top: 2px;">${siteAddress ? "Regd Office: " : ""}${escapeHtml(companyAddress)}</div>` : ""}
         </div>
       `;
     }
@@ -128,9 +145,11 @@ export function printRecordDocument(options: PrintDocumentOptions): void {
       <div class="header">
         <div style="display: flex; align-items: center; gap: 14px;">
           ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="Logo" style="max-height: 48px; max-width: 130px; object-fit: contain;" />` : ""}
+          ${clientLogoUrl ? `<img src="${escapeHtml(clientLogoUrl)}" alt="Client Logo" style="max-height: 42px; max-width: 110px; object-fit: contain; border-left: 1px solid #cbd5e1; padding-left: 12px;" />` : ""}
           <div>
             <div style="font-size: 18px; font-weight: 800; color: var(--brand-primary);">${escapeHtml(companyName)}</div>
-            ${companyAddress ? `<div style="color: #64748b; font-size: 10px; margin-top: 2px;">${escapeHtml(companyAddress)}</div>` : ""}
+            ${siteAddress ? `<div style="color: #0f172a; font-weight: 600; font-size: 10px; margin-top: 2px;">Site Office: ${escapeHtml(siteAddress)}</div>` : ""}
+            ${companyAddress ? `<div style="color: #64748b; font-size: 10px; margin-top: 2px;">${siteAddress ? "Regd Office: " : ""}${escapeHtml(companyAddress)}</div>` : ""}
             ${companyGstin ? `<div style="color: #475569; font-size: 10px; font-weight: 600;">GSTIN: ${escapeHtml(companyGstin)}</div>` : ""}
           </div>
         </div>

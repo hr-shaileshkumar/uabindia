@@ -36,6 +36,11 @@ export interface AppointmentLetterData {
   accentColor?: string;
   letterheadLayout?: LetterheadLayoutStyle;
   letterType?: LetterTemplateType;
+  projectName?: string;
+  projectSiteAddress?: string;
+  projectClientLogoUrl?: string;
+  projectSignatoryName?: string;
+  projectSignatoryTitle?: string;
 }
 
 interface AppointmentLetterModalProps {
@@ -61,6 +66,11 @@ export const AppointmentLetterModal: React.FC<AppointmentLetterModalProps> = ({
     companyLetterheadLayout: ctxCompanyLetterheadLayout,
     companySignatoryName: ctxCompanySignatoryName,
     companySignatoryDesignation: ctxCompanySignatoryDesignation,
+    projectName: ctxProjectName,
+    projectSiteAddress: ctxProjectSiteAddress,
+    projectClientLogoUrl: ctxProjectClientLogoUrl,
+    projectSignatoryName: ctxProjectSignatoryName,
+    projectSignatoryTitle: ctxProjectSignatoryTitle,
   } = useOrgContext();
 
   const [activeLetterType, setActiveLetterType] = useState<LetterTemplateType>(
@@ -94,10 +104,23 @@ export const AppointmentLetterModal: React.FC<AppointmentLetterModalProps> = ({
   const rawAccentColor = data.accentColor || ctxCompanyAccentColor || "#2563eb";
   const accentColor = /^#[0-9a-fA-F]{3,8}$/.test(rawAccentColor) ? rawAccentColor : "#2563eb";
 
+  // Project site office overrides
+  const siteAddress = data.projectSiteAddress || ctxProjectSiteAddress || null;
+  const clientLogoUrl = data.projectClientLogoUrl || ctxProjectClientLogoUrl || null;
+  const projectName = data.projectName || ctxProjectName || null;
+
   const signatoryName =
-    data.signatoryName || ctxCompanySignatoryName || "Authorized Signatory";
+    data.projectSignatoryName ||
+    ctxProjectSignatoryName ||
+    data.signatoryName ||
+    ctxCompanySignatoryName ||
+    "Authorized Signatory";
   const signatoryTitle =
-    data.signatoryDesignation || ctxCompanySignatoryDesignation || "Head of Human Resources";
+    data.projectSignatoryTitle ||
+    ctxProjectSignatoryTitle ||
+    data.signatoryDesignation ||
+    ctxCompanySignatoryDesignation ||
+    "Head of Human Resources";
 
   const handlePrint = () => {
     window.print();
@@ -248,19 +271,38 @@ export const AppointmentLetterModal: React.FC<AppointmentLetterModalProps> = ({
           {/* Header Layout Renderers */}
           {activeLayout === "centered-banner" && (
             <div className="text-center pb-5 mb-8 border-b-2" style={{ borderColor: brandColor }}>
-              {effectiveLogoUrl && (
-                <img
-                  src={effectiveLogoUrl}
-                  alt="Company Logo"
-                  className="max-h-14 max-w-[170px] object-contain mx-auto mb-2"
-                />
-              )}
+              <div className="flex justify-center items-center gap-3.5 mb-2">
+                {effectiveLogoUrl && (
+                  <img
+                    src={effectiveLogoUrl}
+                    alt="Company Logo"
+                    className="max-h-14 max-w-[170px] object-contain"
+                  />
+                )}
+                {clientLogoUrl && (
+                  <img
+                    src={clientLogoUrl}
+                    alt="Client / Project Logo"
+                    className="max-h-12 max-w-[140px] object-contain border-l border-slate-300 pl-3"
+                  />
+                )}
+              </div>
               <h1 className="text-2xl font-bold tracking-tight font-sans" style={{ color: brandColor }}>
                 {effectiveCompanyName}
               </h1>
+              {projectName && (
+                <p className="text-xs font-sans font-semibold text-slate-700 mt-0.5">
+                  Project: {projectName}
+                </p>
+              )}
+              {siteAddress && (
+                <p className="text-xs font-sans font-medium text-slate-700 mt-0.5">
+                  Site Office: {siteAddress}
+                </p>
+              )}
               {effectiveAddress && (
-                <p className="text-xs font-sans text-slate-600 mt-1 max-w-xl mx-auto leading-relaxed">
-                  {effectiveAddress}
+                <p className="text-xs font-sans text-slate-600 mt-0.5 max-w-xl mx-auto leading-relaxed">
+                  {siteAddress ? "Regd Office: " : ""}{effectiveAddress}
                 </p>
               )}
               {effectiveGstin && (
@@ -297,19 +339,33 @@ export const AppointmentLetterModal: React.FC<AppointmentLetterModalProps> = ({
               }}
             >
               <div>
-                {effectiveLogoUrl && (
-                  <img
-                    src={effectiveLogoUrl}
-                    alt="Company Logo"
-                    className="max-h-12 max-w-[150px] object-contain mb-2"
-                  />
-                )}
+                <div className="flex items-center gap-3 mb-2">
+                  {effectiveLogoUrl && (
+                    <img
+                      src={effectiveLogoUrl}
+                      alt="Company Logo"
+                      className="max-h-12 max-w-[150px] object-contain"
+                    />
+                  )}
+                  {clientLogoUrl && (
+                    <img
+                      src={clientLogoUrl}
+                      alt="Client Logo"
+                      className="max-h-10 max-w-[120px] object-contain border-l border-slate-300 pl-3"
+                    />
+                  )}
+                </div>
                 <h1 className="text-xl font-bold tracking-tight" style={{ color: brandColor }}>
                   {effectiveCompanyName}
                 </h1>
+                {siteAddress && (
+                  <p className="text-xs font-semibold text-slate-800 mt-1">
+                    Site Office: {siteAddress}
+                  </p>
+                )}
                 {effectiveAddress && (
-                  <p className="text-xs text-slate-600 mt-1 max-w-md">
-                    {effectiveAddress}
+                  <p className="text-xs text-slate-600 mt-0.5 max-w-md">
+                    {siteAddress ? "Regd Office: " : ""}{effectiveAddress}
                   </p>
                 )}
                 {effectiveGstin && (
@@ -343,6 +399,13 @@ export const AppointmentLetterModal: React.FC<AppointmentLetterModalProps> = ({
                       src={effectiveLogoUrl}
                       alt="Company Logo"
                       className="max-h-10 max-w-[120px] object-contain"
+                    />
+                  )}
+                  {clientLogoUrl && (
+                    <img
+                      src={clientLogoUrl}
+                      alt="Client Logo"
+                      className="max-h-8 max-w-[100px] object-contain border-l border-slate-300 pl-2.5"
                     />
                   )}
                   <div>
@@ -380,24 +443,42 @@ export const AppointmentLetterModal: React.FC<AppointmentLetterModalProps> = ({
               style={{ borderColor: brandColor }}
             >
               <div>
-                {effectiveLogoUrl && (
-                  <img
-                    src={effectiveLogoUrl}
-                    alt="Company Logo"
-                    className="max-h-12 max-w-[150px] object-contain mb-2"
-                  />
-                )}
+                <div className="flex items-center gap-3 mb-2">
+                  {effectiveLogoUrl && (
+                    <img
+                      src={effectiveLogoUrl}
+                      alt="Company Logo"
+                      className="max-h-12 max-w-[150px] object-contain"
+                    />
+                  )}
+                  {clientLogoUrl && (
+                    <img
+                      src={clientLogoUrl}
+                      alt="Client Logo"
+                      className="max-h-10 max-w-[120px] object-contain border-l border-slate-300 pl-3"
+                    />
+                  )}
+                </div>
                 <h1 className="text-2xl font-bold tracking-tight font-sans" style={{ color: brandColor }}>
                   {effectiveCompanyName}
                 </h1>
                 <p className="text-xs font-sans text-slate-500 mt-1 uppercase tracking-wider">
                   Corporate Human Resources &bull; Talent Operations &bull; Legal Compliance
                 </p>
-                {(effectiveAddress || effectiveGstin) && (
+                {siteAddress && (
+                  <p className="text-xs font-sans font-semibold text-slate-800 mt-1">
+                    Site Office: {siteAddress}
+                  </p>
+                )}
+                {effectiveAddress && (
                   <p className="text-xs font-sans text-slate-500 mt-0.5">
-                    {effectiveAddress}
-                    {effectiveAddress && effectiveGstin && <span> &bull; </span>}
-                    {effectiveGstin && <span>GSTIN: {effectiveGstin}</span>}
+                    {siteAddress ? "Regd Office: " : ""}{effectiveAddress}
+                    {effectiveGstin && <span> &bull; GSTIN: {effectiveGstin}</span>}
+                  </p>
+                )}
+                {!effectiveAddress && effectiveGstin && (
+                  <p className="text-xs font-sans text-slate-500 mt-0.5">
+                    GSTIN: {effectiveGstin}
                   </p>
                 )}
               </div>
