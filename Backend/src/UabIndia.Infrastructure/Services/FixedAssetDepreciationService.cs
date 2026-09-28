@@ -38,54 +38,11 @@ namespace UabIndia.Infrastructure.Services
                 .Where(a => a.TenantId == tenantId && !a.IsDeleted && a.Status != AssetStatus.Disposed && a.Status != AssetStatus.Written_Off)
                 .ToListAsync(ct);
 
-            // Fallback seed assets for demonstration if none in database
             if (assets.Count == 0)
             {
-                assets = new List<FixedAsset>
-                {
-                    new()
-                    {
-                        Id = Guid.Parse("55555555-5555-5555-5555-555555555501"),
-                        AssetCode = "AST-CNC-001",
-                        Name = "5-Axis High Precision CNC Milling Center",
-                        Category = AssetCategory.Machinery,
-                        PurchaseValue = 185000m,
-                        CurrentValue = 148000m,
-                        SalvageValue = 15000m,
-                        AccumulatedDepreciation = 37000m,
-                        UsefulLifeYears = 10,
-                        DepreciationMethod = DepreciationMethod.StraightLine,
-                        TenantId = tenantId
-                    },
-                    new()
-                    {
-                        Id = Guid.Parse("55555555-5555-5555-5555-555555555502"),
-                        AssetCode = "AST-SRV-004",
-                        Name = "Enterprise Kubernetes Cloud Server Rack (64 Core / 2TB)",
-                        Category = AssetCategory.Electronics,
-                        PurchaseValue = 64000m,
-                        CurrentValue = 38400m,
-                        SalvageValue = 4000m,
-                        AccumulatedDepreciation = 25600m,
-                        UsefulLifeYears = 5,
-                        DepreciationMethod = DepreciationMethod.DoubleDecliningBalance,
-                        TenantId = tenantId
-                    },
-                    new()
-                    {
-                        Id = Guid.Parse("55555555-5555-5555-5555-555555555503"),
-                        AssetCode = "AST-VEH-012",
-                        Name = "Heavy Duty Electric Forklift 3.5 Ton",
-                        Category = AssetCategory.Vehicles,
-                        PurchaseValue = 42000m,
-                        CurrentValue = 31500m,
-                        SalvageValue = 5000m,
-                        AccumulatedDepreciation = 10500m,
-                        UsefulLifeYears = 7,
-                        DepreciationMethod = DepreciationMethod.StraightLine,
-                        TenantId = tenantId
-                    }
-                };
+                summary.TotalAssetsProcessed = 0;
+                summary.TotalDepreciationAmount = 0m;
+                return summary;
             }
 
             summary.TotalAssetsProcessed = assets.Count;

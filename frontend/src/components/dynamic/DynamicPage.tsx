@@ -959,7 +959,7 @@ export function DynamicPage({
           .join(" | ");
 
     const activeCompanyName =
-      ctxCompanyLegalName || ctxCompanyName || (user as any)?.tenantName || "UAB INDIA ENTERPRISES PRIVATE LIMITED";
+      ctxCompanyLegalName || ctxCompanyName || (user as any)?.tenantName || "Enterprise Organization";
 
     printTabularReport({
       title: `${schema.title || schema.entityName || "Records"} Register`,
