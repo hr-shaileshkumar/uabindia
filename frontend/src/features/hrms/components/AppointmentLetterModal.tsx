@@ -78,12 +78,12 @@ export const AppointmentLetterModal: React.FC<AppointmentLetterModalProps> = ({
     data.companyName ||
     ctxCompanyLegalName ||
     ctxCompanyName ||
-    "UAB INDIA ENTERPRISES PRIVATE LIMITED";
+    "Enterprise Organization";
 
   const effectiveAddress =
     data.companyAddress ||
     ctxCompanyAddress ||
-    "Corporate Headquarters, Bengaluru, Karnataka - 560100, India";
+    "";
 
   const effectiveGstin = data.companyGstin || ctxCompanyGstin || null;
   const effectiveLogoUrl = data.companyLogoUrl || ctxCompanyLogoUrl || null;
@@ -258,9 +258,11 @@ export const AppointmentLetterModal: React.FC<AppointmentLetterModalProps> = ({
               <h1 className="text-2xl font-bold tracking-tight font-sans" style={{ color: brandColor }}>
                 {effectiveCompanyName}
               </h1>
-              <p className="text-xs font-sans text-slate-600 mt-1 max-w-xl mx-auto leading-relaxed">
-                {effectiveAddress}
-              </p>
+              {effectiveAddress && (
+                <p className="text-xs font-sans text-slate-600 mt-1 max-w-xl mx-auto leading-relaxed">
+                  {effectiveAddress}
+                </p>
+              )}
               {effectiveGstin && (
                 <p className="text-xs font-sans font-medium text-slate-500 mt-0.5">
                   GSTIN: {effectiveGstin}
@@ -305,9 +307,11 @@ export const AppointmentLetterModal: React.FC<AppointmentLetterModalProps> = ({
                 <h1 className="text-xl font-bold tracking-tight" style={{ color: brandColor }}>
                   {effectiveCompanyName}
                 </h1>
-                <p className="text-xs text-slate-600 mt-1 max-w-md">
-                  {effectiveAddress}
-                </p>
+                {effectiveAddress && (
+                  <p className="text-xs text-slate-600 mt-1 max-w-md">
+                    {effectiveAddress}
+                  </p>
+                )}
                 {effectiveGstin && (
                   <p className="text-xs text-slate-500 mt-0.5 font-medium">
                     GSTIN: {effectiveGstin}
@@ -362,9 +366,11 @@ export const AppointmentLetterModal: React.FC<AppointmentLetterModalProps> = ({
                   </p>
                 </div>
               </div>
-              <p className="text-[11px] text-slate-500 pt-1">
-                {effectiveAddress}
-              </p>
+              {effectiveAddress && (
+                <p className="text-[11px] text-slate-500 pt-1">
+                  {effectiveAddress}
+                </p>
+              )}
             </div>
           )}
 
@@ -387,10 +393,13 @@ export const AppointmentLetterModal: React.FC<AppointmentLetterModalProps> = ({
                 <p className="text-xs font-sans text-slate-500 mt-1 uppercase tracking-wider">
                   Corporate Human Resources &bull; Talent Operations &bull; Legal Compliance
                 </p>
-                <p className="text-xs font-sans text-slate-500 mt-0.5">
-                  {effectiveAddress}
-                  {effectiveGstin && <span> &bull; GSTIN: {effectiveGstin}</span>}
-                </p>
+                {(effectiveAddress || effectiveGstin) && (
+                  <p className="text-xs font-sans text-slate-500 mt-0.5">
+                    {effectiveAddress}
+                    {effectiveAddress && effectiveGstin && <span> &bull; </span>}
+                    {effectiveGstin && <span>GSTIN: {effectiveGstin}</span>}
+                  </p>
+                )}
               </div>
               <div className="text-right font-sans">
                 <span

@@ -23,6 +23,7 @@ export function printCommercialDocument(input: {
   companyPhone?: string;
   companyEmail?: string;
   companyPan?: string;
+  jurisdiction?: string;
   placeOfSupply?: string;
   irn?: string;
   ackNo?: string;
@@ -326,7 +327,7 @@ export function printCommercialDocument(input: {
         <strong>Terms &amp; Conditions:</strong><br/>
         1. Goods once sold will not be taken back without authorization.<br/>
         2. Interest @ 18% p.a. will be charged for delayed payments after due date.<br/>
-        3. Subject to Bengaluru jurisdiction only.<br/>
+        3. Subject to ${escapeHtml(input.jurisdiction || "registered office")} jurisdiction only.<br/>
         <em>This is a computer-generated Digitally Signed GST Tax Invoice.</em>
       </div>
       <div style="width: 38%; text-align: right; font-size: 10px;">

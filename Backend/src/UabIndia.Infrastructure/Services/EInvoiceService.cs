@@ -27,8 +27,12 @@ namespace UabIndia.Infrastructure.Services
 
             var company = await _db.Companies.AsNoTracking()
                 .FirstOrDefaultAsync(c => c.Id == invoice.CompanyId && c.TenantId == tenantId);
+            var customer = await _db.Customers.AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == invoice.CustomerId && c.TenantId == tenantId);
 
-            var supplierGstin = company?.TaxId ?? "27AABCU9603R1ZM";
+            var supplierGstin = !string.IsNullOrWhiteSpace(company?.TaxId) ? company.TaxId : "URP";
+            var buyerGstin = !string.IsNullOrWhiteSpace(customer?.GSTNumber) ? customer.GSTNumber : "URP";
+            var pos = !string.IsNullOrWhiteSpace(customer?.State) ? customer.State : "96";
             var docType = "INV";
             var docNum = invoice.InvoiceNumber;
             var fy = invoice.InvoiceDate.Month >= 4 ? invoice.InvoiceDate.Year : invoice.InvoiceDate.Year - 1;
@@ -55,8 +59,8 @@ namespace UabIndia.Infrastructure.Services
                     AckNo = ackNo,
                     AckDate = ackDate,
                     DocDetails = new { Typ = docType, No = docNum, Dt = invoice.InvoiceDate.ToString("dd/MM/yyyy") },
-                    SellerDetails = new { Gstin = supplierGstin, LglNm = company?.Name ?? "UabIndia Enterprise" },
-                    BuyerDetails = new { Gstin = "29AABCB1512P1ZF", Pos = "29" },
+                    SellerDetails = new { Gstin = supplierGstin, LglNm = company?.Name ?? "Enterprise Organization" },
+                    BuyerDetails = new { Gstin = buyerGstin, Pos = pos },
                     ValDtls = new { TotInvVal = invoice.TotalAmount, AssVal = invoice.SubTotal, CgstVal = invoice.CgstAmount, SgstVal = invoice.SgstAmount, IgstVal = invoice.IgstAmount }
                 })
             };
@@ -100,16 +104,22 @@ namespace UabIndia.Infrastructure.Services
 
         public string GenerateSignedQrData(SalesInvoice invoice, string irn)
         {
+            var company = _db.Companies.AsNoTracking().FirstOrDefault(c => c.Id == invoice.CompanyId);
+            var customer = _db.Customers.AsNoTracking().FirstOrDefault(c => c.Id == invoice.CustomerId);
+            var supplierGstin = !string.IsNullOrWhiteSpace(company?.TaxId) ? company.TaxId : "URP";
+            var buyerGstin = !string.IsNullOrWhiteSpace(customer?.GSTNumber) ? customer.GSTNumber : "URP";
+            var firstHsn = invoice.Items?.FirstOrDefault()?.Item?.ItemCode ?? "998313";
+
             var qrObj = new
             {
-                SellerGstin = "27AABCU9603R1ZM",
-                BuyerGstin = "29AABCB1512P1ZF",
+                SellerGstin = supplierGstin,
+                BuyerGstin = buyerGstin,
                 DocNo = invoice.InvoiceNumber,
                 DocTyp = "INV",
                 DocDt = invoice.InvoiceDate.ToString("dd/MM/yyyy"),
                 TotInvVal = invoice.TotalAmount,
                 ItemCnt = invoice.Items?.Count ?? 1,
-                MainHsnCode = "998313",
+                MainHsnCode = firstHsn,
                 Irn = irn
             };
             return Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(qrObj)));
