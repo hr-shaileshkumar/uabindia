@@ -575,8 +575,8 @@ namespace UabIndia.Api.Modules.Reports.Controllers
                     .Where(p => p.CreatedAt.Month == m && p.CreatedAt.Year == y)
                     .SumAsync(p => (decimal?)p.Net) ?? 0;
 
-                var inflow = monthlySales > 0 ? monthlySales : (Math.Max(1, totalEmployees) * 45000m);
-                var outflow = (monthlyPurchases + monthlyPayroll) > 0 ? (monthlyPurchases + monthlyPayroll) : (Math.Max(1, totalEmployees) * 28000m);
+                var inflow = monthlySales;
+                var outflow = monthlyPurchases + monthlyPayroll;
 
                 cashflow.Add(new
                 {
@@ -595,28 +595,81 @@ namespace UabIndia.Api.Modules.Reports.Controllers
 
             var spendDistribution = new[]
             {
-                new { name = "Personnel & Payroll", value = grandSpend > 0 ? (int)Math.Round((double)totalPayrollSpend / (double)grandSpend * 100) : 45, color = "#6366f1" },
-                new { name = "Direct Procurement (SCM)", value = grandSpend > 0 ? (int)Math.Round((double)totalProcureSpend / (double)grandSpend * 100) : 28, color = "#0ea5e9" },
-                new { name = "Operating Expenses & Fleet", value = grandSpend > 0 ? (int)Math.Round((double)totalExpenseClaims / (double)grandSpend * 100) : 15, color = "#10b981" },
-                new { name = "Fixed Assets & Capital", value = grandSpend > 0 ? (int)Math.Round((double)totalFixedAssetVal / (double)grandSpend * 100) : 12, color = "#f59e0b" }
+                new { name = "Personnel & Payroll", value = grandSpend > 0 ? (int)Math.Round((double)totalPayrollSpend / (double)grandSpend * 100) : 0, color = "#6366f1" },
+                new { name = "Direct Procurement (SCM)", value = grandSpend > 0 ? (int)Math.Round((double)totalProcureSpend / (double)grandSpend * 100) : 0, color = "#0ea5e9" },
+                new { name = "Operating Expenses & Fleet", value = grandSpend > 0 ? (int)Math.Round((double)totalExpenseClaims / (double)grandSpend * 100) : 0, color = "#10b981" },
+                new { name = "Fixed Assets & Capital", value = grandSpend > 0 ? (int)Math.Round((double)totalFixedAssetVal / (double)grandSpend * 100) : 0, color = "#f59e0b" }
             };
 
-            // Regional Operations Hub Telemetry
-            var regions = new[]
+            // Regional Operations Hub Telemetry (Derived from Tenant Registered Companies & Projects)
+            var realCompanies = await _db.Companies
+                .AsNoTracking()
+                .Where(c => !c.IsDeleted)
+                .Select(c => new
+                {
+                    name = c.LegalName ?? c.Name,
+                    code = c.Code ?? "CO",
+                    city = c.City ?? "Headquarters",
+                    state = c.State ?? "India",
+                    companyId = c.Id
+                })
+                .ToListAsync();
+
+            var regions = new List<object>();
+            if (realCompanies.Any())
             {
-                new { name = "Global Corporate HQ", code = "HQ", employees = Math.Max(1, (int)(totalEmployees * 0.35)), activeProjects = 4, status = "Optimal", lat = 28.6139, lng = 77.2090 },
-                new { name = "APAC - Regional Hub", code = "APAC", employees = Math.Max(1, (int)(totalEmployees * 0.25)), activeProjects = 3, status = "Optimal", lat = 1.3521, lng = 103.8198 },
-                new { name = "EMEA - Operations Center", code = "EMEA", employees = Math.Max(1, (int)(totalEmployees * 0.20)), activeProjects = 2, status = "Optimal", lat = 51.5074, lng = -0.1278 },
-                new { name = "Americas - Field Node", code = "AMER", employees = Math.Max(1, (int)(totalEmployees * 0.20)), activeProjects = 3, status = "Optimal", lat = 40.7128, lng = -74.0060 }
-            };
+                foreach (var c in realCompanies)
+                {
+                    var empCount = await _db.Employees.CountAsync(e => !e.IsDeleted && e.CompanyId == c.companyId);
+                    var projCount = await _db.Projects.CountAsync(p => !p.IsDeleted && p.CompanyId == c.companyId);
+                    regions.Add(new
+                    {
+                        name = c.name,
+                        code = c.code,
+                        employees = empCount,
+                        activeProjects = projCount,
+                        status = "Active",
+                        city = c.city,
+                        state = c.state,
+                        lat = 20.5937,
+                        lng = 78.9629
+                    });
+                }
+            }
+            else
+            {
+                var totalProj = await _db.Projects.CountAsync(p => !p.IsDeleted);
+                regions.Add(new
+                {
+                    name = "Corporate Headquarters",
+                    code = "HQ",
+                    employees = totalEmployees,
+                    activeProjects = totalProj,
+                    status = "Active",
+                    city = "Registered Office",
+                    state = "India",
+                    lat = 20.5937,
+                    lng = 78.9629
+                });
+            }
 
-            // Financial Runway & Multi-Quarter Trends
+            // Financial Runway & Multi-Quarter Trends (Direct from Invoices)
+            var nowYear = DateTime.UtcNow.Year;
+            var q1Sales = await _db.SalesInvoices.Where(s => s.InvoiceDate.Year == nowYear && s.InvoiceDate.Month <= 3).SumAsync(s => (decimal?)s.TotalAmount) ?? 0;
+            var q1Spend = await _db.PurchaseInvoices.Where(p => p.InvoiceDate.Year == nowYear && p.InvoiceDate.Month <= 3).SumAsync(p => (decimal?)p.TotalAmount) ?? 0;
+            var q2Sales = await _db.SalesInvoices.Where(s => s.InvoiceDate.Year == nowYear && s.InvoiceDate.Month >= 4 && s.InvoiceDate.Month <= 6).SumAsync(s => (decimal?)s.TotalAmount) ?? 0;
+            var q2Spend = await _db.PurchaseInvoices.Where(p => p.InvoiceDate.Year == nowYear && p.InvoiceDate.Month >= 4 && p.InvoiceDate.Month <= 6).SumAsync(p => (decimal?)p.TotalAmount) ?? 0;
+            var q3Sales = await _db.SalesInvoices.Where(s => s.InvoiceDate.Year == nowYear && s.InvoiceDate.Month >= 7 && s.InvoiceDate.Month <= 9).SumAsync(s => (decimal?)s.TotalAmount) ?? 0;
+            var q3Spend = await _db.PurchaseInvoices.Where(p => p.InvoiceDate.Year == nowYear && p.InvoiceDate.Month >= 7 && p.InvoiceDate.Month <= 9).SumAsync(p => (decimal?)p.TotalAmount) ?? 0;
+            var q4Sales = await _db.SalesInvoices.Where(s => s.InvoiceDate.Year == nowYear && s.InvoiceDate.Month >= 10).SumAsync(s => (decimal?)s.TotalAmount) ?? 0;
+            var q4Spend = await _db.PurchaseInvoices.Where(p => p.InvoiceDate.Year == nowYear && p.InvoiceDate.Month >= 10).SumAsync(p => (decimal?)p.TotalAmount) ?? 0;
+
             var financialTrends = new[]
             {
-                new { quarter = "Q1", revenue = (double)(totalBillValue * 1.2m), spend = (double)totalBillValue, payroll = (double)totalDisbursed, margin = (double)(totalBillValue * 0.2m) },
-                new { quarter = "Q2", revenue = (double)(totalBillValue * 1.35m), spend = (double)(totalBillValue * 1.1m), payroll = (double)(totalDisbursed * 1.05m), margin = (double)(totalBillValue * 0.25m) },
-                new { quarter = "Q3", revenue = (double)(totalBillValue * 1.5m), spend = (double)(totalBillValue * 1.2m), payroll = (double)(totalDisbursed * 1.1m), margin = (double)(totalBillValue * 0.3m) },
-                new { quarter = "Q4 (Est)", revenue = (double)(totalBillValue * 1.7m), spend = (double)(totalBillValue * 1.3m), payroll = (double)(totalDisbursed * 1.15m), margin = (double)(totalBillValue * 0.4m) }
+                new { quarter = "Q1", revenue = (double)q1Sales, spend = (double)q1Spend, payroll = (double)totalDisbursed * 0.25, margin = (double)(q1Sales - q1Spend) },
+                new { quarter = "Q2", revenue = (double)q2Sales, spend = (double)q2Spend, payroll = (double)totalDisbursed * 0.25, margin = (double)(q2Sales - q2Spend) },
+                new { quarter = "Q3", revenue = (double)q3Sales, spend = (double)q3Spend, payroll = (double)totalDisbursed * 0.25, margin = (double)(q3Sales - q3Spend) },
+                new { quarter = "Q4", revenue = (double)q4Sales, spend = (double)q4Spend, payroll = (double)totalDisbursed * 0.25, margin = (double)(q4Sales - q4Spend) }
             };
 
             return Ok(new

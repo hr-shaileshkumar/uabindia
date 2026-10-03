@@ -6,6 +6,7 @@ import apiClient from "@/services/apiClient";
 import type { DynamicColumn, DynamicFormField, DynamicSelectOption } from "@/lib/dynamic-schema/types";
 import { formatCurrency, formatDate, getCurrencySymbol } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
+import { getRowFieldValue } from "@/lib/workspace/list-view";
 
 /**
  * Masks sensitive values based on field security configuration.
@@ -50,7 +51,12 @@ export function maskFieldValue(
  * Renders a data cell in the DynamicTable according to column dataType and formatting.
  */
 export function renderDynamicTableCell(column: DynamicColumn, value: any, row?: any): React.ReactNode {
-  if (value === null || value === undefined || value === "") {
+  let effectiveValue = value;
+  if ((effectiveValue === null || effectiveValue === undefined || effectiveValue === "") && row && typeof row === "object") {
+    effectiveValue = getRowFieldValue(row, column.key);
+  }
+
+  if (effectiveValue === null || effectiveValue === undefined || effectiveValue === "") {
     return <span className="text-slate-400 dark:text-slate-500 font-mono text-xs">—</span>;
   }
 
@@ -58,7 +64,7 @@ export function renderDynamicTableCell(column: DynamicColumn, value: any, row?: 
     return (
       <span className="inline-flex items-center gap-1.5 font-mono text-xs text-slate-600 dark:text-slate-400">
         <Lock className="h-3 w-3 text-slate-400 shrink-0" />
-        <span>{maskFieldValue(value, column.security.maskType)}</span>
+        <span>{maskFieldValue(effectiveValue, column.security.maskType)}</span>
       </span>
     );
   }
@@ -66,7 +72,7 @@ export function renderDynamicTableCell(column: DynamicColumn, value: any, row?: 
   switch (column.dataType) {
     case "badge":
     case "status": {
-      const valStr = String(value);
+      const valStr = String(effectiveValue);
       const isPositive = ["active", "approved", "completed", "paid", "confirmed", "permanent"].includes(
         valStr.toLowerCase()
       );
@@ -110,8 +116,8 @@ export function renderDynamicTableCell(column: DynamicColumn, value: any, row?: 
     }
 
     case "currency": {
-      const num = typeof value === "number" ? value : parseFloat(String(value).replace(/[^0-9.-]/g, ""));
-      if (isNaN(num)) return String(value);
+      const num = typeof effectiveValue === "number" ? effectiveValue : parseFloat(String(effectiveValue).replace(/[^0-9.-]/g, ""));
+      if (isNaN(num)) return String(effectiveValue);
       const currCode = column.currencyCode || row?.currency || row?.currencyCode || "INR";
       const locale = currCode.toUpperCase() === "INR" ? "en-IN" : "en-US";
       return (
@@ -125,13 +131,13 @@ export function renderDynamicTableCell(column: DynamicColumn, value: any, row?: 
       return (
         <span className="inline-flex items-center gap-1 text-slate-700 dark:text-slate-300 text-xs font-mono">
           <Calendar className="h-3 w-3 text-slate-400 shrink-0" />
-          {formatDate(value)}
+          {formatDate(effectiveValue)}
         </span>
       );
     }
 
     case "boolean": {
-      const isTrue = value === true || String(value).toLowerCase() === "true";
+      const isTrue = effectiveValue === true || String(effectiveValue).toLowerCase() === "true";
       return isTrue ? (
         <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
           <CheckCircle2 className="h-3.5 w-3.5" />
@@ -146,13 +152,13 @@ export function renderDynamicTableCell(column: DynamicColumn, value: any, row?: 
     }
 
     default: {
-      if (Array.isArray(value)) {
-        if (value.length === 0) {
+      if (Array.isArray(effectiveValue)) {
+        if (effectiveValue.length === 0) {
           return <span className="text-slate-400 dark:text-slate-500 font-mono text-xs">—</span>;
         }
         return (
           <div className="flex flex-wrap gap-1">
-            {value.map((item, idx) => (
+            {effectiveValue.map((item, idx) => (
               <span
                 key={idx}
                 className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700 border border-blue-200/60 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800/60"
@@ -168,7 +174,7 @@ export function renderDynamicTableCell(column: DynamicColumn, value: any, row?: 
       if (keyLower.includes("role")) {
         return (
           <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700 border border-blue-200/60 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800/60">
-            {String(value)}
+            {String(effectiveValue)}
           </span>
         );
       }
@@ -181,12 +187,12 @@ export function renderDynamicTableCell(column: DynamicColumn, value: any, row?: 
         column.key.replace(/id$/i, ""),
       ];
       for (const cKey of companionKeys) {
-        if (row && row[cKey] && typeof row[cKey] === "string" && row[cKey] !== value) {
+        if (row && row[cKey] && typeof row[cKey] === "string" && row[cKey] !== effectiveValue) {
           return <span className="text-slate-800 dark:text-slate-200 text-xs font-medium">{row[cKey]}</span>;
         }
       }
 
-      const valStr = String(value);
+      const valStr = String(effectiveValue);
 
       // Handle Image Thumbnail column
       if (keyLower.includes("image") || keyLower.includes("avatar") || keyLower.includes("photo")) {

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
@@ -27,6 +27,7 @@ import {
 } from "@/components/workspace/styles";
 import { hrmsApi } from "@/services/modules/hrms";
 import { payrollApi } from "@/services/modules/payroll";
+import apiClient from "@/services/apiClient";
 import { ROUTES } from "@/constants/routes";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
@@ -99,6 +100,56 @@ export function EmployeeDashboard() {
     },
     staleTime: 30_000,
   });
+
+  const { data: balancesData } = useQuery({
+    queryKey: ["ess-leave-balances"],
+    queryFn: async () => {
+      try {
+        const res = await hrmsApi.hrms.leave.balances.mine();
+        return Array.isArray(res.data) ? res.data : [];
+      } catch {
+        return [];
+      }
+    },
+    staleTime: 60_000,
+  });
+
+  const { data: holidaysData } = useQuery({
+    queryKey: ["ess-holidays"],
+    queryFn: async () => {
+      try {
+        const res = await apiClient.get("/leave/holidays");
+        return Array.isArray(res.data) ? res.data : [];
+      } catch {
+        return [];
+      }
+    },
+    staleTime: 120_000,
+  });
+
+  const leaveSummary = useMemo(() => {
+    if (!balancesData || balancesData.length === 0) {
+      return [
+        { label: "Casual (CL)", balance: 0 },
+        { label: "Sick (SL)", balance: 0 },
+        { label: "Earned (PL)", balance: 0 },
+      ];
+    }
+    return balancesData.slice(0, 3).map((b: any) => ({
+      label: b.leaveTypeName || b.leavePolicyName || "Leave",
+      balance: b.balance ?? 0,
+    }));
+  }, [balancesData]);
+
+  const nextHoliday = useMemo(() => {
+    if (!holidaysData || holidaysData.length === 0) return null;
+    const now = new Date();
+    const upcoming = holidaysData
+      .map((h: any) => ({ ...h, dateObj: new Date(h.date) }))
+      .filter((h: any) => !isNaN(h.dateObj.getTime()) && h.dateObj >= now)
+      .sort((a: any, b: any) => a.dateObj.getTime() - b.dateObj.getTime());
+    return upcoming[0] ?? holidaysData[0] ?? null;
+  }, [holidaysData]);
 
   const recentLeaves = useMemo(() => {
     const rows = leaveData?.requests ?? [];
@@ -195,23 +246,17 @@ export function EmployeeDashboard() {
           </div>
 
           <div className="grid grid-cols-3 gap-3 my-auto py-2">
-            <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 text-center">
-              <p className="text-lg font-bold text-slate-900">8.5</p>
-              <p className="text-[11px] font-medium text-slate-500 mt-0.5">Casual (CL)</p>
-            </div>
-            <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 text-center">
-              <p className="text-lg font-bold text-slate-900">5.0</p>
-              <p className="text-[11px] font-medium text-slate-500 mt-0.5">Sick (SL)</p>
-            </div>
-            <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 text-center">
-              <p className="text-lg font-bold text-slate-900">14.0</p>
-              <p className="text-[11px] font-medium text-slate-500 mt-0.5">Earned (PL)</p>
-            </div>
+            {leaveSummary.map((item, idx) => (
+              <div key={idx} className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 text-center">
+                <p className="text-lg font-bold text-slate-900">{Number(item.balance).toFixed(1)}</p>
+                <p className="text-[11px] font-medium text-slate-500 mt-0.5 truncate">{item.label}</p>
+              </div>
+            ))}
           </div>
 
           <div className="rounded-xl bg-indigo-50/50 p-2.5 text-xs text-indigo-700 flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-indigo-600 shrink-0" />
-            <span>Next public holiday: <strong>Independence Day</strong></span>
+            <span className="truncate">Next holiday: <strong>{nextHoliday ? `${nextHoliday.name} (${new Date(nextHoliday.date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })})` : "Check Calendar"}</strong></span>
           </div>
         </div>
 

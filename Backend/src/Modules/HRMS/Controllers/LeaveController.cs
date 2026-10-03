@@ -507,18 +507,25 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                 query = query.Where(b => b.EmployeeId == employeeId.Value);
             }
 
-            var data = await query
+            var policyNames = await _db.LeavePolicies
+                .AsNoTracking()
+                .Where(p => p.TenantId == tenantId)
+                .ToDictionaryAsync(p => p.Id, p => p.Name);
+
+            var balances = await query.ToListAsync();
+            var data = balances
                 .Select(b => new LeaveBalanceDto
                 {
                     Id = b.Id,
                     EmployeeId = b.EmployeeId,
                     LeavePolicyId = b.LeavePolicyId,
+                    LeaveTypeName = policyNames.TryGetValue(b.LeavePolicyId, out var name) ? name : "Leave",
                     Year = b.Year,
                     Entitled = b.Entitled,
                     Taken = b.Taken,
                     Balance = b.Balance
                 })
-                .ToListAsync();
+                .ToList();
 
             return Ok(data);
         }

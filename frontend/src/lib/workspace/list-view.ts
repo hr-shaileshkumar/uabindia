@@ -160,10 +160,41 @@ export function discoverRowColumns<T>(rows: T[], declared: ErpListColumn[]): Erp
 export function getRowFieldValue<T>(row: T, key: string): unknown {
   if (!row || typeof row !== "object") return undefined;
   const record = row as Record<string, unknown>;
-  if (key in record) return record[key];
+  if (key in record && record[key] != null && record[key] !== "") return record[key];
+
   const lower = key.toLowerCase();
   const match = Object.keys(record).find((item) => item.toLowerCase() === lower);
-  return match ? record[match] : undefined;
+  if (match && record[match] != null && record[match] !== "") return record[match];
+
+  // Common ERP aliases resolution
+  if (lower === "code") {
+    const codeKey = Object.keys(record).find((k) =>
+      k.toLowerCase().endsWith("code") ||
+      k.toLowerCase().endsWith("number") ||
+      k.toLowerCase().endsWith("no")
+    );
+    if (codeKey && record[codeKey] != null && record[codeKey] !== "") return record[codeKey];
+  }
+
+  if (lower === "name" || lower === "title") {
+    const nameKey = Object.keys(record).find((k) =>
+      k.toLowerCase() === "fullname" ||
+      k.toLowerCase() === "legalname" ||
+      k.toLowerCase() === "displayname" ||
+      k.toLowerCase().endsWith("name") ||
+      k.toLowerCase() === "title"
+    );
+    if (nameKey && record[nameKey] != null && record[nameKey] !== "") return record[nameKey];
+  }
+
+  if (lower === "status") {
+    const statusKey = Object.keys(record).find((k) => k.toLowerCase() === "status" || k.toLowerCase() === "state");
+    if (statusKey && record[statusKey] != null && record[statusKey] !== "") return record[statusKey];
+    if ("isActive" in record && record.isActive != null) return record.isActive ? "Active" : "Inactive";
+    if ("IsActive" in record && record.IsActive != null) return record.IsActive ? "Active" : "Inactive";
+  }
+
+  return undefined;
 }
 
 export function formatListCell(value: unknown, dataType?: ErpListColumn["dataType"]): string {

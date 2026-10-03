@@ -18,6 +18,7 @@ import {
   MoreVertical,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getRowFieldValue } from "@/lib/workspace/list-view";
 
 export interface ErpFrappeTableViewProps {
   rows: any[];
@@ -42,6 +43,7 @@ export interface ErpFrappeTableViewProps {
   currentPage?: number;
   onPageChange?: (page: number) => void;
   onPageSizeChange?: (size: number) => void;
+  serverPaginated?: boolean;
   density?: "compact" | "normal" | "comfortable";
   enableVirtualization?: boolean;
   virtualScrollHeight?: number | string;
@@ -70,6 +72,7 @@ export function ErpFrappeTableView({
   currentPage = 1,
   onPageChange,
   onPageSizeChange,
+  serverPaginated = false,
   density = "normal",
   enableVirtualization,
   virtualScrollHeight,
@@ -89,12 +92,12 @@ export function ErpFrappeTableView({
   const safePage = Math.min(currentPage, totalPages);
   const startIndex = (safePage - 1) * pageSize;
   const paginatedRows = useMemo(() => {
-    // If external pagination is used (totalRecords passed and different from rows.length), use rows as-is
-    if (totalRecords !== undefined && totalRecords !== rows.length) {
+    // If serverPaginated is true, the server has already sliced the data
+    if (serverPaginated || (totalRecords !== undefined && totalRecords !== rows.length)) {
       return rows;
     }
     return rows.slice(startIndex, startIndex + pageSize);
-  }, [rows, totalRecords, startIndex, pageSize]);
+  }, [rows, serverPaginated, totalRecords, startIndex, pageSize]);
 
   // High-volume virtualization configuration
   const isVirtual = Boolean(enableVirtualization ?? (paginatedRows.length > 50));
@@ -199,13 +202,16 @@ export function ErpFrappeTableView({
         {/* Data Cells */}
         {dataColumns.map((col, cIdx) => {
           const isFirst = cIdx === 0;
-          const val = row[col.key];
+          const val = getRowFieldValue(row, col.key);
           const rendered = renderCell ? renderCell(col, val, row) : null;
 
           return (
             <td
               key={col.key}
-              style={!isFirst && col.width ? { width: col.width, minWidth: col.width } : undefined}
+              style={{
+                width: col.width || (isFirst ? "auto" : undefined),
+                minWidth: col.width || (isFirst ? "180px" : "130px"),
+              }}
               className={cn(
                 cellPaddingClass,
                 "text-slate-700 dark:text-slate-200",
@@ -389,7 +395,10 @@ export function ErpFrappeTableView({
                 return (
                   <th
                     key={col.key}
-                    style={!isFirst && col.width ? { width: col.width, minWidth: col.width } : undefined}
+                    style={{
+                      width: col.width || (isFirst ? "auto" : undefined),
+                      minWidth: col.width || (isFirst ? "180px" : "130px"),
+                    }}
                     className={cn(
                       "px-3.5 py-3 font-bold",
                       isFirst ? "min-w-[180px] w-auto" : "whitespace-nowrap"

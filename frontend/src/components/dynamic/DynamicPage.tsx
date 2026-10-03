@@ -661,6 +661,9 @@ export function DynamicPage({
 
   // Filter, search, and sort records (Unconditionally declared hook)
   const filteredRecords = useMemo(() => {
+    if (serverTotalRecords !== null) {
+      return records;
+    }
     let result = records.filter((rec) => {
       // 1. General search
       if (search.trim()) {
@@ -1238,7 +1241,7 @@ export function DynamicPage({
                     : c.dataType === "boolean"
                     ? "boolean"
                     : "text") as any,
-                  required: c.sortable !== false,
+                  required: (c as any).required === true || ["name", "code", "title", "employeeCode", "customerName", "companyName", "itemCode", "itemName"].includes(c.key),
                   placeholder: c.dataType === "boolean" ? undefined : `Enter ${cleanFieldLabel(c.label).toLowerCase()}…`,
                 })),
             },
@@ -1246,7 +1249,7 @@ export function DynamicPage({
 
     return (
       <>
-        <div className="w-full bg-slate-50/60 p-3 sm:p-5 lg:p-6 dark:bg-slate-950/40">
+        <div className="w-full">
         <div className="w-full space-y-6">
 
           {/* Frappe Document Header Banner */}
@@ -1437,7 +1440,26 @@ export function DynamicPage({
   return (
     <>
 
-      <div className="w-full min-w-0 space-y-4">
+      <div className="w-full min-w-0 space-y-3.5">
+        {/* Page Context Banner */}
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white truncate">
+                {schema.title}
+              </h1>
+              <span className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60 shrink-0">
+                {(serverTotalRecords !== null ? serverTotalRecords : filteredRecords.length).toLocaleString()} {schema.entityName ? (serverTotalRecords === 1 ? schema.entityName : `${schema.entityName}s`) : "records"}
+              </span>
+            </div>
+            {schema.subTitle && (
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                {schema.subTitle}
+              </p>
+            )}
+          </div>
+        </div>
+
         {/* Frappe-Style Action & Filter Toolbar */}
         <ErpFrappeListToolbar
           viewMode={viewMode}
@@ -1631,6 +1653,7 @@ export function DynamicPage({
               setCurrentPage(1);
             }}
             totalRecords={serverTotalRecords ?? filteredRecords.length}
+            serverPaginated={serverTotalRecords !== null}
           />
         )}
       </div>

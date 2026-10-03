@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "Uabindia HRMS",
+    "slug": "uabindia-hrms",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A1628"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.uabindia.hrms",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Camera is required for facial verification during attendance marking.",
+        "NSLocationWhenInUseUsageDescription": "Location is required to verify you are within the allowed geofence for attendance."
+      }
+    },
+    "android": {
+      "package": "com.uabindia.hrms",
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "INTERNET"
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#0A1628",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-camera",
+      "expo-location",
+      "expo-secure-store",
+      "expo-notifications",
+      "expo-local-authentication",
+      "expo-sharing",
+      "expo-font",
+      "expo-sqlite"
+    ]
+  }
+}

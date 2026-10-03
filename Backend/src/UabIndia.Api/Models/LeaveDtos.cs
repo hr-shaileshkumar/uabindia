@@ -126,6 +126,7 @@ namespace UabIndia.Api.Models
         public Guid Id { get; set; }
         public Guid EmployeeId { get; set; }
         public Guid LeavePolicyId { get; set; }
+        public string? LeaveTypeName { get; set; }
         public int Year { get; set; }
         public decimal Entitled { get; set; }
         public decimal Taken { get; set; }
