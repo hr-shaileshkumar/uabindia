@@ -65,6 +65,7 @@ import {
   printRecordDocument,
   printTabularReport,
 } from "@/lib/document-engine/document-print-engine";
+import { getRowFieldValue } from "@/lib/workspace/list-view";
 
 export function pageSchemaToDynamicSchema(cat: PageSchema): DynamicPageSchema {
   return {
@@ -936,7 +937,7 @@ export function DynamicPage({
     const cols = schema.columns.filter((c) => !c.hidden);
     const headers = cols.map((c) => `"${c.label}"`).join(",");
     const rows = filteredRecords.map((rec) =>
-      cols.map((c) => `"${String(rec[c.key] ?? "").replace(/"/g, '""')}"`).join(",")
+      cols.map((c) => `"${String(getRowFieldValue(rec, c.key) ?? "").replace(/"/g, '""')}"`).join(",")
     );
     const csvContent = "\uFEFF" + [headers, ...rows].join("\r\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });

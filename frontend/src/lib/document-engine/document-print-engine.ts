@@ -1,4 +1,5 @@
 // ─── Universal Enterprise Document Print Engine ──────────────────────────────
+import { getRowFieldValue } from "@/lib/workspace/list-view";
 
 function escapeHtml(value: string | number | null | undefined): string {
   if (value == null) return "";
@@ -428,7 +429,7 @@ export function printTabularReport(options: PrintReportOptions): void {
           <td style="text-align: center; color: #64748b; font-size: 9px;">${idx + 1}</td>
           ${options.columns
             .map((col) => {
-              const val = row[col.key];
+              const val = getRowFieldValue(row, col.key);
               return `<td>${escapeHtml(val != null ? String(val) : "-")}</td>`;
             })
             .join("")}

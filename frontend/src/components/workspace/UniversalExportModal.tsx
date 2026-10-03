@@ -18,6 +18,7 @@ import {
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { notifySuccess, notifyError } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
+import { getRowFieldValue } from "@/lib/workspace/list-view";
 import type { DynamicColumn } from "@/lib/dynamic-schema/types";
 
 export type ExportFormat = "csv" | "excel" | "json";
@@ -127,7 +128,7 @@ export function UniversalExportModal({
 
   const handleSelectMandatoryOnly = () => {
     const mandatoryKeys = exportableColumns
-      .filter((c) => c.sortable !== false || c.key.toLowerCase().includes("name") || c.key.toLowerCase().includes("code") || c.key.toLowerCase().includes("id"))
+      .filter((c) => (c as any).required === true || ["name", "code", "title", "employeeCode", "companyName", "itemCode"].includes(c.key) || c.key.toLowerCase().includes("name") || c.key.toLowerCase().includes("code") || c.key.toLowerCase().includes("id"))
       .map((c) => c.key);
     setSelectedColKeys(mandatoryKeys.length > 0 ? mandatoryKeys : exportableColumns.slice(0, 3).map((c) => c.key));
   };
@@ -172,7 +173,7 @@ export function UniversalExportModal({
         const jsonPayload = targetRecords.map((row) => {
           const item: Record<string, any> = {};
           activeCols.forEach((c) => {
-            item[c.key] = row[c.key] ?? null;
+            item[c.key] = getRowFieldValue(row, c.key) ?? null;
           });
           return item;
         });
@@ -193,7 +194,7 @@ export function UniversalExportModal({
         const headers = activeCols.map((c) => `"${c.label.replace(/"/g, '""')}"`).join(",");
         const rows = targetRecords.map((row) =>
           activeCols
-            .map((c) => `"${String(row[c.key] ?? "").replace(/"/g, '""')}"`)
+            .map((c) => `"${String(getRowFieldValue(row, c.key) ?? "").replace(/"/g, '""')}"`)
             .join(",")
         );
 
