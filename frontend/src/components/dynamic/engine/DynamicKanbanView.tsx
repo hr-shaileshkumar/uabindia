@@ -3,6 +3,7 @@
 import React, { useMemo } from "react";
 import { Plus, MoreVertical, Pencil, Trash2, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getRowFieldValue } from "@/lib/workspace/list-view";
 import type { DynamicColumn } from "@/lib/dynamic-schema/types";
 
 interface DynamicKanbanViewProps {
@@ -36,10 +37,9 @@ export function DynamicKanbanView({
     }
 
     rows.forEach((row) => {
-      let laneVal = row[groupByKey] ?? (row.isActive === true ? "Active" : row.isActive === false ? "Inactive" : "Draft");
-      laneVal = String(laneVal);
-      // Capitalize first letter
-      const normalized = laneVal.charAt(0).toUpperCase() + laneVal.slice(1);
+      const rawLane = getRowFieldValue(row, groupByKey) ?? (row.isActive === true ? "Active" : row.isActive === false ? "Inactive" : "Draft");
+      const strVal: string = String(rawLane ?? "Draft");
+      const normalized = strVal.charAt(0).toUpperCase() + strVal.slice(1);
       if (!map.has(normalized)) {
         map.set(normalized, []);
       }
@@ -156,7 +156,7 @@ export function DynamicKanbanView({
                       {displayCols.length > 0 && (
                         <div className="space-y-1 pt-1 border-t border-slate-100 dark:border-slate-800/80 text-[11px]">
                           {displayCols.map((c) => {
-                            const val = row[c.key];
+                            const val = getRowFieldValue(row, c.key);
                             if (val === undefined || val === null || val === "") return null;
                             return (
                               <div key={c.key} className="flex items-center justify-between text-slate-500 dark:text-slate-400">

@@ -12,6 +12,7 @@ import {
   Layers,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getRowFieldValue } from "@/lib/workspace/list-view";
 
 export interface ErpCardGridViewProps {
   rows: any[];
@@ -50,9 +51,9 @@ export function ErpCardGridView({
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full">
       {rows.map((row, idx) => {
         const rowId = String(row[idField] || row.id || row.code || idx);
-        const title = row[titleKey] || row.fullName || row.name || row.title || row.label || "Untitled Record";
-        const subtitle = row[subtitleKey] || row.designation || row.role || row.department || row.project || "";
-        const status = String(row.status ?? (row.isActive === true ? "Active" : row.isActive === false ? "Inactive" : ""));
+        const title = getRowFieldValue(row, titleKey) || row.fullName || row.name || row.title || row.label || "Untitled Record";
+        const subtitle = getRowFieldValue(row, subtitleKey) || row.designation || row.role || row.department || row.project || "";
+        const status = String(getRowFieldValue(row, "status") ?? (row.isActive === true ? "Active" : row.isActive === false ? "Inactive" : ""));
         const isActive = status.toLowerCase() === "active";
         const isFavorite = Boolean(favorites[rowId]);
         const relTime = getRelativeTime ? getRelativeTime(row) : `${(idx % 5) + 1} d`;

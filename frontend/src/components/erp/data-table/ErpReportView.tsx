@@ -3,6 +3,7 @@
 import React, { useMemo } from "react";
 import { Download, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getRowFieldValue } from "@/lib/workspace/list-view";
 
 export interface ErpReportViewProps {
   rows: any[];
@@ -90,7 +91,7 @@ export function ErpReportView({
                   <td className="px-4 py-2 text-slate-400 font-mono text-[11px]">{idx + 1}</td>
                   {displayCols.map((col) => (
                     <td key={col.key} className="px-4 py-2 text-slate-700 dark:text-slate-200 truncate max-w-[200px]">
-                      {String(row[col.key] ?? "-")}
+                      {String(getRowFieldValue(row, col.key) ?? "-")}
                     </td>
                   ))}
                 </tr>
