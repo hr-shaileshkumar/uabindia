@@ -1,5 +1,5 @@
 // utils/api.ts — Uabindia HRMS Mobile API Client
-// Backend: .NET 8 API at http://localhost:5000/api/v1
+// Backend: .NET 10 API at http://localhost:5000/api/v1
 // Auth:    POST /api/v1/auth/login  { email, password, deviceId }
 // ESS:     GET  /api/v1/portal/dashboard | profile | leaves
 //          POST /api/v1/portal/clock-in | clock-out

@@ -856,21 +856,25 @@ p, .pub-paragraph, .readability-limit {
   }
 
   /* Form controls — Enterprise Workspace Inputs */
+  .uab-input,
   .erp-input,
   .workspace-input {
     @apply h-8.5 w-full rounded-lg border border-slate-300/80 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-xs sm:text-sm text-slate-900 dark:text-slate-100 shadow-2xs transition-all duration-150 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-blue-600 dark:focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:bg-slate-50 dark:disabled:bg-slate-800/50 disabled:opacity-60;
   }
 
+  .uab-label,
   .erp-label,
   .workspace-label {
     @apply mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300;
   }
 
+  .uab-select,
   .erp-select,
   .workspace-select {
     @apply h-8.5 w-full cursor-pointer rounded-lg border border-slate-300/80 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 text-xs sm:text-sm text-slate-900 dark:text-slate-100 shadow-2xs transition-all duration-150 focus:border-blue-600 dark:focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:bg-slate-50 dark:disabled:bg-slate-800/50 disabled:opacity-60;
   }
 
+  .uab-alert,
   .erp-alert,
   .workspace-alert {
     @apply rounded-xl border px-4 py-3 text-xs sm:text-sm font-medium;
