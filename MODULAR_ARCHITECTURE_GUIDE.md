@@ -3,7 +3,7 @@
 
 **Platform:** UABIndia ERP / SaaS Platform  
 **Technology Stack:** Next.js 16.x + React 19.x + TypeScript 5.x | ASP.NET Core (.NET 10) | SQL Server 2022+ | REST API | SignalR  
-**Architecture Paradigm:** Multi-Engine, Metadata-Driven, Multi-Tenant Modular ERP combining SAP S/4HANA enterprise governance, Workday HCM lifecycle workflows, Odoo/ERPNext modular extensibility, and modern SaaS administration.
+**Architecture Paradigm:** Multi-Engine, Metadata-Driven, Multi-Tenant UAB India Enterprise Suite featuring server-authoritative enterprise governance, full-cycle HCM workflows, modular domain extensibility, and modern SaaS administration.
 
 ---
 
@@ -86,7 +86,7 @@ Enterprise ERP systems cannot be reduced to simple list and form views. UABIndia
 | **8** | **Master-Detail Engine** | Split view linking primary document with child line items. | Synchronized header and line item grid, automatic line calculation (Quantity × Price), tax breakups. | Sales Invoices, Purchase Orders, Journal Entries. |
 | **9** | **Report Engine** | Aggregated tabular reporting with groupings and totals. | Group by column, sum/average totals, collapsible groups, export to Excel/CSV with formatting. | Trial Balance, Sales by Region, Inventory Valuation. |
 | **10** | **Pivot Engine** | Multi-dimensional cross-tabulation and drill-down. | Drag row/column dimensions, aggregation functions (Sum, Count, Min, Max), interactive drill-through. | Sales Performance, HR Cost Analysis, Budget vs Actual. |
-| **11** | **Chart & Analytics Engine**| Executive telemetry and operational KPI visualization. | 12-column drag-and-drop grid, Recharts (Bar, Line, Area, Pie, Heatmap, Gauge), layout persistence. | Executive Dashboard, Financial Health Canvas. |
+| **11** | **Chart & Analytics Engine**| Executive telemetry and operational KPI visualization. | 12-column drag-and-drop grid, Recharts (Bar, Line, Area, Pie, Heatmap, Gauge), layout persistence. | Executive Dashboard, Financial Health Dashboard. |
 | **12** | **Map / GIS Engine** | Geospatial visualization of assets, field jobs, and routes. | Interactive pins, clustering, geofence radius visualizer, route playback, asset tracking. | Field Service, Fleet Management, Attendance Geofence. |
 | **13** | **Document & Attachment Engine**| Secure file lifecycle management with cloud storage. | Drag-drop upload, versioning, preview viewer (PDF, Images), tenant-isolated cloud partitioning (`IStorageProvider`). | Invoice Receipts, Employee KYC, Contract Documents. |
 | **14** | **Import / Export Engine** | High-throughput data ingestion and extraction. | Column auto-mapping, dry-run schema validation, UTF-8 CSV/TSV/JSON streaming, background worker queueing. | Bulk Data Migration, Catalog Exports. |
@@ -374,12 +374,12 @@ Rather than an arbitrary percentage rule (such as 80/20), UABIndia selects the r
  • Simple Table/Grid               • Kanban Pipeline                  • Multi-step batch calculations
  • Standard Form Drawer            • Card stage movement              • Financial double-entry grids
  • Filter & Multi-sort             • Stage transition rules           • 2D Role-Permission matrices
- • CSV / Excel Export              • Document drag & drop             • Visual drag-drop canvas
+ • CSV / Excel Export              • Document drag & drop             • Visual drag-drop layout studio
          │                                  │                                  │
          ▼                                  ▼                                  ▼
    [DynamicPage]                    [DynamicKanban]                    [Dedicated Studio]
-(ErpFrappeTable + DynamicForm)      (CRM Deals, ATS)            (PayrollWizard, MatrixStudio,
-                                                                 MetadataDashboardCanvas)
+(UabTableView + DynamicForm)      (CRM Deals, ATS)            (PayrollWizard, MatrixStudio,
+                                                                 MetadataDashboardStudio)
 ```
 
 ---
@@ -398,7 +398,7 @@ Rather than an arbitrary percentage rule (such as 80/20), UABIndia selects the r
 
 | Priority | Architecture Pillar | Scope & Implementation Deliverables |
 |---|---|---|
-| **P0 (Current Baseline)** | **Core Engine & Governance** | Clean Architecture solution (8 projects), EF Core 17-schema physical partitioning, multi-tenant global query filters, ABAC Data Scopes, Outbox pattern with exponential backoff, DynamicPage with ErpFrappeTable, Unified Approvals Manager, cross-entity Global Search Engine (10 entities), and 328 automated passing tests. |
+| **P0 (Current Baseline)** | **Core Engine & Governance** | Clean Architecture solution (8 projects), EF Core 17-schema physical partitioning, multi-tenant global query filters, ABAC Data Scopes, Outbox pattern with exponential backoff, DynamicPage with UabTableView, Unified Approvals Manager, cross-entity Global Search Engine (10 entities), and 328 automated passing tests. |
 | **P1 (Near Term)** | **Enterprise Productivity** | Global Search Bar (`Ctrl+K`), Saved Views per user, generic Calendar Engine (Shift rosters & Leaves), dynamic Pivot Engine for finance reports, and automated Data Quality Anomaly Center. |
 | **P2 (Advanced SaaS)** | **Field Operations & Ecosystem** | Offline-first PWA sync queue with conflict resolution, White-label Tenant theme customization, Webhook Marketplace, and OpenAPI / Swagger connector SDK. |
 
