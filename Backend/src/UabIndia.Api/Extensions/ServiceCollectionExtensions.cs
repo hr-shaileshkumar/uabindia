@@ -191,6 +191,7 @@ namespace UabIndia.Api.Extensions
             services.AddScoped<IExpenseClaimService, ExpenseClaimService>();
             services.AddScoped<IEInvoiceService, EInvoiceService>();
             services.AddScoped<IBudgetingService, BudgetingService>();
+            services.AddScoped<ILedgerReconciliationService, LedgerReconciliationService>();
 
             // Multi-Currency & Localization
             services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();

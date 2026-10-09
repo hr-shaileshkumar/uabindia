@@ -75,6 +75,7 @@ namespace UabIndia.Infrastructure.Services
                 {
                     TenantId = tenantId,
                     AccountId = account.Id,
+                    Account = account,
                     DebitAmount = line.Debit,
                     CreditAmount = line.Credit,
                     Description = line.Description ?? description,
@@ -87,6 +88,92 @@ namespace UabIndia.Infrastructure.Services
             _db.JournalEntries.Add(entry);
             await _db.SaveChangesAsync(cancellationToken);
             return entry;
+        }
+
+        public async Task<JournalEntry> PostForeignExchangeSettlementAsync(
+            ForeignExchangeSettlementCommand command,
+            CancellationToken cancellationToken = default)
+        {
+            var lines = new List<LedgerLine>();
+            var settlementInr = IndiaStatutoryCalculator.RoundMoney(command.ForeignAmount * command.SettlementExchangeRate);
+            var originalInr = IndiaStatutoryCalculator.RoundMoney(command.ForeignAmount * command.OriginalExchangeRate);
+
+            if (command.SettlementType.Equals("CustomerReceipt", StringComparison.OrdinalIgnoreCase))
+            {
+                var diff = settlementInr - originalInr;
+                if (diff >= 0)
+                {
+                    lines.Add(new LedgerLine("1110", "Bank Account", "Asset", settlementInr, 0, command.Description));
+                    lines.Add(new LedgerLine("1100", "Accounts Receivable", "Asset", 0, originalInr, command.Description));
+                    if (diff > 0)
+                    {
+                        lines.Add(new LedgerLine("4301", "Foreign Exchange Gain", "Revenue", 0, diff, "Forex Gain on Receipt"));
+                    }
+                }
+                else
+                {
+                    var loss = Math.Abs(diff);
+                    lines.Add(new LedgerLine("1110", "Bank Account", "Asset", settlementInr, 0, command.Description));
+                    lines.Add(new LedgerLine("5301", "Foreign Exchange Loss", "Expense", loss, 0, "Forex Loss on Receipt"));
+                    lines.Add(new LedgerLine("1100", "Accounts Receivable", "Asset", 0, originalInr, command.Description));
+                }
+            }
+            else if (command.SettlementType.Equals("VendorPayment", StringComparison.OrdinalIgnoreCase))
+            {
+                var diff = originalInr - settlementInr;
+                if (diff >= 0)
+                {
+                    lines.Add(new LedgerLine("2100", "Accounts Payable", "Liability", originalInr, 0, command.Description));
+                    lines.Add(new LedgerLine("1110", "Bank Account", "Asset", 0, settlementInr, command.Description));
+                    if (diff > 0)
+                    {
+                        lines.Add(new LedgerLine("4301", "Foreign Exchange Gain", "Revenue", 0, diff, "Forex Gain on Payment"));
+                    }
+                }
+                else
+                {
+                    var loss = Math.Abs(diff);
+                    lines.Add(new LedgerLine("2100", "Accounts Payable", "Liability", originalInr, 0, command.Description));
+                    lines.Add(new LedgerLine("5301", "Foreign Exchange Loss", "Expense", loss, 0, "Forex Loss on Payment"));
+                    lines.Add(new LedgerLine("1110", "Bank Account", "Asset", 0, settlementInr, command.Description));
+                }
+            }
+            else
+            {
+                throw new InvalidOperationException($"Unsupported SettlementType: {command.SettlementType}");
+            }
+
+            return await PostAsync(
+                command.JournalNumberPrefix,
+                command.SettlementDate,
+                command.Description,
+                lines,
+                "ForexSettlement",
+                null,
+                cancellationToken);
+        }
+
+        public async Task<JournalEntry> PostLandedCostCapitalizationAsync(
+            decimal landedCostAmount,
+            string purchaseOrderNumber,
+            string description,
+            CancellationToken cancellationToken = default)
+        {
+            var roundedAmount = IndiaStatutoryCalculator.RoundMoney(landedCostAmount);
+            var lines = new[]
+            {
+                new LedgerLine("1400", "Inventory Asset", "Asset", roundedAmount, 0, description),
+                new LedgerLine("2105", "Landed Cost Clearing", "Liability", 0, roundedAmount, description)
+            };
+
+            return await PostAsync(
+                "JE-LCC-",
+                DateTime.UtcNow.Date,
+                description,
+                lines,
+                "LandedCost",
+                null,
+                cancellationToken);
         }
 
         private async Task EnsurePeriodOpenAsync(DateTime entryDate, CancellationToken cancellationToken)

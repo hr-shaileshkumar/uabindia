@@ -31,7 +31,43 @@ namespace UabIndia.Application.Interfaces
             string? referenceNumber,
             string? remarks,
             CancellationToken cancellationToken = default);
+
+        Task<LandedCostAllocationResult> AllocateLandedCostAsync(
+            AllocateLandedCostCommand command,
+            CancellationToken cancellationToken = default);
+
+        Task<InventoryValuationSummary> GetValuationSummaryAsync(
+            Guid warehouseId,
+            CancellationToken cancellationToken = default);
     }
+
+    public sealed record LandedCostAllocationItem(Guid ItemId, Guid WarehouseId, decimal AllocatedAmount);
+
+    public sealed record AllocateLandedCostCommand(
+        string ReferenceNumber,
+        string Description,
+        IReadOnlyList<LandedCostAllocationItem> Allocations,
+        bool PostJournalEntry = false,
+        Guid? ReferenceId = null);
+
+    public sealed record LandedCostAllocationResult(
+        int ItemsUpdated,
+        decimal TotalAllocated,
+        JournalEntry? JournalEntry);
+
+    public sealed record InventoryValuationItem(
+        Guid ItemId,
+        string ItemCode,
+        string ItemName,
+        decimal QuantityOnHand,
+        decimal AverageUnitCost,
+        decimal TotalValuation);
+
+    public sealed record InventoryValuationSummary(
+        int TotalDistinctItems,
+        decimal TotalQuantityOnHand,
+        decimal TotalValuationAmount,
+        IReadOnlyList<InventoryValuationItem> Items);
 
     public sealed record RecordStockMovementCommand(
         DateTime MovementDate,

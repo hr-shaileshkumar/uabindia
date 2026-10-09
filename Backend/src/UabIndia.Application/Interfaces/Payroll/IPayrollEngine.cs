@@ -24,6 +24,16 @@ namespace UabIndia.Application.Interfaces
             CancellationToken cancellationToken = default);
     }
 
+    public sealed record ForeignExchangeSettlementCommand(
+        string JournalNumberPrefix,
+        DateTime SettlementDate,
+        string Description,
+        string CurrencyCode,
+        decimal SettlementExchangeRate,
+        decimal OriginalExchangeRate,
+        decimal ForeignAmount,
+        string SettlementType);
+
     public interface ILedgerPostingService
     {
         Task<JournalEntry> PostAsync(
@@ -33,6 +43,16 @@ namespace UabIndia.Application.Interfaces
             IReadOnlyList<LedgerLine> lines,
             string? referenceType = null,
             Guid? referenceId = null,
+            CancellationToken cancellationToken = default);
+
+        Task<JournalEntry> PostForeignExchangeSettlementAsync(
+            ForeignExchangeSettlementCommand command,
+            CancellationToken cancellationToken = default);
+
+        Task<JournalEntry> PostLandedCostCapitalizationAsync(
+            decimal landedCostAmount,
+            string purchaseOrderNumber,
+            string description,
             CancellationToken cancellationToken = default);
     }
 

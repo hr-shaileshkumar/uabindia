@@ -13,15 +13,18 @@ namespace UabIndia.Infrastructure.Services
         private readonly ApplicationDbContext _db;
         private readonly ITenantAccessor _tenantAccessor;
         private readonly IDocumentNumberService _numbers;
+        private readonly ILedgerPostingService? _ledger;
 
         public InventoryStockService(
             ApplicationDbContext db,
             ITenantAccessor tenantAccessor,
-            IDocumentNumberService numbers)
+            IDocumentNumberService numbers,
+            ILedgerPostingService? ledger = null)
         {
             _db = db;
             _tenantAccessor = tenantAccessor;
             _numbers = numbers;
+            _ledger = ledger;
         }
 
         public async Task<StockMovement> RecordAsync(RecordStockMovementCommand command, CancellationToken cancellationToken = default)
@@ -158,7 +161,7 @@ namespace UabIndia.Infrastructure.Services
             if (warehouseId.HasValue)
                 await AdjustWarehouseBalanceAsync(tenantId, itemId, warehouseId.Value, quantity, unitPrice, cancellationToken);
 
-            return await CreateMovementAsync(
+            var movement = await CreateMovementAsync(
                 tenantId,
                 itemId,
                 warehouseId,
@@ -174,6 +177,9 @@ namespace UabIndia.Infrastructure.Services
                 null,
                 null,
                 cancellationToken);
+
+            await _db.SaveChangesAsync(cancellationToken);
+            return movement;
         }
 
         public async Task<StockMovement> StageOutboundAsync(
@@ -199,13 +205,20 @@ namespace UabIndia.Infrastructure.Services
             if (item.CurrentStock < outQty)
                 throw new InvalidOperationException("Insufficient stock for this item.");
 
-            var cost = unitCost > 0 ? unitCost : item.PurchasePrice;
+            StockBalance? balance = null;
+            if (warehouseId.HasValue)
+            {
+                balance = await _db.StockBalances.FirstOrDefaultAsync(b =>
+                    b.TenantId == tenantId && b.ItemId == itemId && b.WarehouseId == warehouseId.Value && !b.IsDeleted, cancellationToken);
+            }
+
+            var cost = unitCost > 0 ? unitCost : (balance != null && balance.AverageUnitCost > 0 ? balance.AverageUnitCost : item.PurchasePrice);
             item.CurrentStock -= outQty;
             item.UpdatedAt = DateTime.UtcNow;
             if (warehouseId.HasValue)
                 await AdjustWarehouseBalanceAsync(tenantId, itemId, warehouseId.Value, -outQty, cost, cancellationToken);
 
-            return await CreateMovementAsync(
+            var movement = await CreateMovementAsync(
                 tenantId,
                 itemId,
                 warehouseId,
@@ -221,6 +234,9 @@ namespace UabIndia.Infrastructure.Services
                 null,
                 null,
                 cancellationToken);
+
+            await _db.SaveChangesAsync(cancellationToken);
+            return movement;
         }
 
         private async Task<StockMovement> CreateMovementAsync(
@@ -299,15 +315,97 @@ namespace UabIndia.Infrastructure.Services
                 return;
             }
 
-            balance.QuantityOnHand += deltaQty;
-            if (balance.QuantityOnHand < 0)
-                balance.QuantityOnHand = 0;
+            if (deltaQty > 0)
+            {
+                var newQty = balance.QuantityOnHand + deltaQty;
+                var newTotalValue = balance.TotalValue + (deltaQty * unitPrice);
+                balance.QuantityOnHand = newQty;
+                balance.AverageUnitCost = newQty > 0 ? (newTotalValue / newQty) : unitPrice;
+                balance.TotalValue = newTotalValue;
+            }
+            else
+            {
+                balance.QuantityOnHand += deltaQty;
+                if (balance.QuantityOnHand < 0)
+                    balance.QuantityOnHand = 0;
+                balance.TotalValue = balance.QuantityOnHand * balance.AverageUnitCost;
+            }
+
             balance.QuantityAvailable = balance.QuantityOnHand - balance.QuantityReserved;
-            if (deltaQty > 0 && unitPrice > 0)
-                balance.AverageUnitCost = unitPrice;
-            balance.TotalValue = balance.QuantityOnHand * balance.AverageUnitCost;
             balance.LastUpdated = DateTime.UtcNow;
             balance.UpdatedAt = DateTime.UtcNow;
+        }
+
+        public async Task<LandedCostAllocationResult> AllocateLandedCostAsync(
+            AllocateLandedCostCommand command,
+            CancellationToken cancellationToken = default)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            int updatedCount = 0;
+            decimal totalAllocated = 0m;
+
+            foreach (var alloc in command.Allocations)
+            {
+                var balance = await _db.StockBalances.FirstOrDefaultAsync(
+                    b => b.TenantId == tenantId && b.ItemId == alloc.ItemId && b.WarehouseId == alloc.WarehouseId && !b.IsDeleted,
+                    cancellationToken);
+
+                if (balance != null && balance.QuantityOnHand > 0)
+                {
+                    balance.TotalValue += alloc.AllocatedAmount;
+                    balance.AverageUnitCost = balance.TotalValue / balance.QuantityOnHand;
+                    balance.LastUpdated = DateTime.UtcNow;
+                    balance.UpdatedAt = DateTime.UtcNow;
+                    updatedCount++;
+                    totalAllocated += alloc.AllocatedAmount;
+                }
+            }
+
+            JournalEntry? je = null;
+            if (command.PostJournalEntry && _ledger != null && totalAllocated > 0)
+            {
+                je = await _ledger.PostLandedCostCapitalizationAsync(
+                    totalAllocated,
+                    command.ReferenceNumber,
+                    command.Description,
+                    cancellationToken);
+            }
+
+            await _db.SaveChangesAsync(cancellationToken);
+            return new LandedCostAllocationResult(updatedCount, totalAllocated, je);
+        }
+
+        public async Task<InventoryValuationSummary> GetValuationSummaryAsync(
+            Guid warehouseId,
+            CancellationToken cancellationToken = default)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var balances = await _db.StockBalances
+                .Where(b => b.TenantId == tenantId && b.WarehouseId == warehouseId && !b.IsDeleted && b.QuantityOnHand > 0)
+                .ToListAsync(cancellationToken);
+
+            var itemIds = balances.Select(b => b.ItemId).Distinct().ToList();
+            var itemsDict = await _db.Items
+                .Where(i => itemIds.Contains(i.Id))
+                .ToDictionaryAsync(i => i.Id, cancellationToken);
+
+            var items = balances.Select(b =>
+            {
+                itemsDict.TryGetValue(b.ItemId, out var itm);
+                return new InventoryValuationItem(
+                    b.ItemId,
+                    itm?.ItemCode ?? string.Empty,
+                    itm?.ItemName ?? string.Empty,
+                    b.QuantityOnHand,
+                    b.AverageUnitCost,
+                    b.TotalValue);
+            }).ToList();
+
+            var distinctCount = items.Select(i => i.ItemId).Distinct().Count();
+            var totalQty = items.Sum(i => i.QuantityOnHand);
+            var totalVal = items.Sum(i => i.TotalValuation);
+
+            return new InventoryValuationSummary(distinctCount, totalQty, totalVal, items);
         }
     }
 }

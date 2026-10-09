@@ -444,7 +444,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             {
                 TenantId = tenantId,
                 DashboardKey = key,
-                Title = "Executive & Operations Command Canvas",
+                Title = "Executive & Operations Command Dashboard",
                 Description = "Adaptive enterprise analytics, operational metrics, and executive KPIs.",
                 ModuleKey = "general",
                 IsDefault = true,
