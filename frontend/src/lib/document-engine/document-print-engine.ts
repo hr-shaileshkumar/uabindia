@@ -53,7 +53,7 @@ export interface PrintDocumentOptions {
 }
 
 export function printRecordDocument(options: PrintDocumentOptions): void {
-  const companyName = options.companyName || "Enterprise Organization";
+  const companyName = options.companyName || "UAB India Enterprise Technologies Pvt. Ltd.";
   const companyAddress = options.companyAddress || "";
   const companyGstin = options.companyGstin || "";
   const logoUrl = options.logoUrl || "";
@@ -345,7 +345,7 @@ export interface PrintReportOptions {
 }
 
 export function printTabularReport(options: PrintReportOptions): void {
-  const companyName = options.companyName || "Enterprise Organization";
+  const companyName = options.companyName || "UAB India Enterprise Technologies Pvt. Ltd.";
   const companyAddress = options.companyAddress || "";
   const companyGstin = options.companyGstin || "";
   const logoUrl = options.logoUrl || "";
@@ -441,7 +441,7 @@ export function printTabularReport(options: PrintReportOptions): void {
 
     <div class="footer">
       <div>Total Records: <strong>${options.rows.length}</strong></div>
-      <div>Confidential &middot; Internal ERP Report &middot; ${escapeHtml(companyName)}</div>
+      <div>Confidential &middot; Internal UAB India Business Report &middot; ${escapeHtml(companyName)}</div>
     </div>
   </div>
 
