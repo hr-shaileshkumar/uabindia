@@ -11,7 +11,7 @@ import {
   CreditCard,
   FileText,
 } from "lucide-react";
-import { ErpModuleDashboard } from "@/components/dynamic/ErpModuleDashboard";
+import { UabModuleDashboard } from "@/components/dynamic/UabModuleDashboard";
 import { ROUTES } from "@/constants/routes";
 
 const LINKS = [
@@ -27,7 +27,7 @@ const LINKS = [
 
 export default function FinancePage() {
   return (
-    <ErpModuleDashboard
+    <UabModuleDashboard
       moduleKey="finance"
       title="Finance & Accounting"
       subtitle="General ledger, budgets, receivables, payables, GST compliance, and financial reporting."

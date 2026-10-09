@@ -2,19 +2,21 @@
 
 /**
  * Administration Global Page Shell.
- * Re-exports canonical components/erp/ErpPageShell with enterprise Administration naming.
+ * Re-exports canonical components/uab/UabPageShell with enterprise Administration naming.
  */
 
 export {
-  ErpPageShell as AdministrationGlobalPageShell,
-  ErpPageShell as PlatformGlobalPageShell,
+  UabPageShell as AdministrationGlobalPageShell,
+  UabPageShell as PlatformGlobalPageShell,
+  UabPageShell,
   ErpPageShell,
   type KpiMetricItem,
   type FilterOption,
   type PlatformListColumn as AdministrationListColumn,
   type PlatformListColumn,
   type PlatformListColumn as ErpListColumnDef,
-  type ErpPageShellProps as AdministrationGlobalPageShellProps,
-  type ErpPageShellProps as PlatformGlobalPageShellProps,
+  type UabPageShellProps as AdministrationGlobalPageShellProps,
+  type UabPageShellProps as PlatformGlobalPageShellProps,
+  type UabPageShellProps,
   type ErpPageShellProps,
-} from "@/components/erp/ErpPageShell";
+} from "@/components/uab/UabPageShell";

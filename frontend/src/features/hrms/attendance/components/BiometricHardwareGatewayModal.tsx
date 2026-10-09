@@ -216,7 +216,7 @@ export function BiometricHardwareGatewayModal({
                 Push Webhook Ingestion URL (Device ADMS / Cloud Server)
               </div>
               <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                Configure your physical machine's Webserver/ADMS settings to push punch batches directly into this endpoint.
+                Configure your physical machine&apos;s Webserver/ADMS settings to push punch batches directly into this endpoint.
               </p>
             </div>
             <button

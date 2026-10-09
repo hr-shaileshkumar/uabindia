@@ -12,7 +12,7 @@ import {
   IndianRupee,
   BarChart2,
 } from "lucide-react";
-import { ErpModuleDashboard } from "@/components/dynamic/ErpModuleDashboard";
+import { UabModuleDashboard } from "@/components/dynamic/UabModuleDashboard";
 import { ROUTES } from "@/constants/routes";
 
 const LINKS = [
@@ -27,7 +27,7 @@ const LINKS = [
 
 export default function SalesPage() {
   return (
-    <ErpModuleDashboard
+    <UabModuleDashboard
       moduleKey="sales"
       title="Sales & Revenue"
       subtitle="Orders, invoices, customers, quotations, and revenue performance across all channels."

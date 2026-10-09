@@ -199,7 +199,7 @@ export default function RecruitmentHub() {
   });
 
   const [newPostingModal, setNewPostingModal] = useState(false);
-  const [postingForm, setPostingForm] = useState({
+  const [postingForm, setPostingForm] = useState(() => ({
     title: "",
     department: "Engineering",
     location: "Noida / Remote",
@@ -212,16 +212,16 @@ export default function RecruitmentHub() {
     staffingPlanId: "",
     requiredSkills: "React, TypeScript, C#, .NET, SQL",
     description: "Seeking a passionate engineer to join our high-growth enterprise platform team.",
-  });
+  }));
 
   const [interviewModal, setInterviewModal] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
-  const [interviewForm, setInterviewForm] = useState({
+  const [interviewForm, setInterviewForm] = useState(() => ({
     candidateId: "",
     roundName: "Technical Round 1",
     scheduledDate: new Date(Date.now() + 86400000).toISOString().slice(0, 16),
     interviewer: "Hiring Manager",
-  });
+  }));
 
   const [evaluationModal, setEvaluationModal] = useState(false);
   const [evalForm, setEvalForm] = useState({
@@ -235,7 +235,7 @@ export default function RecruitmentHub() {
   });
 
   const [offerModal, setOfferModal] = useState(false);
-  const [offerForm, setOfferForm] = useState({
+  const [offerForm, setOfferForm] = useState(() => ({
     candidateId: "",
     candidateName: "",
     joiningDesignation: "Software Engineer",
@@ -244,10 +244,10 @@ export default function RecruitmentHub() {
     joiningDate: new Date(Date.now() + 15 * 86400000).toISOString().slice(0, 10),
     reportingManager: "VP of Engineering",
     offerTerms: "Standard probation of 6 months. Standard medical and annual performance bonus.",
-  });
+  }));
 
   const [appointmentModal, setAppointmentModal] = useState(false);
-  const [appointmentForm, setAppointmentForm] = useState({
+  const [appointmentForm, setAppointmentForm] = useState(() => ({
     employeeId: "",
     designation: "Software Engineer",
     department: "Engineering",
@@ -258,7 +258,7 @@ export default function RecruitmentHub() {
     workLocation: "Corporate Headquarters, Noida",
     signatoryName: "Shailesh Kumar",
     signatoryDesignation: "Director - Human Resources",
-  });
+  }));
 
   // Printable Appointment Letter state
   const [activePrintLetter, setActivePrintLetter] = useState<AppointmentLetterData | null>(null);

@@ -11,7 +11,7 @@ import {
   TrendingDown,
   Clock,
 } from "lucide-react";
-import { ErpModuleDashboard } from "@/components/dynamic/ErpModuleDashboard";
+import { UabModuleDashboard } from "@/components/dynamic/UabModuleDashboard";
 import { ROUTES } from "@/constants/routes";
 
 const LINKS = [
@@ -25,7 +25,7 @@ const LINKS = [
 
 export default function ProcurementPage() {
   return (
-    <ErpModuleDashboard
+    <UabModuleDashboard
       moduleKey="procurement"
       title="Procurement & Payables"
       subtitle="Purchase requests, vendor orders, goods receipts, bills, and supplier management."

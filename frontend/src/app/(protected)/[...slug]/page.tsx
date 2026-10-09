@@ -1,7 +1,7 @@
 "use client";
 
 import React, { use } from "react";
-import { DynamicPage } from "@/components/dynamic/DynamicPage";
+import { UniversalPageDispatcher } from "@/components/dynamic/UniversalPageDispatcher";
 
 interface DynamicRouteProps {
   params: Promise<{
@@ -9,7 +9,7 @@ interface DynamicRouteProps {
   }>;
 }
 
-export default function DynamicERPPage({ params }: DynamicRouteProps) {
+export default function DynamicUabPage({ params }: DynamicRouteProps) {
   const resolvedParams = use(params);
   const slug = resolvedParams.slug || [];
 
@@ -31,5 +31,5 @@ export default function DynamicERPPage({ params }: DynamicRouteProps) {
     }
   }
 
-  return <DynamicPage pageKey={pageKey} />;
+  return <UniversalPageDispatcher pageKey={pageKey} />;
 }

@@ -19,12 +19,13 @@ import { DynamicLineItemsEditor } from "./DynamicLineItemsEditor";
 import { DynamicRecordAttachments, type RecordAttachment } from "./engine/DynamicRecordAttachments";
 import { DynamicRecordTimeline, type TimelineEntry } from "./engine/DynamicRecordTimeline";
 import { DynamicRecordWorkflowBar } from "./engine/DynamicRecordWorkflowBar";
+import { LetterheadPreviewCard } from "@/features/administration/components/LetterheadPreviewCard";
 import type { DynamicFormSection, DynamicFormField, DynamicWorkflowConfig, WorkflowTransition } from "@/lib/dynamic-schema/types";
 import { notifyError } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
+import { getRowFieldValue } from "@/lib/workspace/list-view";
 import { usePermissions } from "@/context/PermissionContext";
 import { useAuth } from "@/context/AuthContext";
-import { LetterheadPreviewCard } from "@/features/administration/components/LetterheadPreviewCard";
 
 interface DynamicFormProps {
   sections: DynamicFormSection[];
@@ -289,7 +290,7 @@ export function DynamicForm({
       partitioned[partitioned.length - 1].lineItems = single.lineItems;
     }
     return partitioned;
-  }, [sections, hasPermission, isSuperAdmin, user]);
+  }, [sections, isSuperAdmin, isEdit, user?.id]);
 
   const [activeTabIndex, setActiveTabIndex] = useState(0);
 
@@ -297,8 +298,9 @@ export function DynamicForm({
     const defaults: Record<string, any> = {};
     for (const sec of effectiveSections) {
       for (const f of sec.fields) {
-        if (initialData && initialData[f.key] !== undefined) {
-          defaults[f.key] = initialData[f.key];
+        const existingVal = initialData ? getRowFieldValue(initialData, f.key) : undefined;
+        if (existingVal !== undefined && existingVal !== null) {
+          defaults[f.key] = existingVal;
         } else if (f.defaultValue !== undefined) {
           defaults[f.key] = f.defaultValue;
         } else {
@@ -310,6 +312,24 @@ export function DynamicForm({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  React.useEffect(() => {
+    const defaults: Record<string, any> = {};
+    for (const sec of effectiveSections) {
+      for (const f of sec.fields) {
+        const existingVal = initialData ? getRowFieldValue(initialData, f.key) : undefined;
+        if (existingVal !== undefined && existingVal !== null) {
+          defaults[f.key] = existingVal;
+        } else if (f.defaultValue !== undefined) {
+          defaults[f.key] = f.defaultValue;
+        } else {
+          defaults[f.key] = f.fieldType === "boolean" ? false : "";
+        }
+      }
+    }
+    setFormData({ ...defaults, ...(initialData || {}) });
+    setErrors({});
+  }, [initialData, effectiveSections]);
 
   const handleFieldChange = (key: string, value: any) => {
     setFormData((prev) => {
@@ -606,7 +626,7 @@ export function DynamicForm({
   const isLastTab = activeTabIndex === effectiveSections.length - 1;
 
   return (
-    <form id={formId} onSubmit={handleSubmit} className="space-y-6">
+    <form id={formId || "dynamic-record-form"} onSubmit={handleSubmit} className="space-y-6">
       {/* Workflow Transition Stepper & Action Bar */}
       {workflow && workflow.enabled && (
         <DynamicRecordWorkflowBar
@@ -625,7 +645,7 @@ export function DynamicForm({
         />
       )}
 
-      {/* Enterprise Underline Tab Navigation Bar (Frappe / ERPNext Standard) */}
+      {/* Enterprise Underline Tab Navigation Bar (UAB India Enterprise Design) */}
       {effectiveSections.length > 1 && (
         <div className="border-b border-slate-200 dark:border-slate-800">
           <nav className="-mb-px flex flex-wrap gap-1" aria-label="Form Tabs">

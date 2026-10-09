@@ -193,7 +193,7 @@ export function LetterheadPreviewCard({
         </label>
       </div>
 
-      {/* ── Scaled Stationery Paper Canvas ── */}
+      {/* ── Scaled Stationery Paper Preview ── */}
       <div className="relative mx-auto mt-2 max-w-2xl overflow-hidden rounded-xl border border-slate-300/80 bg-white p-6 shadow-md dark:border-slate-700 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-all">
         {/* Subtle Watermark */}
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.03] select-none">

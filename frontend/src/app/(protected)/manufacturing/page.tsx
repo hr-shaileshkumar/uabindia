@@ -10,7 +10,7 @@ import {
   Clock,
   CheckCircle2,
 } from "lucide-react";
-import { ErpModuleDashboard } from "@/components/dynamic/ErpModuleDashboard";
+import { UabModuleDashboard } from "@/components/dynamic/UabModuleDashboard";
 
 const LINKS = [
   { href: "/manufacturing/work-orders", label: "Work Orders", icon: Cpu, desc: "Production job cards and BOM execution" },
@@ -22,7 +22,7 @@ const LINKS = [
 
 export default function ManufacturingPage() {
   return (
-    <ErpModuleDashboard
+    <UabModuleDashboard
       moduleKey="manufacturing"
       title="Manufacturing & Production"
       subtitle="Work orders, bill of materials, production planning, and shop floor execution."

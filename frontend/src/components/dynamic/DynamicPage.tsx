@@ -34,14 +34,15 @@ import { DynamicForm } from "./DynamicForm";
 import { renderDynamicTableCell, cleanFieldLabel } from "./DynamicFieldRegistry";
 import { DynamicRecordTimeline } from "./engine/DynamicRecordTimeline";
 import { DynamicKanbanView } from "./engine/DynamicKanbanView";
+import { DynamicCalendarView } from "./engine/DynamicCalendarView";
 import {
-  ErpFrappeListToolbar,
-  ErpFrappeTableView,
-  ErpCardGridView,
-  ErpReportView,
+  UabListToolbar,
+  UabTableView,
+  UabCardGridView,
+  UabReportView,
   type ErpViewMode,
   type FilterRule,
-} from "@/components/erp/data-table";
+} from "@/components/uab/data-table";
 import { platformApi } from "@/services/modules/administration";
 import { appApi } from "@/services/modules";
 import apiClient from "@/services/apiClient";
@@ -77,7 +78,7 @@ export function pageSchemaToDynamicSchema(cat: PageSchema): DynamicPageSchema {
     moduleKey: cat.moduleKey,
     pageFamily: cat.pageFamily as any,
     pageType: cat.pageType as any,
-    viewType: cat.viewType === "kanban" ? "kanban" : cat.viewType === "split" ? "split" : "table",
+    viewType: cat.viewType === "kanban" ? "kanban" : cat.viewType === "calendar" ? "calendar" : cat.viewType === "split" ? "split" : "table",
     apiEndpoint: cat.apiEndpoint || `/api/v1/${cat.pageKey.replace(".", "/")}`,
     columns: (cat.columns || []).map((c) => ({
       key: c.key,
@@ -242,8 +243,14 @@ export function DynamicPage({
   const [search, setSearch] = useState("");
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
-  // ── Frappe List View Enhancements State ──
-  const [viewMode, setViewMode] = useState<ErpViewMode>("list");
+  // ── UAB India List View Engine State ──
+  const [viewMode, setViewMode] = useState<ErpViewMode>(() =>
+    schema?.viewType === "kanban"
+      ? "kanban"
+      : schema?.viewType === "calendar"
+      ? "calendar"
+      : "list"
+  );
   const [quickFilterValues, setQuickFilterValues] = useState<Record<string, string>>({});
   const [advancedFilters, setAdvancedFilters] = useState<FilterRule[]>([]);
   const [filterAst, setFilterAst] = useState<FilterGroup | null>(null);
@@ -1253,7 +1260,7 @@ export function DynamicPage({
         <div className="w-full">
         <div className="w-full space-y-6">
 
-          {/* Frappe Document Header Banner */}
+          {/* UAB India Document Header Banner */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
             <div className="flex items-center gap-3">
               <button
@@ -1461,8 +1468,8 @@ export function DynamicPage({
           </div>
         </div>
 
-        {/* Frappe-Style Action & Filter Toolbar */}
-        <ErpFrappeListToolbar
+        {/* UAB India Action & Filter Toolbar */}
+        <UabListToolbar
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           onRefresh={() => void fetchData()}
@@ -1583,26 +1590,26 @@ export function DynamicPage({
         )}
 
         {viewMode === "image" && (
-          <ErpCardGridView
+          <UabCardGridView
             rows={filteredRecords}
             titleKey={visibleColumns[0]?.key || "name"}
             idField={schema.idField || "id"}
-            onEdit={(row) => {
+            onEdit={(row: any) => {
               if (canEdit) {
                 setEditingRecord(row);
                 setDrawerMode("edit");
               }
             }}
-            onDelete={canDelete ? (row) => setDeleteTarget(row) : undefined}
+            onDelete={canDelete ? (row: any) => setDeleteTarget(row) : undefined}
             favorites={favorites}
             onToggleFavorite={handleToggleFavorite}
-            onOpenComments={(row) => setActiveTimelineRecord(row)}
+            onOpenComments={(row: any) => setActiveTimelineRecord(row)}
             getRelativeTime={getRelativeTime}
           />
         )}
 
         {viewMode === "report" && (
-          <ErpReportView
+          <UabReportView
             rows={filteredRecords}
             columns={schema.columns || []}
             onExportCsv={() => {
@@ -1613,8 +1620,34 @@ export function DynamicPage({
           />
         )}
 
+        {viewMode === "calendar" && (
+          <DynamicCalendarView
+            rows={filteredRecords}
+            columns={schema.columns || []}
+            onEdit={(row) => {
+              if (canEdit) {
+                setEditingRecord(row);
+                setDrawerMode("edit");
+              }
+            }}
+            onCreateOnDate={
+              canCreate
+                ? (dateStr) => {
+                    const dateCol = schema.columns?.find(
+                      (c) => c.dataType === "date" || /date|due|start|effective/i.test(c.key)
+                    );
+                    const initialRow = dateCol ? { [dateCol.key]: dateStr } : {};
+                    setEditingRecord(initialRow);
+                    setDrawerMode("create");
+                  }
+                : undefined
+            }
+            idField={schema.idField || "id"}
+          />
+        )}
+
         {viewMode === "list" && (
-          <ErpFrappeTableView
+          <UabTableView
             rows={serverTotalRecords !== null ? records : filteredRecords}
             columns={visibleColumns}
             density={density}

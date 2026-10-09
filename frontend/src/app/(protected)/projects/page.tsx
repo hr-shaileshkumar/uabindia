@@ -10,7 +10,7 @@ import {
   FileText,
   CalendarDays,
 } from "lucide-react";
-import { ErpModuleDashboard } from "@/components/dynamic/ErpModuleDashboard";
+import { UabModuleDashboard } from "@/components/dynamic/UabModuleDashboard";
 
 const LINKS = [
   { href: "/projects/tasks", label: "Tasks", icon: CheckSquare, desc: "Assignments, priorities, and progress" },
@@ -22,7 +22,7 @@ const LINKS = [
 
 export default function ProjectsPage() {
   return (
-    <ErpModuleDashboard
+    <UabModuleDashboard
       moduleKey="projects"
       title="Project Management"
       subtitle="Projects, tasks, milestones, resource planning, and time tracking."

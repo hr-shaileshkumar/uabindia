@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
@@ -44,7 +45,7 @@ function ProtectedShellLoading() {
   }, []);
 
   return (
-    <div className="erp-app-canvas relative flex min-h-[100dvh] flex-col overflow-hidden bg-slate-50/50" role="status" aria-live="polite">
+    <div className="uab-app-shell erp-app-canvas relative flex min-h-[100dvh] flex-col overflow-hidden bg-slate-50/50" role="status" aria-live="polite">
       <span className="sr-only">Loading your workspace</span>
 
       {/* Top indeterminate loading indicator bar */}
@@ -145,12 +146,12 @@ function ProtectedShellLoading() {
               >
                 Reload
               </button>
-              <a
+              <Link
                 href="/login"
                 className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-50 transition"
               >
                 Login
-              </a>
+              </Link>
             </div>
           </div>
         )}

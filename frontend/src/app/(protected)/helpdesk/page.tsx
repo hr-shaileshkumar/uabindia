@@ -10,7 +10,7 @@ import {
   Clock,
   CheckCircle2,
 } from "lucide-react";
-import { ErpModuleDashboard } from "@/components/dynamic/ErpModuleDashboard";
+import { UabModuleDashboard } from "@/components/dynamic/UabModuleDashboard";
 
 const LINKS = [
   { href: "/helpdesk/tickets", label: "Support Tickets", icon: Ticket, desc: "Customer issues and resolution tracking" },
@@ -20,7 +20,7 @@ const LINKS = [
 
 export default function HelpdeskPage() {
   return (
-    <ErpModuleDashboard
+    <UabModuleDashboard
       moduleKey="helpdesk"
       title="Help Desk & Support"
       subtitle="Customer support tickets, SLA tracking, escalations, and knowledge base."

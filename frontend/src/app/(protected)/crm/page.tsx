@@ -11,7 +11,7 @@ import {
   Mail,
   Target,
 } from "lucide-react";
-import { ErpModuleDashboard } from "@/components/dynamic/ErpModuleDashboard";
+import { UabModuleDashboard } from "@/components/dynamic/UabModuleDashboard";
 import { ROUTES } from "@/constants/routes";
 
 const LINKS = [
@@ -27,7 +27,7 @@ const LINKS = [
 
 export default function CrmHomePage() {
   return (
-    <ErpModuleDashboard
+    <UabModuleDashboard
       moduleKey="crm"
       title="Customer Relationship Management"
       subtitle="Leads, pipeline, contacts, and customer accounts — from first touch to closed deal."

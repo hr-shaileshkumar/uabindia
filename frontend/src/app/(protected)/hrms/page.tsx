@@ -12,7 +12,7 @@ import {
   Award,
   BarChart2,
 } from "lucide-react";
-import { ErpModuleDashboard } from "@/components/dynamic/ErpModuleDashboard";
+import { UabModuleDashboard } from "@/components/dynamic/UabModuleDashboard";
 import { ROUTES } from "@/constants/routes";
 
 const LINKS = [
@@ -32,7 +32,7 @@ const LINKS = [
 
 export default function HrmsPage() {
   return (
-    <ErpModuleDashboard
+    <UabModuleDashboard
       moduleKey="hrms"
       title="Human Resources"
       subtitle="People operations — headcount, attendance, leave, hiring, and the full employee lifecycle."

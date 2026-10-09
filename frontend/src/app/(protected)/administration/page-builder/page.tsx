@@ -24,16 +24,20 @@ import {
   Search,
   ExternalLink,
   Calculator,
+  Calendar,
+  Kanban,
+  Check,
+  Zap,
 } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import HeaderSummary from "@/components/layout/HeaderSummary";
 import { CrudCard } from "@/components/workspace/crud-workspace";
-import { DynamicPage } from "@/components/dynamic/DynamicPage";
+import { UniversalPageDispatcher } from "@/components/dynamic/UniversalPageDispatcher";
 import { platformApi } from "@/services/modules/administration";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { cn } from "@/lib/utils";
-import { VisualCanvasDesigner } from "@/components/dynamic/builder/VisualCanvasDesigner";
+import { UabLayoutStudio } from "@/components/dynamic/builder/UabLayoutStudio";
 import type {
   DynamicColumn,
   DynamicFilter,
@@ -45,7 +49,105 @@ import type {
   UiPageSummary,
 } from "@/lib/dynamic-schema/types";
 
-type BuilderTab = "visual" | "basics" | "columns" | "filters" | "form" | "lineItems" | "actions" | "preview" | "history";
+export const ARCHETYPE_OPTIONS = [
+  {
+    key: "master" as const,
+    title: "Master Register & Catalog",
+    description: "Tabular data registry with search, advanced filter AST, sorting, pagination, multi-select bulk operations, and slide-over drawer CRUD.",
+    icon: Table,
+    iconBg: "bg-blue-50 dark:bg-blue-950/40",
+    iconColor: "text-blue-600 dark:text-blue-400",
+    features: [
+      "Responsive high-density data grid",
+      "Slide-over create & edit drawer form",
+      "Filter AST builder & quick presets",
+      "Column show/hide and reordering",
+    ],
+  },
+  {
+    key: "dashboard" as const,
+    title: "Module & Submodule Hub",
+    description: "Operational launchpad with executive KPI stat tiles, sub-module quick navigation cards, telemetry feeds, and domain status overview.",
+    icon: Layout,
+    iconBg: "bg-indigo-50 dark:bg-indigo-950/40",
+    iconColor: "text-indigo-600 dark:text-indigo-400",
+    features: [
+      "Executive KPI summary cards with trends",
+      "Submodule & register navigation grid",
+      "Operational status and recent activity",
+      "One-click quick create shortcuts",
+    ],
+  },
+  {
+    key: "document" as const,
+    title: "Commercial Document Voucher",
+    description: "Commercial transaction voucher with document metadata headers, itemized line items grid, GST taxation formulas, grand totals strip, and PDF print.",
+    icon: FileText,
+    iconBg: "bg-emerald-50 dark:bg-emerald-950/40",
+    iconColor: "text-emerald-600 dark:text-emerald-400",
+    features: [
+      "Header details (Vendor/Customer, Date, Ref)",
+      "Line items grid with SKU lookup & qty/rate",
+      "GST taxes, discount & grand totals strip",
+      "Direct printable PDF voucher export",
+    ],
+  },
+  {
+    key: "kanban" as const,
+    title: "State Progression Pipeline",
+    description: "Workflow board organizing records by lifecycle states. Move items seamlessly across stages with status badges and permission enforcement.",
+    icon: Kanban,
+    iconBg: "bg-purple-50 dark:bg-purple-950/40",
+    iconColor: "text-purple-600 dark:text-purple-400",
+    features: [
+      "Lane-based workflow progression",
+      "Card quick actions and summaries",
+      "State transition rule validation",
+      "Lead/Candidate/Task lifecycle tracking",
+    ],
+  },
+  {
+    key: "calendar" as const,
+    title: "Roster & Calendar Scheduler",
+    description: "Temporal scheduling view mapping business records across monthly and weekly date grids with click-to-create date binding.",
+    icon: Calendar,
+    iconBg: "bg-amber-50 dark:bg-amber-950/40",
+    iconColor: "text-amber-600 dark:text-amber-400",
+    features: [
+      "Month and week interactive calendars",
+      "Direct click-to-add on date cells",
+      "Shift, attendance, and expiry tracking",
+      "Status-coded event badges",
+    ],
+  },
+  {
+    key: "studio" as const,
+    title: "Executive Command Studio",
+    description: "Telemetry dashboard designer featuring flexible analytical cards, system health monitors, and split-screen operational metrics.",
+    icon: Sparkles,
+    iconBg: "bg-rose-50 dark:bg-rose-950/40",
+    iconColor: "text-rose-600 dark:text-rose-400",
+    features: [
+      "Customizable metric widgets",
+      "Real-time operational gauges",
+      "Configurable split-view layouts",
+      "Domain telemetry feeds",
+    ],
+  },
+];
+
+type BuilderTab =
+  | "archetype"
+  | "visual"
+  | "basics"
+  | "columns"
+  | "filters"
+  | "form"
+  | "lineItems"
+  | "addons"
+  | "actions"
+  | "preview"
+  | "history";
 
 export default function PageBuilderStudio() {
   const [pages, setPages] = useState<UiPageSummary[]>([]);
@@ -256,6 +358,83 @@ export default function PageBuilderStudio() {
     }
   };
 
+  // Apply Archetype Preset Defaults
+  const handleApplyArchetype = (archetypeKey: "master" | "dashboard" | "document" | "kanban" | "calendar" | "studio") => {
+    setSchema((prev) => {
+      const next = { ...prev, archetype: archetypeKey };
+      if (archetypeKey === "dashboard") {
+        next.viewType = "cards";
+        if (!next.kpiMetrics || next.kpiMetrics.length === 0) {
+          next.kpiMetrics = [
+            { label: "Total Volume", value: "₹24.8 L", tone: "positive" },
+            { label: "Active Records", value: "1,240", tone: "info" },
+            { label: "Pending Approvals", value: "18", tone: "warning" },
+            { label: "Processing SLA", value: "99.4%", tone: "positive" },
+          ];
+        }
+      } else if (archetypeKey === "document") {
+        next.viewType = "table";
+        const sections = [...(prev.form?.sections || [])];
+        if (sections.length === 0) {
+          sections.push({ title: "Document Details", fields: [] });
+        }
+        if (!sections.some((s) => s.lineItems)) {
+          sections[0] = {
+            ...sections[0],
+            lineItems: {
+              key: "items",
+              title: "Line Items & Commercials",
+              allowAdd: true,
+              allowDelete: true,
+              totalComputedField: "totalAmount",
+              columns: [
+                { key: "itemCode", label: "Item / SKU", dataType: "lookup", required: true, width: "w-40" },
+                { key: "description", label: "Description", dataType: "string", width: "w-56" },
+                { key: "quantity", label: "Qty", dataType: "number", required: true, width: "w-24" },
+                { key: "unitPrice", label: "Rate (₹)", dataType: "currency", required: true, width: "w-32" },
+                { key: "taxRate", label: "GST %", dataType: "number", width: "w-24" },
+                { key: "lineTotal", label: "Amount (₹)", dataType: "currency", formula: "quantity * unitPrice", readOnly: true, width: "w-36" },
+              ],
+            },
+          };
+        }
+        next.form = { sections };
+        if (!next.actions?.some((a) => a.key === "print")) {
+          next.actions = [...(next.actions || []), { key: "print", label: "Print / PDF Voucher", actionType: "button" }];
+        }
+      } else if (archetypeKey === "kanban") {
+        next.viewType = "kanban";
+        if (!next.workflowConfig?.enabled) {
+          next.workflowConfig = {
+            enabled: true,
+            workflowName: `${next.entityName} Pipeline`,
+            stateField: "status",
+            initialState: "Draft",
+            states: [
+              { name: "Draft", label: "Draft", tone: "neutral" },
+              { name: "In Progress", label: "In Progress", tone: "info" },
+              { name: "Under Review", label: "Under Review", tone: "warning" },
+              { name: "Approved", label: "Approved", tone: "positive", isFinal: true },
+            ],
+            transitions: [
+              { action: "submit", label: "Submit for Review", fromState: "Draft", toState: "Under Review" },
+              { action: "approve", label: "Approve", fromState: "Under Review", toState: "Approved" },
+              { action: "reject", label: "Return to Draft", fromState: "Under Review", toState: "Draft" },
+            ],
+          };
+        }
+      } else if (archetypeKey === "calendar") {
+        next.viewType = "calendar";
+      } else if (archetypeKey === "studio") {
+        next.viewType = "split";
+      } else {
+        next.viewType = "table";
+      }
+      return next;
+    });
+    notifySuccess(`Archetype set to "${archetypeKey.toUpperCase()}". Defaults applied.`);
+  };
+
   // Toggle Column inclusion
   const handleToggleColumn = (field: any) => {
     setSchema((prev) => {
@@ -378,15 +557,17 @@ export default function PageBuilderStudio() {
         {/* Tab Navigation */}
         <div className="flex flex-wrap gap-1 border-b border-slate-200 dark:border-slate-800 pb-px">
           {[
-            { key: "visual", label: "🎨 Visual Drag & Drop Canvas", icon: Sparkles, highlight: true },
+            { key: "archetype", label: "⚡ Archetype & Presets", icon: Zap, highlight: true },
+            { key: "visual", label: "🎨 Visual Studio Designer", icon: Sparkles },
             { key: "basics", label: "1. Page & Entity", icon: Layout },
             { key: "columns", label: "2. Table Columns", icon: Table },
             { key: "filters", label: "3. Filters & KPIs", icon: SlidersHorizontal },
             { key: "form", label: "4. Form & Sections", icon: FileText },
             { key: "lineItems", label: "5. Line Items Grid", icon: Calculator },
-            { key: "actions", label: "6. Actions & Security", icon: Shield },
-            { key: "preview", label: "7. Interactive Live Preview", icon: Eye },
-            { key: "history", label: "8. Versions & Rollback", icon: RotateCcw },
+            { key: "addons", label: "6. Universal Add-ons", icon: Shield, highlight: true },
+            { key: "actions", label: "7. Actions & Security", icon: Shield },
+            { key: "preview", label: "8. Interactive Live Preview", icon: Eye },
+            { key: "history", label: "9. Versions & Rollback", icon: RotateCcw },
           ].map((tab) => {
             const Icon = tab.icon;
             const isCurrent = activeTab === tab.key;
@@ -413,7 +594,88 @@ export default function PageBuilderStudio() {
         {/* Tab Contents */}
         <CrudCard>
           <div className="p-6">
-            {/* ─── TAB 0: Visual Drag & Drop Canvas ────────────────────────── */}
+            {/* ─── TAB: Page Archetype & Presets ────────────────────────── */}
+            {activeTab === "archetype" && (
+              <div className="space-y-6">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                      <Zap className="h-4 w-4 text-amber-500" />
+                      Universal Page Archetype Engine
+                    </h3>
+                    <span className="rounded-full bg-indigo-100 dark:bg-indigo-950 px-2 py-0.5 text-[10px] font-bold text-indigo-700 dark:text-indigo-300">
+                      UAB India Smart Presets
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Select what kind of page this is. The engine automatically adapts the UI structure, behavior, features, and default addons to match the chosen archetype.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {ARCHETYPE_OPTIONS.map((opt) => {
+                    const isSelected = (schema.archetype || "master") === opt.key;
+                    const Icon = opt.icon;
+                    return (
+                      <div
+                        key={opt.key}
+                        onClick={() => handleApplyArchetype(opt.key)}
+                        className={cn(
+                          "relative p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between group",
+                          isSelected
+                            ? "border-indigo-600 bg-indigo-50/40 ring-2 ring-indigo-500/20 dark:border-indigo-500 dark:bg-indigo-950/30"
+                            : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-xs dark:border-slate-800 dark:bg-slate-900/60"
+                        )}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <div className={cn("p-2.5 rounded-xl", opt.iconBg)}>
+                              <Icon className={cn("h-5 w-5", opt.iconColor)} />
+                            </div>
+                            {isSelected && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-600 text-[10px] font-bold text-white">
+                                <Check className="h-3 w-3" /> Active
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100">{opt.title}</h4>
+                          <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">{opt.description}</p>
+
+                          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 space-y-1">
+                            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Included Features:</span>
+                            <ul className="text-[11px] text-slate-600 dark:text-slate-300 space-y-0.5">
+                              {opt.features.map((feat, i) => (
+                                <li key={i} className="flex items-center gap-1.5">
+                                  <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
+                                  <span>{feat}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 pt-3 flex items-center justify-between">
+                          <span className="text-[10px] font-mono text-slate-400">archetype: &quot;{opt.key}&quot;</span>
+                          <button
+                            type="button"
+                            className={cn(
+                              "px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors",
+                              isSelected
+                                ? "bg-indigo-600 text-white"
+                                : "bg-slate-100 text-slate-700 group-hover:bg-indigo-50 group-hover:text-indigo-600 dark:bg-slate-800 dark:text-slate-200"
+                            )}
+                          >
+                            {isSelected ? "Selected" : "Apply Archetype"}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ─── TAB 0: UAB Visual Drag & Drop Studio ────────────────────────── */}
             {activeTab === "visual" && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
@@ -436,7 +698,7 @@ export default function PageBuilderStudio() {
                   </button>
                 </div>
 
-                <VisualCanvasDesigner
+                <UabLayoutStudio
                   schema={schema}
                   onChange={setSchema}
                   availableDbFields={availableFields}
@@ -1253,6 +1515,221 @@ export default function PageBuilderStudio() {
               </div>
             )}
 
+            {/* ─── TAB: Universal Global Add-ons Manager ────────────────────── */}
+            {activeTab === "addons" && (
+              <div className="space-y-6 max-w-4xl">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                      <Shield className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                      Universal Global Add-ons & Plugins
+                    </h3>
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                      Single-Point Configuration
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Configure modular capabilities for this page. Enabling any add-on here automatically binds all necessary UI controls, backend validations, and audit hooks.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  {/* ADDON 1: Workflow & State Machine */}
+                  <div className="p-4 rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          id="addon-workflow"
+                          checked={Boolean(schema.workflowConfig?.enabled)}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setSchema((prev) => ({
+                              ...prev,
+                              workflowConfig: checked
+                                ? {
+                                    enabled: true,
+                                    workflowName: `${prev.entityName} Approval Workflow`,
+                                    stateField: "status",
+                                    initialState: "Draft",
+                                    states: [
+                                      { name: "Draft", label: "Draft", tone: "neutral" },
+                                      { name: "Pending", label: "Pending Review", tone: "warning" },
+                                      { name: "Approved", label: "Approved", tone: "positive", isFinal: true },
+                                      { name: "Rejected", label: "Rejected", tone: "negative", isFinal: true },
+                                    ],
+                                    transitions: [
+                                      { action: "submit", label: "Submit for Approval", fromState: "Draft", toState: "Pending" },
+                                      { action: "approve", label: "Approve Record", fromState: "Pending", toState: "Approved" },
+                                      { action: "reject", label: "Reject Record", fromState: "Pending", toState: "Rejected" },
+                                    ],
+                                  }
+                                : undefined,
+                            }));
+                          }}
+                          className="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <div>
+                          <label htmlFor="addon-workflow" className="font-bold text-xs text-slate-800 dark:text-slate-200 cursor-pointer">
+                            State Machine & Multi-Stage Approval Workflow
+                          </label>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            Binds a visual workflow status bar, approval buttons, role-based transitions, and remarks collection to every record.
+                          </p>
+                        </div>
+                      </div>
+                      <span className={cn(
+                        "text-[10px] font-bold px-2 py-0.5 rounded-full",
+                        schema.workflowConfig?.enabled ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
+                      )}>
+                        {schema.workflowConfig?.enabled ? "Enabled" : "Disabled"}
+                      </span>
+                    </div>
+
+                    {schema.workflowConfig?.enabled && (
+                      <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Configured States:</span>
+                        <div className="flex flex-wrap gap-2">
+                          {schema.workflowConfig.states.map((st) => (
+                            <span key={st.name} className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                              {st.label} {st.isFinal ? "✓" : "→"}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ADDON 2: Audit Timeline */}
+                  <div className="p-4 rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 flex items-start justify-between">
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        id="addon-timeline"
+                        checked={schema.hasTimeline ?? true}
+                        onChange={(e) => setSchema((prev) => ({ ...prev, hasTimeline: e.target.checked }))}
+                        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <div>
+                        <label htmlFor="addon-timeline" className="font-bold text-xs text-slate-800 dark:text-slate-200 cursor-pointer">
+                          Audit Timeline & Historical Activity Trail
+                        </label>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Automatically captures who created or modified records, state transitions, comments, and field diffs in a chronological activity stream.
+                        </p>
+                      </div>
+                    </div>
+                    <span className={cn(
+                      "text-[10px] font-bold px-2 py-0.5 rounded-full",
+                      (schema.hasTimeline ?? true) ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
+                    )}>
+                      {(schema.hasTimeline ?? true) ? "Enabled" : "Disabled"}
+                    </span>
+                  </div>
+
+                  {/* ADDON 3: File & Document Attachments */}
+                  <div className="p-4 rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 flex items-start justify-between">
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        id="addon-attachments"
+                        checked={schema.hasAttachments ?? true}
+                        onChange={(e) => setSchema((prev) => ({ ...prev, hasAttachments: e.target.checked }))}
+                        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <div>
+                        <label htmlFor="addon-attachments" className="font-bold text-xs text-slate-800 dark:text-slate-200 cursor-pointer">
+                          Enterprise Document & Media Attachments
+                        </label>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Enables drag-and-drop document upload, file previews (PDFs, images, spreadsheets), file-size limits, and secure storage links.
+                        </p>
+                      </div>
+                    </div>
+                    <span className={cn(
+                      "text-[10px] font-bold px-2 py-0.5 rounded-full",
+                      (schema.hasAttachments ?? true) ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
+                    )}>
+                      {(schema.hasAttachments ?? true) ? "Enabled" : "Disabled"}
+                    </span>
+                  </div>
+
+                  {/* ADDON 4: Bulk Import & Export */}
+                  <div className="p-4 rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 flex items-start justify-between">
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        id="addon-bulk"
+                        checked={Boolean(schema.actions?.some((a) => a.key === "export"))}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setSchema((prev) => {
+                            const nextActions = (prev.actions || []).filter((a) => a.key !== "export" && a.key !== "import");
+                            if (checked) {
+                              nextActions.push({ key: "export", label: "Export CSV / Excel", actionType: "button" });
+                              nextActions.push({ key: "import", label: "Bulk Import", actionType: "button" });
+                            }
+                            return { ...prev, actions: nextActions };
+                          });
+                        }}
+                        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <div>
+                        <label htmlFor="addon-bulk" className="font-bold text-xs text-slate-800 dark:text-slate-200 cursor-pointer">
+                          Bulk Import & Universal Excel/CSV Export
+                        </label>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Generates downloadable schema templates for batch record creation and delivers filtered data exports in CSV and XLSX format.
+                        </p>
+                      </div>
+                    </div>
+                    <span className={cn(
+                      "text-[10px] font-bold px-2 py-0.5 rounded-full",
+                      schema.actions?.some((a) => a.key === "export") ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
+                    )}>
+                      {schema.actions?.some((a) => a.key === "export") ? "Enabled" : "Disabled"}
+                    </span>
+                  </div>
+
+                  {/* ADDON 5: PDF Voucher & Print Engine */}
+                  <div className="p-4 rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 flex items-start justify-between">
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        id="addon-print"
+                        checked={Boolean(schema.actions?.some((a) => a.key === "print"))}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setSchema((prev) => {
+                            const nextActions = (prev.actions || []).filter((a) => a.key !== "print");
+                            if (checked) {
+                              nextActions.push({ key: "print", label: "Print Voucher", actionType: "button" });
+                            }
+                            return { ...prev, actions: nextActions };
+                          });
+                        }}
+                        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <div>
+                        <label htmlFor="addon-print" className="font-bold text-xs text-slate-800 dark:text-slate-200 cursor-pointer">
+                          Document Print Engine & PDF Generator
+                        </label>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Produces standardized vouchers and printable documents with corporate branding, QR code validation, and tax summaries.
+                        </p>
+                      </div>
+                    </div>
+                    <span className={cn(
+                      "text-[10px] font-bold px-2 py-0.5 rounded-full",
+                      schema.actions?.some((a) => a.key === "print") ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
+                    )}>
+                      {schema.actions?.some((a) => a.key === "print") ? "Enabled" : "Disabled"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* ─── TAB 6: Actions & Security ──────────────────────────────────── */}
             {activeTab === "actions" && (
               <div className="space-y-6 max-w-3xl">
@@ -1342,7 +1819,7 @@ export default function PageBuilderStudio() {
                       </span>
                     </div>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      This is the actual DynamicPage engine rendering your schema with live data before you publish.
+                      This is the actual UniversalPageDispatcher rendering your schema archetype with live data before you publish.
                     </p>
                   </div>
 
@@ -1356,7 +1833,7 @@ export default function PageBuilderStudio() {
                 </div>
 
                 <div className="rounded-2xl border border-slate-300 dark:border-slate-700 overflow-hidden shadow-xs bg-slate-50">
-                  <DynamicPage pageKey={selectedPageKey} initialSchema={schema} previewMode={true} />
+                  <UniversalPageDispatcher pageKey={selectedPageKey} schema={schema} />
                 </div>
               </div>
             )}

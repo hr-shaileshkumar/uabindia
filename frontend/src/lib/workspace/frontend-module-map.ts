@@ -79,7 +79,7 @@ export const FRONTEND_MODULE_MAP: FrontendModuleDefinition[] = [
         purpose: "System settings, schema modeling, dynamic navigation, and feature toggles.",
         pages: [
           { label: "Navigation & Modules", route: ROUTES.ADMINISTRATION_NAVIGATION, purpose: "Map modules, routes, and UI shell metadata.", display: "settings", status: "implemented" },
-          { label: "Page Builder", route: ROUTES.ADMINISTRATION_PAGE_BUILDER, purpose: "Interactive visual drag-and-drop page, form, and canvas designer studio.", display: "settings", status: "implemented" },
+          { label: "Page Builder", route: ROUTES.ADMINISTRATION_PAGE_BUILDER, purpose: "Interactive visual drag-and-drop page, form, and layout designer studio.", display: "settings", status: "implemented" },
           { label: "Schema Manager", route: ROUTES.ADMINISTRATION_SCHEMA_MANAGER, purpose: "Manage backend UI schema, JSON layouts, and route rules.", display: "settings", status: "implemented" },
           { label: "Entity Builder", route: ROUTES.ADMINISTRATION_ENTITY_BUILDER, purpose: "Visual entity schema and custom fields modeler.", display: "settings", status: "implemented" },
           { label: "Menu Builder", route: ROUTES.ADMINISTRATION_MENU_BUILDER, purpose: "Visual drag-and-drop navigation and sidebar menu builder.", display: "settings", status: "implemented" },

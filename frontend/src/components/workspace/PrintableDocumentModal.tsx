@@ -102,7 +102,7 @@ export function PrintableDocumentModal({
           </div>
         </div>
 
-        {/* Printable Canvas Area */}
+        {/* Printable Document Area */}
         <div ref={printContentRef} className="p-8 sm:p-10 bg-white text-slate-900 print:p-4 font-sans text-xs">
           {/* Header Card */}
           <div className="flex justify-between items-start border-b border-slate-300 pb-6">

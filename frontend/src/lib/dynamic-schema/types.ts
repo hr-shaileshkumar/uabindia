@@ -165,14 +165,16 @@ export interface DynamicKpiMetric {
   subtext?: string;
 }
 
-export type ErpPageFamily =
+export type UabPageFamily =
   | "information"
   | "data_entry"
   | "process"
   | "configuration"
   | "supporting";
 
-export type ErpPageType =
+export type ErpPageFamily = UabPageFamily;
+
+export type UabPageType =
   | "dashboard"
   | "list"
   | "detail"
@@ -199,6 +201,8 @@ export type ErpPageType =
   | "map"
   | "scheduler";
 
+export type ErpPageType = UabPageType;
+
 export interface WorkflowTransition {
   action: string;
   label: string;
@@ -211,6 +215,7 @@ export interface WorkflowTransition {
 
 export interface DynamicWorkflowConfig {
   enabled: boolean;
+  workflowName?: string;
   stateField?: string;
   initialState?: string;
   states: Array<{
@@ -240,7 +245,8 @@ export interface DynamicPageSchema {
   moduleKey?: string;
   pageFamily?: ErpPageFamily;
   pageType?: ErpPageType;
-  viewType: "table" | "cards" | "split" | "kanban";
+  archetype?: "master" | "dashboard" | "document" | "kanban" | "calendar" | "studio";
+  viewType: "table" | "cards" | "split" | "kanban" | "calendar";
   apiEndpoint: string;
   idField?: string;
   kpiMetrics?: DynamicKpiMetric[];

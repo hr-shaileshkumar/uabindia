@@ -10,7 +10,7 @@ import {
   Package,
   Settings,
 } from "lucide-react";
-import { ErpModuleDashboard } from "@/components/dynamic/ErpModuleDashboard";
+import { UabModuleDashboard } from "@/components/dynamic/UabModuleDashboard";
 
 const LINKS = [
   { href: "/reports/financial", label: "Financial Reports", icon: DollarSign, desc: "P&L, balance sheet, cash flow" },
@@ -24,7 +24,7 @@ const LINKS = [
 
 export default function ReportsPage() {
   return (
-    <ErpModuleDashboard
+    <UabModuleDashboard
       moduleKey="reports"
       title="Reports & Analytics"
       subtitle="Business intelligence, financial statements, operational reports, and custom analytics."

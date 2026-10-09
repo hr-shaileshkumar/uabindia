@@ -453,7 +453,8 @@ p, .pub-paragraph, .readability-limit {
   color: #0f172a;
 }
 
-/* Protected app canvas — same white + sapphire/teal wash as public */
+/* Protected UAB India app shell — sapphire/teal wash */
+.uab-app-shell,
 .erp-app-canvas {
   background-color: #fafbfc;
   background-image:
@@ -820,7 +821,7 @@ p, .pub-paragraph, .readability-limit {
     @apply p-3;
   }
 
-  /* Tables — Clean ERPNext / SAP Dense Data Table */
+  /* Tables — Clean UAB India Dense Data Table */
   .erp-table-wrap {
     @apply overflow-x-auto rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs transition-colors;
   }

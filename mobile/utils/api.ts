@@ -764,7 +764,7 @@ export async function getTimesheets(employeeId?: string): Promise<TimesheetItem[
       {
         id: "ts-4",
         projectName: "Internal AI Copilot & Automation",
-        taskTitle: "Frappe Document Action Schemas",
+        taskTitle: "UAB India Document Workflow Schemas",
         workDate: "2026-09-29",
         hours: 8,
         notes: "Architecture review for offline mobile caching and sync.",

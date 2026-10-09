@@ -9,7 +9,7 @@ import {
   Lightbulb,
   Zap,
 } from "lucide-react";
-import { ErpModuleDashboard } from "@/components/dynamic/ErpModuleDashboard";
+import { UabModuleDashboard } from "@/components/dynamic/UabModuleDashboard";
 
 const LINKS = [
   { href: "/ai/assistant", label: "AI Assistant", icon: MessageSquare, desc: "Chat-based ERP assistant and data queries" },
@@ -21,7 +21,7 @@ const LINKS = [
 
 export default function AiPage() {
   return (
-    <ErpModuleDashboard
+    <UabModuleDashboard
       moduleKey="ai"
       title="AI & Intelligence"
       subtitle="AI-powered assistant, business insights, anomaly detection, and intelligent search."

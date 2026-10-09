@@ -1,8 +1,16 @@
 /**
- * Core Metadata Type Definitions for Enterprise Zero-Hardcode ERP
+ * Core Metadata Type Definitions for UAB India Enterprise Workspace Engine
  */
 
-export type ViewType = "table" | "form" | "split" | "kanban" | "dashboard";
+export type ViewType = "table" | "form" | "split" | "kanban" | "dashboard" | "calendar";
+
+export type PageArchetype =
+  | "master"
+  | "dashboard"
+  | "document"
+  | "kanban"
+  | "calendar"
+  | "studio";
 
 export type FieldDataType =
   | "text"
@@ -96,20 +104,24 @@ export interface KpiMetricDefinition {
   subtext?: string;
 }
 
-export type ErpPageFamily =
+export type UabPageFamily =
   | "information"
   | "data_entry"
   | "process"
   | "configuration"
   | "supporting";
 
-export type ErpPageType =
+export type ErpPageFamily = UabPageFamily;
+
+export type UabPageType =
   | "dashboard" | "list" | "detail" | "form" | "edit"
   | "master" | "transaction" | "workflow" | "calendar"
   | "kanban" | "report" | "analytics" | "wizard" | "import"
   | "search" | "configuration" | "approval" | "timeline"
   | "document" | "audit" | "notification" | "portal"
   | "exception" | "map" | "scheduler";
+
+export type ErpPageType = UabPageType;
 
 export interface WorkflowTransition {
   action: string;
@@ -143,6 +155,7 @@ export interface PageSchema {
   moduleKey: string;
   pageFamily?: ErpPageFamily;
   pageType?: ErpPageType;
+  archetype?: PageArchetype;
   viewType: ViewType;
   apiEndpoint: string;
   idField?: string;

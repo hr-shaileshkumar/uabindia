@@ -10,7 +10,7 @@ import {
   Package,
   Activity,
 } from "lucide-react";
-import { ErpModuleDashboard } from "@/components/dynamic/ErpModuleDashboard";
+import { UabModuleDashboard } from "@/components/dynamic/UabModuleDashboard";
 
 const LINKS = [
   { href: "/licensing/subscriptions", label: "Subscriptions", icon: CreditCard, desc: "Current plan, features, and renewal" },
@@ -22,7 +22,7 @@ const LINKS = [
 
 export default function LicensingPage() {
   return (
-    <ErpModuleDashboard
+    <UabModuleDashboard
       moduleKey="licensing"
       title="Subscription & Licensing"
       subtitle="Manage your subscription plan, billing, usage metrics, and add-on integrations."

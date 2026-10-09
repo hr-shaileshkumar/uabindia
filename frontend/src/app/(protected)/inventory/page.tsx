@@ -10,7 +10,7 @@ import {
   AlertTriangle,
   Layers,
 } from "lucide-react";
-import { ErpModuleDashboard } from "@/components/dynamic/ErpModuleDashboard";
+import { UabModuleDashboard } from "@/components/dynamic/UabModuleDashboard";
 
 const LINKS = [
   { href: "/inventory/items", label: "Item Master", icon: Package, desc: "SKUs, categories, and pricing" },
@@ -23,7 +23,7 @@ const LINKS = [
 
 export default function InventoryPage() {
   return (
-    <ErpModuleDashboard
+    <UabModuleDashboard
       moduleKey="inventory"
       title="Inventory & Warehouse"
       subtitle="Item master, warehouse management, stock transfers, adjustments, and movement ledger."

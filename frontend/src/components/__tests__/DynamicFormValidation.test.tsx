@@ -4,18 +4,20 @@ import React from "react";
 import { DynamicForm } from "../dynamic/DynamicForm";
 import type { DynamicFormSection } from "@/lib/dynamic-schema/types";
 
+const stablePermissionContext = {
+  hasPermission: () => true,
+  isSuperAdmin: true,
+};
 vi.mock("@/context/PermissionContext", () => ({
-  usePermissions: () => ({
-    hasPermission: () => true,
-    isSuperAdmin: true,
-  }),
+  usePermissions: () => stablePermissionContext,
 }));
 
+const stableAuthContext = {
+  user: { id: "test-user", roles: ["Admin"] },
+  isSuperAdmin: true,
+};
 vi.mock("@/context/AuthContext", () => ({
-  useAuth: () => ({
-    user: { id: "test-user", roles: ["Admin"] },
-    isSuperAdmin: true,
-  }),
+  useAuth: () => stableAuthContext,
 }));
 
 vi.mock("@/lib/notifications", () => ({

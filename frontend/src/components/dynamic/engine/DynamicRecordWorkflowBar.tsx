@@ -84,7 +84,7 @@ export function DynamicRecordWorkflowBar({
           <div className="flex items-center gap-2 shrink-0">
             {validTransitions.map((tr) => (
               <button
-                key={tr.action}
+                key={tr.action || (tr as any).actionLabel || tr.toState}
                 type="button"
                 disabled={disabled}
                 onClick={() => setSelectedTransition(tr)}
@@ -100,7 +100,7 @@ export function DynamicRecordWorkflowBar({
                 )}
               >
                 <ShieldCheck className="h-3.5 w-3.5" />
-                <span>{tr.label}</span>
+                <span>{tr.label || (tr as any).actionLabel || tr.action}</span>
               </button>
             ))}
           </div>

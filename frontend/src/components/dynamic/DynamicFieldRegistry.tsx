@@ -205,7 +205,7 @@ export function renderDynamicTableCell(column: DynamicColumn, value: any, row?: 
         }
       }
 
-      // Handle Full Name / Name with Avatar Pill (Frappe / ERPNext style)
+      // Handle Full Name / Name with Avatar Pill (UAB India Standard Design)
       if (keyLower === "fullname" || keyLower === "name" || keyLower === "displayname" || keyLower === "employeename") {
         const initials = valStr
           .split(" ")
@@ -251,13 +251,13 @@ export function renderDynamicTableCell(column: DynamicColumn, value: any, row?: 
 export function cleanFieldLabel(label: string): string {
   if (!label) return "";
   return label
-    .replace(/\bH\s*R[_\s]*/gi, "HR ")
+    .replace(/_/g, " ")
+    .replace(/\bH\s*R\b/gi, "HR")
     .replace(/\bU\s*R\s*L\b/gi, "URL")
     .replace(/\bP\s*A\s*N\b/gi, "PAN")
     .replace(/\bG\s*S\s*T\b/gi, "GST")
     .replace(/\bI\s*F\s*S\s*C\b/gi, "IFSC")
     .replace(/\bI\s*D\b/gi, "ID")
-    .replace(/_/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -385,7 +385,10 @@ export function DynamicFieldInput({
   return (
     <div className="erp-field space-y-1.5">
       <div className="flex items-center justify-between">
-        <label className="erp-label text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+        <label
+          htmlFor={`field-${field.key}`}
+          className="erp-label text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5"
+        >
           {cleanLabel} {field.required && <span className="text-rose-500">*</span>}
           {isMaskedField && (
             <span

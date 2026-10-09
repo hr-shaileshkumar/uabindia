@@ -45,7 +45,7 @@ import apiClient from "@/services/apiClient";
 import { ROUTES } from "@/constants/routes";
 import { StatusBadge } from "@/components/workspace/status-badge";
 import { DashboardAnalyticsWidgets } from "./DashboardAnalyticsWidgets";
-import { MetadataDashboardCanvas } from "./MetadataDashboardCanvas";
+import { MetadataDashboardStudio } from "./MetadataDashboardStudio";
 
 type ExecutiveData = {
   summary: {
@@ -117,7 +117,7 @@ const EMPTY_SUMMARY = {
 };
 
 export function GlobalExecutiveDashboard() {
-  const [activeTab, setActiveTab] = useState<"overview" | "regions" | "financials" | "canvas">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "regions" | "financials" | "studio">("overview");
 
   const { data, isLoading } = useQuery<ExecutiveData>({
     queryKey: ["reports", "executive-dashboard"],
@@ -212,21 +212,21 @@ export function GlobalExecutiveDashboard() {
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab("canvas")}
+            onClick={() => setActiveTab("studio")}
             className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 transition ${
-              activeTab === "canvas"
+              activeTab === "studio"
                 ? "bg-indigo-600 text-white font-bold shadow-inner"
                 : "hover:text-white text-indigo-300"
             }`}
           >
             <Sparkles className="h-3.5 w-3.5 text-amber-300" />
-            <span>Customizable Canvas (Metadata)</span>
+            <span>Customizable Executive Studio (Metadata)</span>
           </button>
         </div>
       </div>
 
-      {activeTab === "canvas" ? (
-        <MetadataDashboardCanvas dashboardKey="executive_overview" />
+      {activeTab === "studio" ? (
+        <MetadataDashboardStudio dashboardKey="executive_overview" />
       ) : (
         <>
           {/* Primary KPI Metrics Grid */}

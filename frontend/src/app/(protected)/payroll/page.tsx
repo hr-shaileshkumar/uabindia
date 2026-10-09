@@ -12,7 +12,7 @@ import {
   Users,
   BarChart2,
 } from "lucide-react";
-import { ErpModuleDashboard } from "@/components/dynamic/ErpModuleDashboard";
+import { UabModuleDashboard } from "@/components/dynamic/UabModuleDashboard";
 
 const LINKS = [
   { href: "/payroll/runs", label: "Payroll Runs", icon: DollarSign, desc: "Monthly salary processing and approval" },
@@ -29,7 +29,7 @@ const LINKS = [
 
 export default function PayrollPage() {
   return (
-    <ErpModuleDashboard
+    <UabModuleDashboard
       moduleKey="payroll"
       title="Payroll & Compensation"
       subtitle="Salary processing, payslips, statutory filings, and compensation management."
