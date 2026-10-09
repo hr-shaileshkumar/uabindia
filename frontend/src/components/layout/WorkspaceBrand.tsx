@@ -131,7 +131,7 @@ export function WorkspaceBrand() {
         />
       ) : (
         <div className="flex items-center gap-1.5">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-xs font-bold text-white dark:bg-slate-100 dark:text-slate-900">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-700 to-indigo-800 text-xs font-bold text-white shadow-2xs">
             U
           </span>
           <span className="hidden truncate text-xs font-semibold leading-tight text-slate-900 dark:text-white sm:block">{alt}</span>

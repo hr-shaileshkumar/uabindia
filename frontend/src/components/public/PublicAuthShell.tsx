@@ -19,28 +19,28 @@ type PanelCopy = {
 
 const defaultPanelCopy: Record<PublicAuthShellVariant, PanelCopy> = {
   login: {
-    eyebrow: "PLATFORM CONSOLE",
-    title: "One login for tenants and platform control",
-    subtitle: "Manage organizations, users, and configuration securely.",
-    points: ["Tenant management", "User provisioning", "Platform audit"],
+    eyebrow: "UAB INDIA ENTERPRISE CONSOLE",
+    title: "Unified workspace access for tenants and administrators",
+    subtitle: "Manage your workforce, ledger accounting, and operations securely.",
+    points: ["Multi-tenant isolation & data sovereignty", "Role-based authorization & audit trails", "End-to-end TLS 1.3 encrypted sessions"],
   },
   register: {
-    eyebrow: "ACCESS REQUEST",
-    title: "Request workspace access",
-    subtitle: "An administrator reviews every request before credentials are issued.",
-    points: ["Admin approval", "Role-aware provisioning", "Secure onboarding"],
+    eyebrow: "ORGANIZATION PROVISIONING",
+    title: "Create your dedicated enterprise tenant",
+    subtitle: "Deploy a high-availability isolated workspace in seconds.",
+    points: ["Automated database tenant schema generation", "Preset chart of accounts & statutory tax rules", "Enterprise support & guided onboarding"],
   },
   "forgot-password": {
-    eyebrow: "PASSWORD RECOVERY",
-    title: "Reset your account password",
-    subtitle: "Verify your email identity to safely receive reset instructions.",
-    points: ["Verified work email", "Secure reset link", "Expires in 15 minutes"],
+    eyebrow: "SECURITY VERIFICATION",
+    title: "Reset your workspace credentials",
+    subtitle: "Verify your registered enterprise email to receive secure instructions.",
+    points: ["Verified work email required", "One-time cryptographically signed token", "15-minute expiration window"],
   },
   "reset-password": {
-    eyebrow: "NEW PASSWORD",
-    title: "Choose a strong password",
-    subtitle: "Use at least 8 characters unique to this account.",
-    points: ["Minimum 8 characters", "Unique password", "Email token required"],
+    eyebrow: "CREDENTIAL PROTECTION",
+    title: "Define a secure new password",
+    subtitle: "Ensure your new credentials conform to corporate security policies.",
+    points: ["Minimum 8 characters with complexity checks", "Enforced password history check", "Terminates existing sessions upon update"],
   },
 };
 
@@ -57,7 +57,7 @@ type PublicAuthShellProps = {
 
 export default function PublicAuthShell({
   children,
-  brandName = "uabindia",
+  brandName = "UabIndia",
   homeHref = "/",
   audience = "tenant",
   variant = "login",
@@ -76,10 +76,10 @@ export default function PublicAuthShell({
     headerContent || getDefaultHeaderContent(effectiveProfile, audience);
 
   return (
-    <div className="relative flex min-h-[100dvh] flex-1 flex-col bg-[#f8fafc]">
+    <div className="relative flex min-h-[100dvh] flex-1 flex-col bg-[#f8fafc] dark:bg-slate-950 transition-colors">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_0%_0%,rgba(37,99,235,0.08),transparent_55%),radial-gradient(ellipse_50%_40%_at_100%_0%,rgba(15,23,42,0.04),transparent_50%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_0%_0%,rgba(37,99,235,0.09),transparent_55%),radial-gradient(ellipse_50%_40%_at_100%_0%,rgba(15,23,42,0.06),transparent_50%)] dark:bg-[radial-gradient(ellipse_70%_50%_at_0%_0%,rgba(37,99,235,0.15),transparent_55%),radial-gradient(ellipse_50%_40%_at_100%_0%,rgba(6,182,212,0.08),transparent_50%)]"
       />
 
       {/* Full Enterprise Header Navigation */}
@@ -95,18 +95,22 @@ export default function PublicAuthShell({
         <div className="mx-auto grid w-full max-w-5xl items-center gap-10 lg:grid-cols-2 lg:gap-14">
           {/* Left Column / Marketing & Feature Card */}
           <aside className="hidden lg:flex lg:flex-col lg:justify-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-blue-600 dark:text-cyan-400">
               {panel.eyebrow}
             </p>
-            <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl dark:text-white">
               {panel.title}
             </h1>
-            <p className="mt-3 text-base leading-relaxed text-slate-600">{panel.subtitle}</p>
+            <p className="mt-3 text-sm sm:text-base leading-relaxed text-slate-600 dark:text-slate-300">
+              {panel.subtitle}
+            </p>
 
-            <ul className="mt-5 space-y-2.5">
+            <ul className="mt-6 space-y-3">
               {panel.points.map((point) => (
-                <li key={point} className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                  <Check className="h-4 w-4 shrink-0 text-emerald-600" />
+                <li key={point} className="flex items-center gap-2.5 text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
+                    <Check className="h-2.5 w-2.5 stroke-[3]" />
+                  </span>
                   <span>{point}</span>
                 </li>
               ))}
@@ -114,13 +118,13 @@ export default function PublicAuthShell({
 
             {/* Clean Abstract Dashboard Preview Card */}
             <div className="mt-8 max-w-md">
-              <PublicProductPreview compact className="shadow-lg" />
+              <PublicProductPreview compact className="shadow-lg shadow-slate-900/5 dark:shadow-blue-950/20" />
             </div>
 
             {/* Bottom Security Footer */}
-            <div className="mt-6 flex items-center gap-2 text-xs text-slate-500">
-              <ShieldCheck className="h-4 w-4 text-slate-400" />
-              <span>Encrypted sessions · Role-based access · Audit-ready</span>
+            <div className="mt-6 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+              <ShieldCheck className="h-4 w-4 text-blue-500" />
+              <span>Encrypted sessions · ISO-standard access · Audit-ready</span>
             </div>
           </aside>
 

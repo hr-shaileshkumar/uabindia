@@ -7,9 +7,9 @@ import { resolvePublicAudienceFromRequest } from "@/lib/public-audience";
 
 export const metadata: Metadata = buildPublicMetadata(
   {
-    title: "Modern Cloud ERP Platform",
+    title: "Next-Gen Cloud Enterprise Platform",
     description:
-      (process.env.NEXT_PUBLIC_APP_NAME || "Enterprise ERP") + " helps organizations manage HR, payroll, attendance, finance, procurement, inventory, CRM, projects, assets, support, and reporting from one secure cloud platform.",
+      (process.env.NEXT_PUBLIC_APP_NAME || "UabIndia Enterprise Platform") + " helps organizations manage HRMS, payroll, accounting, procurement, inventory, projects, and operational intelligence from one secure cloud platform.",
     path: "/",
   }
 );

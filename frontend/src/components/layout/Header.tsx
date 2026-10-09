@@ -423,14 +423,14 @@ export function Header({ onMenuClick, onSearchClick }: HeaderProps) {
         <button
           type="button"
           onClick={onSearchClick}
-          className="group flex h-8.5 w-full items-center justify-between rounded-xl border border-slate-200/90 bg-slate-50/80 px-3 text-xs text-slate-500 shadow-2xs transition-all hover:border-blue-300 hover:bg-white hover:text-slate-700 dark:border-slate-800 dark:bg-slate-950/60 dark:hover:bg-slate-900"
+          className="group flex h-8.5 w-full items-center justify-between rounded-xl border border-slate-200/90 bg-slate-50/80 px-3 text-xs text-slate-500 shadow-2xs transition-all hover:border-blue-400 hover:bg-white hover:text-slate-800 dark:border-slate-800 dark:bg-slate-950/70 dark:text-slate-400 dark:hover:border-blue-500/50 dark:hover:bg-slate-900 dark:hover:text-slate-200"
           title="Search anything (Ctrl+K)"
         >
           <div className="flex items-center gap-2 min-w-0">
-            <Search className="h-3.5 w-3.5 text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
+            <Search className="h-3.5 w-3.5 text-slate-400 group-hover:text-blue-500 transition-colors shrink-0 dark:group-hover:text-cyan-400" />
             <span className="truncate">Search modules, records, employees...</span>
           </div>
-          <kbd className="inline-flex items-center gap-0.5 rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-mono font-medium text-slate-400 shadow-2xs dark:border-slate-700 dark:bg-slate-800 shrink-0">
+          <kbd className="inline-flex items-center gap-0.5 rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-mono font-medium text-slate-400 shadow-2xs dark:border-slate-700 dark:bg-slate-850 dark:text-slate-400 shrink-0">
             Ctrl K
           </kbd>
         </button>

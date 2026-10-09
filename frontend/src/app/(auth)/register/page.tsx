@@ -265,24 +265,24 @@ export default function RegisterPage() {
                   {step === 1 && (
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700">Company / Organization Name *</label>
-                        <div className="mt-1.5 flex items-center gap-3 rounded-lg border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-slate-900 focus-within:bg-white focus-within:ring-1 focus-within:ring-slate-900">
-                          <Building2 className="h-4 w-4 shrink-0 text-slate-400" />
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Company / Organization Name *</label>
+                        <div className="mt-1.5 flex items-center gap-3 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/60 dark:focus-within:bg-slate-800">
+                          <Building2 className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500" />
                           <input
                             type="text"
                             required
                             value={companyName}
                             onChange={(e) => handleCompanyNameChange(e.target.value)}
                             placeholder="e.g. Acme Enterprises Ltd"
-                            className="w-full border-none bg-transparent p-0 text-sm text-slate-900 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400"
+                            className="w-full border-none bg-transparent p-0 text-sm text-slate-900 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500"
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700">Choose Workspace Subdomain *</label>
-                        <div className="mt-1.5 flex items-center rounded-lg border border-slate-300 bg-slate-50/50 transition overflow-hidden focus-within:border-slate-900 focus-within:bg-white focus-within:ring-1 focus-within:ring-slate-900">
-                          <div className="flex items-center gap-2 pl-3.5 pr-1 text-slate-400">
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Choose Workspace Subdomain *</label>
+                        <div className="mt-1.5 flex items-center rounded-xl border border-slate-300 bg-slate-50/50 transition overflow-hidden focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/60 dark:focus-within:bg-slate-800">
+                          <div className="flex items-center gap-2 pl-3.5 pr-1 text-slate-400 dark:text-slate-500">
                             <Globe className="h-4 w-4 shrink-0" />
                           </div>
                           <input
@@ -291,9 +291,9 @@ export default function RegisterPage() {
                             value={subdomain}
                             onChange={(e) => setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
                             placeholder="acme"
-                            className="w-full border-none bg-transparent py-2.5 pl-2 pr-2 text-sm font-mono text-slate-900 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400"
+                            className="w-full border-none bg-transparent py-2.5 pl-2 pr-2 text-sm font-mono text-slate-900 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500"
                           />
-                          <span className="flex items-center px-3.5 py-2.5 text-xs font-semibold text-slate-500 bg-slate-100 border-l border-slate-200 select-none">
+                          <span className="flex items-center px-3.5 py-2.5 text-xs font-semibold text-slate-500 bg-slate-100 border-l border-slate-200 select-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
                             .{getPublicBaseDomain()}
                           </span>
                         </div>
@@ -303,21 +303,21 @@ export default function RegisterPage() {
                           {checkingSubdomain ? (
                             <span className="text-[11px] text-slate-400">Checking availability…</span>
                           ) : subdomainAvailable === true ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
                               <CheckCircle2 className="h-3.5 w-3.5" /> {subdomainMessage}
                             </span>
                           ) : subdomainAvailable === false ? (
-                            <span className="text-[11px] font-semibold text-rose-600">{subdomainMessage}</span>
+                            <span className="text-[11px] font-semibold text-rose-600 dark:text-rose-400">{subdomainMessage}</span>
                           ) : null}
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700">Industry / Sector</label>
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Industry / Sector</label>
                         <select
                           value={industry}
                           onChange={(e) => setIndustry(e.target.value)}
-                          className="w-full mt-1.5 rounded-lg border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-900 transition focus:border-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-900"
+                          className="w-full mt-1.5 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-900 transition focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/80 dark:text-white"
                         >
                           <option value="Technology & Services">Technology, IT & Services</option>
                           <option value="Manufacturing">Manufacturing & Engineering</option>
@@ -335,7 +335,7 @@ export default function RegisterPage() {
                         onClick={() => setStep(2)}
                         className={cn(
                           publicButtonClassName.primary,
-                          "w-full mt-4 justify-center py-2.5 text-sm font-medium disabled:opacity-50"
+                          "w-full mt-4 justify-center py-2.5 text-sm font-semibold disabled:opacity-50"
                         )}
                       >
                         Continue to Admin Setup <ArrowRight className="h-4 w-4" />
@@ -346,76 +346,76 @@ export default function RegisterPage() {
                   {step === 2 && (
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700">Full Name *</label>
-                        <div className="mt-1.5 flex items-center gap-3 rounded-lg border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-slate-900 focus-within:bg-white focus-within:ring-1 focus-within:ring-slate-900">
-                          <User className="h-4 w-4 shrink-0 text-slate-400" />
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Full Name *</label>
+                        <div className="mt-1.5 flex items-center gap-3 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/60 dark:focus-within:bg-slate-800">
+                          <User className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500" />
                           <input
                             type="text"
                             required
                             value={adminName}
                             onChange={(e) => setAdminName(e.target.value)}
                             placeholder="e.g. Rahul Sharma"
-                            className="w-full border-none bg-transparent p-0 text-sm text-slate-900 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400"
+                            className="w-full border-none bg-transparent p-0 text-sm text-slate-900 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500"
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700">Work Email Address *</label>
-                        <div className="mt-1.5 flex items-center gap-3 rounded-lg border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-slate-900 focus-within:bg-white focus-within:ring-1 focus-within:ring-slate-900">
-                          <Mail className="h-4 w-4 shrink-0 text-slate-400" />
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Work Email Address *</label>
+                        <div className="mt-1.5 flex items-center gap-3 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/60 dark:focus-within:bg-slate-800">
+                          <Mail className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500" />
                           <input
                             type="email"
                             required
                             value={adminEmail}
                             onChange={(e) => setAdminEmail(e.target.value)}
                             placeholder="rahul@acme.com"
-                            className="w-full border-none bg-transparent p-0 text-sm text-slate-900 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400"
+                            className="w-full border-none bg-transparent p-0 text-sm text-slate-900 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500"
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700">Mobile / Contact Number</label>
-                        <div className="mt-1.5 flex items-center gap-3 rounded-lg border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-slate-900 focus-within:bg-white focus-within:ring-1 focus-within:ring-slate-900">
-                          <Phone className="h-4 w-4 shrink-0 text-slate-400" />
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Mobile / Contact Number</label>
+                        <div className="mt-1.5 flex items-center gap-3 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/60 dark:focus-within:bg-slate-800">
+                          <Phone className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500" />
                           <input
                             type="tel"
                             value={phoneNumber}
                             onChange={(e) => setPhoneNumber(e.target.value)}
                             placeholder="+91 98765 43210"
-                            className="w-full border-none bg-transparent p-0 text-sm text-slate-900 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400"
+                            className="w-full border-none bg-transparent p-0 text-sm text-slate-900 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500"
                           />
                         </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-xs font-semibold text-slate-700">Password *</label>
-                          <div className="mt-1.5 flex items-center gap-2.5 rounded-lg border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-slate-900 focus-within:bg-white focus-within:ring-1 focus-within:ring-slate-900">
-                            <Lock className="h-4 w-4 shrink-0 text-slate-400" />
+                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Password *</label>
+                          <div className="mt-1.5 flex items-center gap-2.5 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/60 dark:focus-within:bg-slate-800">
+                            <Lock className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500" />
                             <input
                               type="password"
                               required
                               value={password}
                               onChange={(e) => setPassword(e.target.value)}
                               placeholder="••••••••"
-                              className="w-full border-none bg-transparent p-0 text-sm text-slate-900 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400"
+                              className="w-full border-none bg-transparent p-0 text-sm text-slate-900 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500"
                             />
                           </div>
                         </div>
 
                         <div>
-                          <label className="block text-xs font-semibold text-slate-700">Confirm Password *</label>
-                          <div className="mt-1.5 flex items-center gap-2.5 rounded-lg border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-slate-900 focus-within:bg-white focus-within:ring-1 focus-within:ring-slate-900">
-                            <Lock className="h-4 w-4 shrink-0 text-slate-400" />
+                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Confirm Password *</label>
+                          <div className="mt-1.5 flex items-center gap-2.5 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/60 dark:focus-within:bg-slate-800">
+                            <Lock className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500" />
                             <input
                               type="password"
                               required
                               value={confirmPassword}
                               onChange={(e) => setConfirmPassword(e.target.value)}
                               placeholder="••••••••"
-                              className="w-full border-none bg-transparent p-0 text-sm text-slate-900 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400"
+                              className="w-full border-none bg-transparent p-0 text-sm text-slate-900 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500"
                             />
                           </div>
                         </div>
@@ -425,7 +425,7 @@ export default function RegisterPage() {
                         <button
                           type="button"
                           onClick={() => setStep(1)}
-                          className={cn(publicButtonClassName.secondary, "w-1/3 justify-center py-2.5 text-xs")}
+                          className={cn(publicButtonClassName.secondary, "w-1/3 justify-center py-2.5 text-xs font-semibold")}
                         >
                           Back
                         </button>
@@ -434,7 +434,7 @@ export default function RegisterPage() {
                           disabled={!adminName.trim() || !adminEmail.trim() || !password || password !== confirmPassword}
                           className={cn(
                             publicButtonClassName.primary,
-                            "w-2/3 justify-center py-2.5 text-sm font-medium disabled:opacity-50"
+                            "w-2/3 justify-center py-2.5 text-sm font-semibold disabled:opacity-50"
                           )}
                         >
                           Launch My Workspace <Sparkles className="h-4 w-4" />
@@ -445,9 +445,9 @@ export default function RegisterPage() {
                 </form>
               )}
 
-              <div className="mt-6 border-t border-slate-100 pt-4 text-center text-xs text-slate-500">
+              <div className="mt-6 border-t border-slate-100 dark:border-slate-800 pt-4 text-center text-xs text-slate-500 dark:text-slate-400">
                 Already registered your company?{" "}
-                <Link href="/login" className="font-semibold text-slate-900 hover:underline">
+                <Link href="/login" className="font-semibold text-blue-600 hover:underline dark:text-blue-400">
                   Sign in here
                 </Link>
               </div>

@@ -178,7 +178,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword((value) => !value)}
-                    className="absolute right-3.5 top-1/2 z-10 -translate-y-1/2 rounded-md p-1 text-slate-400 transition-colors hover:text-slate-600"
+                    className="absolute right-3.5 top-1/2 z-10 -translate-y-1/2 rounded-md p-1 text-slate-400 transition-colors hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
                     aria-label={showPassword ? "Hide password" : "Show password"}
                     tabIndex={-1}
                   >
@@ -193,11 +193,11 @@ export default function LoginPage() {
                 id={rememberFieldId}
                 type="checkbox"
                 {...register("remember")}
-                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900/20"
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800"
               />
-              <span className="text-sm leading-snug text-slate-600">
-                <span className="font-medium text-slate-800">Remember me</span>
-                <span className="block text-xs text-slate-500">
+              <span className="text-sm leading-snug text-slate-600 dark:text-slate-400">
+                <span className="font-medium text-slate-800 dark:text-slate-200">Remember me</span>
+                <span className="block text-xs text-slate-500 dark:text-slate-400">
                   Saves your email on this device. Your browser can securely store the password.
                 </span>
               </span>

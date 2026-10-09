@@ -963,59 +963,65 @@ p, .pub-paragraph, .readability-limit {
   }
 }
 
-/* ── Action Buttons — match public slate CTAs ─────────────────────── */
+/* ── Action Buttons — UabIndia Proprietary Design System ─────────────────────── */
+.uab-action-btn,
 .erp-action-btn {
   display: inline-flex;
   min-height: 2rem;
   align-items: center;
   justify-content: center;
   gap: 0.375rem;
-  border-radius: 0.375rem;
-  padding: 0 0.75rem;
+  border-radius: 0.5rem;
+  padding: 0 0.875rem;
   font-size: 0.75rem;
   font-weight: 600;
   text-decoration: none;
   border: 1px solid transparent;
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease,
-    box-shadow 0.15s ease;
+  transition: all 0.15s ease;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
   cursor: pointer;
 }
 
+.uab-action-btn:hover,
 .erp-action-btn:hover {
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.08);
+  transform: translateY(-0.5px);
 }
 
+.uab-action-btn:active,
 .erp-action-btn:active {
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  transform: translateY(0);
 }
 
+.uab-action-btn:focus-visible,
 .erp-action-btn:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px var(--erp-primary);
 }
 
+.uab-action-btn-primary,
 .erp-action-btn-primary {
   background: var(--erp-primary);
   color: #ffffff;
   border-color: var(--erp-primary);
 }
 
+.uab-action-btn-primary:hover,
 .erp-action-btn-primary:hover {
   background: var(--erp-primary-hover);
   border-color: var(--erp-primary-hover);
   color: #ffffff;
 }
 
+.uab-action-btn-secondary,
 .erp-action-btn-secondary {
   border: 1px solid var(--erp-border);
   background: var(--erp-surface);
   color: var(--erp-ink-secondary);
 }
 
+.uab-action-btn-secondary:hover,
 .erp-action-btn-secondary:hover {
   border-color: #cbd5e1;
   background: #f8fafc;

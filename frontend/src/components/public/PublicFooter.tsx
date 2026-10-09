@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Mail, Phone } from "lucide-react";
+import { Mail, Phone, ShieldCheck } from "lucide-react";
 import type { ClientProfile } from "@/lib/publicProfile";
 import type { PublicAudience } from "@/lib/public-audience";
 import type { PublicFooterContent } from "@/lib/publicSiteContent";
@@ -25,7 +25,7 @@ export default function PublicFooter({
   allowedPaths,
   variant = "full",
 }: PublicFooterProps) {
-  const brandName = profile.brandName || profile.companyName || "UabIndia ERP";
+  const brandName = profile.brandName || profile.companyName || "UabIndia Enterprise";
   const footerLinks = filterPublicLinks(footerContent.footerLinks ?? [], audience, allowedPaths);
   const currentYear = new Date().getFullYear();
   const platformMode = audience === "platform";
@@ -47,17 +47,17 @@ export default function PublicFooter({
 
   if (variant === "minimal") {
     return (
-      <footer className="border-t border-slate-200 bg-white">
+      <footer className="border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
         <div className={cn(publicSectionClassName, "flex flex-col items-center justify-between gap-3 py-5 sm:flex-row")}>
-          <p className="text-sm text-slate-500">
-            © {currentYear} {brandName}
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            © {currentYear} {brandName}. All rights reserved.
           </p>
           <div className="flex flex-wrap gap-4">
             {footerLinks.slice(0, 4).map((link) => (
               <Link
                 key={link.href}
                 href={withPublicAudience(link.href, audience)}
-                className="text-sm text-slate-500 hover:text-slate-900"
+                className="text-xs text-slate-500 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400"
               >
                 {link.label}
               </Link>
@@ -69,41 +69,51 @@ export default function PublicFooter({
   }
 
   return (
-    <footer className="border-t border-slate-200 bg-white">
-      <div className={cn(publicSectionClassName, "py-10")}>
-        <div className={cn("grid gap-8", platformMode ? "lg:grid-cols-[1.4fr_1fr_1fr]" : "lg:grid-cols-2")}>
+    <footer className="border-t border-slate-200 bg-white transition-colors dark:border-slate-800 dark:bg-slate-950">
+      <div className={cn(publicSectionClassName, "py-12 sm:py-16")}>
+        <div className={cn("grid gap-10", platformMode ? "lg:grid-cols-[1.4fr_1fr_1fr]" : "lg:grid-cols-2")}>
           <div>
-            <img src={profile.logoUrl || "/logo.png"} alt={brandName} className="h-6 w-auto object-contain" />
-            <p className="mt-4 max-w-sm text-sm leading-relaxed text-slate-600">
+            <div className="flex items-center gap-2.5">
+              <img src={profile.logoUrl || "/logo.png"} alt={brandName} className="h-7 w-auto object-contain" />
+              <span className="font-extrabold text-base tracking-tight text-slate-900 dark:text-white">
+                {brandName}
+              </span>
+            </div>
+            <p className="mt-4 max-w-sm text-xs sm:text-sm leading-relaxed text-slate-600 dark:text-slate-400">
               {footerContent.summary ||
                 (platformMode
-                  ? "Cloud ERP for HR, payroll, finance, procurement, inventory, and operations."
-                  : `${brandName} company portal for employees and applicants.`)}
+                  ? "Next-generation cloud platform for HR, payroll, finance, procurement, inventory, and enterprise operations."
+                  : `${brandName} business workspace and operations portal.`)}
             </p>
-            <div className="mt-4 space-y-2">
+            <div className="mt-5 space-y-2">
               {profile.supportEmail ? (
-                <a href={`mailto:${profile.supportEmail}`} className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900">
-                  <Mail className="h-4 w-4 shrink-0" />
-                  {profile.supportEmail}
+                <a href={`mailto:${profile.supportEmail}`} className="flex items-center gap-2 text-xs text-slate-600 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400">
+                  <Mail className="h-4 w-4 shrink-0 text-blue-500" />
+                  <span>{profile.supportEmail}</span>
                 </a>
               ) : null}
               {profile.supportPhone ? (
-                <a href={`tel:${profile.supportPhone}`} className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900">
-                  <Phone className="h-4 w-4 shrink-0" />
-                  {profile.supportPhone}
+                <a href={`tel:${profile.supportPhone}`} className="flex items-center gap-2 text-xs text-slate-600 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400">
+                  <Phone className="h-4 w-4 shrink-0 text-indigo-500" />
+                  <span>{profile.supportPhone}</span>
                 </a>
               ) : null}
+            </div>
+
+            <div className="mt-6 flex items-center gap-2 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+              <ShieldCheck className="h-4 w-4 shrink-0" />
+              <span>Multi-Tenant Isolated · Indian Cloud Tier-IV Data Sovereignty</span>
             </div>
           </div>
 
           {platformMode ? (
             <>
               <div>
-                <p className="text-sm font-semibold text-slate-900">Product</p>
-                <ul className="mt-3 space-y-2">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">Product & Platform</p>
+                <ul className="mt-4 space-y-2.5">
                   {productLinks.map((link) => (
                     <li key={link.href}>
-                      <Link href={withPublicAudience(link.href, audience)} className="text-sm text-slate-600 hover:text-slate-900">
+                      <Link href={withPublicAudience(link.href, audience)} className="text-xs sm:text-sm text-slate-600 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400">
                         {link.label}
                       </Link>
                     </li>
@@ -111,11 +121,11 @@ export default function PublicFooter({
                 </ul>
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-900">Company</p>
-                <ul className="mt-3 space-y-2">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">Enterprise</p>
+                <ul className="mt-4 space-y-2.5">
                   {companyLinks.map((link) => (
                     <li key={link.href}>
-                      <Link href={withPublicAudience(link.href, audience)} className="text-sm text-slate-600 hover:text-slate-900">
+                      <Link href={withPublicAudience(link.href, audience)} className="text-xs sm:text-sm text-slate-600 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400">
                         {link.label}
                       </Link>
                     </li>
@@ -125,8 +135,8 @@ export default function PublicFooter({
             </>
           ) : (
             <div>
-              <p className="text-sm font-semibold text-slate-900">Quick links</p>
-              <ul className="mt-3 space-y-2">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">Navigation Links</p>
+              <ul className="mt-4 space-y-2.5">
                 {(footerLinks.length > 0
                   ? footerLinks
                   : [
@@ -137,7 +147,7 @@ export default function PublicFooter({
                     ]
                 ).map((link) => (
                   <li key={link.href}>
-                    <Link href={withPublicAudience(link.href, audience)} className="text-sm text-slate-600 hover:text-slate-900">
+                    <Link href={withPublicAudience(link.href, audience)} className="text-xs sm:text-sm text-slate-600 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400">
                       {link.label}
                     </Link>
                   </li>
@@ -148,16 +158,16 @@ export default function PublicFooter({
         </div>
       </div>
 
-      <div className="border-t border-slate-200">
+      <div className="border-t border-slate-200/80 bg-slate-50/50 dark:border-slate-800/80 dark:bg-slate-950/60">
         <div className={cn(publicSectionClassName, "flex flex-col items-center justify-between gap-3 py-4 sm:flex-row")}>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 dark:text-slate-500">
             {footerContent.legalLine || `© ${currentYear} ${brandName}. All rights reserved.`}
           </p>
-          <div className="flex gap-4">
-            <Link href={withPublicAudience("/privacy", audience)} className="text-xs text-slate-500 hover:text-slate-900">
+          <div className="flex gap-5">
+            <Link href={withPublicAudience("/privacy", audience)} className="text-xs text-slate-500 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400">
               Privacy Policy
             </Link>
-            <Link href={withPublicAudience("/terms", audience)} className="text-xs text-slate-500 hover:text-slate-900">
+            <Link href={withPublicAudience("/terms", audience)} className="text-xs text-slate-500 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400">
               Terms of Service
             </Link>
           </div>
