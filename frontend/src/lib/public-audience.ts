@@ -131,7 +131,11 @@ export function withPublicAudience(href: string, audience: PublicAudience): stri
   }
 
   const params = new URLSearchParams(query);
-  params.set(AUDIENCE_QUERY_KEY, audience);
+  if (audience === "tenant") {
+    params.set(AUDIENCE_QUERY_KEY, "tenant");
+  } else {
+    params.delete(AUDIENCE_QUERY_KEY);
+  }
 
   const nextQuery = params.toString();
   return `${pathname}${nextQuery ? `?${nextQuery}` : ""}${hash ? `#${hash}` : ""}`;

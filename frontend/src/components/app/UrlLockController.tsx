@@ -9,6 +9,16 @@ function UrlLockInner() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // Sanitize any redundant ?audience=platform query parameters from visible browser bar
+    if (searchParams?.get("audience") === "platform") {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("audience");
+      const cleanHref = url.pathname + (url.search ? url.search : "") + url.hash;
+      window.history.replaceState(window.history.state, "", cleanHref);
+    }
+
     if (!pathname || pathname === "/") return;
     const search = searchParams?.toString() ? `?${searchParams.toString()}` : "";
     syncActiveWorkspacePath(pathname, search);

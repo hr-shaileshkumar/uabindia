@@ -8,7 +8,7 @@
 
 export const ACTIVE_PATH_COOKIE = "active_path";
 export const ACTIVE_PATH_STORAGE = "erp.active.path";
-export const DEFAULT_LOCKED_PATH = "/employee-self-service";
+export const DEFAULT_LOCKED_PATH = "/dashboard";
 
 export const getEffectiveWorkspacePath = (currentPathname: string): string => {
   if (currentPathname && currentPathname !== "/") {
@@ -39,7 +39,12 @@ export const syncActiveWorkspacePath = (pathname: string, search: string = "") =
   if (typeof window === "undefined") return;
   if (!pathname || pathname === "/") return;
 
-  const fullPath = pathname + (search || "");
+  // Clean any redundant audience=platform query parameters
+  const cleanSearch = search
+    .replace(/[?&]audience=platform(&|$)/, (m) => (m.startsWith("?") && m.endsWith("&") ? "?" : ""))
+    .replace(/[?&]$/, "");
+  const fullPath = pathname + cleanSearch;
+
   try {
     window.sessionStorage.setItem(ACTIVE_PATH_STORAGE, fullPath);
     document.cookie = `${ACTIVE_PATH_COOKIE}=${encodeURIComponent(fullPath)}; path=/; max-age=604800; SameSite=Lax`;
@@ -48,11 +53,19 @@ export const syncActiveWorkspacePath = (pathname: string, search: string = "") =
   }
 
   // Lock address bar strictly to root domain url (WhatsApp style: only domain URL, e.g. http://localhost:3000)
-  try {
-    if (window.location.pathname !== "/") {
-      window.history.replaceState(window.history.state, "", "/");
+  const lockToRoot = () => {
+    try {
+      if (window.location.pathname !== "/") {
+        window.history.replaceState(window.history.state, "", "/");
+      }
+    } catch {
+      // ignore
     }
-  } catch {
-    // ignore
+  };
+
+  lockToRoot();
+  if (typeof requestAnimationFrame !== "undefined") {
+    requestAnimationFrame(lockToRoot);
   }
+  setTimeout(lockToRoot, 50);
 };

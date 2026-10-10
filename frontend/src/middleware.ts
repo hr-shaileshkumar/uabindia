@@ -69,11 +69,11 @@ export async function middleware(request: NextRequest) {
   }
 
   // ── WhatsApp-Style URL Lock: Single-Domain Root Routing ──
-  // When authenticated, accessing root "/" serves the active workspace view (e.g. /employee-self-service)
+  // When authenticated, accessing root "/" serves the active workspace view (e.g. /dashboard)
   // while strictly locking the browser address bar to http://localhost:3000/
   if (pathname === "/" && hasAccessToken) {
     const rawActive = request.cookies.get("active_path")?.value;
-    let target = "/employee-self-service";
+    let target = "/dashboard";
     if (rawActive) {
       try {
         const decoded = decodeURIComponent(rawActive);
@@ -85,7 +85,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(new URL(target, request.url));
   }
 
-  // When authenticated, direct address bar navigations to protected routes (like /employee-self-service)
+  // When authenticated, direct address bar navigations to protected routes (like /dashboard)
   // are redirected to "/" with active_path cookie, so the address bar locks to http://localhost:3000
   // while the page view renders seamlessly via root rewrite.
   const isDirectHtmlNavigation =
@@ -93,8 +93,7 @@ export async function middleware(request: NextRequest) {
     hasAccessToken &&
     !request.headers.get("rsc") &&
     !request.headers.get("next-router-prefetch") &&
-    !request.headers.get("next-url") &&
-    request.headers.get("accept")?.includes("text/html");
+    !request.headers.get("next-url");
 
   if (isDirectHtmlNavigation) {
     const res = NextResponse.redirect(new URL("/", request.url));
@@ -104,6 +103,13 @@ export async function middleware(request: NextRequest) {
       maxAge: 60 * 60 * 24 * 7,
     });
     return res;
+  }
+
+  // Clean redundant ?audience=platform query parameters from public URLs on platform/localhost
+  if (!hasTenantScopedHost(hostname) && request.nextUrl.searchParams.get("audience") === "platform") {
+    const cleanUrl = new URL(request.url);
+    cleanUrl.searchParams.delete("audience");
+    return NextResponse.redirect(cleanUrl);
   }
 
   // Normalize audience=platform to tenant on tenant-scoped hosts (e.g. uab.localhost:3000/login?audience=platform)
@@ -119,9 +125,10 @@ export async function middleware(request: NextRequest) {
     const loginUrl = new URL("/login", request.url);
     const nextPath = `${pathname}${request.nextUrl.search}`;
     const isTenantHost = hasTenantScopedHost(hostname);
-    const audience = !isTenantHost && matchesAnyPrefix(pathname, OWNER_PATH_PREFIXES) ? "platform" : "tenant";
     loginUrl.searchParams.set("next", nextPath);
-    loginUrl.searchParams.set("audience", audience);
+    if (isTenantHost) {
+      loginUrl.searchParams.set("audience", "tenant");
+    }
     return NextResponse.redirect(loginUrl);
   }
 
