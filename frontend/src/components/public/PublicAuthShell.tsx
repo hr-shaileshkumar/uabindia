@@ -93,7 +93,7 @@ export default function PublicAuthShell({
       />
 
       {/* Main Form Content */}
-      <main className="relative z-10 flex flex-1 items-center justify-center py-8 sm:py-12 lg:py-16">
+      <main className="relative z-10 flex flex-1 items-center justify-center pt-4 pb-8 sm:pt-6 sm:pb-10 lg:pt-8 lg:pb-12">
         <div className={cn(publicSectionClassName, "grid items-center gap-10 lg:grid-cols-2 lg:gap-14 xl:gap-20")}>
           {/* Left Column / Marketing & Feature Card */}
           <aside className="hidden lg:flex lg:flex-col lg:justify-center">
