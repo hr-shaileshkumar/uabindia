@@ -2131,3 +2131,17 @@ textarea:focus {
   animation: glow-pulse 3s ease-in-out infinite;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   Enterprise Viewport Scale Factor: 85% View Zoom on Desktop
+   When the browser zoom is set to 100% in Chrome, Microsoft Edge,
+   Safari, Opera, or other modern browsers, the software renders at
+   85% zoom for maximum executive widescreen data density.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media screen and (min-width: 1024px) {
+  body {
+    zoom: 0.85;
+    min-height: calc(100vh / 0.85);
+    -webkit-text-size-adjust: 100%;
+  }
+}
+
