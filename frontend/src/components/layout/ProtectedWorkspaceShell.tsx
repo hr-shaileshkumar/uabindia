@@ -30,7 +30,7 @@ const PERMISSIONS_UNAVAILABLE_REASON = "permissions-unavailable";
 const NAVIGATION_ERROR_REASON = "navigation-unavailable";
 
 const isShellExemptPath = (pathname: string) =>
-  pathname === "/context" || pathname === "/not-authorized";
+  pathname === "/context" || pathname === "/not-authorized" || pathname === "/";
 
 function ProtectedShellLoading() {
   const [loadStage, setLoadStage] = useState<"initial" | "connecting" | "slow">("initial");

@@ -185,6 +185,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } finally {
       setUser(null);
       setClientAuthToken(null);
+      if (typeof document !== "undefined") {
+        document.cookie = "active_path=; path=/; max-age=0; SameSite=Lax";
+        try {
+          window.sessionStorage.removeItem("erp.active.path");
+        } catch {}
+      }
       clearClientSessionArtifacts();
     }
   };

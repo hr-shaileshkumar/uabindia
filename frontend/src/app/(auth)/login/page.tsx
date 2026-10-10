@@ -109,7 +109,14 @@ export default function LoginPage() {
       }
 
       await refreshUser();
-      router.replace(targetPath);
+      const resolvedAppPath = targetPath && targetPath !== "/" ? targetPath : "/employee-self-service";
+      if (typeof document !== "undefined") {
+        document.cookie = `active_path=${encodeURIComponent(resolvedAppPath)}; path=/; max-age=604800; SameSite=Lax`;
+        try {
+          sessionStorage.setItem("erp.active.path", resolvedAppPath);
+        } catch {}
+      }
+      router.replace("/");
     } catch (error: unknown) {
       if (isApiConnectivityError(error)) {
         setErrorMessage("Unable to reach the server. Please check your connection and try again.");

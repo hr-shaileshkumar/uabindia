@@ -11,6 +11,7 @@ import {
 } from "@/lib/workspace/navigation";
 import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
+import { getEffectiveWorkspacePath } from "@/lib/workspace/url-lock";
 
 /**
  * Common enterprise acronym expansion dictionary.
@@ -62,7 +63,8 @@ const CANONICAL_PATH_TITLES: Record<string, { title: string; moduleLabel?: strin
 };
 
 export function WorkspaceBreadcrumb({ className }: { className?: string }) {
-  const pathname = usePathname() || "";
+  const rawPathname = usePathname() || "";
+  const pathname = getEffectiveWorkspacePath(rawPathname);
   const { navigation: schemaNav, enabledModules } = useUiSchema();
   const modules = buildWorkspaceModules(schemaNav.modules, enabledModules);
   const page = findWorkspacePageByPath(modules, pathname);

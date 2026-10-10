@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import ScreenFitController from "@/components/app/ScreenFitController";
+import UrlLockController from "@/components/app/UrlLockController";
 import Providers from "./providers";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { publicSiteUrl } from "@/lib/public-site-url";
@@ -47,6 +48,7 @@ export default function RootLayout({
       <body className="min-h-screen font-sans antialiased text-slate-900 bg-[#f8fafc] dark:bg-slate-950 dark:text-slate-100">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <ScreenFitController />
+          <UrlLockController />
           <Providers>{children}</Providers>
         </ThemeProvider>
       </body>

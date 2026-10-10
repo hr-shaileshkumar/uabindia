@@ -28,6 +28,7 @@ import {
   type WorkspaceModule,
 } from "@/lib/workspace/navigation";
 import ModuleIcon from "@/components/ModuleIcon";
+import { getEffectiveWorkspacePath } from "@/lib/workspace/url-lock";
 
 function SidebarTooltip({ label }: { label: string }) {
   return (
@@ -232,7 +233,8 @@ type SidebarProps = {
 };
 
 export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
-  const pathname = usePathname() || "";
+  const rawPathname = usePathname() || "";
+  const pathname = getEffectiveWorkspacePath(rawPathname);
   const isCollapsed = useNavigationStore((state) => state.isSidebarCollapsed);
   const favorites = useNavigationStore((state) => state.favorites);
   const removeFavorite = useNavigationStore((state) => state.removeFavorite);

@@ -65,7 +65,45 @@ export async function middleware(request: NextRequest) {
 
   if (matchesAnyPrefix(pathname, AUTH_PATH_PREFIXES) && hasAccessToken) {
     const nextPath = resolveSafeNextPath(request.nextUrl.searchParams.get("next"));
-    return NextResponse.redirect(new URL(nextPath || "/context", request.url));
+    return NextResponse.redirect(new URL(nextPath || "/", request.url));
+  }
+
+  // ── WhatsApp-Style URL Lock: Single-Domain Root Routing ──
+  // When authenticated, accessing root "/" serves the active workspace view (e.g. /employee-self-service)
+  // while strictly locking the browser address bar to http://localhost:3000/
+  if (pathname === "/" && hasAccessToken) {
+    const rawActive = request.cookies.get("active_path")?.value;
+    let target = "/employee-self-service";
+    if (rawActive) {
+      try {
+        const decoded = decodeURIComponent(rawActive);
+        if (decoded.startsWith("/") && !decoded.startsWith("//") && !matchesAnyPrefix(decoded, AUTH_PATH_PREFIXES)) {
+          target = decoded;
+        }
+      } catch {}
+    }
+    return NextResponse.rewrite(new URL(target, request.url));
+  }
+
+  // When authenticated, direct address bar navigations to protected routes (like /employee-self-service)
+  // are redirected to "/" with active_path cookie, so the address bar locks to http://localhost:3000
+  // while the page view renders seamlessly via root rewrite.
+  const isDirectHtmlNavigation =
+    matchesPrefix(pathname, PROTECTED_PREFIXES) &&
+    hasAccessToken &&
+    !request.headers.get("rsc") &&
+    !request.headers.get("next-router-prefetch") &&
+    !request.headers.get("next-url") &&
+    request.headers.get("accept")?.includes("text/html");
+
+  if (isDirectHtmlNavigation) {
+    const res = NextResponse.redirect(new URL("/", request.url));
+    res.cookies.set("active_path", pathname + request.nextUrl.search, {
+      path: "/",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 7,
+    });
+    return res;
   }
 
   // Normalize audience=platform to tenant on tenant-scoped hosts (e.g. uab.localhost:3000/login?audience=platform)
