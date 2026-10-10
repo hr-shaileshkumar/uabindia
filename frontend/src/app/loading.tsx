@@ -3,5 +3,5 @@
 import { PublicPageLoading } from "@/components/public/PublicPageLoading";
 
 export default function AppRouteLoading() {
-  return <PublicPageLoading label="Loading..." sublabel="Preparing your workspace" />;
+  return <PublicPageLoading />;
 }
