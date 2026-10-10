@@ -33,7 +33,7 @@ export function TenantHeader({ id, name, status, subdomain, logoUrl, actions }: 
             </div>
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <span className="font-mono text-xs bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
-                {subdomain}.example.com
+                {subdomain}.uabindia.in
               </span>
               <span>ID: {id}</span>
             </div>

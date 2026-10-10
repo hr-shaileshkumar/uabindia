@@ -64,7 +64,7 @@ export default function ForgotPasswordPage() {
       showFooter={false}
     >
       <PublicAuthShell
-        brandName={profile.brandName || profile.companyName || process.env.NEXT_PUBLIC_APP_NAME || "UabIndia Enterprise Platform"}
+        brandName={profile.brandName || profile.companyName || process.env.NEXT_PUBLIC_APP_NAME || "UabIndia ERP"}
         homeHref={withPublicAudience("/", audience)}
         audience={audience}
         variant="forgot-password"

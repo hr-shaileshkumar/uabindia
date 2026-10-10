@@ -8,6 +8,7 @@ import type { PublicFooterContent } from "@/lib/publicSiteContent";
 import { withPublicAudience } from "@/lib/public-audience";
 import { filterPublicLinks } from "@/lib/public-site-map";
 import { publicSectionClassName } from "@/components/public/publicStyles";
+import PublicBrand from "@/components/public/PublicBrand";
 import { cn } from "@/lib/utils";
 
 type PublicFooterProps = {
@@ -73,12 +74,7 @@ export default function PublicFooter({
       <div className={cn(publicSectionClassName, "py-12 sm:py-16")}>
         <div className={cn("grid gap-10", platformMode ? "lg:grid-cols-[1.4fr_1fr_1fr]" : "lg:grid-cols-2")}>
           <div>
-            <div className="flex items-center gap-2.5">
-              <img src={profile.logoUrl || "/logo.png"} alt={brandName} className="h-7 w-auto object-contain" />
-              <span className="font-extrabold text-base tracking-tight text-slate-900 dark:text-white">
-                {brandName}
-              </span>
-            </div>
+            <PublicBrand logoUrl={profile.logoUrl} brandName={brandName} size="md" />
             <p className="mt-4 max-w-sm text-xs sm:text-sm leading-relaxed text-slate-600 dark:text-slate-400">
               {footerContent.summary ||
                 (platformMode

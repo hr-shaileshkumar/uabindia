@@ -33,7 +33,7 @@ export default function ResetPasswordPage() {
       showFooter={false}
     >
       <PublicAuthShell
-        brandName={profile.brandName || profile.companyName || process.env.NEXT_PUBLIC_APP_NAME || "Enterprise ERP"}
+        brandName={profile.brandName || profile.companyName || process.env.NEXT_PUBLIC_APP_NAME || "UabIndia ERP"}
         homeHref={withPublicAudience("/", audience)}
         audience={audience}
         variant="reset-password"

@@ -77,14 +77,14 @@ export const getDefaultFooterContent = (
 ): PublicFooterContent => ({
   summary:
     audience === "platform"
-      ? `${profile.brandName} helps organizations run HR, payroll, attendance, finance, procurement, inventory, CRM, projects, assets, help desk, and reporting from one modern enterprise platform.`
-      : `${profile.brandName} gives ${profile.companyName} one clean public entry for company information, support, recruitment, and secure workspace access.`,
+      ? "UabIndia ERP helps organizations run HR, payroll, attendance, finance, procurement, inventory, CRM, projects, assets, help desk, and reporting from one unified cloud system."
+      : `${profile.brandName || "UabIndia ERP"} provides ${profile.companyName || "your enterprise"} a unified portal for company operations, employee self-service, and verified workspace access.`,
   footerLinks: getPublicNavLinks(audience, "footer"),
-  legalLine: `Copyright ${legalYear} ${profile.brandName}. All rights reserved.`,
+  legalLine: `Copyright ${legalYear} ${profile.brandName || "UabIndia ERP"}. All rights reserved.`,
   platformLabel:
     audience === "platform"
-      ? `${profile.brandName} SaaS experience`
-      : `${profile.brandName} company public experience`,
+      ? "UabIndia Enterprise Cloud"
+      : `${profile.brandName || "UabIndia"} Workspace`,
 });
 
 export const getWebsitePageTemplate = (pageType: string, profile: ClientProfile): WebsitePageTemplateDefinition => {

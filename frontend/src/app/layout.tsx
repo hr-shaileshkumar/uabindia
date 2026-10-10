@@ -16,15 +16,15 @@ const plusJakarta = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: {
-    default: "UabIndia Enterprise Platform",
-    template: "%s | UabIndia Enterprise Platform",
+    default: "UabIndia ERP - Cloud Enterprise Operating System",
+    template: "%s | UabIndia ERP",
   },
   metadataBase: new URL(publicSiteUrl),
   description:
     "Modern cloud enterprise platform for HRMS, payroll, finance & accounting, procurement, inventory, projects, and operational intelligence.",
-  applicationName: "UabIndia Enterprise Platform",
+  applicationName: "UabIndia ERP",
   openGraph: {
-    siteName: "UabIndia Enterprise Platform",
+    siteName: "UabIndia ERP",
     type: "website",
     url: publicSiteUrl,
   },

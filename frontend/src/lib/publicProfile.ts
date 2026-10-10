@@ -29,7 +29,17 @@ const firstNonEmpty = (...values: Array<string | null | undefined>): string | un
 const isGenericBrandName = (value?: string | null): boolean => {
   if (!value) return false;
   const normalized = value.trim().toLowerCase();
-  return ["erp", "portal", "tenant", "client", "company", "www", "app"].includes(normalized);
+  return [
+    "erp",
+    "portal",
+    "tenant",
+    "client",
+    "company",
+    "www",
+    "app",
+    "enterprise platform",
+    "platform",
+  ].includes(normalized);
 };
 
 export const getBaseClientProfile = (): ClientProfile => {

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { publicSiteUrl } from "@/lib/public-site-url";
 
-const SITE_NAME = "UabIndia Enterprise Platform";
+const SITE_NAME = "UabIndia ERP";
 
 type MetadataOptions = {
   title: string;

@@ -57,7 +57,7 @@ type PublicAuthShellProps = {
 
 export default function PublicAuthShell({
   children,
-  brandName = "UabIndia",
+  brandName = "UabIndia ERP",
   homeHref = "/",
   audience = "tenant",
   variant = "login",

@@ -1,16 +1,16 @@
-const appName = process.env.NEXT_PUBLIC_APP_NAME || "Enterprise Platform";
+const appName = process.env.NEXT_PUBLIC_APP_NAME || "UabIndia ERP";
 
 export const clientProfile = {
-  companyName: appName,
+  companyName: "UabIndia",
   brandName: appName,
   industry: "Enterprise Cloud ERP",
-  headquarters: "Corporate Operations Hub",
+  headquarters: "Bengaluru, Karnataka, India",
   employeeCount: "",
-  supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "support@enterprise.internal",
-  supportPhone: process.env.NEXT_PUBLIC_SUPPORT_PHONE || "",
-  supportHours: "Mon-Sat | 9:00 AM - 6:30 PM",
-  supportTier: "Enterprise support",
-  implementationPartner: appName,
+  supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "support@uabindia.in",
+  supportPhone: process.env.NEXT_PUBLIC_SUPPORT_PHONE || "+91 80 4000 1234",
+  supportHours: "Mon-Sat | 9:00 AM - 6:30 PM IST",
+  supportTier: "Enterprise Mission-Critical Support",
+  implementationPartner: "UabIndia Enterprise Cloud",
   heroTitle: "Your company workspace",
   heroSubtitle:
     "Secure login, employee self-service, support, and company updates from one portal.",

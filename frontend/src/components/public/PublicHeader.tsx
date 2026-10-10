@@ -11,6 +11,7 @@ import type { PublicHeaderContent } from "@/lib/publicSiteContent";
 import { withPublicAudience } from "@/lib/public-audience";
 import { getDefaultPublicHomeHref, getPublicNavLinks } from "@/lib/public-site-map";
 import { cn } from "@/lib/utils";
+import PublicBrand from "@/components/public/PublicBrand";
 import { publicSectionClassName } from "@/components/public/publicStyles";
 
 type PublicHeaderProps = {
@@ -81,13 +82,10 @@ export default function PublicHeader({
         {/* Left: Brand Logo & Title */}
         <Link
           href={withPublicAudience(homeHref, audience)}
-          className="flex shrink-0 items-center gap-2.5 group"
+          className="flex shrink-0 items-center group"
           onClick={() => setIsMobileMenuOpen(false)}
         >
-          <img src={profile.logoUrl || "/logo.png"} alt={brandName} className="h-7 w-auto object-contain transition-transform group-hover:scale-105" />
-          <span className="font-extrabold text-sm sm:text-base tracking-tight text-slate-900 dark:text-white hidden sm:inline-block">
-            {brandName}
-          </span>
+          <PublicBrand logoUrl={profile.logoUrl} brandName={brandName} size="md" />
         </Link>
 
         {/* Center/Right: Navigation Links & Theme + Login Action */}
