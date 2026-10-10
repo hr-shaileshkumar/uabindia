@@ -37,6 +37,7 @@ import {
   type MarketingModule,
 } from "@/lib/public-marketing";
 import { withPublicAudience, type PublicAudience } from "@/lib/public-audience";
+import { cn } from "@/lib/utils";
 
 type HeroContent = {
   eyebrow: string;
@@ -604,7 +605,7 @@ export function LegalPublicPage({
       }}
     >
       <section className={publicPageSectionClassName}>
-        <div className={`${publicSectionClassName} max-w-3xl`}>
+        <div className={cn(publicSectionClassName, "max-w-3xl")}>
           <MotionReveal>
             <PublicPageHero eyebrow={eyebrow} title={title} />
           </MotionReveal>

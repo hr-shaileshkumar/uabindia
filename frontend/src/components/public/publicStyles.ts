@@ -24,7 +24,7 @@ export const publicGlassPanelClassName =
   "rounded-2xl border border-slate-200/80 bg-white/80 p-6 shadow-sm backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-900/80";
 
 export const publicSectionClassName =
-  "relative mx-auto w-full max-w-[1580px] 2xl:max-w-[1760px] px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16";
+  "relative mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8";
 
 export const publicPageSectionClassName = "relative py-12 md:py-16 lg:py-20";
 export const publicSectionSpacingClassName = "relative py-12 md:py-16 lg:py-20";

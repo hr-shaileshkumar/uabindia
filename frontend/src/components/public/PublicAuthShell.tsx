@@ -7,6 +7,8 @@ import PublicProductPreview from "@/components/public/PublicProductPreview";
 import PublicHeader from "@/components/public/PublicHeader";
 import { getBaseClientProfile, type ClientProfile } from "@/lib/publicProfile";
 import { getDefaultHeaderContent, type PublicHeaderContent } from "@/lib/publicSiteContent";
+import { publicSectionClassName } from "@/components/public/publicStyles";
+import { cn } from "@/lib/utils";
 
 export type PublicAuthShellVariant = "login" | "register" | "reset-password" | "forgot-password";
 
@@ -91,8 +93,8 @@ export default function PublicAuthShell({
       />
 
       {/* Main Form Content */}
-      <main className="relative z-10 flex flex-1 items-center justify-center px-4 py-8 sm:py-12 lg:py-16">
-        <div className="mx-auto grid w-full max-w-5xl items-center gap-10 lg:grid-cols-2 lg:gap-14">
+      <main className="relative z-10 flex flex-1 items-center justify-center py-8 sm:py-12 lg:py-16">
+        <div className={cn(publicSectionClassName, "grid items-center gap-10 lg:grid-cols-2 lg:gap-14 xl:gap-20")}>
           {/* Left Column / Marketing & Feature Card */}
           <aside className="hidden lg:flex lg:flex-col lg:justify-center">
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-blue-600 dark:text-cyan-400">
