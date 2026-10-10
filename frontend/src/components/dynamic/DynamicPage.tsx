@@ -195,6 +195,8 @@ export function resolveDefaultApiEndpoint(pageKey: string): string {
   return `/api/v1/${normalized}`;
 }
 
+const dynamicPageSchemaCache = new Map<string, { schema: DynamicPageSchema; timestamp: number }>();
+
 export function DynamicPage({
   pageKey,
   fallback,
@@ -426,6 +428,14 @@ export function DynamicPage({
       return;
     }
 
+    const cacheKey = `${pageKey}:${previewMode ? "draft" : "prod"}:${effectiveCompanyId || ""}:${effectiveProjectId || ""}`;
+    const cached = dynamicPageSchemaCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < 300_000) {
+      setSchema(cached.schema);
+      setSchemaLoading(false);
+      return;
+    }
+
     try {
       if (!schema) {
         setSchemaLoading(true);
@@ -524,6 +534,9 @@ export function DynamicPage({
       }
 
       // 3. Set resolved schema
+      if (foundSchema) {
+        dynamicPageSchemaCache.set(cacheKey, { schema: foundSchema, timestamp: Date.now() });
+      }
       setSchema(foundSchema);
     } catch (err) {
       setSchema(null);

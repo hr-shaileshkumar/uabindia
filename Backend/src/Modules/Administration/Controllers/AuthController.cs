@@ -217,7 +217,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             {
                 HttpOnly = false,
                 Secure = secure,
-                SameSite = SameSiteMode.Strict,
+                SameSite = SameSiteMode.Lax,
                 Expires = DateTimeOffset.UtcNow.AddHours(2),
                 Path = "/"
             });
@@ -744,7 +744,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             {
                 HttpOnly = true,
                 Secure = secure,
-                SameSite = SameSiteMode.Strict,
+                SameSite = SameSiteMode.Lax,
                 Expires = DateTimeOffset.UtcNow.AddMinutes(15),
                 Path = "/"
             };
@@ -753,7 +753,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             {
                 HttpOnly = true,
                 Secure = secure,
-                SameSite = SameSiteMode.Strict,
+                SameSite = SameSiteMode.Lax,
                 Expires = new DateTimeOffset(refreshExpires),
                 Path = "/"
             };

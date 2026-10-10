@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
-import apiClient from "@/services/apiClient";
+import apiClient, { setClientAuthToken } from "@/services/apiClient";
 import type { User } from "@/types";
 import { isSuperAdminRole } from "@/lib/auth/role-utils";
 import {
@@ -184,6 +184,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Session may already be expired — ignore logout errors
     } finally {
       setUser(null);
+      setClientAuthToken(null);
       clearClientSessionArtifacts();
     }
   };
@@ -197,8 +198,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       isSuperAdmin,
       refreshUser,
       logout,
-      setToken: () => {
-        // No-op: HttpOnly cookies handle auth
+      setToken: (token: string | null) => {
+        setClientAuthToken(token);
       },
     }),
     [user, loading, isSuperAdmin]

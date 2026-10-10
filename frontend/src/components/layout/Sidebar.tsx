@@ -104,7 +104,7 @@ function SidebarNavItem({
   if (!hasChildren) {
     return (
       <li className="list-none">
-        <Link href={mod.homeHref || ROUTES.DASHBOARD} prefetch={false} onClick={onNavigate} className={rowClass}>
+        <Link href={mod.homeHref || ROUTES.DASHBOARD} prefetch={true} onClick={onNavigate} className={rowClass}>
           {isModActive ? (
             <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-blue-600" />
           ) : null}
@@ -119,7 +119,7 @@ function SidebarNavItem({
   if (isCollapsed) {
     return (
       <li className="list-none">
-        <Link href={mod.homeHref || ROUTES.DASHBOARD} onClick={onNavigate} className={rowClass} title={mod.label}>
+        <Link href={mod.homeHref || ROUTES.DASHBOARD} prefetch={true} onClick={onNavigate} className={rowClass} title={mod.label}>
           {isModActive ? (
             <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-blue-600" />
           ) : null}
@@ -133,7 +133,7 @@ function SidebarNavItem({
   return (
     <li className="list-none">
       <div className="relative flex items-center">
-        <Link href={mod.homeHref || ROUTES.DASHBOARD} onClick={onNavigate} className={cn(rowClass, "pr-8")}>
+        <Link href={mod.homeHref || ROUTES.DASHBOARD} prefetch={true} onClick={onNavigate} className={cn(rowClass, "pr-8")}>
           {isModActive && !expanded ? (
             <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-blue-600" />
           ) : null}
@@ -177,7 +177,7 @@ function SidebarNavItem({
                       <li key={item.key} className="group/item relative flex items-center">
                         <Link
                           href={item.path}
-                          prefetch={false}
+                          prefetch={true}
                           onClick={onNavigate}
                           className={cn(
                             "flex flex-1 items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12.5px] transition-colors pr-7",
@@ -309,7 +309,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                     <li key={fav.id} className="group/fav relative flex items-center">
                       <Link
                         href={fav.href}
-                        prefetch={false}
+                        prefetch={true}
                         onClick={onMobileClose}
                         className={cn(
                           "flex flex-1 items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12.5px] transition-colors pr-7",

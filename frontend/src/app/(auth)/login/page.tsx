@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,7 +21,7 @@ import { readRememberedLogin, writeRememberedLogin } from "@/lib/auth-remember";
 import { withPublicAudience } from "@/lib/public-audience";
 import { canonicalizeProtectedPath, getDefaultAppPath } from "@/lib/workspace/route-config";
 import { cn } from "@/lib/utils";
-import { getDeviceId } from "@/services/apiClient";
+import { getDeviceId, setClientAuthToken } from "@/services/apiClient";
 import { authApi } from "@/services/modules";
 
 const loginSchema = z.object({
@@ -81,6 +81,15 @@ export default function LoginPage() {
   }, [reset]);
 
 
+  const targetPath = useMemo(
+    () => (nextPath ? canonicalizeProtectedPath(nextPath) : getDefaultAppPath()),
+    [nextPath]
+  );
+
+  useEffect(() => {
+    router.prefetch(targetPath);
+  }, [router, targetPath]);
+
   const onSubmit = async (values: LoginValues) => {
     setErrorMessage("");
     const email = values.email.trim().toLowerCase();
@@ -88,13 +97,19 @@ export default function LoginPage() {
 
     try {
       writeRememberedLogin(remember, email);
-      await authApi.login({
+      const res = await authApi.login({
         email,
         password: values.password,
         deviceId: getDeviceId(),
       });
+
+      const token = res.data?.access_token || res.data?.token;
+      if (token) {
+        setClientAuthToken(token);
+      }
+
       await refreshUser();
-      router.push(nextPath ? canonicalizeProtectedPath(nextPath) : getDefaultAppPath());
+      router.replace(targetPath);
     } catch (error: unknown) {
       if (isApiConnectivityError(error)) {
         setErrorMessage("Unable to reach the server. Please check your connection and try again.");

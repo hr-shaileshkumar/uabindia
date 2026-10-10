@@ -25,7 +25,7 @@ export const createQueryClient = () =>
         gcTime: 10 * 60_000,
         refetchOnWindowFocus: false,
         refetchOnReconnect: false,
-        retry: (failureCount, error) => failureCount < 2 && shouldRetryRequest(error),
+        retry: (failureCount, error) => failureCount < 1 && shouldRetryRequest(error),
       },
       mutations: {
         retry: false,

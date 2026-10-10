@@ -174,11 +174,19 @@ export const UiSchemaProvider = ({ children }: { children: React.ReactNode }) =>
     return () => window.removeEventListener("erp:tenant-changed", handleTenantChanged);
   }, [refresh]);
 
+  const pageSchemaCacheRef = useRef<Map<string, PageSchemaDto | null>>(new Map());
+
   const getPageSchema = useCallback(async (pageKey: string) => {
+    if (pageSchemaCacheRef.current.has(pageKey)) {
+      return pageSchemaCacheRef.current.get(pageKey) ?? null;
+    }
     try {
       const res = await appApi.uiShell.getPageSchema(pageKey);
-      return parsePageSchema(res.data);
+      const parsed = parsePageSchema(res.data);
+      pageSchemaCacheRef.current.set(pageKey, parsed);
+      return parsed;
     } catch {
+      pageSchemaCacheRef.current.set(pageKey, null);
       return null;
     }
   }, []);

@@ -42,21 +42,50 @@ export const getDeviceId = (): string => {
   return d;
 };
 
+let csrfPromise: Promise<string | null> | null = null;
+
+export const setClientAuthToken = (token: string | null) => {
+  if (typeof document !== "undefined") {
+    if (token) {
+      document.cookie = `access_token=${token}; path=/; max-age=604800; SameSite=Lax`;
+      apiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    } else {
+      document.cookie = "access_token=; path=/; max-age=0; SameSite=Lax";
+      delete apiClient.defaults.headers.common["Authorization"];
+    }
+  }
+};
+
+// Initialize Authorization header from existing cookie on startup
+if (typeof document !== "undefined") {
+  const existingToken = getCookie("access_token");
+  if (existingToken) {
+    apiClient.defaults.headers.common["Authorization"] = `Bearer ${existingToken}`;
+  }
+}
+
 const ensureCsrfToken = async (): Promise<string | null> => {
   if (typeof window === "undefined") return null;
   const existing = getCookie("csrf_token");
   if (existing) return existing;
+  if (csrfPromise) return csrfPromise;
 
-  try {
-    const tenant = getTenantHeader();
-    await axios.get(`${apiBaseUrl}/auth/csrf-token`, {
-      withCredentials: true,
-      headers: tenant ? { "X-Tenant": tenant } : undefined,
-    });
-    return getCookie("csrf_token");
-  } catch {
-    return null;
-  }
+  csrfPromise = (async () => {
+    try {
+      const tenant = getTenantHeader();
+      await axios.get(`${apiBaseUrl}/auth/csrf-token`, {
+        withCredentials: true,
+        headers: tenant ? { "X-Tenant": tenant } : undefined,
+      });
+      return getCookie("csrf_token");
+    } catch {
+      return null;
+    } finally {
+      csrfPromise = null;
+    }
+  })();
+
+  return csrfPromise;
 };
 
 export const persistTenantSubdomain = (tenant: string | null | undefined) => {
@@ -178,12 +207,54 @@ const shouldAttachOrgScopeHeaders = (url?: string): boolean => {
   return !bypassPrefixes.some((prefix) => normalized.startsWith(prefix));
 };
 
+const isAuthEndpoint = (url?: string): boolean => {
+  if (!url) return false;
+  let normalized = url.toLowerCase().replace(/^\/+/, "");
+  if (normalized.startsWith("api/v1/")) normalized = normalized.slice(7);
+  else if (normalized.startsWith("api/")) normalized = normalized.slice(4);
+
+  return (
+    normalized.startsWith("auth/") ||
+    normalized.startsWith("iam/auth/") ||
+    normalized === "auth"
+  );
+};
+
+const isCsrfExempt = (url?: string): boolean => {
+  if (!url) return false;
+  let normalized = url.toLowerCase().replace(/^\/+/, "");
+  if (normalized.startsWith("api/v1/")) normalized = normalized.slice(7);
+  else if (normalized.startsWith("api/")) normalized = normalized.slice(4);
+
+  return (
+    normalized.startsWith("auth/login") ||
+    normalized.startsWith("auth/refresh") ||
+    normalized.startsWith("auth/csrf-token") ||
+    normalized.startsWith("auth/logout") ||
+    normalized.startsWith("auth/forgot-password") ||
+    normalized.startsWith("auth/reset-password") ||
+    normalized.startsWith("iam/auth/") ||
+    normalized.startsWith("public/") ||
+    normalized.startsWith("tenants/resolve") ||
+    normalized.startsWith("health")
+  );
+};
+
 const shouldAttemptRefresh = (url?: string): boolean => {
-  if (!url) return true;
-  const normalized = url.toLowerCase();
-  return !normalized.includes("/auth/login") &&
-    !normalized.includes("/auth/refresh") &&
-    !normalized.includes("/auth/logout");
+  if (!url) return false;
+  let normalized = url.toLowerCase().replace(/^\/+/, "");
+  if (normalized.startsWith("api/v1/")) normalized = normalized.slice(7);
+  else if (normalized.startsWith("api/")) normalized = normalized.slice(4);
+
+  return (
+    !normalized.startsWith("auth/login") &&
+    !normalized.startsWith("auth/refresh") &&
+    !normalized.startsWith("auth/logout") &&
+    !normalized.startsWith("auth/forgot-password") &&
+    !normalized.startsWith("auth/reset-password") &&
+    !normalized.startsWith("iam/auth/") &&
+    !normalized.startsWith("public/")
+  );
 };
 
 const dispatchApiErrorEvent = (error: AxiosError) => {
@@ -353,7 +424,12 @@ apiClient.interceptors.request.use(
     // NOTE: do not auto-force includeDeleted/includeAllTenants on every GET.
     // Page-level screens control these toggles explicitly so UX state remains predictable.
 
-    if (isStateChanging && !isCsrfEndpoint) {
+    const hasBearer = Boolean(
+      config.headers?.Authorization ||
+      apiClient.defaults.headers.common["Authorization"]
+    );
+
+    if (isStateChanging && !isCsrfExempt(config.url) && !hasBearer) {
       const token = await ensureCsrfToken();
       if (token) {
         config.headers = config.headers || {};
@@ -367,7 +443,18 @@ apiClient.interceptors.request.use(
 );
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // If auth login or refresh succeeded, synchronize the client token immediately
+    const url = typeof response.config?.url === "string" ? response.config.url.toLowerCase() : "";
+    if (url.includes("auth/login") || url.includes("auth/refresh")) {
+      const token = response.data?.access_token || response.data?.token;
+      if (token && typeof document !== "undefined") {
+        document.cookie = `access_token=${token}; path=/; max-age=604800; SameSite=Lax`;
+        apiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      }
+    }
+    return response;
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as (InternalAxiosRequestConfig & { _retry?: boolean }) | undefined;
 
