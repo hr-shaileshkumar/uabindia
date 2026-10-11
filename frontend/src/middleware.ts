@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getServerApiV1BaseUrl } from "@/lib/api-base-url";
-import { AUTH_PATH_PREFIXES, BUSINESS_PATH_PREFIXES, OWNER_PATH_PREFIXES, matchesAnyPrefix } from "@/lib/workspace/route-config";
+import {
+  AUTH_PATH_PREFIXES,
+  BUSINESS_PATH_PREFIXES,
+  OWNER_PATH_PREFIXES,
+  PUBLIC_PATH_PREFIXES,
+  matchesAnyPrefix,
+} from "@/lib/workspace/route-config";
 import { isPlatformOnlyPath, TENANT_PUBLIC_HOME } from "@/lib/workspace/public-routing";
 import { hasTenantScopedHost, isLocalhostHostname, normalizeHostname } from "@/lib/tenant-host";
 
@@ -77,7 +83,12 @@ export async function middleware(request: NextRequest) {
     if (rawActive) {
       try {
         const decoded = decodeURIComponent(rawActive);
-        if (decoded.startsWith("/") && !decoded.startsWith("//") && !matchesAnyPrefix(decoded, AUTH_PATH_PREFIXES)) {
+        if (
+          decoded.startsWith("/") &&
+          !decoded.startsWith("//") &&
+          !matchesAnyPrefix(decoded, AUTH_PATH_PREFIXES) &&
+          !matchesAnyPrefix(decoded, PUBLIC_PATH_PREFIXES)
+        ) {
           target = decoded;
         }
       } catch {}

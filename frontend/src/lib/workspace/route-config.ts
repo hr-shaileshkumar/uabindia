@@ -156,6 +156,18 @@ export function matchesAnyPrefix(pathname: string, prefixes: readonly string[]) 
   return prefixes.some((prefix) => normalized === prefix || normalized.startsWith(`${prefix}/`));
 }
 
+export function isProtectedWorkspacePath(pathname: string): boolean {
+  const normalized = normalizePathname(pathname);
+  if (!normalized || normalized === "/") return false;
+  if (matchesAnyPrefix(normalized, AUTH_PATH_PREFIXES)) return false;
+  if (matchesAnyPrefix(normalized, PUBLIC_PATH_PREFIXES)) return false;
+  return (
+    matchesAnyPrefix(normalized, BUSINESS_PATH_PREFIXES) ||
+    matchesAnyPrefix(normalized, OWNER_PATH_PREFIXES) ||
+    normalized === "/context"
+  );
+}
+
 export function canonicalizeProtectedPath(pathname: string) {
   const normalized = normalizePathname(pathname);
   if (normalized === "/" || normalized === "/context") return normalized;

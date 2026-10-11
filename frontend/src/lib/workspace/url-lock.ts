@@ -6,6 +6,8 @@
  * paths or architecture in the browser URL bar.
  */
 
+import { isProtectedWorkspacePath } from "@/lib/workspace/route-config";
+
 export const ACTIVE_PATH_COOKIE = "active_path";
 export const ACTIVE_PATH_STORAGE = "erp.active.path";
 export const DEFAULT_LOCKED_PATH = "/dashboard";
@@ -38,6 +40,9 @@ export const getEffectiveWorkspacePath = (currentPathname: string): string => {
 export const syncActiveWorkspacePath = (pathname: string, search: string = "") => {
   if (typeof window === "undefined") return;
   if (!pathname || pathname === "/") return;
+  // NEVER apply single-domain lock to public routes (like /contact, /login, /careers, /about)
+  // Public routes must maintain their real URLs so refresh (F5) and address bar double-tap work reliably!
+  if (!isProtectedWorkspacePath(pathname)) return;
 
   // Clean any redundant audience=platform query parameters
   const cleanSearch = search

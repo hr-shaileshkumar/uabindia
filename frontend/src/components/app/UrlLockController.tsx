@@ -4,6 +4,8 @@ import { useEffect, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { syncActiveWorkspacePath } from "@/lib/workspace/url-lock";
 
+import { isProtectedWorkspacePath } from "@/lib/workspace/route-config";
+
 function UrlLockInner() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -19,7 +21,10 @@ function UrlLockInner() {
       window.history.replaceState(window.history.state, "", cleanHref);
     }
 
-    if (!pathname || pathname === "/") return;
+    // Only apply root single-domain lock to protected workspace routes (e.g. /dashboard, /employee-self-service)
+    // NEVER lock public pages (/contact, /login, /careers, /about), so refresh (F5) and address bar double-tap work reliably!
+    if (!pathname || pathname === "/" || !isProtectedWorkspacePath(pathname)) return;
+
     const search = searchParams?.toString() ? `?${searchParams.toString()}` : "";
     syncActiveWorkspacePath(pathname, search);
   }, [pathname, searchParams]);
