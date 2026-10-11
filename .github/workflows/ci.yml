@@ -41,6 +41,12 @@ jobs:
         run: dotnet build UabIndia.sln --no-restore --configuration Release
 
       - name: Test
+        env:
+          ASPNETCORE_ENVIRONMENT: Test
+          Jwt__Key: "test_jwt_key_for_automated_tests_only_0123456789"
+          Jwt__Issuer: "test-issuer"
+          Jwt__Audience: "test-audience"
+          Encryption__Key: "dev_encryption_key_1234567890"
         run: dotnet test UabIndia.sln --no-build --configuration Release --verbosity normal
 
   frontend:

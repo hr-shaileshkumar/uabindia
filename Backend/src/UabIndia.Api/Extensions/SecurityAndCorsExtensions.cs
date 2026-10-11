@@ -218,7 +218,15 @@ namespace UabIndia.Api.Extensions
                 ?? Environment.GetEnvironmentVariable("Jwt__Audience")
                 ?? Environment.GetEnvironmentVariable("JWT_AUDIENCE");
 
-            if (env.IsEnvironment("Test"))
+            var envName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+                ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
+
+            var isTestLikeEnv = env.IsEnvironment("Test")
+                || string.Equals(envName, "Test", StringComparison.OrdinalIgnoreCase)
+                || !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("CI"))
+                || AppDomain.CurrentDomain.GetAssemblies().Any(a => a.FullName?.StartsWith("testhost", StringComparison.OrdinalIgnoreCase) == true);
+
+            if (isTestLikeEnv)
             {
                 jwtKey ??= "test_jwt_key_for_automated_tests_only_0123456789";
                 jwtIssuer ??= "test-issuer";
@@ -244,7 +252,15 @@ namespace UabIndia.Api.Extensions
                 ?? Environment.GetEnvironmentVariable("Encryption__Key")
                 ?? Environment.GetEnvironmentVariable("ENCRYPTION_KEY");
 
-            if (env.IsDevelopment() || env.IsEnvironment("Test"))
+            var envName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+                ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
+
+            var isTestLikeEnv = env.IsEnvironment("Test")
+                || string.Equals(envName, "Test", StringComparison.OrdinalIgnoreCase)
+                || !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("CI"))
+                || AppDomain.CurrentDomain.GetAssemblies().Any(a => a.FullName?.StartsWith("testhost", StringComparison.OrdinalIgnoreCase) == true);
+
+            if (env.IsDevelopment() || isTestLikeEnv)
             {
                 encryptionKey ??= "dev_encryption_key_1234567890";
             }
