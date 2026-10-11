@@ -12,6 +12,7 @@ import {
   planPolicies,
   wizardSteps,
 } from "@/features/tenants/utils/tenant-utils";
+import { resolveTenantDisplayDomain } from "@/lib/tenant-host";
 
 export { buildTenantCreatePayload, buildTenantUpdatePayload, getDefaultTenantForm };
 
@@ -408,7 +409,7 @@ export function TenantWizard({
                 <div className="mt-3 space-y-2 text-sm text-slate-700 dark:text-slate-300">
                   <p><span className="font-semibold text-slate-900 dark:text-white">Name:</span> {form.name || "-"}</p>
                   <p><span className="font-semibold text-slate-900 dark:text-white">Code:</span> {form.subdomain || "-"}</p>
-                  <p><span className="font-semibold text-slate-900 dark:text-white">Domain:</span> {form.customDomain || `${form.subdomain || "tenant"}.yourdomain.com`}</p>
+                  <p><span className="font-semibold text-slate-900 dark:text-white">Domain:</span> {resolveTenantDisplayDomain({ subdomain: form.subdomain, customDomain: form.customDomain }).domain}</p>
                   <p><span className="font-semibold text-slate-900 dark:text-white">Status:</span> {form.status}</p>
                 </div>
               </div>

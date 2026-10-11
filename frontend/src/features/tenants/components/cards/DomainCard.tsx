@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Globe, Shield, ExternalLink, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { resolveTenantDisplayDomain, getActiveSystemBaseDomain } from "@/lib/tenant-host";
 
 interface DomainCardProps {
   customDomain?: string;
@@ -20,32 +21,9 @@ export function DomainCard({
   sslStatus,
   onManage,
 }: DomainCardProps) {
-  
-  const getBaseDomain = () => {
-    if (typeof window === "undefined") return "uabindia.com";
-    const hostname = window.location.hostname.toLowerCase();
-    
-    if (hostname === "localhost" || hostname === "127.0.0.1") {
-      return "localhost";
-    }
-    if (hostname.endsWith(".localhost")) {
-      return "localhost";
-    }
-
-    const parts = hostname.split(".");
-    if (parts.length >= 2) {
-      // Get the base domain, e.g. "uabindia.com" from "admin.uabindia.com"
-      return parts.slice(-2).join(".");
-    }
-    
-    return hostname;
-  };
-
-  const baseDomain = getBaseDomain();
-  const defaultDomain = baseDomain === "localhost" 
-    ? `${subdomain}.localhost`
-    : `${subdomain}.${baseDomain}`;
-  const primaryDomain = customDomain || defaultDomain;
+  const baseDomain = getActiveSystemBaseDomain();
+  const defaultDomain = `${subdomain}.${baseDomain}`;
+  const primaryDomain = resolveTenantDisplayDomain({ subdomain, customDomain }).domain;
 
   return (
     <Card className="flex flex-col h-full">

@@ -130,3 +130,77 @@ export const hasTenantScopedHost = (value: string | null | undefined): boolean =
 export const getPlatformBaseDomain = (): string => {
   return stripLeadingWww(PLATFORM_HOSTNAME);
 };
+
+/**
+ * Dynamically resolves the active root platform domain based on the runtime environment.
+ * Adapts in real-time to:
+ * - Local development: "localhost:3000" or "localhost"
+ * - Customer private cloud / IP addresses: "192.168.1.10:3000", "20.55.10.12"
+ * - Production / Staging custom domains: extracts apex root domain from active window.location
+ */
+export const getActiveSystemBaseDomain = (): string => {
+  if (typeof window !== "undefined" && window.location) {
+    const hostname = (window.location.hostname || "").toLowerCase().trim();
+    const port = window.location.port;
+
+    if (!hostname) {
+      return getPlatformBaseDomain();
+    }
+
+    // Bare localhost or loopback (e.g. "localhost", "127.0.0.1")
+    if (isBareLocalhost(hostname)) {
+      return port ? `localhost:${port}` : "localhost";
+    }
+
+    // Tenant subdomain on localhost (e.g. "erp.localhost:3000")
+    if (hostname.endsWith(".localhost")) {
+      return port ? `localhost:${port}` : "localhost";
+    }
+
+    // Direct IP address hosting (e.g. "192.168.1.100:3000" or cloud public IP)
+    if (isIpAddress(hostname)) {
+      return window.location.host;
+    }
+
+    // Multi-tenant subdomain (e.g. "erp.uabindia.com" -> base is "uabindia.com")
+    const parts = hostname.split(".").filter(Boolean);
+    if (parts.length >= 3) {
+      return parts.slice(1).join(".");
+    }
+
+    return hostname;
+  }
+
+  // SSR or non-browser fallback: check environment variables or configured site URL
+  if (process.env.NEXT_PUBLIC_BASE_DOMAIN) {
+    return process.env.NEXT_PUBLIC_BASE_DOMAIN.replace(/^\.+/, "").trim();
+  }
+
+  return getPlatformBaseDomain();
+};
+
+/**
+ * Resolves the complete display domain for any tenant record.
+ * Prioritizes:
+ * 1. Verified Custom Domain (e.g. "erp.acmecorp.com")
+ * 2. Dynamic subdomain on active platform host (e.g. "erp.localhost:3000", "erp.mycompany.in")
+ */
+export const resolveTenantDisplayDomain = (tenant: {
+  subdomain?: string | null;
+  customDomain?: string | null;
+  domain?: string | null;
+}): { domain: string; isCustom: boolean } => {
+  const custom = (tenant.customDomain || tenant.domain || "").trim();
+  if (custom) {
+    return { domain: custom, isCustom: true };
+  }
+
+  const sub = (tenant.subdomain || "").trim();
+  const base = getActiveSystemBaseDomain();
+
+  if (!sub) {
+    return { domain: base, isCustom: false };
+  }
+
+  return { domain: `${sub}.${base}`, isCustom: false };
+};

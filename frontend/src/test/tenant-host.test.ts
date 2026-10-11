@@ -4,6 +4,8 @@ import {
   isLocalhostHostname,
   getTenantSubdomainFromHost,
   hasTenantScopedHost,
+  getActiveSystemBaseDomain,
+  resolveTenantDisplayDomain,
 } from "@/lib/tenant-host";
 import {
   hasPublicTenantContextForRequest,
@@ -86,5 +88,20 @@ describe("public-audience on subdomain hosts", () => {
     expect(resolvePublicAudience("platform", true)).toBe("tenant");
     expect(resolvePublicAudience(null, true)).toBe("tenant");
     expect(resolvePublicAudience("platform", false)).toBe("platform");
+  });
+
+  it("dynamically resolves tenant display domain", () => {
+    // Custom domain takes precedence
+    expect(
+      resolveTenantDisplayDomain({ subdomain: "acme", customDomain: "erp.acmepvt.com" })
+    ).toEqual({
+      domain: "erp.acmepvt.com",
+      isCustom: true,
+    });
+
+    // Default subdomain uses system base domain
+    const result = resolveTenantDisplayDomain({ subdomain: "enterprise" });
+    expect(result.domain).toContain("enterprise.");
+    expect(result.isCustom).toBe(false);
   });
 });

@@ -27,6 +27,7 @@ import { platformApi } from "@/services/modules/administration";
 import { tenantApi } from "@/features/tenants/services/tenant.api";
 import { notifySuccess, notifyError } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
+import { resolveTenantDisplayDomain } from "@/lib/tenant-host";
 
 const TENANT_CACHE_KEY = "erp.cached.tenants";
 
@@ -369,7 +370,7 @@ export function TenantSubdomainSwitcher() {
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{displayLabel}</p>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                        {activeSubdomain ? `${activeSubdomain}.uabindia.com` : "Enterprise Workspace"}
+                        {activeSubdomain ? resolveTenantDisplayDomain({ subdomain: activeSubdomain }).domain : "Enterprise Workspace"}
                       </p>
                     </div>
                   </div>

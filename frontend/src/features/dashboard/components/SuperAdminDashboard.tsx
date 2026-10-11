@@ -38,6 +38,7 @@ import { tenantApi } from "@/features/tenants/services/tenant.api";
 import { useAuth } from "@/context/AuthContext";
 import { notifyError } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
+import { getActiveSystemBaseDomain, resolveTenantDisplayDomain } from "@/lib/tenant-host";
 import {
   AreaChart,
   Area,
@@ -122,6 +123,7 @@ export function SuperAdminDashboard({ onSwitchToModules }: { onSwitchToModules?:
   const [error, setError] = useState<string | null>(null);
   const [healthStatus, setHealthStatus] = useState<string>("Healthy");
   const [searchQuery, setSearchQuery] = useState("");
+  const systemBaseDomain = useMemo(() => getActiveSystemBaseDomain(), []);
 
   const fetchDashboardData = async (silent = true) => {
     try {
@@ -529,9 +531,21 @@ export function SuperAdminDashboard({ onSwitchToModules }: { onSwitchToModules?:
                       </div>
                     </td>
                     <td className="px-4 py-2 truncate">
-                      <span className="font-mono text-[11px] font-medium text-indigo-600 bg-indigo-50/60 px-1.5 py-0.5 rounded truncate inline-block max-w-full">
-                        {t.subdomain}.uabindia.com
-                      </span>
+                      {(() => {
+                        const { domain: displayDomain, isCustom } = resolveTenantDisplayDomain(t);
+                        return (
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="font-mono text-[11px] font-medium text-indigo-600 bg-indigo-50/70 dark:bg-indigo-950/50 dark:text-indigo-400 px-1.5 py-0.5 rounded truncate inline-block max-w-full">
+                              {displayDomain}
+                            </span>
+                            {isCustom ? (
+                              <span className="shrink-0 rounded bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 px-1 py-0.2 text-[9px] font-semibold border border-emerald-200/60 dark:border-emerald-800">
+                                Custom
+                              </span>
+                            ) : null}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-2">
                       <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700">
@@ -628,7 +642,7 @@ export function SuperAdminDashboard({ onSwitchToModules }: { onSwitchToModules?:
           <div className="mt-2.5 space-y-1.5 text-[11px]">
             <div className="flex items-center justify-between text-slate-600">
               <span>Wildcard SSL Cert</span>
-              <span className="font-semibold text-emerald-600">*.uabindia.com</span>
+              <span className="font-semibold text-emerald-600">*.{systemBaseDomain}</span>
             </div>
             <div className="flex items-center justify-between text-slate-600">
               <span>Edge Proxy Cache</span>
