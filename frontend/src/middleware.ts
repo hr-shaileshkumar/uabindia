@@ -74,41 +74,53 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL(nextPath || "/", request.url));
   }
 
-  // ── WhatsApp-Style URL Lock: Single-Domain Root Routing ──
-  // When authenticated, accessing root "/" serves the active workspace view (e.g. /dashboard)
-  // while strictly locking the browser address bar to http://localhost:3000/
-  if (pathname === "/" && hasAccessToken) {
+  // ── Universal Single-Domain URL Lock: Root Routing & State Persistence ──
+  // The browser address bar strictly displays ONLY the domain URL (http://localhost:3000).
+  // All internal routes (/contact, /login, /dashboard, /careers, etc.) are served seamlessly via root rewrite.
+  if (pathname === "/") {
     const rawActive = request.cookies.get("active_path")?.value;
-    let target = "/dashboard";
     if (rawActive) {
       try {
         const decoded = decodeURIComponent(rawActive);
-        if (
-          decoded.startsWith("/") &&
-          !decoded.startsWith("//") &&
-          !matchesAnyPrefix(decoded, AUTH_PATH_PREFIXES) &&
-          !matchesAnyPrefix(decoded, PUBLIC_PATH_PREFIXES)
-        ) {
-          target = decoded;
+        if (decoded.startsWith("/") && !decoded.startsWith("//") && decoded !== "/") {
+          // If active path is protected and user is not authenticated, rewrite to /login
+          if (matchesPrefix(decoded, PROTECTED_PREFIXES) && !hasAccessToken) {
+            return NextResponse.rewrite(new URL("/login", request.url));
+          }
+          // If active path is auth and user is already authenticated, rewrite to /dashboard
+          if (matchesAnyPrefix(decoded, AUTH_PATH_PREFIXES) && hasAccessToken) {
+            return NextResponse.rewrite(new URL("/dashboard", request.url));
+          }
+          return NextResponse.rewrite(new URL(decoded, request.url));
         }
       } catch {}
     }
-    return NextResponse.rewrite(new URL(target, request.url));
+    if (hasAccessToken) {
+      return NextResponse.rewrite(new URL("/dashboard", request.url));
+    }
+    // Default public home
+    return NextResponse.next();
   }
 
-  // When authenticated, direct address bar navigations to protected routes (like /dashboard)
-  // are redirected to "/" with active_path cookie, so the address bar locks to http://localhost:3000
-  // while the page view renders seamlessly via root rewrite.
-  const isDirectHtmlNavigation =
-    matchesPrefix(pathname, PROTECTED_PREFIXES) &&
-    hasAccessToken &&
+  // ── Universal Single-Domain URL Lock: Intercept Direct Subpage Navigations ──
+  // If user opens a new tab or enters e.g. http://localhost:3000/contact or http://localhost:3000/login:
+  // Redirect immediately to root "/" with active_path cookie, so the address bar NEVER exposes subpaths!
+  const isDirectPageNavigation =
+    pathname !== "/" &&
+    !pathname.startsWith("/api") &&
+    !pathname.startsWith("/_next") &&
+    !pathname.includes(".") &&
     !request.headers.get("rsc") &&
     !request.headers.get("next-router-prefetch") &&
     !request.headers.get("next-url");
 
-  if (isDirectHtmlNavigation) {
+  if (isDirectPageNavigation) {
+    let targetPath = pathname + request.nextUrl.search;
+    if (matchesPrefix(pathname, PROTECTED_PREFIXES) && !hasAccessToken) {
+      targetPath = `/login?next=${encodeURIComponent(targetPath)}`;
+    }
     const res = NextResponse.redirect(new URL("/", request.url));
-    res.cookies.set("active_path", pathname + request.nextUrl.search, {
+    res.cookies.set("active_path", targetPath, {
       path: "/",
       sameSite: "lax",
       maxAge: 60 * 60 * 24 * 7,

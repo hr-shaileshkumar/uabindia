@@ -40,9 +40,6 @@ export const getEffectiveWorkspacePath = (currentPathname: string): string => {
 export const syncActiveWorkspacePath = (pathname: string, search: string = "") => {
   if (typeof window === "undefined") return;
   if (!pathname || pathname === "/") return;
-  // NEVER apply single-domain lock to public routes (like /contact, /login, /careers, /about)
-  // Public routes must maintain their real URLs so refresh (F5) and address bar double-tap work reliably!
-  if (!isProtectedWorkspacePath(pathname)) return;
 
   // Clean any redundant audience=platform query parameters
   const cleanSearch = search
