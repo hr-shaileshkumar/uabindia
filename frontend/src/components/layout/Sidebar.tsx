@@ -265,6 +265,8 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     onMobileClose?.();
   }, [pathname]);
 
+  const dashboardLabel = isSuperAdmin ? "Super Admin Hub" : "Executive Dashboard";
+
   const renderNav = (collapsed: boolean) => (
     <div className={cn("flex flex-1 flex-col min-h-0", collapsed ? "pt-2" : "pt-2")}>
 
@@ -296,7 +298,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
               >
                 <LayoutDashboard className="h-4 w-4" />
               </span>
-              {!collapsed ? <span className="truncate">Executive Dashboard</span> : <SidebarTooltip label="Dashboard" />}
+              {!collapsed ? <span className="truncate">{dashboardLabel}</span> : <SidebarTooltip label={dashboardLabel} />}
             </Link>
           </li>
 
