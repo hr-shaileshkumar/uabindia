@@ -20,6 +20,14 @@ import {
   Zap,
   Globe,
   Radio,
+  Shield,
+  Wallet,
+  Briefcase,
+  Package,
+  ShoppingCart,
+  Landmark,
+  BarChart3,
+  LayoutDashboard,
 } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import {
@@ -191,7 +199,7 @@ export function SuperAdminDashboard() {
     <StandardPageLayout
       title="Platform Operations & SaaS Control"
       subtitle="Real-time multi-tenant health, organization provisioning, and telemetry."
-      eyebrow="Super Admin Console"
+      eyebrow="Enterprise Dashboard Hub"
       icon="shield"
       actions={
         <div className="flex flex-wrap items-center gap-2.5">
@@ -234,6 +242,38 @@ export function SuperAdminDashboard() {
           </button>
         </div>
       ) : null}
+
+      {/* Module Dashboards Hub Quick Navigator */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 shrink-0 mr-1 hidden sm:inline">
+          Module Dashboards:
+        </span>
+        {[
+          { label: "Platform Overview", href: "/dashboard", active: true, icon: Shield },
+          { label: "HRMS", href: "/hrms", active: false, icon: Users },
+          { label: "Payroll", href: "/payroll", active: false, icon: Wallet },
+          { label: "CRM", href: "/crm", active: false, icon: Briefcase },
+          { label: "Sales", href: "/sales", active: false, icon: TrendingUp },
+          { label: "Inventory", href: "/inventory", active: false, icon: Package },
+          { label: "Procurement", href: "/procurement", active: false, icon: ShoppingCart },
+          { label: "Finance", href: "/finance", active: false, icon: Landmark },
+          { label: "Reports & BI", href: "/reports", active: false, icon: BarChart3 },
+        ].map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold shrink-0 transition-all border",
+              item.active
+                ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
+                : "bg-white text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/50 border-slate-200/80 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300"
+            )}
+          >
+            <item.icon className="h-3 w-3 shrink-0" />
+            <span>{item.label}</span>
+          </Link>
+        ))}
+      </div>
 
       {/* Hero SaaS Metric Cards */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

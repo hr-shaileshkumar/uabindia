@@ -14,6 +14,15 @@ import {
   CheckSquare,
   FileText,
   Star,
+  Users,
+  Wallet,
+  Briefcase,
+  TrendingUp,
+  Package,
+  ShoppingCart,
+  Landmark,
+  BarChart3,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/constants/routes";
@@ -260,12 +269,77 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const dynamicModules = buildWorkspaceModules(schemaNav.modules, enabledModules, accessContext);
   const sections = groupWorkspaceModulesForSidebar(dynamicModules);
   const dashboardActive = isPathActive(pathname, ROUTES.DASHBOARD);
+  const [dashboardExpanded, setDashboardExpanded] = useState(true);
 
   useEffect(() => {
     onMobileClose?.();
   }, [pathname]);
 
-  const dashboardLabel = isSuperAdmin ? "Super Admin Hub" : "Executive Dashboard";
+  const dashboardLabel = "Dashboard";
+
+  const moduleDashboardItems = useMemo(() => [
+    {
+      key: "overview",
+      label: isSuperAdmin ? "Super Admin Hub" : "Executive Overview",
+      href: ROUTES.DASHBOARD,
+      icon: LayoutDashboard,
+      badge: "Main",
+    },
+    {
+      key: "hrms",
+      label: "HRMS Dashboard",
+      href: ROUTES.HRMS_HOME,
+      icon: Users,
+    },
+    {
+      key: "payroll",
+      label: "Payroll Dashboard",
+      href: ROUTES.PAYROLL_HOME,
+      icon: Wallet,
+    },
+    {
+      key: "crm",
+      label: "CRM Dashboard",
+      href: ROUTES.CRM_HOME,
+      icon: Briefcase,
+    },
+    {
+      key: "sales",
+      label: "Sales Dashboard",
+      href: ROUTES.SALES_HOME,
+      icon: TrendingUp,
+    },
+    {
+      key: "inventory",
+      label: "Inventory Dashboard",
+      href: ROUTES.INVENTORY_HOME,
+      icon: Package,
+    },
+    {
+      key: "procurement",
+      label: "Procurement Dashboard",
+      href: ROUTES.PROCUREMENT_HOME,
+      icon: ShoppingCart,
+    },
+    {
+      key: "finance",
+      label: "Finance Dashboard",
+      href: ROUTES.FINANCE_HOME,
+      icon: Landmark,
+    },
+    {
+      key: "reports",
+      label: "Reports & Analytics",
+      href: ROUTES.REPORTS_HOME,
+      icon: BarChart3,
+    },
+    ...(isSuperAdmin ? [{
+      key: "administration",
+      label: "Platform Operations",
+      href: ROUTES.ADMINISTRATION_HOME,
+      icon: ShieldCheck,
+    }] : []),
+  ], [isSuperAdmin]);
 
   const renderNav = (collapsed: boolean) => (
     <div className={cn("flex flex-1 flex-col min-h-0", collapsed ? "pt-2" : "pt-2")}>
@@ -274,32 +348,101 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       <nav className="flex flex-1 flex-col overflow-y-auto px-2.5 py-2 scrollbar-thin">
         <ul role="list" className="flex flex-col gap-y-0.5">
           <li className="list-none">
-            <Link
-              href={ROUTES.DASHBOARD}
-              onClick={onMobileClose}
-              className={cn(
-                "group relative flex items-center gap-x-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all",
-                dashboardActive
-                  ? "bg-blue-50/80 font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
-                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-200",
-                collapsed && "justify-center px-0 py-2",
-              )}
-            >
-              {dashboardActive ? (
-                <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-blue-600" />
-              ) : null}
-              <span
+            <div className="relative flex items-center">
+              <Link
+                href={ROUTES.DASHBOARD}
+                onClick={onMobileClose}
                 className={cn(
-                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors",
-                  dashboardActive
-                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300"
-                    : "text-slate-500 group-hover:text-slate-800 dark:text-slate-400",
+                  "group relative flex flex-1 items-center gap-x-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all",
+                  dashboardActive && !dashboardExpanded
+                    ? "bg-blue-50/80 font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
+                    : "text-slate-700 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/60 dark:hover:text-slate-200",
+                  collapsed && "justify-center px-0 py-2",
+                  !collapsed && "pr-8",
                 )}
               >
-                <LayoutDashboard className="h-4 w-4" />
-              </span>
-              {!collapsed ? <span className="truncate">{dashboardLabel}</span> : <SidebarTooltip label={dashboardLabel} />}
-            </Link>
+                {dashboardActive ? (
+                  <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-blue-600" />
+                ) : null}
+                <span
+                  className={cn(
+                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors",
+                    dashboardActive
+                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300"
+                      : "text-slate-500 group-hover:text-slate-800 dark:text-slate-400",
+                  )}
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                </span>
+                {!collapsed ? <span className="truncate font-semibold">{dashboardLabel}</span> : <SidebarTooltip label={dashboardLabel} />}
+              </Link>
+              {!collapsed ? (
+                <button
+                  type="button"
+                  onClick={() => setDashboardExpanded((prev) => !prev)}
+                  className="absolute right-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-200/60 hover:text-slate-700 dark:hover:bg-slate-800"
+                  aria-label={dashboardExpanded ? "Collapse Module Dashboards" : "Expand Module Dashboards"}
+                  aria-expanded={dashboardExpanded}
+                >
+                  <motion.span animate={{ rotate: dashboardExpanded ? 90 : 0 }} transition={{ duration: 0.15 }}>
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </motion.span>
+                </button>
+              ) : null}
+            </div>
+
+            {/* Nested Module Dashboards List */}
+            {!collapsed ? (
+              <AnimatePresence initial={false}>
+                {dashboardExpanded ? (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.18, ease: "easeInOut" }}
+                    className="overflow-hidden"
+                  >
+                    <div className="ml-5 mt-0.5 border-l-2 border-slate-100 dark:border-slate-800 pl-2.5">
+                      <ul className="space-y-0.5 py-1">
+                        {moduleDashboardItems.map((item) => {
+                          const isItemActive = isPathActive(pathname, item.href);
+                          return (
+                            <li key={item.key} className="group/item relative flex items-center">
+                              <Link
+                                href={item.href}
+                                prefetch={true}
+                                onClick={onMobileClose}
+                                className={cn(
+                                  "flex flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] transition-colors",
+                                  isItemActive
+                                    ? "bg-blue-50/80 font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
+                                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-200",
+                                )}
+                              >
+                                <item.icon
+                                  className={cn(
+                                    "h-3.5 w-3.5 shrink-0 transition-colors",
+                                    isItemActive
+                                      ? "text-blue-600 dark:text-blue-400"
+                                      : "text-slate-400 group-hover/item:text-slate-600 dark:text-slate-500",
+                                  )}
+                                />
+                                <span className="truncate">{item.label}</span>
+                                {item.badge ? (
+                                  <span className="ml-auto rounded-full bg-blue-100 dark:bg-blue-900/60 px-1.5 py-0.2 text-[9px] font-semibold text-blue-700 dark:text-blue-300">
+                                    {item.badge}
+                                  </span>
+                                ) : null}
+                              </Link>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+            ) : null}
           </li>
 
           {/* Pinned Favorites Section */}
