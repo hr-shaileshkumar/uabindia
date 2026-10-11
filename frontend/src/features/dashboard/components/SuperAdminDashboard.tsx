@@ -271,9 +271,9 @@ export function SuperAdminDashboard() {
           {
             label: "Suspended / Inactive",
             value: String(suspendedTenantsCount),
-            change: "Policy & Plan Compliance",
+            change: "100% Compliant",
             trend: "neutral",
-            subtext: "0 chargeback holds",
+            subtext: "0 holds",
             icon: ShieldAlert,
             gradient: "from-amber-600 to-rose-600",
             bgLight: "bg-amber-50/50 text-amber-600 border-amber-100",
@@ -293,12 +293,12 @@ export function SuperAdminDashboard() {
               </div>
             </div>
 
-            <div className="mt-2.5 flex items-center justify-between border-t border-slate-100 pt-2 text-[11px]">
-              <span className="flex items-center gap-1 font-medium text-emerald-600">
-                <TrendingUp className="h-3 w-3" />
-                {stat.change}
+            <div className="mt-2.5 flex items-center justify-between gap-1.5 border-t border-slate-100 pt-2 text-[11px] min-w-0">
+              <span className="flex items-center gap-1 font-medium text-emerald-600 shrink-0 truncate">
+                <TrendingUp className="h-3 w-3 shrink-0" />
+                <span className="truncate">{stat.change}</span>
               </span>
-              <span className="text-slate-400">{stat.subtext}</span>
+              <span className="text-slate-400 text-right truncate shrink-0 max-w-[48%]">{stat.subtext}</span>
             </div>
           </div>
         ))}
@@ -317,7 +317,7 @@ export function SuperAdminDashboard() {
             </span>
           </div>
 
-          <div className="mt-2.5 h-48 sm:h-52 w-full">
+          <div className="mt-2 h-40 sm:h-44 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={[
@@ -368,7 +368,7 @@ export function SuperAdminDashboard() {
             </div>
           </div>
 
-          <div className="mt-2.5 h-48 sm:h-52 w-full">
+          <div className="mt-2 h-40 sm:h-44 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={[

@@ -45,7 +45,7 @@ function ProtectedShellLoading() {
   }, []);
 
   return (
-    <div className="uab-app-shell erp-app-canvas relative flex h-[100dvh] min-h-[100dvh] flex-col overflow-hidden bg-slate-50/50 dark:bg-slate-950" role="status" aria-live="polite">
+    <div className="uab-app-shell erp-app-canvas fixed inset-0 flex flex-col overflow-hidden bg-slate-50/50 dark:bg-slate-950" role="status" aria-live="polite">
       <span className="sr-only">Loading your workspace</span>
 
       {/* Top indeterminate loading indicator bar */}
@@ -425,7 +425,7 @@ export function ProtectedWorkspaceShell({ children }: { children: ReactNode }) {
   const workspaceScopeKey = `${companyId ?? ""}|${projectId ?? ""}|${financialYearKey ?? ""}`;
 
   return (
-    <div className={cn("relative flex h-[100dvh] min-h-[100dvh] bg-background text-foreground flex-col overflow-hidden", portal.shellClassName)}>
+    <div className={cn("fixed inset-0 flex flex-col overflow-hidden bg-background text-foreground", portal.shellClassName)}>
       <Header onMenuClick={handleShellMenuClick} onSearchClick={() => setSearchOpen(true)} />
       <div className="flex flex-1 min-h-0 overflow-hidden bg-slate-50/60 dark:bg-slate-950">
         <Sidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
@@ -437,7 +437,7 @@ export function ProtectedWorkspaceShell({ children }: { children: ReactNode }) {
             </div>
 
             {/* Persistent Enterprise Workspace Dock / Footer */}
-            <footer className="mt-8 border-t border-slate-200/80 pt-4 pb-2 text-xs text-slate-400 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+            <footer className="mt-4 border-t border-slate-200/80 pt-3 pb-1 text-[11px] text-slate-400 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2 shrink-0">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-semibold text-slate-700 dark:text-slate-300">UabIndia ERP Enterprise</span>
                 <span>•</span>
