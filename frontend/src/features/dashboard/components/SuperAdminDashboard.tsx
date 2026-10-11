@@ -101,7 +101,7 @@ const withTimeout = <T,>(promise: Promise<T>, timeoutMs = 3500): Promise<T> => {
   ]);
 };
 
-export function SuperAdminDashboard() {
+export function SuperAdminDashboard({ onSwitchToModules }: { onSwitchToModules?: () => void } = {}) {
   const { user } = useAuth();
 
   // Instant optimistic tenant so metrics and table render immediately without stuck "..."
@@ -221,6 +221,17 @@ export function SuperAdminDashboard() {
             Sync Telemetry
           </button>
           
+          {onSwitchToModules ? (
+            <button
+              type="button"
+              onClick={onSwitchToModules}
+              className={cn(erpButtonClassName.secondary, "text-xs py-2 text-indigo-600 border-indigo-200 hover:bg-indigo-50")}
+            >
+              <LayoutDashboard className="h-3.5 w-3.5" />
+              All Dashboards Hub
+            </button>
+          ) : null}
+
           <Link
             href="/platform/tenants/create"
             className={cn(erpButtonClassName.primary, "text-xs py-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-md shadow-indigo-200")}
