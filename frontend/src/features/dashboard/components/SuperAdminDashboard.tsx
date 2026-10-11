@@ -236,7 +236,7 @@ export function SuperAdminDashboard() {
       ) : null}
 
       {/* Hero SaaS Metric Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
           {
             label: "Total Organizations",
@@ -281,21 +281,21 @@ export function SuperAdminDashboard() {
         ].map((stat) => (
           <div
             key={stat.label}
-            className="group relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs hover:shadow-md transition-all duration-200"
+            className="group relative overflow-hidden rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-xs hover:shadow-md transition-all duration-200"
           >
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{stat.label}</p>
-                <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">{stat.value}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{stat.label}</p>
+                <p className="mt-1 text-xl sm:text-2xl font-bold tracking-tight text-slate-900">{stat.value}</p>
               </div>
-              <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl border", stat.bgLight)}>
-                <stat.icon className="h-5 w-5" />
+              <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg border", stat.bgLight)}>
+                <stat.icon className="h-4 w-4" />
               </div>
             </div>
 
-            <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs">
+            <div className="mt-2.5 flex items-center justify-between border-t border-slate-100 pt-2 text-[11px]">
               <span className="flex items-center gap-1 font-medium text-emerald-600">
-                <TrendingUp className="h-3.5 w-3.5" />
+                <TrendingUp className="h-3 w-3" />
                 {stat.change}
               </span>
               <span className="text-slate-400">{stat.subtext}</span>
@@ -305,19 +305,19 @@ export function SuperAdminDashboard() {
       </div>
 
       {/* Interactive Platform Analytics Charts */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs lg:col-span-2">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+      <div className="grid gap-3.5 lg:grid-cols-3">
+        <div className="rounded-xl border border-slate-200/90 bg-white p-3.5 sm:p-4 shadow-xs lg:col-span-2">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
             <div>
-              <h3 className="text-sm font-bold text-slate-900">Platform Traffic &amp; Tenant Growth</h3>
-              <p className="text-xs text-slate-500">Active tenant workspaces and API request volume (Millions)</p>
+              <h3 className="text-xs sm:text-sm font-bold text-slate-900">Platform Traffic &amp; Tenant Growth</h3>
+              <p className="text-[11px] text-slate-500">Active tenant workspaces and API request volume (Millions)</p>
             </div>
-            <span className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-700">
+            <span className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700">
               Live Telemetry
             </span>
           </div>
 
-          <div className="mt-4 h-72 w-full">
+          <div className="mt-2.5 h-48 sm:h-52 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={[
@@ -328,47 +328,47 @@ export function SuperAdminDashboard() {
                   { month: "Jul", tenants: 24, apiCalls: 7.9 },
                   { month: "Aug", tenants: Math.max(tenants.length, 28), apiCalls: 11.4 },
                 ]}
-                margin={{ top: 12, right: 16, left: -10, bottom: 26 }}
+                margin={{ top: 8, right: 12, left: -15, bottom: 20 }}
               >
                 <defs>
                   <linearGradient id="tenantGrowthGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3} />
+                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.25} />
                     <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis
                   dataKey="month"
-                  height={32}
-                  dy={6}
-                  tick={{ fontSize: 11, fill: "#64748b" }}
+                  height={26}
+                  dy={4}
+                  tick={{ fontSize: 10, fill: "#64748b" }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <YAxis
-                  tick={{ fontSize: 11, fill: "#64748b" }}
+                  tick={{ fontSize: 10, fill: "#64748b" }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <Tooltip
-                  contentStyle={{ backgroundColor: "#0f172a", borderRadius: "0.75rem", border: "none", color: "#fff", fontSize: "12px" }}
+                  contentStyle={{ backgroundColor: "#0f172a", borderRadius: "0.5rem", border: "none", color: "#fff", fontSize: "11px" }}
                   labelStyle={{ color: "#94a3b8", fontWeight: "600" }}
                 />
-                <Area type="monotone" dataKey="tenants" name="Tenants" stroke="#4f46e5" strokeWidth={2.5} fillOpacity={1} fill="url(#tenantGrowthGrad)" />
+                <Area type="monotone" dataKey="tenants" name="Tenants" stroke="#4f46e5" strokeWidth={2} fillOpacity={1} fill="url(#tenantGrowthGrad)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="rounded-xl border border-slate-200/90 bg-white p-3.5 sm:p-4 shadow-xs">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
             <div>
-              <h3 className="text-sm font-bold text-slate-900">Subscription Tiers</h3>
-              <p className="text-xs text-slate-500">Distribution by plan</p>
+              <h3 className="text-xs sm:text-sm font-bold text-slate-900">Subscription Tiers</h3>
+              <p className="text-[11px] text-slate-500">Distribution by plan</p>
             </div>
           </div>
 
-          <div className="mt-4 h-72 w-full">
+          <div className="mt-2.5 h-48 sm:h-52 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={[
@@ -377,27 +377,27 @@ export function SuperAdminDashboard() {
                   { plan: "Starter", count: Math.max(1, Math.round(tenants.length * 0.15)) },
                   { plan: "Trial", count: Math.max(1, Math.round(tenants.length * 0.05)) },
                 ]}
-                margin={{ top: 12, right: 16, left: -15, bottom: 26 }}
+                margin={{ top: 8, right: 12, left: -20, bottom: 20 }}
               >
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis
                   dataKey="plan"
-                  height={32}
-                  dy={6}
-                  tick={{ fontSize: 11, fill: "#64748b" }}
+                  height={26}
+                  dy={4}
+                  tick={{ fontSize: 10, fill: "#64748b" }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <YAxis
                   allowDecimals={false}
-                  tick={{ fontSize: 11, fill: "#64748b" }}
+                  tick={{ fontSize: 10, fill: "#64748b" }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <Tooltip
-                  contentStyle={{ backgroundColor: "#0f172a", borderRadius: "0.75rem", border: "none", color: "#fff", fontSize: "12px" }}
+                  contentStyle={{ backgroundColor: "#0f172a", borderRadius: "0.5rem", border: "none", color: "#fff", fontSize: "11px" }}
                 />
-                <Bar dataKey="count" name="Tenants" fill="#6366f1" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="count" name="Tenants" fill="#6366f1" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -405,98 +405,98 @@ export function SuperAdminDashboard() {
       </div>
 
       {/* Quick Launchpad & Platform Controls */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
         {PLATFORM_QUICK_ACTIONS.map((action) => (
           <Link
             key={action.href}
             href={action.href}
-            className="group relative flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-4.5 shadow-xs hover:border-indigo-300 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+            className="group relative flex items-center gap-3 rounded-xl border border-slate-200/80 bg-white p-3 shadow-xs hover:border-indigo-300 hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200"
           >
-            <div className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border bg-gradient-to-br", action.color)}>
-              <action.icon className="h-5 w-5" />
+            <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border bg-gradient-to-br", action.color)}>
+              <action.icon className="h-4 w-4" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{action.title}</p>
-              <p className="truncate text-xs text-slate-500 mt-0.5">{action.subtitle}</p>
+              <p className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{action.title}</p>
+              <p className="truncate text-[11px] text-slate-500 mt-0.5">{action.subtitle}</p>
             </div>
           </Link>
         ))}
       </div>
 
       {/* Live Tenant Registry Table */}
-      <div className="rounded-2xl border border-slate-200/90 bg-white shadow-xs overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 p-5">
+      <div className="rounded-xl border border-slate-200/90 bg-white shadow-xs overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-100 px-4 py-2.5">
           <div>
-            <h3 className="text-base font-bold text-slate-900">Live Organization Clusters</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Isolated tenant instances running on SQL Server multi-tenant engine.</p>
+            <h3 className="text-xs sm:text-sm font-bold text-slate-900">Live Organization Clusters</h3>
+            <p className="text-[11px] text-slate-500">Isolated tenant instances running on SQL Server multi-tenant engine.</p>
           </div>
 
-          <div className="relative w-full sm:w-72">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-slate-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search tenant or subdomain…"
-              className="w-full rounded-xl border border-slate-200 bg-slate-50/60 pl-9 pr-3 py-1.5 text-xs text-slate-900 outline-none focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-lg border border-slate-200 bg-slate-50/60 pl-8 pr-2.5 py-1 text-xs text-slate-900 outline-none focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500"
             />
           </div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs table-fixed">
-            <thead className="border-b border-slate-100 bg-slate-50/75 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <thead className="border-b border-slate-100 bg-slate-50/75 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
               <tr>
-                <th className="w-[32%] px-5 py-3.5">Organization</th>
-                <th className="w-[28%] px-5 py-3.5">Subdomain &amp; Domain</th>
-                <th className="w-[18%] px-5 py-3.5">Plan Tier</th>
-                <th className="w-[12%] px-5 py-3.5">Status</th>
-                <th className="w-[10%] px-5 py-3.5 text-right">Actions</th>
+                <th className="w-[32%] px-4 py-2.5">Organization</th>
+                <th className="w-[28%] px-4 py-2.5">Subdomain &amp; Domain</th>
+                <th className="w-[18%] px-4 py-2.5">Plan Tier</th>
+                <th className="w-[12%] px-4 py-2.5">Status</th>
+                <th className="w-[10%] px-4 py-2.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-slate-400">Loading clusters…</td>
+                  <td colSpan={5} className="py-6 text-center text-slate-400 text-xs">Loading clusters…</td>
                 </tr>
               ) : filteredTenants.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-slate-400">No tenants matched your query.</td>
+                  <td colSpan={5} className="py-6 text-center text-slate-400 text-xs">No tenants matched your query.</td>
                 </tr>
               ) : (
                 filteredTenants.map((t) => (
                   <tr key={t.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="px-5 py-3.5 font-semibold text-slate-900 truncate">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50 font-bold text-indigo-700 text-xs">
+                    <td className="px-4 py-2 font-semibold text-slate-900 truncate">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-indigo-50 font-bold text-indigo-700 text-[11px]">
                           {t.name.slice(0, 2).toUpperCase()}
                         </div>
                         <div className="min-w-0 truncate">
-                          <p className="font-semibold text-slate-900 truncate">{t.name}</p>
+                          <p className="font-semibold text-slate-900 truncate text-xs">{t.name}</p>
                           <p className="text-[10px] text-slate-400 font-mono truncate">{t.id.slice(0, 8)}…</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-3.5 truncate">
-                      <span className="font-mono font-medium text-indigo-600 bg-indigo-50/60 px-2 py-0.5 rounded truncate inline-block max-w-full">
+                    <td className="px-4 py-2 truncate">
+                      <span className="font-mono text-[11px] font-medium text-indigo-600 bg-indigo-50/60 px-1.5 py-0.5 rounded truncate inline-block max-w-full">
                         {t.subdomain}.uabindia.com
                       </span>
                     </td>
-                    <td className="px-5 py-3.5">
-                      <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700">
+                    <td className="px-4 py-2">
+                      <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700">
                         {t.subscriptionPlan || "Enterprise Suite"}
                       </span>
                     </td>
-                    <td className="px-5 py-3.5">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
+                    <td className="px-4 py-2">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
                         <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                         Active
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 text-right">
+                    <td className="px-4 py-2 text-right">
                       <Link
                         href={`/platform/tenants`}
-                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                        className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900"
                       >
                         Manage <ExternalLink className="h-3 w-3" />
                       </Link>
@@ -509,15 +509,15 @@ export function SuperAdminDashboard() {
         </div>
 
         {/* Table Cluster Summary Footer */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-100 bg-slate-50/60 px-5 py-3 text-xs text-slate-500">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/60 px-4 py-2 text-[11px] text-slate-500">
           <div className="flex items-center gap-2">
             <span className="font-medium text-slate-700">Showing {filteredTenants.length} of {tenants.length} organizations</span>
             <span className="text-slate-300">•</span>
             <span>SQL Server isolated tenant databases</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="inline-flex items-center gap-1.5 text-xs text-emerald-600 font-semibold">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+            <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-600 font-semibold">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
               All Clusters Operational
             </span>
           </div>
@@ -525,16 +525,16 @@ export function SuperAdminDashboard() {
       </div>
 
       {/* Platform Infrastructure & System Telemetry Grid */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 border border-blue-100">
-                <Database className="h-4 w-4" />
+      <div className="grid gap-3 md:grid-cols-3">
+        <div className="rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-xs">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600 border border-blue-100">
+                <Database className="h-3.5 w-3.5" />
               </div>
               <div>
                 <h4 className="text-xs font-bold text-slate-900">Database Engine</h4>
-                <p className="text-[11px] text-slate-500">SQL Server 2022 Multi-Tenant</p>
+                <p className="text-[10px] text-slate-500">SQL Server 2022 Multi-Tenant</p>
               </div>
             </div>
             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
@@ -542,7 +542,7 @@ export function SuperAdminDashboard() {
               Active
             </span>
           </div>
-          <div className="mt-3.5 space-y-2 text-xs">
+          <div className="mt-2.5 space-y-1.5 text-[11px]">
             <div className="flex items-center justify-between text-slate-600">
               <span>Tenant Partitioning</span>
               <span className="font-semibold text-slate-900">Schema-Isolated</span>
@@ -558,15 +558,15 @@ export function SuperAdminDashboard() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100">
-                <Radio className="h-4 w-4" />
+        <div className="rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-xs">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100">
+                <Radio className="h-3.5 w-3.5" />
               </div>
               <div>
                 <h4 className="text-xs font-bold text-slate-900">Gateway &amp; DNS</h4>
-                <p className="text-[11px] text-slate-500">Subdomain Ingress Routing</p>
+                <p className="text-[10px] text-slate-500">Subdomain Ingress Routing</p>
               </div>
             </div>
             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
@@ -574,7 +574,7 @@ export function SuperAdminDashboard() {
               99.98%
             </span>
           </div>
-          <div className="mt-3.5 space-y-2 text-xs">
+          <div className="mt-2.5 space-y-1.5 text-[11px]">
             <div className="flex items-center justify-between text-slate-600">
               <span>Wildcard SSL Cert</span>
               <span className="font-semibold text-emerald-600">*.uabindia.com</span>
@@ -590,15 +590,15 @@ export function SuperAdminDashboard() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100">
-                <ShieldCheck className="h-4 w-4" />
+        <div className="rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-xs">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100">
+                <ShieldCheck className="h-3.5 w-3.5" />
               </div>
               <div>
                 <h4 className="text-xs font-bold text-slate-900">Security &amp; Audit</h4>
-                <p className="text-[11px] text-slate-500">Zero-Trust Telemetry</p>
+                <p className="text-[10px] text-slate-500">Zero-Trust Telemetry</p>
               </div>
             </div>
             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
@@ -606,7 +606,7 @@ export function SuperAdminDashboard() {
               Enforced
             </span>
           </div>
-          <div className="mt-3.5 space-y-2 text-xs">
+          <div className="mt-2.5 space-y-1.5 text-[11px]">
             <div className="flex items-center justify-between text-slate-600">
               <span>MFA Enforcement</span>
               <span className="font-semibold text-slate-900">SuperAdmin &amp; Admins</span>

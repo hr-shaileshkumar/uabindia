@@ -39,9 +39,6 @@
    ═══════════════════════════════════════════════════════════════════════ */
 
 :root {
-  --erp-zoom-scale: 1;
-  --erp-viewport-h: 100dvh;
-
   /* Centralized Enterprise Design Tokens */
   --bg-app: #fafbfc;
   --bg-surface: #ffffff;
@@ -126,11 +123,6 @@
 
   --erp-border-width: 1px;
   --surface-rgb: 255, 255, 255;
-}
-
-html[data-screen-zoom="90"] {
-  --erp-zoom-scale: 0.9;
-  --erp-viewport-h: calc(100dvh / 0.9);
 }
 
 html,

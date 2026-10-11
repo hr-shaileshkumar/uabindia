@@ -45,7 +45,7 @@ function ProtectedShellLoading() {
   }, []);
 
   return (
-    <div className="uab-app-shell erp-app-canvas relative flex h-[var(--erp-viewport-h,100dvh)] min-h-[var(--erp-viewport-h,100dvh)] flex-col overflow-hidden bg-slate-50/50 dark:bg-slate-950" role="status" aria-live="polite">
+    <div className="uab-app-shell erp-app-canvas relative flex h-[100dvh] min-h-[100dvh] flex-col overflow-hidden bg-slate-50/50 dark:bg-slate-950" role="status" aria-live="polite">
       <span className="sr-only">Loading your workspace</span>
 
       {/* Top indeterminate loading indicator bar */}
@@ -425,7 +425,7 @@ export function ProtectedWorkspaceShell({ children }: { children: ReactNode }) {
   const workspaceScopeKey = `${companyId ?? ""}|${projectId ?? ""}|${financialYearKey ?? ""}`;
 
   return (
-    <div className={cn("relative flex h-[var(--erp-viewport-h,100dvh)] min-h-[var(--erp-viewport-h,100dvh)] bg-background text-foreground flex-col overflow-hidden", portal.shellClassName)}>
+    <div className={cn("relative flex h-[100dvh] min-h-[100dvh] bg-background text-foreground flex-col overflow-hidden", portal.shellClassName)}>
       <Header onMenuClick={handleShellMenuClick} onSearchClick={() => setSearchOpen(true)} />
       <div className="flex flex-1 min-h-0 overflow-hidden bg-slate-50/60 dark:bg-slate-950">
         <Sidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
