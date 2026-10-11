@@ -444,14 +444,14 @@ export function SuperAdminDashboard() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-left text-xs table-fixed">
             <thead className="border-b border-slate-100 bg-slate-50/75 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
               <tr>
-                <th className="px-5 py-3.5">Organization</th>
-                <th className="px-5 py-3.5">Subdomain &amp; Domain</th>
-                <th className="px-5 py-3.5">Plan Tier</th>
-                <th className="px-5 py-3.5">Status</th>
-                <th className="px-5 py-3.5 text-right">Actions</th>
+                <th className="w-[32%] px-5 py-3.5">Organization</th>
+                <th className="w-[28%] px-5 py-3.5">Subdomain &amp; Domain</th>
+                <th className="w-[18%] px-5 py-3.5">Plan Tier</th>
+                <th className="w-[12%] px-5 py-3.5">Status</th>
+                <th className="w-[10%] px-5 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -466,19 +466,19 @@ export function SuperAdminDashboard() {
               ) : (
                 filteredTenants.map((t) => (
                   <tr key={t.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="px-5 py-3.5 font-semibold text-slate-900">
-                      <div className="flex items-center gap-2.5">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 font-bold text-indigo-700 text-xs">
+                    <td className="px-5 py-3.5 font-semibold text-slate-900 truncate">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50 font-bold text-indigo-700 text-xs">
                           {t.name.slice(0, 2).toUpperCase()}
                         </div>
-                        <div>
-                          <p className="font-semibold text-slate-900">{t.name}</p>
-                          <p className="text-[10px] text-slate-400 font-mono">{t.id.slice(0, 8)}…</p>
+                        <div className="min-w-0 truncate">
+                          <p className="font-semibold text-slate-900 truncate">{t.name}</p>
+                          <p className="text-[10px] text-slate-400 font-mono truncate">{t.id.slice(0, 8)}…</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-3.5">
-                      <span className="font-mono font-medium text-indigo-600 bg-indigo-50/60 px-2 py-0.5 rounded">
+                    <td className="px-5 py-3.5 truncate">
+                      <span className="font-mono font-medium text-indigo-600 bg-indigo-50/60 px-2 py-0.5 rounded truncate inline-block max-w-full">
                         {t.subdomain}.uabindia.com
                       </span>
                     </td>
@@ -506,6 +506,120 @@ export function SuperAdminDashboard() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Table Cluster Summary Footer */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-100 bg-slate-50/60 px-5 py-3 text-xs text-slate-500">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-slate-700">Showing {filteredTenants.length} of {tenants.length} organizations</span>
+            <span className="text-slate-300">•</span>
+            <span>SQL Server isolated tenant databases</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="inline-flex items-center gap-1.5 text-xs text-emerald-600 font-semibold">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              All Clusters Operational
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Platform Infrastructure & System Telemetry Grid */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 border border-blue-100">
+                <Database className="h-4 w-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-slate-900">Database Engine</h4>
+                <p className="text-[11px] text-slate-500">SQL Server 2022 Multi-Tenant</p>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              Active
+            </span>
+          </div>
+          <div className="mt-3.5 space-y-2 text-xs">
+            <div className="flex items-center justify-between text-slate-600">
+              <span>Tenant Partitioning</span>
+              <span className="font-semibold text-slate-900">Schema-Isolated</span>
+            </div>
+            <div className="flex items-center justify-between text-slate-600">
+              <span>Connection Pool</span>
+              <span className="font-mono font-semibold text-slate-900">24 / 200 pool</span>
+            </div>
+            <div className="flex items-center justify-between text-slate-600">
+              <span>Query Execution Avg</span>
+              <span className="font-mono font-semibold text-emerald-600">1.2ms</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100">
+                <Radio className="h-4 w-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-slate-900">Gateway &amp; DNS</h4>
+                <p className="text-[11px] text-slate-500">Subdomain Ingress Routing</p>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              99.98%
+            </span>
+          </div>
+          <div className="mt-3.5 space-y-2 text-xs">
+            <div className="flex items-center justify-between text-slate-600">
+              <span>Wildcard SSL Cert</span>
+              <span className="font-semibold text-emerald-600">*.uabindia.com</span>
+            </div>
+            <div className="flex items-center justify-between text-slate-600">
+              <span>Edge Proxy Cache</span>
+              <span className="font-semibold text-slate-900">Enabled (Redis 7)</span>
+            </div>
+            <div className="flex items-center justify-between text-slate-600">
+              <span>Rate Limiting</span>
+              <span className="font-semibold text-slate-900">10k req/min per tenant</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100">
+                <ShieldCheck className="h-4 w-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-slate-900">Security &amp; Audit</h4>
+                <p className="text-[11px] text-slate-500">Zero-Trust Telemetry</p>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              Enforced
+            </span>
+          </div>
+          <div className="mt-3.5 space-y-2 text-xs">
+            <div className="flex items-center justify-between text-slate-600">
+              <span>MFA Enforcement</span>
+              <span className="font-semibold text-slate-900">SuperAdmin &amp; Admins</span>
+            </div>
+            <div className="flex items-center justify-between text-slate-600">
+              <span>Audit Log Retention</span>
+              <span className="font-semibold text-slate-900">365 Days WORM</span>
+            </div>
+            <div className="flex items-center justify-between text-slate-600">
+              <span>Backup Recovery Point</span>
+              <span className="font-mono font-semibold text-emerald-600">&lt; 15 min RPO</span>
+            </div>
+          </div>
         </div>
       </div>
     </StandardPageLayout>

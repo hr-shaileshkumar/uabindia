@@ -34,7 +34,7 @@ export default function StandardPageLayout({
   className,
 }: StandardPageLayoutProps) {
   return (
-    <div className={cn("flex flex-col gap-3.5 sm:gap-4 w-full", className)}>
+    <div className={cn("flex flex-col gap-3.5 sm:gap-4 w-full flex-1", className)}>
       {/* Optional In-Page Breadcrumb */}
       {breadcrumb && <div className="min-w-0">{breadcrumb}</div>}
 

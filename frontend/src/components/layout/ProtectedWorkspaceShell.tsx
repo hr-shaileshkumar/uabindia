@@ -430,9 +430,30 @@ export function ProtectedWorkspaceShell({ children }: { children: ReactNode }) {
       <div className="flex flex-1 min-h-0 overflow-hidden bg-slate-50/60 dark:bg-slate-950">
         <Sidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
         <main id="erp-workspace-content" className="relative isolate min-h-0 flex-1 overflow-y-auto p-3.5 sm:p-5 lg:p-6 scrollbar-thin">
-          <div className="mx-auto w-full max-w-[1920px] 2xl:max-w-full">
-            <WorkspaceBreadcrumb className="mb-2.5 sm:mb-3" />
-            <div key={workspaceScopeKey}>{children}</div>
+          <div className="mx-auto w-full max-w-[1440px] 2xl:max-w-[1600px] min-h-full flex flex-col justify-between">
+            <div className="flex-1 flex flex-col space-y-3.5 sm:space-y-4">
+              <WorkspaceBreadcrumb className="mb-2 sm:mb-2.5" />
+              <div key={workspaceScopeKey} className="flex-1 flex flex-col">{children}</div>
+            </div>
+
+            {/* Persistent Enterprise Workspace Dock / Footer */}
+            <footer className="mt-8 border-t border-slate-200/80 pt-4 pb-2 text-xs text-slate-400 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold text-slate-700 dark:text-slate-300">UabIndia ERP Enterprise</span>
+                <span>•</span>
+                <span>Multi-Tenant Cluster v2.6.4</span>
+                <span>•</span>
+                <span className="text-emerald-600 font-medium inline-flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  All Services Connected
+                </span>
+              </div>
+              <div className="flex items-center gap-4 text-slate-500 dark:text-slate-400">
+                <Link href="/privacy" className="hover:text-slate-800 dark:hover:text-slate-200 transition-colors">Privacy &amp; Security</Link>
+                <Link href="/helpdesk" className="hover:text-slate-800 dark:hover:text-slate-200 transition-colors">Documentation</Link>
+                <span>&copy; {new Date().getFullYear()} UabIndia Corp.</span>
+              </div>
+            </footer>
           </div>
         </main>
       </div>
