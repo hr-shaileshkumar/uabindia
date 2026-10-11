@@ -43,9 +43,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth" className={plusJakarta.variable}>
+    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth" className={`${plusJakarta.variable} h-full`}>
       <head />
-      <body className="min-h-screen font-sans antialiased text-slate-900 bg-[#f8fafc] dark:bg-slate-950 dark:text-slate-100">
+      <body className="min-h-full h-full font-sans antialiased text-slate-900 bg-[#f8fafc] dark:bg-slate-950 dark:text-slate-100">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <ScreenFitController />
           <UrlLockController />

@@ -17,21 +17,27 @@ export default function ScreenFitController() {
     const applyFit = () => {
       const width = window.innerWidth;
       const isDesktop = width >= 1024;
+      const supportsZoom = "zoom" in root.style || "zoom" in body.style;
 
-      if (isDesktop) {
+      if (isDesktop && supportsZoom) {
         // Enforce 90% zoom on desktop viewports
-        if ("zoom" in root.style || "zoom" in body.style) {
-          (body.style as unknown as Record<string, string>).zoom = "90%";
-        }
+        (body.style as unknown as Record<string, string>).zoom = "90%";
+        // In Chromium browsers with zoom: 90% on body, 100vh/100dvh is scaled down by 0.9,
+        // resulting in a 10% blank void at the bottom. We set --erp-viewport-h to calc(100dvh / 0.9)
+        // so the container precisely covers 100% of the browser window.
+        root.style.setProperty("--erp-zoom-scale", "0.9");
+        root.style.setProperty("--erp-viewport-h", "calc(100dvh / 0.9)");
         root.dataset.screenZoom = "90";
         root.dataset.screenFit = width <= 1440 ? "compact" : "wide";
       } else {
         // Natural 100% scale for touch and mobile devices
-        if ("zoom" in root.style || "zoom" in body.style) {
+        if (supportsZoom) {
           (body.style as unknown as Record<string, string>).zoom = "100%";
         }
+        root.style.setProperty("--erp-zoom-scale", "1");
+        root.style.setProperty("--erp-viewport-h", "100dvh");
         root.dataset.screenZoom = "100";
-        root.dataset.screenFit = "mobile";
+        root.dataset.screenFit = isDesktop ? (width <= 1440 ? "compact" : "wide") : "mobile";
       }
     };
 
@@ -42,6 +48,8 @@ export default function ScreenFitController() {
       if ("zoom" in body.style) {
         (body.style as unknown as Record<string, string>).zoom = "";
       }
+      root.style.removeProperty("--erp-zoom-scale");
+      root.style.removeProperty("--erp-viewport-h");
     };
   }, []);
 
