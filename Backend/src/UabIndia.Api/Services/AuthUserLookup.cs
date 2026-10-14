@@ -11,6 +11,10 @@ namespace UabIndia.Api.Services;
 public static class AuthUserLookup
 {
     public const string DevAdminEmail = "admin@uabindia.in";
+    /// <summary>
+    /// Development and automated test fixture credential only. Never used as a fallback in Production.
+    /// Production startup strictly requires an explicit, strong SEED_ADMIN_PASSWORD environment variable.
+    /// </summary>
     public const string DevAdminPassword = "Admin@123";
 
     public static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();

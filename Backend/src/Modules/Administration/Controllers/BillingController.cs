@@ -9,6 +9,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers;
 /// Exposes billing‑related endpoints.
 /// </summary>
 [ApiController]
+[Route("api/v1/billing")]
 [Route("api/billing")]
 public class BillingController : ControllerBase
 {

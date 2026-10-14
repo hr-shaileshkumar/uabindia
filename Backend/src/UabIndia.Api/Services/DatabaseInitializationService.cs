@@ -108,35 +108,56 @@ namespace UabIndia.Api.Services
             }
         }
 
+        private static TimeZoneInfo ResolveJobTimeZone()
+        {
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("Asia/Kolkata");
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                try
+                {
+                    return TimeZoneInfo.FindSystemTimeZoneById("India Standard Time");
+                }
+                catch (TimeZoneNotFoundException)
+                {
+                    return TimeZoneInfo.Local;
+                }
+            }
+        }
+
         private void TryRegisterHangfireJobs()
         {
             try
             {
+                var jobTimeZone = ResolveJobTimeZone();
+
                 RecurringJob.AddOrUpdate<HangfireJobService>(
                     "monthly-payroll",
                     service => service.ProcessMonthlyPayroll(),
                     "0 23 L * *",
-                    new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
+                    new RecurringJobOptions { TimeZone = jobTimeZone });
                 RecurringJob.AddOrUpdate<HangfireJobService>(
                     "leave-expiry",
                     service => service.ExpireLeaveBalances(),
                     Cron.Monthly(1, 1),
-                    new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
+                    new RecurringJobOptions { TimeZone = jobTimeZone });
                 RecurringJob.AddOrUpdate<HangfireJobService>(
                     "audit-log-archival",
                     service => service.ArchiveAuditLogs(),
                     Cron.Weekly(DayOfWeek.Sunday, 2),
-                    new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
+                    new RecurringJobOptions { TimeZone = jobTimeZone });
                 RecurringJob.AddOrUpdate<HangfireJobService>(
                     "send-notifications",
                     service => service.SendPendingNotifications(),
                     "*/30 * * * *",
-                    new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
+                    new RecurringJobOptions { TimeZone = jobTimeZone });
                 RecurringJob.AddOrUpdate<HangfireJobService>(
                     "cleanup-temp-data",
                     service => service.CleanupTemporaryData(),
                     Cron.Daily(3),
-                    new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
+                    new RecurringJobOptions { TimeZone = jobTimeZone });
             }
             catch (Exception ex)
             {
@@ -150,6 +171,28 @@ namespace UabIndia.Api.Services
             var db             = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var hasher         = scope.ServiceProvider.GetRequiredService<IPasswordHasher<User>>();
             var tenantAccessor = scope.ServiceProvider.GetRequiredService<ITenantAccessor>();
+
+            var acquiredAppLock = false;
+            try
+            {
+                if (db.Database.IsSqlServer())
+                {
+                    try
+                    {
+                        if (await db.Database.CanConnectAsync(ct))
+                        {
+                            await db.Database.ExecuteSqlRawAsync(
+                                "DECLARE @res int; EXEC @res = sp_getapplock @Resource = 'UabIndia_DbInit', @LockMode = 'Exclusive', @LockOwner = 'Session', @LockTimeout = 120000; IF @res < 0 THROW 50001, 'Unable to acquire database initialization lock via sp_getapplock', 1;",
+                                ct);
+                            acquiredAppLock = true;
+                            _logger.LogInformation("DatabaseInitializationService: acquired SQL Server distributed startup lock via sp_getapplock.");
+                        }
+                    }
+                    catch (Exception lockEx)
+                    {
+                        _logger.LogWarning(lockEx, "DatabaseInitializationService: could not acquire sp_getapplock; continuing startup cautiously.");
+                    }
+                }
 
             // ── Step 0: Ensure physical database exists ──────────────────────────────
             if (db.Database.IsRelational())
@@ -328,9 +371,22 @@ namespace UabIndia.Api.Services
             var adminRole      = rolesToSeed.First(r => r.Name == "Admin");
 
             // ── Step 6: Create default SuperAdmin user ───────────────────────────────
-            var adminEmail    = Environment.GetEnvironmentVariable("SEED_ADMIN_EMAIL")    ?? AuthUserLookup.DevAdminEmail;
-            var adminPassword = Environment.GetEnvironmentVariable("SEED_ADMIN_PASSWORD") ?? AuthUserLookup.DevAdminPassword;
-            var adminName     = Environment.GetEnvironmentVariable("SEED_ADMIN_NAME")     ?? "System Administrator";
+            var adminEmail = Environment.GetEnvironmentVariable("SEED_ADMIN_EMAIL") ?? AuthUserLookup.DevAdminEmail;
+            var adminPassword = Environment.GetEnvironmentVariable("SEED_ADMIN_PASSWORD");
+            var adminName = Environment.GetEnvironmentVariable("SEED_ADMIN_NAME") ?? "System Administrator";
+
+            if (string.IsNullOrWhiteSpace(adminPassword) || adminPassword == AuthUserLookup.DevAdminPassword)
+            {
+                if (!_env.IsDevelopment())
+                {
+                    throw new InvalidOperationException(
+                        "FATAL: In production environments, SEED_ADMIN_PASSWORD must be explicitly configured with a strong, non-default password before initial tenant and administrator provisioning. " +
+                        "Falling back to default credentials is strictly prohibited.");
+                }
+
+                adminPassword = AuthUserLookup.DevAdminPassword;
+                _logger.LogWarning("Seeding administrator with development credentials. Do NOT use these credentials in Production.");
+            }
 
             var adminUser = new User
             {
@@ -357,6 +413,24 @@ namespace UabIndia.Api.Services
             await EnsurePermissionsAsync(db, tenant.Id, rolesToSeed, ct);
 
             _logger.LogInformation("Default seed complete. Tenant: {TenantId}, SuperAdmin: {Email}", tenant.Id, adminEmail);
+            }
+            finally
+            {
+                if (acquiredAppLock && db.Database.IsSqlServer())
+                {
+                    try
+                    {
+                        await db.Database.ExecuteSqlRawAsync(
+                            "EXEC sp_releaseapplock @Resource = 'UabIndia_DbInit', @LockOwner = 'Session';",
+                            CancellationToken.None);
+                        _logger.LogInformation("DatabaseInitializationService: released SQL Server distributed startup lock.");
+                    }
+                    catch (Exception relEx)
+                    {
+                        _logger.LogWarning(relEx, "DatabaseInitializationService: error releasing sp_getapplock.");
+                    }
+                }
+            }
         }
 
         private async Task EnsureGlobalModulesAsync(ApplicationDbContext db, CancellationToken ct)

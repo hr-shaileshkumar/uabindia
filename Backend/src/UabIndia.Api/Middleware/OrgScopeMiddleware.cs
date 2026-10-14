@@ -173,6 +173,56 @@ namespace UabIndia.Api.Middleware
                 return;
             }
 
+            if (companyIdHeader.HasValue)
+            {
+                var activeTenantId = tenantAccessor.GetTenantId();
+                if (activeTenantId != Guid.Empty)
+                {
+                    var companyBelongsToTenant = await db.Companies
+                        .IgnoreQueryFilters()
+                        .AsNoTracking()
+                        .AnyAsync(c => c.Id == companyIdHeader.Value && c.TenantId == activeTenantId && !c.IsDeleted);
+
+                    if (!companyBelongsToTenant)
+                    {
+                        _logger.LogWarning(
+                            "Org scope denied: company {CompanyId} does not belong to active tenant {TenantId} (caller={User})",
+                            companyIdHeader.Value,
+                            activeTenantId,
+                            principal.Identity?.Name);
+
+                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                        await context.Response.WriteAsJsonAsync(new { message = "Company scope denied: company does not belong to active tenant." });
+                        return;
+                    }
+                }
+            }
+
+            if (projectIdHeader.HasValue)
+            {
+                var activeTenantId = tenantAccessor.GetTenantId();
+                if (activeTenantId != Guid.Empty)
+                {
+                    var projectBelongsToTenant = await db.Projects
+                        .IgnoreQueryFilters()
+                        .AsNoTracking()
+                        .AnyAsync(p => p.Id == projectIdHeader.Value && p.TenantId == activeTenantId && !p.IsDeleted);
+
+                    if (!projectBelongsToTenant)
+                    {
+                        _logger.LogWarning(
+                            "Org scope denied: project {ProjectId} does not belong to active tenant {TenantId} (caller={User})",
+                            projectIdHeader.Value,
+                            activeTenantId,
+                            principal.Identity?.Name);
+
+                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                        await context.Response.WriteAsJsonAsync(new { message = "Project scope denied: project does not belong to active tenant." });
+                        return;
+                    }
+                }
+            }
+
             if (isAdmin)
             {
                 tenantAccessor.SetOrgScope(companyIdHeader, projectIdHeader, financialYearKey, financialYearStart, financialYearEnd);

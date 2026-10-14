@@ -23,7 +23,7 @@ namespace UabIndia.Infrastructure.Services
         }
 
         /// <summary>
-        /// Processes monthly payroll for all active employees.
+        /// Processes monthly payroll for all active employees across all tenants.
         /// Runs at 11 PM every last day of the month.
         /// </summary>
         public async Task ProcessMonthlyPayroll()
@@ -33,6 +33,7 @@ namespace UabIndia.Infrastructure.Services
                 _logger.LogInformation("Starting monthly payroll processing at {DateTime}", DateTime.UtcNow);
 
                 var activeRuns = await _db.PayrollRuns
+                    .IgnoreQueryFilters()
                     .Where(r => r.Status == "Pending" && !r.IsDeleted)
                     .ToListAsync();
 
@@ -54,7 +55,7 @@ namespace UabIndia.Infrastructure.Services
         }
 
         /// <summary>
-        /// Marks expired leave allocations at fiscal year end.
+        /// Marks expired leave allocations at fiscal year end across all tenants.
         /// Runs at 1 AM on the 1st of every month.
         /// </summary>
         public async Task ExpireLeaveBalances()
@@ -65,6 +66,7 @@ namespace UabIndia.Infrastructure.Services
 
                 var cutoff = DateTime.UtcNow.Date;
                 var expiredPolicies = await _db.LeavePolicies
+                    .IgnoreQueryFilters()
                     .Where(p => !p.IsDeleted)
                     .CountAsync();
 
@@ -82,7 +84,7 @@ namespace UabIndia.Infrastructure.Services
         }
 
         /// <summary>
-        /// Archives audit logs older than 90 days to reduce database size.
+        /// Archives audit logs older than 90 days to reduce database size across all tenants.
         /// Runs at 2 AM every Sunday.
         /// </summary>
         public async Task ArchiveAuditLogs()
@@ -93,6 +95,7 @@ namespace UabIndia.Infrastructure.Services
 
                 var archiveBefore = DateTime.UtcNow.AddDays(-90);
                 var count = await _db.AuditLogs
+                    .IgnoreQueryFilters()
                     .Where(a => a.CreatedAt < archiveBefore && !a.IsDeleted)
                     .CountAsync();
 
@@ -100,6 +103,7 @@ namespace UabIndia.Infrastructure.Services
                 {
                     // Soft-delete old audit logs (never hard delete)
                     await _db.AuditLogs
+                        .IgnoreQueryFilters()
                         .Where(a => a.CreatedAt < archiveBefore && !a.IsDeleted)
                         .ExecuteUpdateAsync(s => s.SetProperty(a => a.IsDeleted, true));
 
@@ -118,7 +122,7 @@ namespace UabIndia.Infrastructure.Services
         }
 
         /// <summary>
-        /// Sends pending notifications that have been queued.
+        /// Sends pending notifications that have been queued across all tenants.
         /// Runs every 30 minutes.
         /// </summary>
         public async Task SendPendingNotifications()
@@ -128,6 +132,7 @@ namespace UabIndia.Infrastructure.Services
                 _logger.LogInformation("Processing pending notifications at {DateTime}", DateTime.UtcNow);
 
                 var pending = await _db.NotificationMessages
+                    .IgnoreQueryFilters()
                     .Where(n => !n.IsDeleted && n.Status == "Pending" && n.Channel == "InApp")
                     .OrderBy(n => n.CreatedAt)
                     .Take(200)
@@ -143,6 +148,7 @@ namespace UabIndia.Infrastructure.Services
                     await _db.SaveChangesAsync();
 
                 var unreadCount = await _db.NotificationMessages
+                    .IgnoreQueryFilters()
                     .Where(n => !n.IsRead && !n.IsDeleted && n.CreatedAt > DateTime.UtcNow.AddDays(-7))
                     .CountAsync();
 
@@ -159,7 +165,7 @@ namespace UabIndia.Infrastructure.Services
         }
 
         /// <summary>
-        /// Revokes expired refresh tokens and cleans up soft-deleted records.
+        /// Revokes expired refresh tokens and cleans up soft-deleted records across all tenants.
         /// Runs daily at 3 AM.
         /// </summary>
         public async Task CleanupTemporaryData()
@@ -168,14 +174,16 @@ namespace UabIndia.Infrastructure.Services
             {
                 _logger.LogInformation("Starting temporary data cleanup at {DateTime}", DateTime.UtcNow);
 
-                // Revoke expired refresh tokens
+                // Revoke expired refresh tokens across all tenants
                 var expiredTokens = await _db.RefreshTokens
+                    .IgnoreQueryFilters()
                     .Where(t => t.ExpiresAt < DateTime.UtcNow && !t.IsRevoked)
                     .ExecuteUpdateAsync(s => s.SetProperty(t => t.IsRevoked, true)
                                               .SetProperty(t => t.RevokedAt, DateTime.UtcNow));
 
-                // Clean password reset tokens that have expired
+                // Clean password reset tokens that have expired across all tenants
                 await _db.Users
+                    .IgnoreQueryFilters()
                     .Where(u => u.PasswordResetExpires != null && u.PasswordResetExpires < DateTime.UtcNow)
                     .ExecuteUpdateAsync(s => s.SetProperty(u => u.PasswordResetToken, (string?)null)
                                               .SetProperty(u => u.PasswordResetExpires, (DateTime?)null));
