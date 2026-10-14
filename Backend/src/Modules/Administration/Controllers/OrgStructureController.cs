@@ -56,7 +56,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             if (companyId.HasValue) query = query.Where(d => d.CompanyId == companyId.Value);
 
             var rows = (await query.OrderBy(d => d.Name).ToListAsync()).Select(MapDepartment).ToList();
-            return Ok(new { data = rows, departments = rows, items = rows, total = rows.Count });
+            return Ok(new { data = rows, departments = rows, items = rows, records = rows, total = rows.Count, totalCount = rows.Count });
         }
 
         [HttpPost("departments")]
@@ -122,7 +122,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             if (companyId.HasValue) query = query.Where(d => d.CompanyId == companyId.Value);
 
             var rows = (await query.OrderBy(d => d.Name).ToListAsync()).Select(MapDesignation).ToList();
-            return Ok(new { data = rows, designations = rows, items = rows, total = rows.Count });
+            return Ok(new { data = rows, designations = rows, items = rows, records = rows, total = rows.Count, totalCount = rows.Count });
         }
 
         [HttpPost("designations")]
@@ -188,7 +188,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             if (companyId.HasValue) query = query.Where(d => d.CompanyId == companyId.Value);
 
             var rows = (await query.OrderBy(d => d.Name).ToListAsync()).Select(MapBranch).ToList();
-            return Ok(new { data = rows, branches = rows, items = rows, total = rows.Count });
+            return Ok(new { data = rows, branches = rows, items = rows, records = rows, total = rows.Count, totalCount = rows.Count });
         }
 
         [HttpPost("branches")]
@@ -258,7 +258,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             if (companyId.HasValue) query = query.Where(d => d.CompanyId == companyId.Value);
 
             var rows = (await query.OrderBy(d => d.Name).ToListAsync()).Select(MapCostCenter).ToList();
-            return Ok(new { data = rows, costCenters = rows, items = rows, total = rows.Count });
+            return Ok(new { data = rows, costCenters = rows, items = rows, records = rows, total = rows.Count, totalCount = rows.Count });
         }
 
         [HttpPost("cost-centers")]
@@ -322,7 +322,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             if (companyId.HasValue) query = query.Where(d => d.CompanyId == companyId.Value);
 
             var rows = (await query.OrderBy(d => d.Name).ToListAsync()).Select(MapBusinessUnit).ToList();
-            return Ok(new { data = rows, businessUnits = rows, items = rows, total = rows.Count });
+            return Ok(new { data = rows, businessUnits = rows, items = rows, records = rows, total = rows.Count, totalCount = rows.Count });
         }
 
         [HttpPost("business-units")]

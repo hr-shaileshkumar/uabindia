@@ -259,62 +259,71 @@ namespace UabIndia.Api.Services
 
         private static readonly List<NavSeed> NavigationItems = new()
         {
-            // ── Administration: 1. Organization Masters ──────────────────────
-            new("platform", "Organization", "platform-tenants", "Tenants", "/administration/tenants", "layers", Perms("platform", "platform.tenants.view")),
-            new("platform", "Organization", "platform-companies", "Company Master", "/administration/companies", "building", Perms("platform", "platform.companies.view")),
-            new("platform", "Organization", "platform-projects", "Project Master", "/administration/projects", "folder", Perms("platform", "platform.projects.view")),
-            new("platform", "Organization", "platform-branches", "Branch & Location Master", "/administration/branches", "building", Perms("platform", "platform.companies.view")),
-            new("platform", "Organization", "platform-business-units", "Business Unit Master", "/administration/business-units", "layers", Perms("platform", "platform.companies.view")),
-            new("platform", "Organization", "platform-departments", "Department Master", "/administration/departments", "layers", Perms("platform", "platform.companies.view")),
-            new("platform", "Organization", "platform-designations", "Designation Master", "/administration/designations", "award", Perms("platform", "platform.companies.view")),
-            new("platform", "Organization", "platform-cost-centers", "Cost Center Master", "/administration/cost-centers", "dollar-sign", Perms("platform", "platform.companies.view")),
-            new("platform", "Organization", "platform-holiday-calendar", "Holiday Calendar Master", "/administration/holiday-calendar", "calendar", Perms("platform", "platform.companies.view")),
-            new("platform", "Organization", "platform-org-chart", "Org Chart", "/administration/org-chart", "git-branch", Perms("platform", "platform.companies.view")),
+            // ── Administration: 1. Organization Hierarchy ───────────────────
+            new("platform", "Organization Hierarchy", "platform-tenants", "Tenants", "/administration/tenants", "layers", Perms("platform", "platform.tenants.view")),
+            new("platform", "Organization Hierarchy", "platform-companies", "Company Master", "/administration/companies", "building", Perms("platform", "platform.companies.view")),
+            new("platform", "Organization Hierarchy", "platform-branches", "Branch & Location Master", "/administration/branches", "building", Perms("platform", "platform.companies.view")),
+            new("platform", "Organization Hierarchy", "platform-geography", "Geography & Hierarchy", "/administration/geography-hierarchy", "globe", Perms("platform", "platform.companies.view")),
+            new("platform", "Organization Hierarchy", "platform-business-units", "Business Unit Master", "/administration/business-units", "layers", Perms("platform", "platform.companies.view")),
+            new("platform", "Organization Hierarchy", "platform-departments", "Department Master", "/administration/departments", "layers", Perms("platform", "platform.companies.view")),
+            new("platform", "Organization Hierarchy", "platform-designations", "Designation Master", "/administration/designations", "award", Perms("platform", "platform.companies.view")),
+            new("platform", "Organization Hierarchy", "platform-cost-centers", "Cost Center Master", "/administration/cost-centers", "dollar-sign", Perms("platform", "platform.companies.view")),
+            new("platform", "Organization Hierarchy", "platform-projects", "Projects Register", "/administration/projects", "folder", Perms("platform", "platform.projects.view")),
+            new("platform", "Organization Hierarchy", "platform-holiday-calendar", "Holiday Calendar Master", "/administration/holiday-calendar", "calendar", Perms("platform", "platform.companies.view")),
+            new("platform", "Organization Hierarchy", "platform-org-chart", "Org Chart", "/administration/org-chart", "git-branch", Perms("platform", "platform.companies.view")),
 
-            // ── Administration: 2. User & Access Management ───────────────────
-            new("platform", "User Management", "platform-users", "User Management", "/administration/users", "users", Perms("platform", "platform.users.view")),
-            new("platform", "User Management", "platform-roles", "Role Management", "/administration/roles", "shield", Perms("platform", "platform.roles.view")),
-            new("platform", "User Management", "platform-permissions", "Permission Matrix", "/administration/permissions", "key", Perms("platform", "platform.permissions.view")),
+            // ── Administration: 2. Identity & Access ─────────────────────────
+            new("platform", "Identity & Access", "platform-users", "Users", "/administration/users", "users", Perms("platform", "platform.users.view")),
+            new("platform", "Identity & Access", "platform-roles", "Roles", "/administration/roles", "shield", Perms("platform", "platform.roles.view")),
+            new("platform", "Identity & Access", "platform-permissions", "Permissions Matrix", "/administration/permissions", "key", Perms("platform", "platform.permissions.view")),
+            new("platform", "Identity & Access", "platform-security-sessions", "Access Control & Sessions", "/administration/security/sessions", "shield", Perms("platform", "platform.view")),
+            new("platform", "Identity & Access", "platform-policies", "Security Policies", "/administration/policies", "lock", Perms("platform", "platform.view")),
 
-            // ── Administration: 3. Configuration & System Masters ─────────────
-            new("platform", "Configuration", "platform-module-mapping", "Navigation & Modules", "/administration/module-mapping", "grid", Perms("platform", "platform.settings.view")),
-            new("platform", "Configuration", "platform-schema-manager", "Schema & Custom Fields Master", "/administration/schema-master", "database", Perms("platform", "platform.settings.view")),
-            new("platform", "Configuration", "platform-entity-builder", "Entity Builder", "/administration/entity-builder", "layers", Perms("platform", "platform.view")),
-            new("platform", "Configuration", "platform-number-ranges", "Document Number Ranges Master", "/administration/number-ranges", "sliders", Perms("platform", "platform.settings.view")),
-            new("platform", "Configuration", "platform-payment-terms", "Payment Terms Master", "/administration/payment-terms", "credit-card", Perms("platform", "platform.settings.view")),
-            new("platform", "Configuration", "platform-settings", "System Settings", "/administration/settings", "settings", Perms("platform", "platform.settings.view")),
-            new("platform", "Configuration", "platform-feature-flags", "Feature Flags", "/administration/feature-flags", "sliders", Perms("platform", "platform.settings.view")),
+            // ── Administration: 3. Modules & Apps ────────────────────────────
+            new("platform", "Modules & Apps", "platform-module-mapping", "Navigation & Module Registry", "/administration/module-mapping", "grid", Perms("platform", "platform.settings.view")),
+            new("platform", "Modules & Apps", "platform-feature-flags", "Feature Flags & Beta Labs", "/administration/feature-flags", "sliders", Perms("platform", "platform.settings.view")),
+            new("platform", "Modules & Apps", "platform-licensing", "Licensing & Subscriptions", "/administration/licensing", "credit-card", Perms("platform", "platform.view")),
 
-            // ── Administration: 4. Workflow ───────────────────────────────────
-            new("platform", "Workflow", "platform-workflow-config", "Workflows", "/administration/workflow-config", "git-branch", Perms("platform", "platform.settings.view")),
-            new("platform", "Workflow", "platform-approvals", "Approvals", "/approvals", "check-circle", Perms("platform", "approvals.view")),
+            // ── Administration: 4. Metadata & Studio ─────────────────────────
+            new("platform", "Metadata & Studio", "platform-entity-builder", "Entity & Custom Fields Builder", "/administration/entity-builder", "layers", Perms("platform", "platform.view")),
+            new("platform", "Metadata & Studio", "platform-schema-manager", "Schema & UI Layout Master", "/administration/schema-master", "database", Perms("platform", "platform.settings.view")),
+            new("platform", "Metadata & Studio", "platform-number-ranges", "Document Number Ranges", "/administration/number-ranges", "sliders", Perms("platform", "platform.settings.view")),
+            new("platform", "Metadata & Studio", "platform-payment-terms", "Payment Terms Master", "/administration/payment-terms", "credit-card", Perms("platform", "platform.settings.view")),
+            new("platform", "Metadata & Studio", "platform-master-data", "Master Data & Localization", "/administration/master-data", "globe", Perms("platform", "platform.view")),
+            new("platform", "Metadata & Studio", "platform-page-builder", "Visual Page Builder", "/administration/page-builder", "layout", Perms("platform", "platform.view")),
+            new("platform", "Metadata & Studio", "platform-menu-builder", "Menu & Navigation Builder", "/administration/menu-builder", "menu", Perms("platform", "platform.view")),
+            new("platform", "Metadata & Studio", "platform-migration-dashboard", "Schema Migration Dashboard", "/administration/migration-dashboard", "bar-chart", Perms("platform", "platform.view")),
+            new("platform", "Metadata & Studio", "platform-settings", "System Settings", "/administration/settings", "settings", Perms("platform", "platform.settings.view")),
 
-            // ── Administration: 5. Communication ──────────────────────────────
-            new("platform", "Communication", "platform-notifications", "Notifications", "/notifications", "bell", Perms("platform", "notifications.view")),
-            new("platform", "Communication", "platform-notification-templates", "Notification Templates", "/administration/notification-templates", "mail", Perms("platform", "platform.settings.view")),
+            // ── Administration: 5. Workflows & Approvals ──────────────────────
+            new("platform", "Workflows & Approvals", "platform-workflow-config", "Workflows & Graph Config", "/administration/workflow-config", "git-branch", Perms("platform", "platform.settings.view")),
+            new("platform", "Workflows & Approvals", "platform-approvals", "Approvals Inbox", "/approvals", "check-circle", Perms("platform", "approvals.view")),
 
-            // ── Administration: 6. Security ───────────────────────────────────
-            new("platform", "Security", "platform-security-sessions", "Access Control", "/administration/security/sessions", "shield", Perms("platform", "platform.view")),
-            new("platform", "Security", "platform-policies", "Security Settings", "/administration/policies", "lock", Perms("platform", "platform.view")),
+            // ── Administration: 6. Communications ─────────────────────────────
+            new("platform", "Communications", "platform-notifications", "Notification Dispatch & Alerts", "/notifications", "bell", Perms("platform", "notifications.view")),
+            new("platform", "Communications", "platform-notification-templates", "Notification Templates", "/administration/notification-templates", "mail", Perms("platform", "platform.settings.view")),
 
-            // ── Administration: 7. Governance ─────────────────────────────────
-            new("platform", "Governance", "platform-audit-logs", "Audit Logs", "/administration/audit-logs", "clipboard", Perms("platform", "audit.view")),
-            new("platform", "Governance", "platform-master-data", "Master Data & Localization", "/administration/master-data", "globe", Perms("platform", "platform.view")),
-            new("platform", "Governance", "platform-data-management", "Data Governance & Registries", "/administration/data-management", "database", Perms("platform", "platform.view")),
-            new("platform", "Governance", "platform-privacy", "Data Privacy & DPDP Vault", "/administration/privacy", "shield", Perms("platform", "platform.view")),
-            new("platform", "Governance", "platform-backup", "Backup & Disaster Recovery", "/administration/backup", "hard-drive", Perms("platform", "platform.view")),
-            new("platform", "Governance", "platform-recycle-bin", "Recycle Bin", "/administration/recycle-bin", "trash", Perms("platform", "platform.view")),
+            // ── Administration: 7. API & Integrations ─────────────────────────
+            new("platform", "API & Integrations", "platform-developer-center", "Developer Center & API Keys", "/administration/developer-center", "code", Perms("platform", "platform.view")),
+            new("platform", "API & Integrations", "platform-webhooks", "Webhooks Subscriptions", "/administration/webhooks", "webhook", Perms("platform", "platform.view")),
+            new("platform", "API & Integrations", "platform-integrations", "Integration Connectors Hub", "/administration/integrations", "plug", Perms("platform", "platform.settings.view")),
+            new("platform", "API & Integrations", "platform-edi", "EDI X12 Studio", "/administration/edi", "file-text", Perms("platform", "platform.view")),
 
-            // ── Administration: 8. Billing ────────────────────────────────────
-            new("platform", "Billing", "platform-licensing", "Licensing & Subscriptions", "/administration/licensing", "credit-card", Perms("platform", "platform.view")),
+            // ── Administration: 8. Audit & Compliance ─────────────────────────
+            new("platform", "Audit & Compliance", "platform-audit-logs", "Immutable Audit Logs", "/administration/audit-logs", "clipboard", Perms("platform", "audit.view")),
+            new("platform", "Audit & Compliance", "platform-data-management", "Data Governance & Registries", "/administration/data-management", "database", Perms("platform", "platform.view")),
+            new("platform", "Audit & Compliance", "platform-privacy", "Data Privacy & DPDP Vault", "/administration/privacy", "shield", Perms("platform", "platform.view")),
+            new("platform", "Audit & Compliance", "platform-backup", "Backup & Disaster Recovery", "/administration/backup", "hard-drive", Perms("platform", "platform.view")),
+            new("platform", "Audit & Compliance", "platform-recycle-bin", "Recycle Bin", "/administration/recycle-bin", "trash", Perms("platform", "platform.view")),
 
-            // ── Administration: 9. System ─────────────────────────────────────
-            new("platform", "System", "platform-system-health", "System Health", "/administration/system-health", "activity", Perms("platform", "platform.view")),
-            new("platform", "System", "platform-website-pages", "Websites", "/administration/website/pages", "globe", Perms("platform", "platform.website.pages.view")),
-            new("platform", "System", "platform-developer-center", "Developer Center", "/administration/developer-center", "code", Perms("platform", "platform.view")),
-            new("platform", "System", "platform-webhooks", "Webhooks", "/administration/webhooks", "webhook", Perms("platform", "platform.view")),
-            new("platform", "System", "platform-edi", "EDI X12 Studio", "/administration/edi", "file-text", Perms("platform", "platform.view")),
-            new("platform", "System", "platform-contact-submissions", "Contact Submissions", "/administration/contact-submissions", "mail", Perms("platform", "platform.contactsubmissions.view")),
+            // ── Administration: 9. System Operations ──────────────────────────
+            new("platform", "System Operations", "platform-system-health", "System Health & Telemetry", "/administration/system-health", "activity", Perms("platform", "platform.view")),
+            new("platform", "System Operations", "platform-ai-assistant", "AI Copilot Agents", "/administration/ai-assistant", "bot", Perms("platform", "platform.view")),
+            new("platform", "System Operations", "platform-support", "Platform Support & Diagnostics", "/administration/support", "ticket", Perms("platform", "platform.view")),
+            new("platform", "System Operations", "platform-contact-submissions", "Contact Submissions", "/administration/contact-submissions", "mail", Perms("platform", "platform.contactsubmissions.view")),
+
+            // ── Administration: 10. Website & CMS ─────────────────────────────
+            new("platform", "Website & CMS", "platform-website-pages", "Website CMS Pages", "/administration/website/pages", "globe", Perms("platform", "platform.website.pages.view")),
 
             new("ai", "AI Copilot Engine", "ai-home", "AI HR Copilot", "/ai", "bot", Perms("platform", "platform.view")),
             new("documents", "Document Center", "documents-home", "Document Vault", "/documents", "file-text", Perms("platform", "platform.view")),

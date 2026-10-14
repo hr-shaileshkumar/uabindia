@@ -23,6 +23,25 @@ import {
   Landmark,
   BarChart3,
   ShieldCheck,
+  Search,
+  Database,
+  GitBranch,
+  Webhook,
+  History,
+  Activity,
+  Globe,
+  Folder,
+  UserCheck,
+  UserPlus,
+  Clock,
+  Award,
+  PlayCircle,
+  Shield,
+  Truck,
+  ShoppingBag,
+  Box,
+  ArrowRightLeft,
+  Sliders,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/constants/routes";
@@ -34,10 +53,71 @@ import { useOrgContext } from "@/context/OrgContext";
 import {
   buildWorkspaceModules,
   groupWorkspaceModulesForSidebar,
+  type WorkspaceNavGroup,
+  type WorkspaceNavItem,
   type WorkspaceModule,
 } from "@/lib/workspace/navigation";
 import ModuleIcon from "@/components/ModuleIcon";
 import { getEffectiveWorkspacePath } from "@/lib/workspace/url-lock";
+
+const GROUP_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  // Administration Pillars
+  "Organization Hierarchy": Building2,
+  "Tenant & Organization Hierarchy": Building2,
+  "Identity & Access": ShieldCheck,
+  "Identity, Access & Governance (IAM)": ShieldCheck,
+  "Modules & Apps": Package,
+  "Module & App Engine": Package,
+  "Metadata & Studio": Database,
+  "Master Data & Metadata Engine": Database,
+  "Workflows & Approvals": GitBranch,
+  "Workflow & Approval State Machine": GitBranch,
+  "Communications": Bell,
+  "Communication & Notification Hub": Bell,
+  "API & Integrations": Webhook,
+  "API Gateway, Webhooks & Integrations": Webhook,
+  "Audit & Compliance": History,
+  "Security, Compliance & Audit Vault": History,
+  "System Operations": Activity,
+  "System Operations & Telemetry": Activity,
+  "Website & CMS": Globe,
+  "Digital Presence & CMS Websites": Globe,
+  // ERP & HRMS Groups
+  "Self-Service": UserCheck,
+  "Core HR": Users,
+  "Employee Lifecycle": UserPlus,
+  "Attendance & Time": Clock,
+  "Talent Acquisition": Search,
+  "Learning & Development": Award,
+  "HR Operations": Wallet,
+  "Processing": PlayCircle,
+  "Setup": Sliders,
+  "Compliance": Shield,
+  "Overview": LayoutDashboard,
+  "Accounting": Landmark,
+  "Treasury": Wallet,
+  "Sourcing": Truck,
+  "Demand": ShoppingCart,
+  "Ordering": ShoppingCart,
+  "Receiving": Box,
+  "Payables": Landmark,
+  "CRM & Sales": ShoppingBag,
+  "Pipeline": TrendingUp,
+  "Pricing": Sliders,
+  "Accounts": Users,
+  "Delivery": Briefcase,
+  "Stock Control": Box,
+  "Movements": ArrowRightLeft,
+  "Messaging": Bell,
+  "Connectivity": Webhook,
+  "Product": Package,
+  "Billing": Wallet,
+  "Connect": Webhook,
+  "Authentication": ShieldCheck,
+  "Devices": Activity,
+  "Sessions": Activity,
+  "Service": LifeBuoy,
+};
 
 function SidebarTooltip({ label }: { label: string }) {
   return (
@@ -58,11 +138,150 @@ function SectionLabel({ label, collapsed }: { label: string; collapsed: boolean 
   }
 
   return (
-    <li className="list-none px-3 pb-1 pt-3.5">
-      <p className="select-none text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
+    <li className="list-none px-3 pb-1 pt-3">
+      <p className="select-none text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">
         {label}
       </p>
     </li>
+  );
+}
+
+function SidebarNavGroupItem({
+  group,
+  modHasMultipleGroups,
+  pathname,
+  onNavigate,
+  favorites,
+  addFavorite,
+  removeFavorite,
+  forceExpandAll,
+}: {
+  group: WorkspaceNavGroup;
+  modHasMultipleGroups: boolean;
+  pathname: string;
+  onNavigate?: () => void;
+  favorites: Array<{ id: string; href?: string }>;
+  addFavorite: (item: { id: string; label: string; href: string; icon?: string }) => void;
+  removeFavorite: (id: string) => void;
+  forceExpandAll?: boolean;
+}) {
+  const isGroupActive = group.items.some((item: WorkspaceNavItem) => isPathActive(pathname, item.path));
+  const [groupOpen, setGroupOpen] = useState(isGroupActive);
+
+  useEffect(() => {
+    if (isGroupActive || forceExpandAll) {
+      setGroupOpen(true);
+    }
+  }, [isGroupActive, forceExpandAll]);
+
+  const GroupIconComponent = GROUP_ICON_MAP[group.label] || Folder;
+
+  return (
+    <div className="ml-3 mt-0.5 border-l border-slate-200/80 dark:border-slate-800 pl-2">
+      {modHasMultipleGroups ? (
+        <button
+          type="button"
+          onClick={() => setGroupOpen((prev: boolean) => !prev)}
+          className={cn(
+            "flex w-full items-center gap-1.5 py-1.5 px-2 text-left group/grp rounded-md transition-colors",
+            isGroupActive
+              ? "bg-slate-100/90 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 font-semibold"
+              : "text-slate-500 hover:text-slate-800 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-850"
+          )}
+        >
+          <GroupIconComponent
+            className={cn(
+              "h-3.5 w-3.5 shrink-0 transition-colors",
+              isGroupActive
+                ? "text-blue-600 dark:text-blue-400"
+                : "text-slate-400 group-hover/grp:text-slate-600 dark:group-hover/grp:text-slate-300"
+            )}
+          />
+          <span className="text-[11.5px] font-medium leading-none tracking-normal truncate">
+            {group.label}
+          </span>
+          <ChevronRight
+            className={cn(
+              "ml-auto h-3 w-3 shrink-0 text-slate-400 transition-transform duration-200",
+              groupOpen && "rotate-90 text-slate-600 dark:text-slate-300"
+            )}
+          />
+        </button>
+      ) : null}
+
+      <AnimatePresence initial={false}>
+        {(!modHasMultipleGroups || groupOpen) && (
+          <motion.ul
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.16, ease: "easeInOut" }}
+            className="space-y-0.5 py-0.5 overflow-hidden"
+          >
+            {group.items.map((item: WorkspaceNavItem) => {
+              const isItemActive = isPathActive(pathname, item.path);
+              const isPinned = favorites.some((f) => f.id === item.key || f.href === item.path);
+
+              return (
+                <li key={item.key} className="group/item relative flex items-center">
+                  <Link
+                    href={item.path}
+                    prefetch={true}
+                    onClick={onNavigate}
+                    className={cn(
+                      "flex flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] transition-all pr-6",
+                      isItemActive
+                        ? "bg-blue-50/90 font-semibold text-blue-700 shadow-xs dark:bg-blue-950/50 dark:text-blue-300 ring-1 ring-blue-200/60 dark:ring-blue-800/40"
+                        : "text-slate-600 hover:bg-slate-100/70 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-slate-100",
+                    )}
+                  >
+                    {item.icon ? (
+                      <ModuleIcon
+                        name={item.icon}
+                        className={cn(
+                          "h-3.5 w-3.5 shrink-0 transition-colors",
+                          isItemActive
+                            ? "text-blue-600 dark:text-blue-400"
+                            : "text-slate-400 group-hover/item:text-slate-700 dark:text-slate-500"
+                        )}
+                      />
+                    ) : (
+                      <span
+                        className={cn(
+                          "h-1.5 w-1.5 shrink-0 rounded-full transition-colors",
+                          isItemActive ? "bg-blue-600 ring-2 ring-blue-200" : "bg-slate-300 dark:bg-slate-600",
+                        )}
+                      />
+                    )}
+                    <span className="truncate leading-tight">{item.name}</span>
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (isPinned) {
+                        removeFavorite(item.key);
+                      } else {
+                        addFavorite({ id: item.key, label: item.name, href: item.path, icon: item.icon ?? undefined });
+                      }
+                    }}
+                    className={cn(
+                      "absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded transition-all",
+                      isPinned ? "text-amber-500 opacity-100" : "text-slate-300 opacity-0 group-hover/item:opacity-100 hover:text-amber-500"
+                    )}
+                    title={isPinned ? "Unpin from favorites" : "Pin to sidebar"}
+                  >
+                    <Star className={cn("h-3 w-3", isPinned && "fill-amber-400 text-amber-500")} />
+                  </button>
+                </li>
+              );
+            })}
+          </motion.ul>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -71,11 +290,13 @@ function SidebarNavItem({
   isCollapsed,
   pathname,
   onNavigate,
+  forceExpand,
 }: {
   mod: WorkspaceModule;
   isCollapsed: boolean;
   pathname: string;
   onNavigate?: () => void;
+  forceExpand?: boolean;
 }) {
   const favorites = useNavigationStore((state) => state.favorites);
   const addFavorite = useNavigationStore((state) => state.addFavorite);
@@ -84,11 +305,11 @@ function SidebarNavItem({
   const isModActive =
     isPathActive(pathname, mod.homeHref) ||
     mod.groups.some((group) => group.items.some((item) => isPathActive(pathname, item.path)));
-  const [expanded, setExpanded] = useState(isModActive);
+  const [expanded, setExpanded] = useState(isModActive || Boolean(forceExpand));
 
   useEffect(() => {
-    if (isModActive && hasChildren) setExpanded(true);
-  }, [isModActive, hasChildren]);
+    if ((isModActive && hasChildren) || forceExpand) setExpanded(true);
+  }, [isModActive, hasChildren, forceExpand]);
 
   const rowClass = cn(
     "group relative flex w-full items-center gap-x-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all",
@@ -97,6 +318,11 @@ function SidebarNavItem({
       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-200",
     isCollapsed && "justify-center px-0 py-2",
   );
+
+  const displayLabel =
+    mod.key === "platform" || mod.key === "administration"
+      ? "Administration"
+      : mod.label;
 
   const iconWrap = (
     <span
@@ -119,8 +345,8 @@ function SidebarNavItem({
             <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-blue-600" />
           ) : null}
           {iconWrap}
-          {!isCollapsed ? <span className="min-w-0 flex-1 truncate">{mod.label}</span> : null}
-          {isCollapsed ? <SidebarTooltip label={mod.label} /> : null}
+          {!isCollapsed ? <span className="min-w-0 flex-1 truncate">{displayLabel}</span> : null}
+          {isCollapsed ? <SidebarTooltip label={displayLabel} /> : null}
         </Link>
       </li>
     );
@@ -129,12 +355,12 @@ function SidebarNavItem({
   if (isCollapsed) {
     return (
       <li className="list-none">
-        <Link href={mod.homeHref || ROUTES.DASHBOARD} prefetch={true} onClick={onNavigate} className={rowClass} title={mod.label}>
+        <Link href={mod.homeHref || ROUTES.DASHBOARD} prefetch={true} onClick={onNavigate} className={rowClass} title={displayLabel}>
           {isModActive ? (
             <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-blue-600" />
           ) : null}
           {iconWrap}
-          <SidebarTooltip label={mod.label} />
+          <SidebarTooltip label={displayLabel} />
         </Link>
       </li>
     );
@@ -148,13 +374,18 @@ function SidebarNavItem({
             <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-blue-600" />
           ) : null}
           {iconWrap}
-          <span className="min-w-0 flex-1 truncate text-left">{mod.label}</span>
+          <span className="min-w-0 flex-1 truncate text-left font-medium">{displayLabel}</span>
+          {mod.pageCount > 1 ? (
+            <span className="mr-1 rounded-full bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 text-[9.5px] font-semibold text-slate-400 dark:text-slate-500">
+              {mod.pageCount}
+            </span>
+          ) : null}
         </Link>
         <button
           type="button"
           onClick={() => setExpanded((value) => !value)}
           className="absolute right-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-200/60 hover:text-slate-700 dark:hover:bg-slate-800"
-          aria-label={expanded ? `Collapse ${mod.label}` : `Expand ${mod.label}`}
+          aria-label={expanded ? `Collapse ${displayLabel}` : `Expand ${displayLabel}`}
           aria-expanded={expanded}
         >
           <motion.span animate={{ rotate: expanded ? 90 : 0 }} transition={{ duration: 0.15 }}>
@@ -173,61 +404,17 @@ function SidebarNavItem({
             className="overflow-hidden"
           >
             {mod.groups.map((group) => (
-              <div key={group.label} className="ml-5 mt-0.5 border-l-2 border-slate-100 dark:border-slate-800 pl-3">
-                {mod.groups.length > 1 ? (
-                  <p className="mb-1 mt-2 select-none px-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                    {group.label}
-                  </p>
-                ) : null}
-                <ul className="space-y-0.5 py-0.5">
-                  {group.items.map((item) => {
-                    const isItemActive = isPathActive(pathname, item.path);
-                    const isPinned = favorites.some((f) => f.id === item.key || f.href === item.path);
-                    return (
-                      <li key={item.key} className="group/item relative flex items-center">
-                        <Link
-                          href={item.path}
-                          prefetch={true}
-                          onClick={onNavigate}
-                          className={cn(
-                            "flex flex-1 items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12.5px] transition-colors pr-7",
-                            isItemActive
-                              ? "bg-blue-50/80 font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
-                              : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50",
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              "h-1.5 w-1.5 shrink-0 rounded-full transition-colors",
-                              isItemActive ? "bg-blue-600 ring-2 ring-blue-200" : "bg-slate-300 dark:bg-slate-600",
-                            )}
-                          />
-                          <span className="truncate">{item.name}</span>
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            if (isPinned) {
-                              removeFavorite(item.key);
-                            } else {
-                              addFavorite({ id: item.key, label: item.name, href: item.path, icon: item.icon ?? undefined });
-                            }
-                          }}
-                          className={cn(
-                            "absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded transition-all",
-                            isPinned ? "text-amber-500 opacity-100" : "text-slate-300 opacity-0 group-hover/item:opacity-100 hover:text-amber-500"
-                          )}
-                          title={isPinned ? "Unpin from favorites" : "Pin to sidebar"}
-                        >
-                          <Star className={cn("h-3.5 w-3.5", isPinned && "fill-amber-400 text-amber-500")} />
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
+              <SidebarNavGroupItem
+                key={group.label}
+                group={group}
+                modHasMultipleGroups={mod.groups.length > 1}
+                pathname={pathname}
+                onNavigate={onNavigate}
+                favorites={favorites}
+                addFavorite={addFavorite}
+                removeFavorite={removeFavorite}
+                forceExpandAll={forceExpand}
+              />
             ))}
           </motion.div>
         ) : null}
@@ -268,8 +455,51 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
   const dynamicModules = buildWorkspaceModules(schemaNav.modules, enabledModules, accessContext);
   const sections = groupWorkspaceModulesForSidebar(dynamicModules);
+  const [searchQuery, setSearchQuery] = useState("");
   const dashboardActive = isPathActive(pathname, ROUTES.DASHBOARD);
   const [dashboardExpanded, setDashboardExpanded] = useState(true);
+
+  const filteredSections = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return sections;
+
+    return sections
+      .map((section) => {
+        const filteredModules = section.modules
+          .map((mod) => {
+            const modMatches = mod.label.toLowerCase().includes(query);
+            const filteredGroups = mod.groups
+              .map((grp) => {
+                const grpMatches = grp.label.toLowerCase().includes(query);
+                const filteredItems = grp.items.filter(
+                  (item) =>
+                    modMatches ||
+                    grpMatches ||
+                    item.name.toLowerCase().includes(query) ||
+                    item.path.toLowerCase().includes(query)
+                );
+                return { ...grp, items: filteredItems };
+              })
+              .filter((grp) => grp.items.length > 0);
+
+            if (filteredGroups.length === 0 && !modMatches) {
+              return null;
+            }
+
+            return {
+              ...mod,
+              groups: filteredGroups.length > 0 ? filteredGroups : mod.groups,
+            };
+          })
+          .filter((mod): mod is WorkspaceModule => Boolean(mod));
+
+        return {
+          ...section,
+          modules: filteredModules,
+        };
+      })
+      .filter((section) => section.modules.length > 0);
+  }, [sections, searchQuery]);
 
   useEffect(() => {
     onMobileClose?.();
@@ -346,107 +576,135 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
       {/* Nav list */}
       <nav className="flex flex-1 flex-col overflow-y-auto px-2.5 py-2 scrollbar-thin">
-        <ul role="list" className="flex flex-col gap-y-0.5">
-          <li className="list-none">
+        {/* Quick Search & Navigation Filter */}
+        {!collapsed && (
+          <div className="mb-2 px-0.5">
             <div className="relative flex items-center">
-              <Link
-                href={ROUTES.DASHBOARD}
-                onClick={onMobileClose}
-                className={cn(
-                  "group relative flex flex-1 items-center gap-x-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all",
-                  dashboardActive && !dashboardExpanded
-                    ? "bg-blue-50/80 font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
-                    : "text-slate-700 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/60 dark:hover:text-slate-200",
-                  collapsed && "justify-center px-0 py-2",
-                  !collapsed && "pr-8",
-                )}
-              >
-                {dashboardActive ? (
-                  <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-blue-600" />
-                ) : null}
-                <span
-                  className={cn(
-                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors",
-                    dashboardActive
-                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300"
-                      : "text-slate-500 group-hover:text-slate-800 dark:text-slate-400",
-                  )}
-                >
-                  <LayoutDashboard className="h-4 w-4" />
-                </span>
-                {!collapsed ? <span className="truncate font-semibold">{dashboardLabel}</span> : <SidebarTooltip label={dashboardLabel} />}
-              </Link>
-              {!collapsed ? (
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Filter pages & modules..."
+                className="w-full rounded-lg border border-slate-200 bg-slate-50/70 py-1.5 pl-8 pr-7 text-xs text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none transition dark:border-slate-800 dark:bg-slate-850 dark:text-slate-200"
+              />
+              {searchQuery ? (
                 <button
                   type="button"
-                  onClick={() => setDashboardExpanded((prev) => !prev)}
-                  className="absolute right-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-200/60 hover:text-slate-700 dark:hover:bg-slate-800"
-                  aria-label={dashboardExpanded ? "Collapse Module Dashboards" : "Expand Module Dashboards"}
-                  aria-expanded={dashboardExpanded}
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5"
+                  title="Clear search"
                 >
-                  <motion.span animate={{ rotate: dashboardExpanded ? 90 : 0 }} transition={{ duration: 0.15 }}>
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  </motion.span>
+                  <X className="h-3 w-3" />
                 </button>
               ) : null}
             </div>
+          </div>
+        )}
 
-            {/* Nested Module Dashboards List */}
-            {!collapsed ? (
-              <AnimatePresence initial={false}>
-                {dashboardExpanded ? (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.18, ease: "easeInOut" }}
-                    className="overflow-hidden"
+        <ul role="list" className="flex flex-col gap-y-0.5">
+          {!searchQuery && (
+            <li className="list-none">
+              <div className="relative flex items-center">
+                <Link
+                  href={ROUTES.DASHBOARD}
+                  onClick={onMobileClose}
+                  className={cn(
+                    "group relative flex flex-1 items-center gap-x-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all",
+                    dashboardActive && !dashboardExpanded
+                      ? "bg-blue-50/80 font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
+                      : "text-slate-700 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/60 dark:hover:text-slate-200",
+                    collapsed && "justify-center px-0 py-2",
+                    !collapsed && "pr-8",
+                  )}
+                >
+                  {dashboardActive ? (
+                    <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-blue-600" />
+                  ) : null}
+                  <span
+                    className={cn(
+                      "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors",
+                      dashboardActive
+                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300"
+                        : "text-slate-500 group-hover:text-slate-800 dark:text-slate-400",
+                    )}
                   >
-                    <div className="ml-5 mt-0.5 border-l-2 border-slate-100 dark:border-slate-800 pl-2.5">
-                      <ul className="space-y-0.5 py-1">
-                        {moduleDashboardItems.map((item) => {
-                          const isItemActive = isPathActive(pathname, item.href);
-                          return (
-                            <li key={item.key} className="group/item relative flex items-center">
-                              <Link
-                                href={item.href}
-                                prefetch={true}
-                                onClick={onMobileClose}
-                                className={cn(
-                                  "flex flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] transition-colors",
-                                  isItemActive
-                                    ? "bg-blue-50/80 font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
-                                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-200",
-                                )}
-                              >
-                                <item.icon
-                                  className={cn(
-                                    "h-3.5 w-3.5 shrink-0 transition-colors",
-                                    isItemActive
-                                      ? "text-blue-600 dark:text-blue-400"
-                                      : "text-slate-400 group-hover/item:text-slate-600 dark:text-slate-500",
-                                  )}
-                                />
-                                <span className="truncate">{item.label}</span>
-                                {item.badge ? (
-                                  <span className="ml-auto rounded-full bg-blue-100 dark:bg-blue-900/60 px-1.5 py-0.2 text-[9px] font-semibold text-blue-700 dark:text-blue-300">
-                                    {item.badge}
-                                  </span>
-                                ) : null}
-                              </Link>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </div>
-                  </motion.div>
+                    <LayoutDashboard className="h-4 w-4" />
+                  </span>
+                  {!collapsed ? <span className="truncate font-semibold">{dashboardLabel}</span> : <SidebarTooltip label={dashboardLabel} />}
+                </Link>
+                {!collapsed ? (
+                  <button
+                    type="button"
+                    onClick={() => setDashboardExpanded((prev) => !prev)}
+                    className="absolute right-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-200/60 hover:text-slate-700 dark:hover:bg-slate-800"
+                    aria-label={dashboardExpanded ? "Collapse Module Dashboards" : "Expand Module Dashboards"}
+                    aria-expanded={dashboardExpanded}
+                  >
+                    <motion.span animate={{ rotate: dashboardExpanded ? 90 : 0 }} transition={{ duration: 0.15 }}>
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </motion.span>
+                  </button>
                 ) : null}
-              </AnimatePresence>
-            ) : null}
-          </li>
+              </div>
+
+              {/* Nested Module Dashboards List */}
+              {!collapsed ? (
+                <AnimatePresence initial={false}>
+                  {dashboardExpanded ? (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.18, ease: "easeInOut" }}
+                      className="overflow-hidden"
+                    >
+                      <div className="ml-5 mt-0.5 border-l-2 border-slate-100 dark:border-slate-800 pl-2.5">
+                        <ul className="space-y-0.5 py-1">
+                          {moduleDashboardItems.map((item) => {
+                            const isItemActive = isPathActive(pathname, item.href);
+                            return (
+                              <li key={item.key} className="group/item relative flex items-center">
+                                <Link
+                                  href={item.href}
+                                  prefetch={true}
+                                  onClick={onMobileClose}
+                                  className={cn(
+                                    "flex flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] transition-colors",
+                                    isItemActive
+                                      ? "bg-blue-50/80 font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
+                                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-200",
+                                  )}
+                                >
+                                  <item.icon
+                                    className={cn(
+                                      "h-3.5 w-3.5 shrink-0 transition-colors",
+                                      isItemActive
+                                        ? "text-blue-600 dark:text-blue-400"
+                                        : "text-slate-400 group-hover/item:text-slate-600 dark:text-slate-500",
+                                    )}
+                                  />
+                                  <span className="truncate">{item.label}</span>
+                                  {item.badge ? (
+                                    <span className="ml-auto rounded-full bg-blue-100 dark:bg-blue-900/60 px-1.5 py-0.2 text-[9px] font-semibold text-blue-700 dark:text-blue-300">
+                                      {item.badge}
+                                    </span>
+                                  ) : null}
+                                </Link>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    </motion.div>
+                  ) : null}
+                </AnimatePresence>
+              ) : null}
+            </li>
+          )}
 
           {/* Pinned Favorites Section */}
-          {!collapsed && favorites.length > 0 && (
+          {!collapsed && !searchQuery && favorites.length > 0 && (
             <li className="list-none">
               <ul className="space-y-0.5 py-0.5">
                 <SectionLabel label="Pinned Shortcuts" collapsed={collapsed} />
@@ -487,7 +745,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
             </li>
           )}
 
-          {sections.map((section) => (
+          {filteredSections.map((section) => (
             <li key={section.id} className="list-none">
               <ul>
                 <SectionLabel label={section.label} collapsed={collapsed} />
@@ -498,11 +756,18 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                     isCollapsed={collapsed}
                     pathname={pathname}
                     onNavigate={onMobileClose}
+                    forceExpand={Boolean(searchQuery)}
                   />
                 ))}
               </ul>
             </li>
           ))}
+
+          {searchQuery && filteredSections.length === 0 && (
+            <li className="list-none py-6 px-3 text-center text-xs text-slate-400">
+              No navigation items match &quot;{searchQuery}&quot;
+            </li>
+          )}
         </ul>
       </nav>
 
@@ -524,7 +789,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   );
 
   const sidebarClasses = "flex flex-col border-r border-slate-200/90 bg-white dark:border-slate-800 dark:bg-slate-900";
-  const desktopWidth = isCollapsed ? "w-16" : "w-64";
+  const desktopWidth = isCollapsed ? "w-16" : "w-[272px]";
 
   return (
     <>

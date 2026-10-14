@@ -16,6 +16,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
 {
     [ApiController]
     [Route("api/v1/entity-fields")]
+    [Route("api/v1/administration/entity-fields")]
     [Authorize]
     public class EntityFieldsController : ControllerBase
     {
@@ -74,7 +75,14 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(new { definitions = defs });
+            return Ok(new
+            {
+                items = defs,
+                records = defs,
+                definitions = defs,
+                total = defs.Count,
+                totalCount = defs.Count
+            });
         }
 
         /// <summary>Get all entity types that have definitions in this tenant (for Schema Manager).</summary>
@@ -104,7 +112,14 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(new { definitions = defs });
+            return Ok(new
+            {
+                items = defs,
+                records = defs,
+                definitions = defs,
+                total = defs.Count,
+                totalCount = defs.Count
+            });
         }
 
         /// <summary>Create a new field definition (SuperAdmin/Admin only).</summary>

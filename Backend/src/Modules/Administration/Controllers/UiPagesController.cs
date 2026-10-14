@@ -17,6 +17,8 @@ namespace UabIndia.Api.Modules.Administration.Controllers
 {
     [ApiController]
     [Route("api/v1/ui-pages")]
+    [Route("api/v1/administration/ui-pages")]
+    [Route("api/ui-pages")]
     [Route("api/metadata")]
     [Route("api/v1/metadata")]
     [Authorize]

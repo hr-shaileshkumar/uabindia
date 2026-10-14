@@ -115,7 +115,7 @@ export const administrationSchemas: Record<string, PageSchema> = {
     entityName: "Department",
     moduleKey: "administration",
     viewType: "table",
-    apiEndpoint: "/hrms/departments",
+    apiEndpoint: "/api/v1/administration/departments",
     icon: "Layers",
     requiredPermission: "administration.departments.read",
     columns: [
@@ -135,7 +135,7 @@ export const administrationSchemas: Record<string, PageSchema> = {
           fields: [
             { key: "name", label: "Department Name", type: "text", required: true, span: 2 },
             { key: "code", label: "Department Code", type: "text", readOnly: true, required: false, placeholder: "⚡ Auto-generated on save", span: 2 },
-            { key: "parentDepartmentId", label: "Parent Department", type: "lookup", lookupEndpoint: "/hrms/departments", span: 2 },
+            { key: "parentDepartmentId", label: "Parent Department", type: "lookup", lookupEndpoint: "/api/v1/administration/departments", span: 2 },
             { key: "managerId", label: "Head / Manager", type: "lookup", lookupEndpoint: "/hrms/employees", span: 2 },
             { key: "isActive", label: "Active", type: "boolean", span: 2 },
           ],
@@ -156,7 +156,7 @@ export const administrationSchemas: Record<string, PageSchema> = {
     entityName: "Company",
     moduleKey: "administration",
     viewType: "table",
-    apiEndpoint: "/administration/companies",
+    apiEndpoint: "/api/v1/administration/companies",
     icon: "Building2",
     requiredPermission: "administration.companies.read",
     columns: [
@@ -264,7 +264,7 @@ export const administrationSchemas: Record<string, PageSchema> = {
     entityName: "Branch",
     moduleKey: "administration",
     viewType: "table",
-    apiEndpoint: "/hrms/org/branches",
+    apiEndpoint: "/api/v1/administration/branches",
     icon: "MapPin",
     requiredPermission: "administration.branches.read",
     columns: [
@@ -285,7 +285,7 @@ export const administrationSchemas: Record<string, PageSchema> = {
           fields: [
             { key: "name", label: "Branch Name", type: "text", required: true, span: 2 },
             { key: "code", label: "Branch Code", type: "text", readOnly: true, required: false, placeholder: "⚡ Auto-generated on save", span: 2 },
-            { key: "companyId", label: "Company", type: "lookup", lookupEndpoint: "/administration/companies", required: true, span: 2 },
+            { key: "companyId", label: "Company", type: "lookup", lookupEndpoint: "/api/v1/administration/companies", required: true, span: 2 },
             { key: "gstin", label: "GSTIN", type: "text", span: 2 },
             { key: "addressLine1", label: "Address", type: "textarea", span: 2 },
             { key: "city", label: "City", type: "text", span: 1 },
@@ -298,6 +298,137 @@ export const administrationSchemas: Record<string, PageSchema> = {
     },
     actions: [
       { key: "create", label: "Add Branch", variant: "primary", icon: "Plus" },
+      { key: "edit", label: "Edit", variant: "secondary", icon: "Pencil" },
+      { key: "delete", label: "Delete", variant: "danger", icon: "Trash2" },
+    ],
+  },
+
+  "administration.business-units": {
+    pageKey: "administration.business-units",
+    title: "Strategic Business Units (SBUs)",
+    subTitle: "Divisional reporting entities, product lines, and operational profit centers.",
+    entityName: "BusinessUnit",
+    moduleKey: "administration",
+    viewType: "table",
+    apiEndpoint: "/api/v1/administration/business-units",
+    icon: "Boxes",
+    requiredPermission: "administration.settings.read",
+    columns: [
+      { key: "name", label: "Business Unit Name", width: 220 },
+      { key: "code", label: "Code", width: 120 },
+      { key: "companyName", label: "Parent Company", width: 200 },
+      { key: "parentBusinessUnitName", label: "Parent Unit", width: 180 },
+      { key: "isActive", label: "Status", type: "badge", width: 100 },
+    ],
+    filters: [
+      { key: "search", label: "Search business units", type: "text" },
+    ],
+    form: {
+      sections: [
+        {
+          key: "details",
+          label: "Unit Details",
+          fields: [
+            { key: "name", label: "Unit Name", type: "text", required: true, span: 2 },
+            { key: "code", label: "Unit Code", type: "text", required: true, span: 1 },
+            { key: "companyId", label: "Company", type: "lookup", lookupEndpoint: "/api/v1/administration/companies", required: true, span: 1 },
+            { key: "parentBusinessUnitId", label: "Parent SBU (Optional)", type: "lookup", lookupEndpoint: "/api/v1/administration/business-units", span: 2 },
+            { key: "description", label: "Description", type: "textarea", span: 2 },
+            { key: "isActive", label: "Active", type: "boolean", span: 1 },
+          ],
+        },
+      ],
+    },
+    actions: [
+      { key: "create", label: "Add Business Unit", variant: "primary", icon: "Plus" },
+      { key: "edit", label: "Edit", variant: "secondary", icon: "Pencil" },
+      { key: "delete", label: "Delete", variant: "danger", icon: "Trash2" },
+    ],
+  },
+
+  "administration.cost-centers": {
+    pageKey: "administration.cost-centers",
+    title: "Enterprise Cost Centers",
+    subTitle: "Financial cost allocations, project accounting codes, and department expense tracking.",
+    entityName: "CostCenter",
+    moduleKey: "administration",
+    viewType: "table",
+    apiEndpoint: "/api/v1/administration/cost-centers",
+    icon: "Target",
+    requiredPermission: "administration.settings.read",
+    columns: [
+      { key: "name", label: "Cost Center Name", width: 220 },
+      { key: "code", label: "Code", width: 120 },
+      { key: "costCenterType", label: "Allocation Type", type: "badge", width: 140 },
+      { key: "companyName", label: "Company", width: 200 },
+      { key: "isActive", label: "Status", type: "badge", width: 100 },
+    ],
+    filters: [
+      { key: "search", label: "Search cost centers", type: "text" },
+    ],
+    form: {
+      sections: [
+        {
+          key: "details",
+          label: "Cost Center Configuration",
+          fields: [
+            { key: "name", label: "Cost Center Name", type: "text", required: true, span: 2 },
+            { key: "code", label: "Cost Center Code", type: "text", required: true, span: 1 },
+            { key: "companyId", label: "Company", type: "lookup", lookupEndpoint: "/api/v1/administration/companies", required: true, span: 1 },
+            { key: "costCenterType", label: "Cost Type", type: "text", span: 1, placeholder: "Operational / Project / Administrative" },
+            { key: "description", label: "Description", type: "textarea", span: 2 },
+            { key: "isActive", label: "Active", type: "boolean", span: 1 },
+          ],
+        },
+      ],
+    },
+    actions: [
+      { key: "create", label: "Add Cost Center", variant: "primary", icon: "Plus" },
+      { key: "edit", label: "Edit", variant: "secondary", icon: "Pencil" },
+      { key: "delete", label: "Delete", variant: "danger", icon: "Trash2" },
+    ],
+  },
+
+  "administration.designations": {
+    pageKey: "administration.designations",
+    title: "Job Designations & Grade Bands",
+    subTitle: "Corporate organizational titles, hierarchy grade bands, and career level classifications.",
+    entityName: "Designation",
+    moduleKey: "administration",
+    viewType: "table",
+    apiEndpoint: "/api/v1/administration/designations",
+    icon: "Award",
+    requiredPermission: "administration.settings.read",
+    columns: [
+      { key: "name", label: "Designation Title", width: 220 },
+      { key: "code", label: "Code", width: 120 },
+      { key: "grade", label: "Grade Band", type: "badge", width: 120 },
+      { key: "level", label: "Career Level", width: 120 },
+      { key: "companyName", label: "Company", width: 200 },
+      { key: "isActive", label: "Status", type: "badge", width: 100 },
+    ],
+    filters: [
+      { key: "search", label: "Search designations", type: "text" },
+    ],
+    form: {
+      sections: [
+        {
+          key: "details",
+          label: "Designation Details",
+          fields: [
+            { key: "name", label: "Job Title", type: "text", required: true, span: 2 },
+            { key: "code", label: "Title Code", type: "text", required: true, span: 1 },
+            { key: "companyId", label: "Company", type: "lookup", lookupEndpoint: "/api/v1/administration/companies", required: true, span: 1 },
+            { key: "grade", label: "Grade Band", type: "text", span: 1, placeholder: "e.g. L1, L2, Senior, Executive" },
+            { key: "level", label: "Hierarchy Level", type: "text", span: 1, placeholder: "e.g. Director, Lead, Associate" },
+            { key: "description", label: "Role Description", type: "textarea", span: 2 },
+            { key: "isActive", label: "Active", type: "boolean", span: 1 },
+          ],
+        },
+      ],
+    },
+    actions: [
+      { key: "create", label: "Add Designation", variant: "primary", icon: "Plus" },
       { key: "edit", label: "Edit", variant: "secondary", icon: "Pencil" },
       { key: "delete", label: "Delete", variant: "danger", icon: "Trash2" },
     ],
@@ -489,6 +620,74 @@ export const administrationSchemas: Record<string, PageSchema> = {
       { key: "create", label: "New Payment Term", variant: "primary", icon: "Plus" },
     ],
   },
+  "administration.entity-builder": {
+    pageKey: "administration.entity-builder",
+    title: "Custom Fields & Dynamic Metadata Builder",
+    subTitle: "Extend standard enterprise entities (Invoice, Customer, Employee, Order) with custom typed metadata and validation rules.",
+    entityName: "EntityFieldDefinition",
+    moduleKey: "administration",
+    viewType: "table",
+    apiEndpoint: "/api/v1/entity-fields/definitions",
+    icon: "Database",
+    requiredPermission: "administration.settings.read",
+    columns: [
+      { key: "entityName", label: "Target Entity", width: 170 },
+      { key: "fieldLabel", label: "Field Label", width: 200 },
+      { key: "fieldKey", label: "System Key", width: 180 },
+      { key: "fieldType", label: "Data Type", type: "badge", width: 130 },
+      { key: "section", label: "Section Group", width: 160 },
+      { key: "isRequired", label: "Mandatory", type: "badge", width: 110 },
+      { key: "isActive", label: "Active", type: "badge", width: 100 },
+      { key: "sortOrder", label: "Sort Order", type: "number", width: 110 },
+    ],
+    filters: [
+      { key: "search", label: "Search fields or keys", type: "text" },
+      { key: "entityName", label: "Filter by Entity", type: "text" },
+    ],
+    form: {
+      sections: [
+        {
+          key: "definition",
+          label: "Field Definition & Data Type",
+          fields: [
+            { key: "entityName", label: "Target Entity Name", type: "text", required: true, span: 1, placeholder: "e.g. Invoice, Customer, Employee, PurchaseOrder" },
+            { key: "fieldLabel", label: "User-Facing Label", type: "text", required: true, span: 1, placeholder: "e.g. Passport Number, GST Exemption Cert" },
+            { key: "fieldKey", label: "System Identifier (snake_case)", type: "text", required: true, span: 1, placeholder: "e.g. passport_number, gst_exemption_cert" },
+            {
+              key: "fieldType",
+              label: "Field Data Type",
+              type: "select",
+              required: true,
+              span: 1,
+              options: [
+                { value: "text", label: "Single-line Text" },
+                { value: "number", label: "Numeric / Decimal" },
+                { value: "date", label: "Calendar Date" },
+                { value: "select", label: "Single Select Dropdown" },
+                { value: "boolean", label: "Yes / No Toggle" },
+                { value: "textarea", label: "Multi-line Textarea" },
+              ],
+            },
+          ],
+        },
+        {
+          key: "configuration",
+          label: "Form Layout & Validation Rules",
+          fields: [
+            { key: "section", label: "Grouping Section Name", type: "text", span: 1, placeholder: "e.g. Statutory Information, Custom Details" },
+            { key: "sortOrder", label: "Display Sort Order", type: "number", span: 1, placeholder: "0" },
+            { key: "isRequired", label: "Mandatory Field", type: "boolean", span: 1 },
+            { key: "isActive", label: "Active & Visible", type: "boolean", span: 1 },
+          ],
+        },
+      ],
+    },
+    actions: [
+      { key: "create", label: "Add Custom Field", variant: "primary", icon: "Plus" },
+      { key: "edit", label: "Edit Definition", variant: "secondary", icon: "Pencil" },
+      { key: "delete", label: "Delete", variant: "danger", icon: "Trash2" },
+    ],
+  },
   "administration.org-chart": {
     pageKey: "administration.org-chart",
     title: "Organizational Hierarchy Chart",
@@ -518,6 +717,97 @@ export const administrationSchemas: Record<string, PageSchema> = {
     kpis: [
       { key: "totalEmployees", label: "Total Headcount", icon: "Users", color: "indigo" },
       { key: "departmentsCount", label: "Active Departments", icon: "Building2", color: "green" },
+    ],
+  },
+  "administration.recycle-bin": {
+    pageKey: "administration.recycle-bin",
+    title: "Enterprise Recycle Bin & Soft-Delete Vault",
+    subTitle: "Inspect deleted transactional entities, audit deletion timestamps, and safely restore soft-deleted records.",
+    entityName: "RecycleBinItem",
+    moduleKey: "administration",
+    viewType: "table",
+    apiEndpoint: "/api/v1/administration/recycle-bin",
+    icon: "Trash2",
+    requiredPermission: "administration.settings.read",
+    columns: [
+      { key: "recordName", label: "Record Name", width: 240 },
+      { key: "recordCode", label: "Code / Document ID", width: 160 },
+      { key: "entityType", label: "Entity Type", type: "badge", width: 140 },
+      { key: "module", label: "Domain Module", type: "badge", width: 130 },
+      { key: "deletedAt", label: "Deleted At", type: "datetime", width: 180 },
+      { key: "status", label: "Retention State", type: "badge", width: 120 },
+    ],
+    filters: [
+      { key: "search", label: "Search deleted records", type: "text" },
+      { key: "entityType", label: "Filter Entity Type", type: "text" },
+    ],
+    actions: [
+      { key: "export", label: "Export Deletion Audit", variant: "ghost", icon: "Download" },
+    ],
+  },
+  "administration.policies": {
+    pageKey: "administration.policies",
+    title: "Enterprise Policies & Governance Rules",
+    subTitle: "Configure compliance policies, versioning, acknowledgment workflows, and mandatory organizational standards.",
+    entityName: "PolicyMaster",
+    moduleKey: "administration",
+    viewType: "table",
+    apiEndpoint: "/api/v1/administration/policies",
+    icon: "FileCheck",
+    requiredPermission: "administration.settings.read",
+    columns: [
+      { key: "name", label: "Policy Title", width: 240 },
+      { key: "code", label: "Policy Code", width: 130 },
+      { key: "category", label: "Category", type: "badge", width: 140 },
+      { key: "priority", label: "Priority", type: "badge", width: 110 },
+      { key: "isMandatoryAcknowledgment", label: "Mandatory Ack", type: "badge", width: 130 },
+      { key: "status", label: "Status", type: "badge", width: 100 },
+      { key: "updatedAt", label: "Last Modified", type: "date", width: 130 },
+    ],
+    filters: [
+      { key: "search", label: "Search policies", type: "text" },
+      { key: "category", label: "Category Filter", type: "text" },
+    ],
+    form: {
+      sections: [
+        {
+          key: "general",
+          label: "Policy Identity",
+          fields: [
+            { key: "name", label: "Policy Name", type: "text", required: true, span: 2 },
+            { key: "code", label: "Policy Code", type: "text", required: true, span: 1 },
+            { key: "category", label: "Category", type: "text", required: true, span: 1 },
+            { key: "description", label: "Policy Summary", type: "textarea", span: 2 },
+            { key: "isMandatoryAcknowledgment", label: "Mandatory User Acknowledgment", type: "boolean", span: 1 },
+            { key: "priority", label: "Enforcement Priority", type: "number", span: 1 },
+          ],
+        },
+      ],
+    },
+    actions: [
+      { key: "create", label: "Create Policy", variant: "primary", icon: "Plus" },
+      { key: "edit", label: "Edit Policy", variant: "secondary", icon: "Pencil" },
+    ],
+  },
+  "administration.privacy": {
+    pageKey: "administration.privacy",
+    title: "Data Privacy & Regulatory Retention (DPDP Act 2023 / GDPR)",
+    subTitle: "Manage personal data requests, right to erasure, data processing consent, and statutory retention windows.",
+    entityName: "PrivacyPolicy",
+    moduleKey: "administration",
+    viewType: "table",
+    apiEndpoint: "/api/v1/administration/privacy/policy",
+    icon: "Lock",
+    requiredPermission: "administration.settings.read",
+    columns: [
+      { key: "policyVersion", label: "Policy Version", width: 140 },
+      { key: "lastUpdated", label: "Effective Date", width: 150 },
+      { key: "dataController", label: "Data Controller Org", width: 220 },
+      { key: "contactEmail", label: "Privacy Officer Contact", width: 220 },
+    ],
+    filters: [],
+    actions: [
+      { key: "export", label: "Export Compliance Report", variant: "primary", icon: "Download" },
     ],
   },
 };

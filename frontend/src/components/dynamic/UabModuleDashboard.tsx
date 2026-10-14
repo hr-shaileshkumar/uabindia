@@ -1,23 +1,40 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   TrendingUp,
   TrendingDown,
   ArrowUpRight,
+  ArrowRight,
   BarChart3,
   Layers,
   RefreshCw,
   AlertTriangle,
   ExternalLink,
+  Search,
+  Sparkles,
+  Folder,
+  CheckCircle2,
+  Building2,
+  Users,
+  Wallet,
+  Briefcase,
+  Package,
+  ShoppingCart,
+  Landmark,
+  ShieldCheck,
   LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import apiClient from "@/services/apiClient";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { useOrgContext } from "@/context/OrgContext";
+import { findFrontendModuleMap } from "@/lib/workspace/frontend-module-map";
+import { useUiSchema } from "@/context/UiSchemaContext";
+import { buildWorkspaceModules, findWorkspaceModuleByKey } from "@/lib/workspace/navigation";
+import ModuleIcon from "@/components/ModuleIcon";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -50,6 +67,24 @@ export interface ModuleDashboardActivity {
   tone?: "positive" | "warning" | "negative" | "info" | "neutral";
 }
 
+export interface SubmodulePageItem {
+  name: string;
+  href: string;
+  icon?: any;
+  desc?: string;
+  status?: string;
+  display?: string;
+  sequence: number;
+}
+
+export interface SubmoduleBoxItem {
+  key: string;
+  label: string;
+  purpose?: string;
+  sequence: number;
+  pages: SubmodulePageItem[];
+}
+
 export interface UabModuleDashboardProps {
   moduleKey: string;
   title: string;
@@ -58,8 +93,9 @@ export interface UabModuleDashboardProps {
   icon?: LucideIcon;
   color?: string; // Tailwind gradient classes
   kpis?: ModuleDashboardKpi[];
-  links: ModuleDashboardLink[];
+  links?: ModuleDashboardLink[];
   linksTitle?: string;
+  submodules?: SubmoduleBoxItem[];
   statsEndpoint?: string; // API endpoint that returns live KPI data
   statsMapper?: (data: any) => ModuleDashboardKpi[]; // Map API response → KPIs
   activityEndpoint?: string;
@@ -222,6 +258,7 @@ export function UabModuleDashboard({
   kpis = [],
   links,
   linksTitle = "Workspaces",
+  submodules,
   statsEndpoint,
   statsMapper,
   activityEndpoint,
@@ -287,35 +324,139 @@ export function UabModuleDashboard({
 
   const displayKpis = statsEndpoint ? liveKpis : kpis;
 
-  return (
-    <div className="min-h-screen bg-slate-50/50">
-      {/* ── Hero Header ── */}
-      <div className={cn("relative overflow-hidden bg-gradient-to-br", color)}>
-        {/* Decorative background shapes */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute -top-24 -right-24 h-80 w-80 rounded-full bg-white/5 blur-3xl" />
-          <div className="absolute -bottom-12 -left-12 h-64 w-64 rounded-full bg-black/10 blur-3xl" />
-          <div className="absolute top-1/2 right-1/4 h-40 w-40 rounded-full bg-white/5 blur-2xl" />
-        </div>
+  const frontendDef = useMemo(() => findFrontendModuleMap(moduleKey), [moduleKey]);
+  const { navigation, enabledModules } = useUiSchema();
+  const workspaceModules = useMemo(
+    () => buildWorkspaceModules(navigation.modules, enabledModules),
+    [navigation.modules, enabledModules]
+  );
+  const currentWorkspaceMod = useMemo(
+    () => findWorkspaceModuleByKey(workspaceModules, moduleKey),
+    [workspaceModules, moduleKey]
+  );
 
-        <div className="relative mx-auto max-w-[1720px] 2xl:max-w-full px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-start justify-between gap-6">
+  const resolvedSubmodules = useMemo<SubmoduleBoxItem[]>(() => {
+    if (submodules && submodules.length > 0) {
+      return submodules;
+    }
+
+    if (frontendDef?.submodules && frontendDef.submodules.length > 0) {
+      return frontendDef.submodules.map((sub, sIdx) => ({
+        key: sub.key,
+        label: sub.label,
+        purpose: sub.purpose,
+        sequence: sIdx + 1,
+        pages: sub.pages.map((p, pIdx) => ({
+          name: p.label,
+          href: p.route,
+          icon: null,
+          desc: p.purpose,
+          status: p.status,
+          display: p.display,
+          sequence: pIdx + 1,
+        })),
+      }));
+    }
+
+    if (currentWorkspaceMod?.groups && currentWorkspaceMod.groups.length > 0) {
+      return currentWorkspaceMod.groups.map((grp, gIdx) => ({
+        key: grp.label.toLowerCase().replace(/[\s&/]+/g, "-"),
+        label: grp.label,
+        purpose: `${grp.label} operational workspaces and master registers.`,
+        sequence: gIdx + 1,
+        pages: grp.items.map((it, iIdx) => ({
+          name: it.name,
+          href: it.path,
+          icon: it.icon,
+          desc: `Open ${it.name} record management.`,
+          status: "implemented",
+          sequence: iIdx + 1,
+        })),
+      }));
+    }
+
+    if (links && links.length > 0) {
+      return [
+        {
+          key: "workspaces",
+          label: linksTitle || "Workspaces",
+          purpose: "Primary workspace entries and operational pages.",
+          sequence: 1,
+          pages: links.map((l, lIdx) => ({
+            name: l.label,
+            href: l.href,
+            icon: l.icon,
+            desc: l.desc,
+            status: "implemented",
+            sequence: lIdx + 1,
+          })),
+        },
+      ];
+    }
+
+    return [];
+  }, [submodules, frontendDef, currentWorkspaceMod, links, linksTitle]);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedSubmoduleKey, setSelectedSubmoduleKey] = useState<string | null>(null);
+
+  const totalPagesCount = useMemo(
+    () => resolvedSubmodules.reduce((acc, sub) => acc + sub.pages.length, 0),
+    [resolvedSubmodules]
+  );
+
+  const filteredSubmodules = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    return resolvedSubmodules
+      .filter((sub) => {
+        if (!selectedSubmoduleKey) return true;
+        return sub.key === selectedSubmoduleKey;
+      })
+      .map((sub) => {
+        if (!query) return sub;
+
+        const matchingPages = sub.pages.filter(
+          (p) =>
+            p.name.toLowerCase().includes(query) ||
+            (p.desc && p.desc.toLowerCase().includes(query)) ||
+            sub.label.toLowerCase().includes(query)
+        );
+
+        return {
+          ...sub,
+          pages: matchingPages,
+        };
+      })
+      .filter((sub) => sub.pages.length > 0);
+  }, [resolvedSubmodules, searchQuery, selectedSubmoduleKey]);
+
+  return (
+    <div className="min-h-screen bg-slate-50/60 dark:bg-slate-950">
+      {/* ── Executive ERP Header ── */}
+      <div className="border-b border-slate-200/80 bg-white dark:border-slate-800 dark:bg-slate-900">
+        <div className="mx-auto max-w-[1720px] 2xl:max-w-full px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="min-w-0">
               {eyebrow && (
-                <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-white/60">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">
                   {eyebrow}
                 </p>
               )}
               <div className="flex items-center gap-3">
                 {ModuleIcon && (
-                  <div className="flex-shrink-0 rounded-xl bg-white/15 backdrop-blur-sm p-2.5 shadow-lg ring-1 ring-white/20">
-                    <ModuleIcon className="h-6 w-6 text-white" />
+                  <div className="flex-shrink-0 rounded-xl bg-slate-100 dark:bg-slate-800 p-2.5 text-slate-700 dark:text-slate-200 border border-slate-200/70 dark:border-slate-700">
+                    <ModuleIcon className="h-6 w-6" />
                   </div>
                 )}
                 <div>
-                  <h1 className="text-2xl font-bold text-white leading-tight">{title}</h1>
+                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                    {title}
+                  </h1>
                   {subtitle && (
-                    <p className="mt-0.5 text-sm text-white/70 max-w-2xl">{subtitle}</p>
+                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
+                      {subtitle}
+                    </p>
                   )}
                 </div>
               </div>
@@ -323,16 +464,16 @@ export function UabModuleDashboard({
 
             <button
               onClick={() => setRefreshKey((k) => k + 1)}
-              className="flex-shrink-0 flex items-center gap-1.5 rounded-lg bg-white/15 hover:bg-white/25 px-3 py-2 text-xs font-semibold text-white transition-colors"
+              className="self-start sm:self-auto flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 transition-colors shadow-2xs"
             >
               <RefreshCw className={cn("h-3.5 w-3.5", loadingStats && "animate-spin")} />
               Refresh
             </button>
           </div>
 
-          {/* ── KPI Row ── */}
+          {/* ── KPI Row (Clean & Compact) ── */}
           {displayKpis.length > 0 && (
-            <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
               {displayKpis.map((kpi, i) => (
                 <KpiCard key={i} kpi={kpi} loading={loadingStats} />
               ))}
@@ -340,7 +481,7 @@ export function UabModuleDashboard({
           )}
 
           {statsError && (
-            <div className="mt-4 flex items-center gap-2 rounded-lg bg-red-500/20 px-3 py-2 text-xs text-white">
+            <div className="mt-4 flex items-center gap-2 rounded-lg bg-red-50 text-red-700 border border-red-200 px-3 py-2 text-xs dark:bg-red-950/30 dark:text-red-300 dark:border-red-900">
               <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
               {statsError}
             </div>
@@ -348,46 +489,112 @@ export function UabModuleDashboard({
         </div>
       </div>
 
-      {/* ── Content Body ── */}
-      <div className="mx-auto max-w-[1720px] 2xl:max-w-full px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* ── Quick Links Grid ── */}
-          <div className="lg:col-span-2">
-            {linksTitle && (
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-                  <Layers className="h-4 w-4 text-indigo-500" />
-                  {linksTitle}
-                </h2>
-                <span className="text-xs text-slate-400">{links.length} modules</span>
-              </div>
-            )}
-            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-              {links.map((link) => (
-                <QuickLinkCard key={link.href} link={link} />
-              ))}
-            </div>
+      {/* ── Content Body: Clean Box-Wise Submodule Directory ── */}
+      <div className="mx-auto max-w-[1720px] 2xl:max-w-full px-4 sm:px-6 lg:px-8 py-6 space-y-5">
+        {/* Search & Filter Bar */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search pages..."
+              className="w-full rounded-lg border border-slate-200 bg-white py-1.5 pl-8 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs dark:border-slate-800 dark:bg-slate-900 dark:text-white"
+            />
           </div>
 
-          {/* ── Right Panel: Activity + Custom Content ── */}
-          <div className="space-y-4">
-            {/* Custom child content (stats, charts, etc.) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+            <button
+              type="button"
+              onClick={() => setSelectedSubmoduleKey(null)}
+              className={cn(
+                "rounded-md px-2.5 py-1 text-xs font-semibold transition shrink-0",
+                selectedSubmoduleKey === null
+                  ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-2xs"
+                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800"
+              )}
+            >
+              All
+            </button>
+            {resolvedSubmodules.map((sub) => {
+              const isSelected = selectedSubmoduleKey === sub.key;
+              return (
+                <button
+                  key={sub.key}
+                  type="button"
+                  onClick={() => setSelectedSubmoduleKey(isSelected ? null : sub.key)}
+                  className={cn(
+                    "rounded-md px-2.5 py-1 text-xs font-semibold transition shrink-0",
+                    isSelected
+                      ? "bg-blue-600 text-white shadow-2xs"
+                      : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800"
+                  )}
+                >
+                  {sub.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── Box-Wise Submodule Cards Grid ── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredSubmodules.map((submodule) => (
+            <div
+              key={submodule.key}
+              className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs transition-all hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900"
+            >
+              {/* Submodule Box Header */}
+              <div className="flex items-center gap-2.5 pb-2.5 border-b border-slate-100 dark:border-slate-800">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-slate-100 font-mono text-[11px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                  {submodule.sequence < 10 ? `0${submodule.sequence}` : submodule.sequence}
+                </span>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 truncate">
+                  {submodule.label}
+                </h3>
+              </div>
+
+              {/* Submodule Pages in Clean Sequence */}
+              <div className="mt-2.5 space-y-0.5">
+                {submodule.pages.map((page) => (
+                  <Link
+                    key={page.href}
+                    href={page.href}
+                    className="group/page flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-xs text-slate-600 hover:bg-slate-50 hover:text-blue-600 dark:text-slate-300 dark:hover:bg-slate-800/60 dark:hover:text-blue-400 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="flex h-4 w-4 shrink-0 items-center justify-center font-mono text-[10px] text-slate-400 group-hover/page:text-blue-600">
+                        {page.sequence}
+                      </span>
+                      <span className="truncate font-medium">{page.name}</span>
+                    </div>
+                    <ArrowRight className="h-3 w-3 shrink-0 text-slate-300 opacity-0 group-hover/page:opacity-100 group-hover/page:translate-x-0.5 transition-all text-blue-600" />
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Supplementary Content / Activity Feed ── */}
+        {(activities.length > 0 || children) && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
             {children && (
-              <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
+              <div className="lg:col-span-2 rounded-xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                 {children}
               </div>
             )}
 
-            {/* Recent Activity Feed */}
             {activities.length > 0 && (
-              <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
+              <div className={cn("rounded-xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900", !children && "lg:col-span-3")}>
                 <h3 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
-                  <BarChart3 className="h-3.5 w-3.5 text-indigo-400" />
+                  <BarChart3 className="h-3.5 w-3.5 text-indigo-500" />
                   Recent Activity
                 </h3>
-                <div className="space-y-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {activities.slice(0, 6).map((act) => (
-                    <div key={act.id} className="flex items-start gap-2.5">
+                    <div key={act.id} className="flex items-start gap-2.5 p-2 rounded-lg bg-slate-50 dark:bg-slate-850">
                       <div
                         className={cn(
                           "mt-0.5 h-2 w-2 flex-shrink-0 rounded-full",
@@ -400,8 +607,8 @@ export function UabModuleDashboard({
                             : "bg-indigo-400"
                         )}
                       />
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold text-slate-700 truncate">{act.title}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">{act.title}</p>
                         {act.description && (
                           <p className="text-xs text-slate-500 truncate">{act.description}</p>
                         )}
@@ -419,16 +626,8 @@ export function UabModuleDashboard({
                 </div>
               </div>
             )}
-
-            {/* Empty activity state */}
-            {activityEndpoint && activities.length === 0 && !loadingStats && (
-              <div className="rounded-xl border border-dashed border-slate-200 bg-white/50 p-6 text-center">
-                <BarChart3 className="mx-auto h-8 w-8 text-slate-300 mb-2" />
-                <p className="text-xs text-slate-400">No recent activity</p>
-              </div>
-            )}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

@@ -31,6 +31,7 @@ import { UniversalBulkImportModal } from "@/components/workspace/UniversalBulkIm
 import { UniversalExportModal } from "@/components/workspace/UniversalExportModal";
 import { PageCustomizationModal } from "./PageCustomizationModal";
 import { DynamicForm } from "./DynamicForm";
+import DynamicFieldsSection from "@/components/DynamicFieldsSection";
 import { renderDynamicTableCell, cleanFieldLabel } from "./DynamicFieldRegistry";
 import { DynamicRecordTimeline } from "./engine/DynamicRecordTimeline";
 import { DynamicKanbanView } from "./engine/DynamicKanbanView";
@@ -1443,6 +1444,17 @@ export function DynamicPage({
                 }
               }}
             />
+
+            {isEdit && editingRecord?.id && schema.entityName && schema.entityName !== "EntityFieldDefinition" && (
+              <div className="px-6 pb-6">
+                <DynamicFieldsSection
+                  entityName={schema.entityName}
+                  recordId={editingRecord.id}
+                  editable={true}
+                  compact={false}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

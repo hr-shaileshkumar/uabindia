@@ -149,7 +149,9 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                 success = true,
                 data = sorted,
                 items = sorted,
-                total = sorted.Count
+                records = sorted,
+                total = sorted.Count,
+                totalCount = sorted.Count
             });
         }
 

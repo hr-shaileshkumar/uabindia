@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -293,95 +293,97 @@ export function ModuleHubPage({ moduleKey, title, subtitle }: ModuleHubPageProps
         </section>
       ) : (
         <div className="space-y-5">
-          <section className={erpSectionClassName}>
-            <p className={erpSectionEyebrowClassName}>Work areas</p>
-            <h2 className={erpSectionTitleClassName}>Browse by group</h2>
-            <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+          {/* Work Areas Filter Bar */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+              <input
+                value={pageQuery}
+                onChange={(event) => setPageQuery(event.target.value)}
+                placeholder="Search pages..."
+                className="w-full rounded-lg border border-slate-200 bg-white py-1.5 pl-8 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs dark:border-slate-800 dark:bg-slate-900 dark:text-white"
+              />
+            </div>
+
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
               <button
                 type="button"
                 onClick={() => setSelectedGroupLabel(null)}
-                className={`rounded-xl border px-3.5 py-3 text-left transition ${
+                className={`rounded-md px-2.5 py-1 text-xs font-semibold transition shrink-0 ${
                   visibleGroupLabel === null
-                    ? "border-slate-900 bg-slate-50"
-                    : "border-slate-200 bg-white hover:border-slate-300"
+                    ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-2xs"
+                    : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800"
                 }`}
               >
-                <p className="text-sm font-semibold text-slate-900">All pages</p>
-                <p className="mt-0.5 text-xs text-slate-500">{flattenedPages.length} pages</p>
+                All
               </button>
               {displayGroups.map((group) => (
                 <button
                   key={group.label}
                   type="button"
                   onClick={() => setSelectedGroupLabel(group.label)}
-                  className={`rounded-xl border px-3.5 py-3 text-left transition ${
+                  className={`rounded-md px-2.5 py-1 text-xs font-semibold transition shrink-0 ${
                     visibleGroupLabel === group.label
-                      ? "border-slate-900 bg-slate-50"
-                      : "border-slate-200 bg-white hover:border-slate-300"
+                      ? "bg-blue-600 text-white shadow-2xs"
+                      : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800"
                   }`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <span className={erpActionCardIconClassName}>
-                      <ModuleIcon
-                        name={group.items[0]?.icon || workspaceModule?.icon || moduleMeta?.icon || "layers"}
-                        className="h-4 w-4"
-                      />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-slate-900">{group.label}</p>
-                      <p className="mt-0.5 truncate text-xs text-slate-500">{group.items.length} pages</p>
-                    </div>
-                  </div>
+                  {group.label}
                 </button>
               ))}
             </div>
-          </section>
+          </div>
 
-          <section className={erpSectionClassName}>
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <p className={erpSectionEyebrowClassName}>Pages</p>
-                <h2 className={erpSectionTitleClassName}>
-                  {visibleGroupLabel ?? "All work areas"}
-                </h2>
-              </div>
-              <label className="relative w-full sm:w-64">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  value={pageQuery}
-                  onChange={(event) => setPageQuery(event.target.value)}
-                  placeholder="Search pages…"
-                  className={`${erpFormInputClassName} pl-9`}
-                />
-              </label>
-            </div>
+          {/* Submodule Boxes Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {displayGroups
+              .filter((grp) => !visibleGroupLabel || grp.label === visibleGroupLabel)
+              .map((group, groupIdx) => {
+                const matchingItems = pageQuery.trim()
+                  ? group.items.filter((it) =>
+                      it.name.toLowerCase().includes(pageQuery.trim().toLowerCase())
+                    )
+                  : group.items;
 
-            {filteredPages.length === 0 ? (
-              <p className="mt-4 text-sm text-slate-500">No pages match your search.</p>
-            ) : (
-              <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredPages.map((item) => (
-                  <Link key={item.path} href={item.path} className={erpActionCardClassName}>
-                    <div className="flex items-start gap-3">
-                      <span className={erpActionCardIconClassName}>
-                        <ModuleIcon
-                          name={item.icon || workspaceModule?.icon || moduleMeta?.icon || "layers"}
-                          className="h-4 w-4"
-                        />
+                if (matchingItems.length === 0) return null;
+
+                return (
+                  <div
+                    key={group.label}
+                    className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs transition-all hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900"
+                  >
+                    {/* Submodule Box Header */}
+                    <div className="flex items-center gap-2.5 pb-2.5 border-b border-slate-100 dark:border-slate-800">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-slate-100 font-mono text-[11px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                        {groupIdx + 1 < 10 ? `0${groupIdx + 1}` : groupIdx + 1}
                       </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className={erpActionCardTitleClassName}>{item.name}</p>
-                          <span className={pageStatusClass(item.status)}>{item.status}</span>
-                        </div>
-                        <p className="mt-0.5 text-xs text-slate-500">{item.groupLabel}</p>
-                      </div>
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 truncate">
+                        {group.label}
+                      </h3>
                     </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </section>
+
+                    {/* Sequential Pages List */}
+                    <div className="mt-2.5 space-y-0.5">
+                      {matchingItems.map((item, itemIdx) => (
+                        <Link
+                          key={item.path}
+                          href={item.path}
+                          className="group/page flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-xs text-slate-600 hover:bg-slate-50 hover:text-blue-600 dark:text-slate-300 dark:hover:bg-slate-800/60 dark:hover:text-blue-400 transition-colors"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="flex h-4 w-4 shrink-0 items-center justify-center font-mono text-[10px] text-slate-400 group-hover/page:text-blue-600">
+                              {itemIdx + 1}
+                            </span>
+                            <span className="truncate font-medium">{item.name}</span>
+                          </div>
+                          <span className="text-slate-300 opacity-0 group-hover/page:opacity-100 group-hover/page:translate-x-0.5 transition-all text-xs text-blue-600">&rarr;</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
         </div>
       )}
     </StandardPageLayout>

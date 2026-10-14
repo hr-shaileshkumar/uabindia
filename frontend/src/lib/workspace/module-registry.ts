@@ -43,6 +43,7 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: "building",
     shellOrder: 30,
     tier: "company",
+    hiddenFromSidebar: true,
   },
 
   {

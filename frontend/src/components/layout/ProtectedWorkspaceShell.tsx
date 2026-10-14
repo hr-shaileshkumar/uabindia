@@ -55,7 +55,7 @@ function ProtectedShellLoading() {
 
       <div className="flex flex-1 min-h-0">
         {/* Sidebar Skeleton */}
-        <aside className="hidden w-[var(--erp-sidebar-width,260px)] shrink-0 border-r border-slate-200 bg-white lg:flex lg:flex-col dark:border-slate-800 dark:bg-slate-900" aria-hidden="true">
+        <aside className="hidden w-[var(--erp-sidebar-width,272px)] shrink-0 border-r border-slate-200 bg-white lg:flex lg:flex-col dark:border-slate-800 dark:bg-slate-900" aria-hidden="true">
           <div className="h-[var(--erp-topbar-height,56px)] border-b border-slate-200 flex items-center px-4 gap-3 dark:border-slate-800">
             <div className="h-7 w-7 animate-pulse rounded-lg bg-slate-200 dark:bg-slate-800" />
             <div className="h-4 w-28 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />

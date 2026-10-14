@@ -199,7 +199,16 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                     })
                     .ToListAsync();
 
-                var response = new { companies = data, total, page, limit };
+                var response = new
+                {
+                    items = data,
+                    records = data,
+                    companies = data,
+                    total,
+                    totalCount = total,
+                    page,
+                    limit
+                };
                 
                 // Cache for 10 minutes
                 await _cache.SetAsync(cacheKey, response, TimeSpan.FromMinutes(10));
@@ -210,7 +219,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             {
                 if (IsTenantSchemaUnavailable(ex))
                 {
-                    return Ok(new { companies = Array.Empty<CompanyDto>(), total = 0, page, limit, warning = "Tenant schema is still initializing." });
+                    return Ok(new { items = Array.Empty<CompanyDto>(), records = Array.Empty<CompanyDto>(), companies = Array.Empty<CompanyDto>(), total = 0, totalCount = 0, page, limit, warning = "Tenant schema is still initializing." });
                 }
 
                 Console.WriteLine($"❌ Error fetching companies: {ex.Message}");

@@ -16,6 +16,7 @@ import {
   ShieldAlert,
   Clock,
   Laptop,
+  Download,
 } from "lucide-react";
 import apiClient from "@/services/apiClient";
 import { AuditDiffViewer } from "./AuditDiffViewer";
@@ -91,6 +92,13 @@ export function AuditLogsManager() {
     setTimeout(() => setCopiedField(null), 2000);
   };
 
+  const handleExport = (format: "csv" | "json") => {
+    const params = new URLSearchParams({ format, limit: "5000" });
+    if (searchEntity.trim()) params.set("entity", searchEntity.trim());
+    if (actionFilter !== "ALL") params.set("action", actionFilter);
+    window.open(`/api/v1/administration/audit-logs/export?${params.toString()}`, "_blank");
+  };
+
   const totalPages = Math.ceil(total / limit) || 1;
 
   const getActionBadgeColor = (action: string) => {
@@ -129,9 +137,17 @@ export function AuditLogsManager() {
 
         <div className="flex items-center gap-2">
           <button
+            onClick={() => handleExport("csv")}
+            className="inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 shadow-xs transition dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+            title="Download audit trail as CSV"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export CSV
+          </button>
+          <button
             onClick={() => void loadLogs()}
             disabled={loading}
-            className="inline-flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 shadow-sm transition dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 shadow-xs transition dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 cursor-pointer"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
             Refresh

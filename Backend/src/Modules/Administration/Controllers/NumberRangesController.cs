@@ -20,6 +20,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
     {
         private readonly ApplicationDbContext _db;
         private readonly ITenantAccessor _tenantAccessor;
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, System.Threading.SemaphoreSlim> _sequenceLocks = new();
 
         public NumberRangesController(ApplicationDbContext db, ITenantAccessor tenantAccessor)
         {
@@ -43,6 +44,68 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             ("Asset", "AST", 5, "Fixed Org Capital Assets"),
             ("Payment", "PAY", 5, "Treasury Payment Vouchers")
         };
+
+        private static string ResolveDefaultPrefix(string entityName)
+        {
+            return entityName.ToLowerInvariant() switch
+            {
+                "invoice" or "salesinvoice" => "INV",
+                "purchaseorder" or "po" => "PO",
+                "salesorder" or "so" => "SO",
+                "employee" or "emp" => "EMP",
+                "journalentry" or "jv" or "journal" => "JV",
+                "goodsreceipt" or "grn" => "GRN",
+                "customer" or "cust" => "CUST",
+                "vendor" or "vend" or "supplier" => "VEND",
+                "quotation" or "qtn" => "QTN",
+                "asset" or "ast" => "AST",
+                "payment" or "pay" => "PAY",
+                _ => entityName.Length > 4 ? entityName.Substring(0, 4).ToUpperInvariant() : entityName.ToUpperInvariant()
+            };
+        }
+
+        private static string FormatSequence(
+            string? pattern,
+            string prefix,
+            long counter,
+            int padding,
+            string? companyTag,
+            string? branchCode,
+            string? fiscalYear)
+        {
+            var now = DateTime.UtcNow;
+            var fy = !string.IsNullOrWhiteSpace(fiscalYear)
+                ? fiscalYear
+                : (now.Month >= 4
+                    ? $"{now.Year % 100}-{(now.Year + 1) % 100}"
+                    : $"{(now.Year - 1) % 100}-{now.Year % 100}");
+
+            var paddedSeq = counter.ToString($"D{Math.Max(padding, 3)}");
+
+            if (string.IsNullOrWhiteSpace(pattern))
+            {
+                if (!string.IsNullOrWhiteSpace(companyTag) && companyTag != "Global (All Companies)" && companyTag != "Global")
+                {
+                    return $"{companyTag}-{prefix}-{paddedSeq}";
+                }
+                return $"{prefix}-{paddedSeq}";
+            }
+
+            var result = pattern
+                .Replace("{PREFIX}", prefix, StringComparison.OrdinalIgnoreCase)
+                .Replace("{SEQ}", paddedSeq, StringComparison.OrdinalIgnoreCase)
+                .Replace("{NUM}", paddedSeq, StringComparison.OrdinalIgnoreCase)
+                .Replace("{FY}", fy, StringComparison.OrdinalIgnoreCase)
+                .Replace("{YYYY}", now.Year.ToString(), StringComparison.OrdinalIgnoreCase)
+                .Replace("{YEAR}", now.Year.ToString(), StringComparison.OrdinalIgnoreCase)
+                .Replace("{YY}", (now.Year % 100).ToString("D2"), StringComparison.OrdinalIgnoreCase)
+                .Replace("{MM}", now.Month.ToString("D2"), StringComparison.OrdinalIgnoreCase)
+                .Replace("{COMPANY}", (!string.IsNullOrWhiteSpace(companyTag) && companyTag != "Global (All Companies)" && companyTag != "Global") ? companyTag : string.Empty, StringComparison.OrdinalIgnoreCase)
+                .Replace("{BRANCH}", branchCode ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+
+            result = System.Text.RegularExpressions.Regex.Replace(result, "[-_/.]{2,}", m => m.Value[0].ToString()).Trim('-', '_', '/');
+            return result;
+        }
 
         [HttpGet]
         public async Task<IActionResult> List([FromQuery] Guid? companyId = null, [FromQuery] Guid? projectId = null)
@@ -114,10 +177,14 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                     companyTag = cName.Length > 4 ? cName.Substring(0, 4).ToUpperInvariant() : cName.ToUpperInvariant();
                 }
 
-                var nextNum = (s.CurrentValue + 1).ToString($"D{Math.Max(s.Padding, 3)}");
-                var preview = !string.IsNullOrEmpty(companyTag)
-                    ? $"{companyTag}-{s.Prefix ?? "DOC"}-{nextNum}"
-                    : $"{s.Prefix ?? "DOC"}-{nextNum}";
+                var preview = FormatSequence(
+                    s.NamingPattern,
+                    s.Prefix ?? "DOC",
+                    s.CurrentValue + 1,
+                    s.Padding,
+                    companyTag,
+                    branchCode: null,
+                    fiscalYear: s.FiscalYear);
 
                 return new
                 {
@@ -134,9 +201,152 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                     updatedAt = s.UpdatedAt,
                     preview
                 };
-            });
+            }).ToList();
 
-            return Ok(new { sequences = data, total = sequences.Count });
+            return Ok(new
+            {
+                items = data,
+                records = data,
+                sequences = data,
+                total = sequences.Count,
+                totalCount = sequences.Count
+            });
+        }
+
+        [HttpGet("preview/{entityName}")]
+        public async Task<IActionResult> Preview(
+            string entityName,
+            [FromQuery] Guid? companyId = null,
+            [FromQuery] string? branchCode = null,
+            [FromQuery] string? fiscalYear = null)
+        {
+            if (string.IsNullOrWhiteSpace(entityName))
+                return BadRequest(new { message = "EntityName is required." });
+
+            var tenantId = TenantId;
+            var seq = await _db.BusinessIdSequences
+                .AsNoTracking()
+                .Where(s => s.TenantId == tenantId && s.EntityName.ToLower() == entityName.Trim().ToLower())
+                .OrderBy(s => s.CompanyId == companyId ? 0 : (s.CompanyId == null ? 1 : 2))
+                .FirstOrDefaultAsync();
+
+            string prefix = seq?.Prefix ?? ResolveDefaultPrefix(entityName);
+            int padding = seq?.Padding ?? 5;
+            long nextVal = (seq?.CurrentValue ?? 0) + 1;
+            string? pattern = seq?.NamingPattern;
+            string? effectiveFy = fiscalYear ?? seq?.FiscalYear;
+
+            string companyTag = string.Empty;
+            var targetCompanyId = companyId ?? seq?.CompanyId;
+            if (targetCompanyId.HasValue)
+            {
+                var company = await _db.Companies.AsNoTracking().FirstOrDefaultAsync(c => c.Id == targetCompanyId.Value && c.TenantId == tenantId);
+                if (company != null)
+                {
+                    var cName = string.IsNullOrWhiteSpace(company.Code) ? company.Name : company.Code;
+                    companyTag = cName.Length > 4 ? cName.Substring(0, 4).ToUpperInvariant() : cName.ToUpperInvariant();
+                }
+            }
+
+            var preview = FormatSequence(pattern, prefix, nextVal, padding, companyTag, branchCode, effectiveFy);
+
+            return Ok(new
+            {
+                preview,
+                entityName = seq?.EntityName ?? entityName,
+                currentValue = seq?.CurrentValue ?? 0,
+                nextValue = nextVal,
+                prefix,
+                padding,
+                namingPattern = pattern,
+                fiscalYear = effectiveFy,
+                companyTag = string.IsNullOrEmpty(companyTag) ? "Global" : companyTag
+            });
+        }
+
+        [HttpPost("next/{entityName}")]
+        public async Task<IActionResult> Next(
+            string entityName,
+            [FromQuery] Guid? companyId = null,
+            [FromQuery] string? branchCode = null,
+            [FromQuery] string? fiscalYear = null)
+        {
+            if (string.IsNullOrWhiteSpace(entityName))
+                return BadRequest(new { message = "EntityName is required." });
+
+            var tenantId = TenantId;
+            var trimmedEntity = entityName.Trim();
+            var lockKey = $"{tenantId}:{trimmedEntity.ToLowerInvariant()}:{companyId?.ToString() ?? "global"}";
+            var semaphore = _sequenceLocks.GetOrAdd(lockKey, _ => new System.Threading.SemaphoreSlim(1, 1));
+
+            await semaphore.WaitAsync();
+            try
+            {
+                var seq = await _db.BusinessIdSequences
+                    .Where(s => s.TenantId == tenantId && s.EntityName.ToLower() == trimmedEntity.ToLower())
+                    .OrderBy(s => s.CompanyId == companyId ? 0 : (s.CompanyId == null ? 1 : 2))
+                    .FirstOrDefaultAsync();
+
+                if (seq == null)
+                {
+                    seq = new BusinessIdSequence
+                    {
+                        Id = Guid.NewGuid(),
+                        TenantId = tenantId,
+                        CompanyId = companyId,
+                        EntityName = trimmedEntity,
+                        Prefix = ResolveDefaultPrefix(trimmedEntity),
+                        Padding = 5,
+                        CurrentValue = 0,
+                        FiscalYear = fiscalYear,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    _db.BusinessIdSequences.Add(seq);
+                }
+
+                seq.CurrentValue += 1;
+                seq.UpdatedAt = DateTime.UtcNow;
+                if (!string.IsNullOrWhiteSpace(fiscalYear)) seq.FiscalYear = fiscalYear;
+
+                await _db.SaveChangesAsync();
+
+                string companyTag = string.Empty;
+                var targetCompanyId = companyId ?? seq.CompanyId;
+                if (targetCompanyId.HasValue)
+                {
+                    var company = await _db.Companies.AsNoTracking().FirstOrDefaultAsync(c => c.Id == targetCompanyId.Value && c.TenantId == tenantId);
+                    if (company != null)
+                    {
+                        var cName = string.IsNullOrWhiteSpace(company.Code) ? company.Name : company.Code;
+                        companyTag = cName.Length > 4 ? cName.Substring(0, 4).ToUpperInvariant() : cName.ToUpperInvariant();
+                    }
+                }
+
+                var sequenceNumber = FormatSequence(
+                    seq.NamingPattern,
+                    seq.Prefix ?? "DOC",
+                    seq.CurrentValue,
+                    seq.Padding,
+                    companyTag,
+                    branchCode,
+                    seq.FiscalYear);
+
+                return Ok(new
+                {
+                    sequenceNumber,
+                    entityName = seq.EntityName,
+                    currentValue = seq.CurrentValue,
+                    prefix = seq.Prefix,
+                    padding = seq.Padding,
+                    namingPattern = seq.NamingPattern,
+                    fiscalYear = seq.FiscalYear,
+                    companyId = seq.CompanyId
+                });
+            }
+            finally
+            {
+                semaphore.Release();
+            }
         }
 
         [HttpPost]

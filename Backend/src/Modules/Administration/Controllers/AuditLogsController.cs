@@ -89,7 +89,68 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(new { logs = data, total, page, limit });
+            return Ok(new
+            {
+                items = data,
+                records = data,
+                logs = data,
+                total,
+                totalCount = total,
+                page,
+                limit
+            });
+        }
+
+        [HttpGet("export")]
+        public async Task<IActionResult> Export(
+            [FromQuery] string format = "csv",
+            [FromQuery] string? entity = null,
+            [FromQuery] string? action = null,
+            [FromQuery] int limit = 1000)
+        {
+            var query = IsSuperAdmin()
+                ? _db.AuditLogs.AsNoTracking().IgnoreQueryFilters().AsQueryable()
+                : _db.AuditLogs.AsNoTracking().AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(entity))
+                query = query.Where(a => a.EntityName != null && EF.Functions.Like(a.EntityName, $"%{entity}%"));
+
+            if (!string.IsNullOrWhiteSpace(action) && !action.Equals("ALL", StringComparison.OrdinalIgnoreCase))
+                query = query.Where(a => a.Action != null && EF.Functions.Like(a.Action, $"%{action}%"));
+
+            var records = await query
+                .OrderByDescending(a => a.PerformedAt)
+                .Take(Math.Clamp(limit, 1, 5000))
+                .Select(a => new
+                {
+                    a.Id,
+                    PerformedAt = a.PerformedAt.ToString("yyyy-MM-dd HH:mm:ss"),
+                    Action = a.Action ?? string.Empty,
+                    EntityName = a.EntityName ?? string.Empty,
+                    EntityId = a.EntityId.HasValue ? a.EntityId.Value.ToString() : string.Empty,
+                    PerformedBy = a.PerformedBy.HasValue ? a.PerformedBy.Value.ToString() : string.Empty,
+                    Ip = a.Ip ?? string.Empty,
+                    OldValue = a.OldValue ?? string.Empty,
+                    NewValue = a.NewValue ?? string.Empty
+                })
+                .ToListAsync();
+
+            if (format.Equals("json", StringComparison.OrdinalIgnoreCase))
+            {
+                return Ok(records);
+            }
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("Id,Timestamp,Action,Entity,EntityId,ActorId,IpAddress,OldValue,NewValue");
+            foreach (var r in records)
+            {
+                static string Esc(string s) => $"\"{s.Replace("\"", "\"\"").Replace("\r", " ").Replace("\n", " ")}\"";
+                sb.AppendLine($"{r.Id},{Esc(r.PerformedAt)},{Esc(r.Action)},{Esc(r.EntityName)},{r.EntityId},{r.PerformedBy},{Esc(r.Ip)},{Esc(r.OldValue)},{Esc(r.NewValue)}");
+            }
+
+            var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+            var filename = $"audit-trail-export-{DateTime.UtcNow:yyyyMMddHHmmss}.csv";
+            return File(bytes, "text/csv", filename);
         }
 
         [HttpGet("entity/{entityName}/{entityId:guid}")]

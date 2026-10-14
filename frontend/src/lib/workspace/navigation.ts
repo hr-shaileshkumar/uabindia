@@ -72,6 +72,10 @@ const SIDEBAR_CHROME_EXCLUDED_KEYS = new Set([
   "tours",
   "licensing",
   "operations",
+  "company",
+  "security",
+  "settings",
+  "integrations",
 ]);
 
 export type SidebarNavSection = {
@@ -86,7 +90,7 @@ const SIDEBAR_SECTION_DEFS: Array<{ id: string; label: string; keys: readonly st
   { id: "commerce", label: "Supply Chain & Sales", keys: ["sales", "crm", "procurement", "inventory", "manufacturing"] },
   { id: "finance", label: "Finance & Accounts", keys: ["finance", "reports"] },
   { id: "ops", label: "Operations & Delivery", keys: ["projects", "helpdesk", "communication", "documents", "ai"] },
-  { id: "administration", label: "Administration", keys: ["platform", "company", "superadmin", "security", "settings", "integrations"] },
+  { id: "administration", label: "Administration", keys: ["platform", "superadmin"] },
 ];
 
 export function groupWorkspaceModulesForSidebar(modules: WorkspaceModule[]): SidebarNavSection[] {
