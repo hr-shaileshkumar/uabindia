@@ -102,32 +102,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // ── Universal Single-Domain URL Lock: Intercept Direct Subpage Navigations ──
-  // If user opens a new tab or enters e.g. http://localhost:3000/contact or http://localhost:3000/login:
-  // Redirect immediately to root "/" with active_path cookie, so the address bar NEVER exposes subpaths!
-  const isDirectPageNavigation =
-    pathname !== "/" &&
-    !pathname.startsWith("/api") &&
-    !pathname.startsWith("/_next") &&
-    !pathname.includes(".") &&
-    !request.headers.get("rsc") &&
-    !request.headers.get("next-router-prefetch") &&
-    !request.headers.get("next-url");
-
-  if (isDirectPageNavigation) {
-    let targetPath = pathname + request.nextUrl.search;
-    if (matchesPrefix(pathname, PROTECTED_PREFIXES) && !hasAccessToken) {
-      targetPath = `/login?next=${encodeURIComponent(targetPath)}`;
-    }
-    const res = NextResponse.redirect(new URL("/", request.url));
-    res.cookies.set("active_path", targetPath, {
-      path: "/",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7,
-    });
-    return res;
-  }
-
   // Clean redundant ?audience=platform query parameters from public URLs on platform/localhost
   if (!hasTenantScopedHost(hostname) && request.nextUrl.searchParams.get("audience") === "platform") {
     const cleanUrl = new URL(request.url);
