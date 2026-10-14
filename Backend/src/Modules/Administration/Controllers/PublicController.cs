@@ -374,6 +374,33 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             }
         }
 
+        [HttpGet("modules")]
+        public async Task<IActionResult> GetPublicModules()
+        {
+            try
+            {
+                var modules = await _db.Modules.AsNoTracking()
+                    .Where(m => m.IsEnabled && m.IsActive)
+                    .OrderBy(m => m.SortOrder)
+                    .Select(m => new
+                    {
+                        slug = m.ModuleKey,
+                        title = !string.IsNullOrEmpty(m.DisplayName) ? m.DisplayName : m.Name,
+                        category = m.ModuleType == "business" ? "Operations" : m.ModuleType,
+                        icon = m.Icon ?? "Boxes",
+                        summary = m.Description ?? string.Empty
+                    })
+                    .ToListAsync();
+
+                return Ok(modules);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to load public modules from database.");
+                return Ok(Array.Empty<object>());
+            }
+        }
+
         [HttpPost("contact")]
         public async Task<IActionResult> SubmitContact(
             [FromBody] PublicContactRequestDto dto,

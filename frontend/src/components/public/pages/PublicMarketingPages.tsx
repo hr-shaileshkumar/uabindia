@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRight, Check } from "lucide-react";
 import {
@@ -35,8 +35,10 @@ import {
   supportLanes,
   type MarketingIndustry,
   type MarketingModule,
+  type PricingPlan,
 } from "@/lib/public-marketing";
 import { withPublicAudience, type PublicAudience } from "@/lib/public-audience";
+import { publicApi } from "@/services/publicApi";
 import { cn } from "@/lib/utils";
 
 type HeroContent = {
@@ -114,12 +116,44 @@ function Checklist({ items }: { items: string[] }) {
 
 export function ProductsLandingPage({ audience }: { audience: PublicAudience }) {
   const shell = usePublicPageData("features", audience);
-  const content = shell.parseContent<HeroContent>({
+  const [dbModules, setDbModules] = useState<MarketingModule[]>([]);
+
+  useEffect(() => {
+    publicApi
+      .getPublicModules()
+      .then((res) => {
+        if (Array.isArray(res?.data) && res.data.length > 0) {
+          const mapped: MarketingModule[] = res.data.map((m) => ({
+            slug: m.slug,
+            title: m.title,
+            category: (m.category === "People" || m.category === "Finance" || m.category === "Operations" || m.category === "Engagement") ? m.category : "Operations",
+            icon: m.icon || "Boxes",
+            summary: m.summary || `${m.title} enterprise operations module.`,
+            description: m.summary || `${m.title} core module for enterprise management.`,
+            outcomes: [],
+            highlights: [],
+            idealFor: [],
+            metrics: [],
+          }));
+          setDbModules(mapped);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const content = shell.parseContent<HeroContent & { modules?: MarketingModule[] }>({
     eyebrow: "Products",
     title: "Modules for people, finance, and operations",
     subtitle:
       "Start with HR and payroll, then expand into finance, procurement, inventory, CRM, and reporting — one shared platform.",
   });
+
+  const displayedModules =
+    content.modules && content.modules.length > 0
+      ? content.modules
+      : dbModules.length > 0
+      ? dbModules
+      : marketingModules;
 
   return (
     <PageShell
@@ -139,7 +173,7 @@ export function ProductsLandingPage({ audience }: { audience: PublicAudience }) 
             <PublicPageHero eyebrow={content.eyebrow} title={content.title} subtitle={content.subtitle} />
           </MotionReveal>
           <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {marketingModules.map((module, index) => (
+            {displayedModules.map((module, index) => (
               <MotionReveal key={module.slug} delay={index * 0.02}>
                 <ModuleCard module={module} />
               </MotionReveal>
@@ -260,12 +294,30 @@ export function ProductDetailPageClient({
 
 export function IndustriesLandingPage({ audience }: { audience: PublicAudience }) {
   const shell = usePublicPageData("industries", audience);
-  const content = shell.parseContent<HeroContent>({
+  const content = shell.parseContent<HeroContent & { industries?: MarketingIndustry[] }>({
     eyebrow: "Industries",
     title: "One ERP core, configured by sector",
     subtitle:
       "Healthcare, manufacturing, retail, logistics, education, and services — same product foundation, workflow fit for each industry.",
   });
+
+  const dynamicIndustries = (shell.siteData?.industryCoverage ?? []).map((item) => ({
+    slug: item.name.toLowerCase().replace(/\s+/g, "-"),
+    title: item.name,
+    eyebrow: "Sector",
+    summary: item.sector || `${item.name} operational workflows`,
+    description: `Enterprise ERP solutions for ${item.name} organizations.`,
+    challenges: [],
+    recommendedModules: [],
+    results: [],
+  }));
+
+  const displayedIndustries =
+    content.industries && content.industries.length > 0
+      ? content.industries
+      : dynamicIndustries.length > 0
+      ? dynamicIndustries
+      : marketingIndustries;
 
   return (
     <PageShell
@@ -285,7 +337,7 @@ export function IndustriesLandingPage({ audience }: { audience: PublicAudience }
             <PublicPageHero eyebrow={content.eyebrow} title={content.title} subtitle={content.subtitle} />
           </MotionReveal>
           <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {marketingIndustries.map((industry, index) => (
+            {displayedIndustries.map((industry, index) => (
               <MotionReveal key={industry.slug} delay={index * 0.02}>
                 <IndustryTile industry={industry} />
               </MotionReveal>
@@ -403,12 +455,14 @@ export function IndustryDetailPageClient({
 
 export function PricingLandingPage({ audience }: { audience: PublicAudience }) {
   const shell = usePublicPageData("pricing", audience);
-  const content = shell.parseContent<HeroContent>({
+  const content = shell.parseContent<HeroContent & { plans?: PricingPlan[] }>({
     eyebrow: "Pricing",
     title: "Plans that follow rollout scope",
     subtitle:
       "Every tier includes the platform foundation. Commercial terms track business size, module scope, and implementation depth.",
   });
+
+  const displayedPlans = content.plans && content.plans.length > 0 ? content.plans : pricingPlans;
 
   return (
     <PageShell
@@ -428,7 +482,7 @@ export function PricingLandingPage({ audience }: { audience: PublicAudience }) {
             <PublicPageHero eyebrow={content.eyebrow} title={content.title} subtitle={content.subtitle} />
           </MotionReveal>
           <MotionReveal delay={0.04} className="mt-8">
-            <PricingGrid plans={pricingPlans} />
+            <PricingGrid plans={displayedPlans} />
           </MotionReveal>
         </div>
       </section>

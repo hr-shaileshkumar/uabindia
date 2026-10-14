@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Check } from "lucide-react";
 import {
@@ -24,8 +25,10 @@ import {
   marketingModules,
   publicSiteUrl,
   resources,
+  type MarketingModule,
 } from "@/lib/public-marketing";
 import { withPublicAudience } from "@/lib/public-audience";
+import { publicApi } from "@/services/publicApi";
 import { cn } from "@/lib/utils";
 
 type HomePageContent = {
@@ -49,6 +52,31 @@ export default function PlatformHomePage() {
     parseContent,
   } = usePlatformPublicPage("platform-home");
 
+  const [dbModules, setDbModules] = useState<MarketingModule[]>([]);
+
+  useEffect(() => {
+    publicApi
+      .getPublicModules()
+      .then((res) => {
+        if (Array.isArray(res?.data) && res.data.length > 0) {
+          const mapped: MarketingModule[] = res.data.map((m) => ({
+            slug: m.slug,
+            title: m.title,
+            category: (m.category === "People" || m.category === "Finance" || m.category === "Operations" || m.category === "Engagement") ? m.category : "Operations",
+            icon: m.icon || "Boxes",
+            summary: m.summary || `${m.title} enterprise operations module.`,
+            description: m.summary || `${m.title} core module for enterprise management.`,
+            outcomes: [],
+            highlights: [],
+            idealFor: [],
+            metrics: [],
+          }));
+          setDbModules(mapped);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const content = parseContent<HomePageContent>({
     eyebrow: "Cloud ERP platform",
     title: "Run HR, payroll, finance, and operations in one system",
@@ -58,6 +86,19 @@ export default function PlatformHomePage() {
     secondaryCtaLabel: "Explore Products",
     badges: ["HRMS", "Payroll", "Finance", "Inventory", "Procurement", "CRM"],
   });
+
+  const displayedModules = dbModules.length > 0 ? dbModules.slice(0, 8) : marketingModules.slice(0, 8);
+  const dynamicIndustries = (siteData?.industryCoverage ?? []).map((item) => ({
+    slug: item.name.toLowerCase().replace(/\s+/g, "-"),
+    title: item.name,
+    eyebrow: "Sector",
+    summary: item.sector || `${item.name} operational workflows`,
+    description: `Enterprise ERP solutions for ${item.name} organizations.`,
+    challenges: [],
+    recommendedModules: [],
+    results: [],
+  }));
+  const displayedIndustries = dynamicIndustries.length > 0 ? dynamicIndustries : marketingIndustries.slice(0, 6);
 
   const trustMarks = (siteData?.industryCoverage ?? []).map((item: { name: string; sector: string; mark: string }) => ({
     name: item.name,
@@ -198,13 +239,13 @@ export default function PlatformHomePage() {
       </section>
 
       <ModuleGrid
-        modules={marketingModules.slice(0, 8)}
+        modules={displayedModules}
         title="Modules that work alone — and better together"
         subtitle="Launch with the functions you need today. Add more when your team is ready."
       />
 
       <IndustryGrid
-        industries={marketingIndustries.slice(0, 6)}
+        industries={displayedIndustries}
         title="Built for how your sector operates"
         subtitle="Healthcare, manufacturing, retail, logistics, education, and project-led teams."
       />

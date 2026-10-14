@@ -27,6 +27,8 @@ type AboutContent = {
   missionBody: string;
   governanceTitle: string;
   governanceBody: string;
+  values?: Array<{ title: string; description: string; icon?: string }>;
+  milestones?: Array<{ year: string; title: string; description: string }>;
 };
 
 export default function AboutPageClient({ audience }: { audience: PublicAudience }) {
@@ -109,14 +111,22 @@ export default function AboutPageClient({ audience }: { audience: PublicAudience
         </div>
       </section>
 
-      <ValueGrid items={companyValues} />
+      <ValueGrid items={content.values && content.values.length > 0 ? content.values : companyValues} />
 
       <ProcessTimeline
-        items={companyMilestones.map((item) => ({
-          step: item.year,
-          title: item.title,
-          description: item.description,
-        }))}
+        items={
+          content.milestones && content.milestones.length > 0
+            ? content.milestones.map((item) => ({
+                step: item.year,
+                title: item.title,
+                description: item.description,
+              }))
+            : companyMilestones.map((item) => ({
+                step: item.year,
+                title: item.title,
+                description: item.description,
+              }))
+        }
         eyebrow={content.governanceTitle}
         title="A better ERP rollout starts with a better operating model"
         subtitle={content.governanceBody}

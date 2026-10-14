@@ -229,4 +229,16 @@ export const publicApi = {
       "/recruitment/apply",
       payload
     ),
+  getPublicModules: () =>
+    runOptionalPublicRead("public-modules", () =>
+      apiClient.get<
+        Array<{
+          slug: string;
+          title: string;
+          category: "People" | "Finance" | "Operations" | "Engagement";
+          icon: string;
+          summary: string;
+        }>
+      >("/public/modules", SILENT_PUBLIC_HEADERS)
+    ),
 };
