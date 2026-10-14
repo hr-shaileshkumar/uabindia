@@ -46,11 +46,13 @@ let csrfPromise: Promise<string | null> | null = null;
 
 export const setClientAuthToken = (token: string | null) => {
   if (typeof document !== "undefined") {
+    const isSecure = typeof window !== "undefined" && window.location.protocol === "https:";
+    const secureFlag = isSecure ? "; Secure" : "";
     if (token) {
-      document.cookie = `access_token=${token}; path=/; max-age=604800; SameSite=Lax`;
+      document.cookie = `access_token=${token}; path=/; max-age=900; SameSite=Lax${secureFlag}`;
       apiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     } else {
-      document.cookie = "access_token=; path=/; max-age=0; SameSite=Lax";
+      document.cookie = `access_token=; path=/; max-age=0; SameSite=Lax${secureFlag}`;
       delete apiClient.defaults.headers.common["Authorization"];
     }
   }
@@ -448,9 +450,8 @@ apiClient.interceptors.response.use(
     const url = typeof response.config?.url === "string" ? response.config.url.toLowerCase() : "";
     if (url.includes("auth/login") || url.includes("auth/refresh")) {
       const token = response.data?.access_token || response.data?.token;
-      if (token && typeof document !== "undefined") {
-        document.cookie = `access_token=${token}; path=/; max-age=604800; SameSite=Lax`;
-        apiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      if (token) {
+        setClientAuthToken(token);
       }
     }
     return response;

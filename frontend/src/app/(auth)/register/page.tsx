@@ -18,7 +18,7 @@ import {
   User,
   Zap,
 } from "lucide-react";
-import apiClient from "@/services/apiClient";
+import apiClient, { setClientAuthToken } from "@/services/apiClient";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { usePublicPageData } from "@/hooks/usePublicPageData";
@@ -143,9 +143,11 @@ export default function RegisterPage() {
       if (res.data.token) {
         localStorage.setItem("uab_auth_token", res.data.token);
         localStorage.setItem("uab_current_tenant", res.data.tenant.subdomain);
-        document.cookie = `access_token=${res.data.token}; path=/; max-age=604800; SameSite=Lax`;
-        document.cookie = `uab_auth_token=${res.data.token}; path=/; max-age=604800; SameSite=Lax`;
-        document.cookie = `uab_tenant_subdomain=${res.data.tenant.subdomain}; path=/; max-age=604800; SameSite=Lax`;
+        setClientAuthToken(res.data.token);
+        const isSecure = typeof window !== "undefined" && window.location.protocol === "https:";
+        const sec = isSecure ? "; Secure" : "";
+        document.cookie = `uab_auth_token=${res.data.token}; path=/; max-age=900; SameSite=Lax${sec}`;
+        document.cookie = `uab_tenant_subdomain=${res.data.tenant.subdomain}; path=/; max-age=604800; SameSite=Lax${sec}`;
       }
 
       setProvisionProgress("Seeding default Indian Chart of Accounts and GST configuration...");
