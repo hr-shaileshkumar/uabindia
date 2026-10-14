@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.IO;
@@ -138,6 +139,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
 
         [HttpPost("upload")]
         [RequestSizeLimit(10 * 1024 * 1024)]
+        [EnableRateLimiting("file-upload")]
         public async Task<IActionResult> Upload(
             [FromForm] IFormFile file,
             [FromForm] Guid? companyId,

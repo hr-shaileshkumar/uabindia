@@ -19,6 +19,29 @@ namespace UabIndia.Api.Extensions
             services.AddRateLimiter(options =>
             {
                 options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+                options.OnRejected = async (context, cancellationToken) =>
+                {
+                    context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                    context.HttpContext.Response.ContentType = "application/json";
+
+                    int retryAfterSeconds = 60;
+                    if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfterSpan))
+                    {
+                        retryAfterSeconds = Math.Max(1, (int)retryAfterSpan.TotalSeconds);
+                    }
+
+                    context.HttpContext.Response.Headers.RetryAfter = retryAfterSeconds.ToString();
+
+                    await context.HttpContext.Response.WriteAsJsonAsync(new
+                    {
+                        success = false,
+                        error = "rate_limit_exceeded",
+                        message = "Too many requests. Please slow down and try again.",
+                        retryAfter = retryAfterSeconds
+                    }, cancellationToken);
+                };
+
                 var isDev = env.IsDevelopment();
                 var ipPermitLimit = isDev ? 5000 : 100;
                 var ipWindow = TimeSpan.FromMinutes(1);
@@ -26,7 +49,7 @@ namespace UabIndia.Api.Extensions
                 var tenantReplenishment = isDev ? TimeSpan.FromHours(1) : TimeSpan.FromDays(1);
                 var tenantTokensPerPeriod = isDev ? 500000 : 10000;
 
-                // Auth-specific limiter (Strict brute-force prevention)
+                // Auth-specific limiter (Strict brute-force prevention: 5 per 15 min)
                 options.AddPolicy("auth-login", httpContext =>
                     RateLimitPartition.GetFixedWindowLimiter(
                         partitionKey: GetClientIp(httpContext),
@@ -34,6 +57,18 @@ namespace UabIndia.Api.Extensions
                         {
                             PermitLimit = isDev ? 30 : 5,
                             Window = isDev ? TimeSpan.FromMinutes(5) : TimeSpan.FromMinutes(15),
+                            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                            QueueLimit = 0
+                        }));
+
+                // Refresh-token limiter (Permissive for active multi-tab sessions: 60 per 15 min)
+                options.AddPolicy("auth-refresh", httpContext =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        partitionKey: GetClientIp(httpContext),
+                        factory: _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = isDev ? 200 : 60,
+                            Window = TimeSpan.FromMinutes(15),
                             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                             QueueLimit = 0
                         }));
@@ -62,7 +97,7 @@ namespace UabIndia.Api.Extensions
                             QueueLimit = 0
                         }));
 
-                // Public tenant registration limiter (Anti-spam / Anti-bot)
+                // Public tenant registration limiter (Anti-spam / Anti-bot: 5 per hour)
                 options.AddPolicy("public-register", httpContext =>
                     RateLimitPartition.GetFixedWindowLimiter(
                         partitionKey: GetClientIp(httpContext),
@@ -73,6 +108,77 @@ namespace UabIndia.Api.Extensions
                             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                             QueueLimit = 0
                         }));
+
+                // Public contact & demo inquiries (Anti-spam: 5 per 10 min)
+                options.AddPolicy("public-contact", httpContext =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        partitionKey: GetClientIp(httpContext),
+                        factory: _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = isDev ? 30 : 5,
+                            Window = TimeSpan.FromMinutes(10),
+                            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                            QueueLimit = 0
+                        }));
+
+                // Public job applications (Anti-spam: 5 per 15 min)
+                options.AddPolicy("public-apply", httpContext =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        partitionKey: GetClientIp(httpContext),
+                        factory: _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = isDev ? 30 : 5,
+                            Window = TimeSpan.FromMinutes(15),
+                            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                            QueueLimit = 0
+                        }));
+
+                // Subdomain enumeration / availability check (20 per min)
+                options.AddPolicy("subdomain-check", httpContext =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        partitionKey: GetClientIp(httpContext),
+                        factory: _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = isDev ? 100 : 20,
+                            Window = TimeSpan.FromMinutes(1),
+                            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                            QueueLimit = 0
+                        }));
+
+                // File upload limiter (10 uploads per min per user or IP)
+                options.AddPolicy("file-upload", httpContext =>
+                {
+                    var userIdClaim = httpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                    var key = !string.IsNullOrWhiteSpace(userIdClaim) ? $"usr:{userIdClaim}" : $"ip:{GetClientIp(httpContext)}";
+
+                    return RateLimitPartition.GetFixedWindowLimiter(
+                        partitionKey: key,
+                        factory: _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = isDev ? 50 : 10,
+                            Window = TimeSpan.FromMinutes(1),
+                            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                            QueueLimit = 0
+                        });
+                });
+
+                // Heavy reports / export limiter (15 per min per tenant)
+                options.AddPolicy("heavy-reports", httpContext =>
+                {
+                    var tenantAccessor = httpContext.RequestServices.GetService<ITenantAccessor>();
+                    var tenantId = tenantAccessor?.GetTenantId() ?? Guid.Empty;
+                    var key = tenantId != Guid.Empty ? $"tenant:{tenantId}" : $"ip:{GetClientIp(httpContext)}";
+
+                    return RateLimitPartition.GetFixedWindowLimiter(
+                        partitionKey: key,
+                        factory: _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = isDev ? 60 : 15,
+                            Window = TimeSpan.FromMinutes(1),
+                            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                            QueueLimit = 0
+                        });
+                });
 
                 // Layer 1: Per-IP rate limiting (DDoS protection)
                 options.AddPolicy("ip-limit", httpContext =>
@@ -86,11 +192,16 @@ namespace UabIndia.Api.Extensions
                             QueueLimit = 0
                         }));
 
-                // Layer 2: Per-Tenant rate limiting (Fair usage quota)
+                // Layer 2: Per-Tenant rate limiting (Fair usage quota for resolved tenants only)
                 options.AddPolicy("tenant-quota", httpContext =>
                 {
                     var tenantAccessor = httpContext.RequestServices.GetService<ITenantAccessor>();
                     var tenantId = tenantAccessor?.GetTenantId() ?? Guid.Empty;
+
+                    if (tenantId == Guid.Empty)
+                    {
+                        return RateLimitPartition.GetNoLimiter(string.Empty);
+                    }
 
                     return RateLimitPartition.GetTokenBucketLimiter(
                         partitionKey: tenantId.ToString(),
@@ -104,7 +215,7 @@ namespace UabIndia.Api.Extensions
                         });
                 });
 
-                // Default policy: Chained IP + Tenant limiting
+                // Default policy: Chained IP + Tenant limiting (Tenant limiter only applies when tenantId is resolved)
                 options.GlobalLimiter = PartitionedRateLimiter.CreateChained(
                     PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
                     {
@@ -123,6 +234,11 @@ namespace UabIndia.Api.Extensions
                     {
                         var tenantAccessor = httpContext.RequestServices.GetService<ITenantAccessor>();
                         var tenantId = tenantAccessor?.GetTenantId() ?? Guid.Empty;
+
+                        if (tenantId == Guid.Empty)
+                        {
+                            return RateLimitPartition.GetNoLimiter(string.Empty);
+                        }
 
                         return RateLimitPartition.GetTokenBucketLimiter(
                             partitionKey: tenantId.ToString(),

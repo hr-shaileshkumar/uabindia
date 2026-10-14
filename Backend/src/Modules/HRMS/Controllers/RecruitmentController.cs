@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -375,6 +376,7 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
         /// </summary>
         [HttpPost("apply")]
         [AllowAnonymous]
+        [EnableRateLimiting("public-apply")]
         public async Task<IActionResult> ApplyForJob([FromBody] CreateCandidateDto dto)
         {
             if (!ModelState.IsValid)

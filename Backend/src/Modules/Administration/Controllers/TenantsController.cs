@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.EntityFrameworkCore;
@@ -137,6 +138,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
 
         [AllowAnonymous]
         [HttpGet("resolve")]
+        [EnableRateLimiting("subdomain-check")]
         public async Task<IActionResult> Resolve([FromQuery] string? subdomain, [FromQuery] string? host)
         {
             if (string.IsNullOrWhiteSpace(subdomain) && string.IsNullOrWhiteSpace(host))

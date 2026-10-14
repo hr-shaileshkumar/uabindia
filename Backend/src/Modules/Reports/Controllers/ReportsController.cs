@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
@@ -17,6 +18,7 @@ namespace UabIndia.Api.Modules.Reports.Controllers
     [Route("api/v1/[controller]")]
     [Authorize]
     [Authorize(Policy = "Module:reports")]
+    [EnableRateLimiting("heavy-reports")]
     public class ReportsController : ControllerBase
     {
         private readonly ApplicationDbContext _db;

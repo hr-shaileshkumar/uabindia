@@ -226,7 +226,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
 
         [AllowAnonymous]
         [HttpPost("refresh")]
-        [EnableRateLimiting("auth-login")]
+        [EnableRateLimiting("auth-refresh")]
         public async Task<IActionResult> Refresh([FromBody] RefreshRequest req)
         {
             if (!ModelState.IsValid) return ValidationError("Refresh request is invalid.");

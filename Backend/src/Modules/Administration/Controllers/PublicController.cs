@@ -53,6 +53,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
         }
 
         [HttpGet("check-subdomain")]
+        [EnableRateLimiting("subdomain-check")]
         public async Task<IActionResult> CheckSubdomain([FromQuery] string? subdomain)
         {
             if (string.IsNullOrWhiteSpace(subdomain))
@@ -402,6 +403,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
         }
 
         [HttpPost("contact")]
+        [EnableRateLimiting("public-contact")]
         public async Task<IActionResult> SubmitContact(
             [FromBody] PublicContactRequestDto dto,
             [FromQuery] string? audience = null,
