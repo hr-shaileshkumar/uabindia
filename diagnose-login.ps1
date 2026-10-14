@@ -99,8 +99,8 @@ if ($envJwt -and $appJwt) {
 Write-Host ""
 Write-Host "=== Diagnostic Complete ===" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Login URL: http://localhost:3000/login" -ForegroundColor Cyan
-Write-Host "Admin Credentials:" -ForegroundColor Cyan
+Write-Host "Development Login URL: http://localhost:3000/login" -ForegroundColor Cyan
+Write-Host "Development Default Credentials (Localhost ONLY):" -ForegroundColor Yellow
 Write-Host "  Email: admin@uabindia.in" -ForegroundColor Gray
-Write-Host "  Password: Admin@123" -ForegroundColor Gray
+Write-Host "  Password: (Uses local development seed)" -ForegroundColor Gray
 Write-Host ""

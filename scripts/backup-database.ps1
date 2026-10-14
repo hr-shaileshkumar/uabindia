@@ -19,7 +19,8 @@ param(
 $ErrorActionPreference = "Stop"
 
 if ([string]::IsNullOrWhiteSpace($DbAuthSecret)) {
-    $DbAuthSecret = "UabIndia_SecureProd2026!"
+    Write-Error "Database password must be provided via -DbAuthSecret parameter or DB_SA_PASSWORD environment variable."
+    exit 1
 }
 
 if (-not (Test-Path $BackupDir)) {

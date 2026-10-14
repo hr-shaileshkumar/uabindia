@@ -1,0 +1,43 @@
+# ==============================================================================
+# Multi-stage Dockerfile for UabIndia Dedicated Background Worker (.NET 10)
+# ==============================================================================
+FROM mcr.microsoft.com/dotnet/sdk:10.0-preview AS build
+WORKDIR /src
+
+# Copy solution and project definitions for caching restore layer
+COPY ["UabIndia.sln", "./"]
+COPY ["src/UabIndia.Core/UabIndia.Core.csproj", "src/UabIndia.Core/"]
+COPY ["src/UabIndia.Application/UabIndia.Application.csproj", "src/UabIndia.Application/"]
+COPY ["src/UabIndia.Infrastructure/UabIndia.Infrastructure.csproj", "src/UabIndia.Infrastructure/"]
+COPY ["src/UabIndia.Identity/UabIndia.Identity.csproj", "src/UabIndia.Identity/"]
+COPY ["src/UabIndia.Billing/UabIndia.Billing.csproj", "src/UabIndia.Billing/"]
+COPY ["src/UabIndia.Worker/UabIndia.Worker.csproj", "src/UabIndia.Worker/"]
+
+# Restore NuGet packages
+RUN dotnet restore "src/UabIndia.Worker/UabIndia.Worker.csproj"
+
+# Copy source code and build release bundle
+COPY . .
+WORKDIR "/src/src/UabIndia.Worker"
+RUN dotnet publish "UabIndia.Worker.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+# ==============================================================================
+# Production Runtime Container
+# ==============================================================================
+FROM mcr.microsoft.com/dotnet/runtime:10.0-preview AS runtime
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libicu-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false \
+    ASPNETCORE_ENVIRONMENT=Production
+
+COPY --from=build /app/publish .
+
+USER appuser
+
+ENTRYPOINT ["dotnet", "UabIndia.Worker.dll"]

@@ -8,7 +8,10 @@ set -e
 
 BACKUP_ARCHIVE="$1"
 DB_NAME="${DB_NAME:-UabIndia_HRMS}"
-DB_PASSWORD="${DB_PASSWORD:-YourSecurePassword123!}"
+if [ -z "$DB_PASSWORD" ]; then
+  echo "❌ Error: DB_PASSWORD environment variable must be set."
+  exit 1
+fi
 
 if [ -z "$BACKUP_ARCHIVE" ] || [ ! -f "$BACKUP_ARCHIVE" ]; then
   echo "❌ Error: Please specify a valid .bak or .bak.gz backup file to restore."
