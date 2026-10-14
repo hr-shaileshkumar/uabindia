@@ -20,6 +20,10 @@ namespace UabIndia.Tests
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.UseEnvironment("Test");
+            builder.UseSetting("Jwt:Key", "test_jwt_key_for_automated_tests_only_0123456789");
+            builder.UseSetting("Jwt:Issuer", "test-issuer");
+            builder.UseSetting("Jwt:Audience", "test-audience");
+            builder.UseSetting("ConnectionStrings:DefaultConnection", "DataSource=:memory:");
 
             builder.ConfigureAppConfiguration((context, config) =>
             {

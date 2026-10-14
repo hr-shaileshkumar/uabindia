@@ -224,7 +224,10 @@ namespace UabIndia.Api.Extensions
             var isTestLikeEnv = env.IsEnvironment("Test")
                 || string.Equals(envName, "Test", StringComparison.OrdinalIgnoreCase)
                 || !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("CI"))
-                || AppDomain.CurrentDomain.GetAssemblies().Any(a => a.FullName?.StartsWith("testhost", StringComparison.OrdinalIgnoreCase) == true);
+                || AppDomain.CurrentDomain.GetAssemblies().Any(a => 
+                    a.FullName?.StartsWith("testhost", StringComparison.OrdinalIgnoreCase) == true ||
+                    a.FullName?.StartsWith("xunit", StringComparison.OrdinalIgnoreCase) == true ||
+                    a.FullName?.StartsWith("UabIndia.Tests", StringComparison.OrdinalIgnoreCase) == true);
 
             if (isTestLikeEnv)
             {
