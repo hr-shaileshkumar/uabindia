@@ -30,7 +30,8 @@ export type FieldDataType =
   | "textarea"
   | "rich-text"
   | "file"
-  | "progress";
+  | "progress"
+  | "password";
 
 export interface ColumnDefinition {
   key: string;
@@ -87,6 +88,7 @@ export interface FormDefinition {
 
 export interface ActionDefinition {
   key: string;
+  id?: string;
   label: string;
   variant?: "primary" | "secondary" | "danger" | "ghost" | "success" | "warning";
   icon?: string;

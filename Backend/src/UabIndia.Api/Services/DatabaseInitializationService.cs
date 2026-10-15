@@ -909,6 +909,12 @@ namespace UabIndia.Api.Services
                 ("gst_portal", "GST Portal", "NIC / GSTN", "Tax"),
                 ("bank_feed", "Bank Statement Feed", "Generic CSV / API", "Finance"),
                 ("biometric_device", "Biometric Attendance", "ZKTeco / eSSL", "HR"),
+                ("razorpay", "Razorpay Payment Gateway", "Razorpay", "Payment"),
+                ("stripe", "Stripe Global Payments", "Stripe", "Payment"),
+                ("cashfree", "Cashfree Payments & Payouts", "Cashfree", "Payment"),
+                ("phonepe", "PhonePe Merchant Gateway", "PhonePe", "Payment"),
+                ("whatsapp", "WhatsApp Business Cloud API", "Meta", "Communication"),
+                ("sendgrid", "SendGrid Transactional Email", "Twilio SendGrid", "Communication"),
             };
 
             foreach (var seed in seeds)

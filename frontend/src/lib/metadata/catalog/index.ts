@@ -10,6 +10,7 @@ import { inventorySchemas } from "./inventory";
 import { procurementSchemas } from "./procurement";
 import { manufacturingSchemas, projectSchemas } from "./projects";
 import { assetSchemas, workflowSchemas, securitySchemas } from "./assets";
+import { integrationsSchemas } from "./integrations";
 
 export const masterSchemaCatalog: Record<string, PageSchema> = {
   ...superadminSchemas,
@@ -26,6 +27,7 @@ export const masterSchemaCatalog: Record<string, PageSchema> = {
   ...assetSchemas,
   ...workflowSchemas,
   ...securitySchemas,
+  ...integrationsSchemas,
 };
 
 export const getCatalogSchema = (pageKey: string): PageSchema | null => {

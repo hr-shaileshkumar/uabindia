@@ -561,6 +561,7 @@ namespace UabIndia.Api.Models
         public DateTime? LastTestedAt { get; set; }
         public DateTime? LastSyncAt { get; set; }
         public string? LastError { get; set; }
+        public DateTime? CreatedAt { get; set; }
     }
 
     public class DeviceSessionDto

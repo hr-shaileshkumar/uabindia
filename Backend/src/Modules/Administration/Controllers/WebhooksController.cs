@@ -20,6 +20,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
     [ApiController]
     [Route("api/v1/[controller]")]
     [Route("api/v1/administration/webhooks")]
+    [Route("api/v1/integrations/webhooks")]
     [Authorize]
     public class WebhooksController : ControllerBase
     {
@@ -42,7 +43,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                 .OrderByDescending(w => w.CreatedAt)
                 .ToListAsync();
 
-            return Ok(new { success = true, webhooks });
+            return Ok(new { success = true, data = webhooks, items = webhooks, webhooks, total = webhooks.Count });
         }
 
         [HttpPost]
@@ -55,7 +56,19 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                 return BadRequest(new { success = false, message = "Invalid Target URL format." });
 
             var tenantId = _tenantAccessor.GetTenantId();
-            var secret = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
+            var secret = !string.IsNullOrWhiteSpace(dto.SecretKey)
+                ? dto.SecretKey.Trim()
+                : Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
+
+            string eventsJsonStr = "[\"*\"]";
+            if (!string.IsNullOrWhiteSpace(dto.EventsJson))
+            {
+                eventsJsonStr = dto.EventsJson.Trim();
+            }
+            else if (dto.Events != null && dto.Events.Count > 0)
+            {
+                eventsJsonStr = JsonSerializer.Serialize(dto.Events);
+            }
 
             var webhook = new TenantWebhook
             {
@@ -63,15 +76,15 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                 Name = dto.Name.Trim(),
                 TargetUrl = dto.TargetUrl.Trim(),
                 SecretKey = secret,
-                EventsJson = JsonSerializer.Serialize(dto.Events ?? new List<string> { "*" }),
-                IsActive = true,
+                EventsJson = eventsJsonStr,
+                IsActive = dto.IsActive ?? true,
                 CreatedBy = GetUserId()
             };
 
             _db.TenantWebhooks.Add(webhook);
             await _db.SaveChangesAsync();
 
-            return Ok(new { success = true, webhook });
+            return Ok(new { success = true, data = webhook, webhook });
         }
 
         [HttpPut("{id:guid}")]
@@ -89,14 +102,26 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             {
                 webhook.TargetUrl = dto.TargetUrl.Trim();
             }
-            if (dto.Events != null)
+            if (!string.IsNullOrWhiteSpace(dto.SecretKey))
+            {
+                webhook.SecretKey = dto.SecretKey.Trim();
+            }
+            if (!string.IsNullOrWhiteSpace(dto.EventsJson))
+            {
+                webhook.EventsJson = dto.EventsJson.Trim();
+            }
+            else if (dto.Events != null)
             {
                 webhook.EventsJson = JsonSerializer.Serialize(dto.Events);
+            }
+            if (dto.IsActive.HasValue)
+            {
+                webhook.IsActive = dto.IsActive.Value;
             }
             webhook.UpdatedAt = DateTime.UtcNow;
 
             await _db.SaveChangesAsync();
-            return Ok(new { success = true, webhook });
+            return Ok(new { success = true, data = webhook, webhook });
         }
 
         [HttpDelete("{id:guid}")]
@@ -242,5 +267,8 @@ namespace UabIndia.Api.Modules.Administration.Controllers
         public string Name { get; set; } = string.Empty;
         public string TargetUrl { get; set; } = string.Empty;
         public List<string>? Events { get; set; }
+        public string? EventsJson { get; set; }
+        public string? SecretKey { get; set; }
+        public bool? IsActive { get; set; }
     }
 }
