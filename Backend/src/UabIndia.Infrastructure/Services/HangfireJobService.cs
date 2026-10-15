@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using UabIndia.Core.Entities;
 using UabIndia.Infrastructure.Data;
 
 namespace UabIndia.Infrastructure.Services
@@ -195,6 +196,149 @@ namespace UabIndia.Infrastructure.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error during temporary data cleanup");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Checks expiring and expired tenant subscriptions.
+        /// Marks expired subscriptions as PastDue or Suspended and creates notification alerts.
+        /// Runs daily at 4 AM.
+        /// </summary>
+        public async Task ProcessSubscriptionLifecycle()
+        {
+            try
+            {
+                _logger.LogInformation("Starting subscription lifecycle check at {DateTime}", DateTime.UtcNow);
+                var now = DateTime.UtcNow;
+
+                // 1. Mark expired active subscriptions whose EndDate has passed
+                var expiredSubs = await _db.TenantSubscriptions
+                    .IgnoreQueryFilters()
+                    .Where(s => s.Status == "Active" && s.EndDate < now)
+                    .ToListAsync();
+
+                foreach (var sub in expiredSubs)
+                {
+                    sub.Status = "PastDue";
+                    _logger.LogInformation("Subscription {SubId} for Tenant {TenantId} marked as PastDue (expired at {EndDate}).",
+                        sub.Id, sub.TenantId, sub.EndDate);
+
+                    _db.NotificationMessages.Add(new NotificationMessage
+                    {
+                        TenantId = sub.TenantId,
+                        Title = "Subscription Expired",
+                        Message = $"Your subscription plan ({sub.PlanCode}) has expired. Please renew your subscription to maintain full platform access.",
+                        Channel = "InApp",
+                        Type = "Subscription",
+                        Status = "Pending",
+                        CreatedAt = now
+                    });
+                }
+
+                // 2. Mark past-due subscriptions as Suspended after 7-day grace period
+                var gracePeriodCutoff = now.AddDays(-7);
+                var suspendedSubs = await _db.TenantSubscriptions
+                    .IgnoreQueryFilters()
+                    .Where(s => s.Status == "PastDue" && s.EndDate < gracePeriodCutoff)
+                    .ToListAsync();
+
+                foreach (var sub in suspendedSubs)
+                {
+                    sub.Status = "Suspended";
+                    _logger.LogWarning("Subscription {SubId} for Tenant {TenantId} suspended after 7-day grace period.",
+                        sub.Id, sub.TenantId);
+                }
+
+                if (expiredSubs.Count > 0 || suspendedSubs.Count > 0)
+                {
+                    await _db.SaveChangesAsync();
+                }
+
+                _logger.LogInformation("Subscription lifecycle check completed. Expired: {ExpiredCount}, Suspended: {SuspendedCount}",
+                    expiredSubs.Count, suspendedSubs.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during subscription lifecycle processing");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Accrues monthly earned/privilege leave for active employees across all tenants.
+        /// Runs at 2 AM on the 1st of every month.
+        /// </summary>
+        public async Task AccrueMonthlyLeaveBalances()
+        {
+            try
+            {
+                _logger.LogInformation("Starting monthly leave accrual at {DateTime}", DateTime.UtcNow);
+                var currentYear = DateTime.UtcNow.Year;
+
+                var activePolicies = await _db.LeavePolicies
+                    .IgnoreQueryFilters()
+                    .Where(p => !p.IsDeleted)
+                    .ToListAsync();
+
+                if (!activePolicies.Any())
+                {
+                    _logger.LogInformation("No active leave policies found for accrual.");
+                    return;
+                }
+
+                var activeEmployees = await _db.Employees
+                    .IgnoreQueryFilters()
+                    .Where(e => !e.IsDeleted && e.Status == "Active")
+                    .Select(e => new { e.Id, e.TenantId })
+                    .ToListAsync();
+
+                int updatedCount = 0;
+                foreach (var emp in activeEmployees)
+                {
+                    var policiesForTenant = activePolicies.Where(p => p.TenantId == emp.TenantId).ToList();
+                    foreach (var policy in policiesForTenant)
+                    {
+                        var monthlyAccrual = policy.EntitlementPerYear > 0 ? Math.Round(policy.EntitlementPerYear / 12.0m, 2) : 1.5m;
+
+                        var record = await _db.EmployeeLeaves
+                            .IgnoreQueryFilters()
+                            .FirstOrDefaultAsync(l => l.EmployeeId == emp.Id && l.LeavePolicyId == policy.Id && l.Year == currentYear);
+
+                        if (record == null)
+                        {
+                            _db.EmployeeLeaves.Add(new EmployeeLeave
+                            {
+                                TenantId = emp.TenantId,
+                                EmployeeId = emp.Id,
+                                LeavePolicyId = policy.Id,
+                                Year = currentYear,
+                                Entitled = monthlyAccrual,
+                                Taken = 0,
+                                Balance = monthlyAccrual
+                            });
+                            updatedCount++;
+                        }
+                        else
+                        {
+                            record.Entitled += monthlyAccrual;
+                            record.Balance += monthlyAccrual;
+                            updatedCount++;
+                        }
+                    }
+                }
+
+                if (updatedCount > 0)
+                {
+                    await _db.SaveChangesAsync();
+                }
+
+                _logger.LogInformation("Monthly leave accrual completed. Updated {Count} balances for {EmpCount} active employees at {DateTime}",
+                    updatedCount, activeEmployees.Count, DateTime.UtcNow);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during monthly leave accrual processing");
                 throw;
             }
         }

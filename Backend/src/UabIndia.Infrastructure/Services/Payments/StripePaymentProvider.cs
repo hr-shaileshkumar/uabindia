@@ -16,8 +16,15 @@ namespace UabIndia.Infrastructure.Services.Payments
 
         public StripePaymentProvider(IConfiguration configuration)
         {
-            _apiKey = configuration["Payments:Stripe:ApiKey"] ?? "sk_test_mock_stripe_key";
-            _webhookSecret = configuration["Payments:Stripe:WebhookSecret"] ?? "whsec_mock_stripe_secret";
+            _apiKey = configuration["Payments:Stripe:ApiKey"]
+                ?? configuration["Stripe:SecretKey"]
+                ?? configuration["Stripe:ApiKey"]
+                ?? configuration["Stripe__SecretKey"]
+                ?? "sk_test_mock_stripe_key";
+            _webhookSecret = configuration["Payments:Stripe:WebhookSecret"]
+                ?? configuration["Stripe:WebhookSecret"]
+                ?? configuration["Stripe__WebhookSecret"]
+                ?? "whsec_mock_stripe_secret";
         }
 
         public string ProviderName => "Stripe";

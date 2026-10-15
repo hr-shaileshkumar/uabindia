@@ -17,9 +17,18 @@ namespace UabIndia.Infrastructure.Services.Payments
 
         public RazorpayPaymentProvider(IConfiguration configuration)
         {
-            _keyId = configuration["Payments:Razorpay:KeyId"] ?? "rzp_test_mock_id";
-            _keySecret = configuration["Payments:Razorpay:KeySecret"] ?? "mock_rzp_secret";
-            _webhookSecret = configuration["Payments:Razorpay:WebhookSecret"] ?? "mock_rzp_webhook_secret";
+            _keyId = configuration["Payments:Razorpay:KeyId"]
+                ?? configuration["Razorpay:KeyId"]
+                ?? configuration["Razorpay__KeyId"]
+                ?? "rzp_test_mock_id";
+            _keySecret = configuration["Payments:Razorpay:KeySecret"]
+                ?? configuration["Razorpay:KeySecret"]
+                ?? configuration["Razorpay__KeySecret"]
+                ?? "mock_rzp_secret";
+            _webhookSecret = configuration["Payments:Razorpay:WebhookSecret"]
+                ?? configuration["Razorpay:WebhookSecret"]
+                ?? configuration["Razorpay__WebhookSecret"]
+                ?? "mock_rzp_webhook_secret";
         }
 
         public string ProviderName => "Razorpay";

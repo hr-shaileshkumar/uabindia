@@ -12,9 +12,10 @@ import { Platform } from "react-native";
 // 127.0.0.1 → localhost on iOS simulator
 // For physical device replace with your machine's LAN IP e.g. 192.168.1.100
 export const API_BASE =
-  Platform.OS === "android"
+  process.env.EXPO_PUBLIC_API_URL ||
+  (Platform.OS === "android"
     ? "http://10.0.2.2:5000/api/v1"
-    : "http://127.0.0.1:5000/api/v1";
+    : "http://127.0.0.1:5000/api/v1");
 
 // ── User shape (matches AuthContext) ─────────────────────────────────────────
 export interface User {

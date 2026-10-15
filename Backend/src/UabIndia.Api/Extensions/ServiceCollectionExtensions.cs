@@ -64,7 +64,10 @@ namespace UabIndia.Api.Extensions
         {
             services.AddMemoryCache();
 
-            var redisConnection = configuration.GetConnectionString("Redis") ?? configuration["Redis:Connection"];
+            var redisConnection = configuration.GetConnectionString("Redis")
+                ?? configuration["Redis:ConnectionString"]
+                ?? configuration["Redis:Connection"]
+                ?? configuration["Redis__ConnectionString"];
             if (!string.IsNullOrEmpty(redisConnection))
             {
                 services.AddStackExchangeRedisCache(options =>

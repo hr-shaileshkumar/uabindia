@@ -158,6 +158,16 @@ namespace UabIndia.Api.Services
                     service => service.CleanupTemporaryData(),
                     Cron.Daily(3),
                     new RecurringJobOptions { TimeZone = jobTimeZone });
+                RecurringJob.AddOrUpdate<HangfireJobService>(
+                    "subscription-lifecycle",
+                    service => service.ProcessSubscriptionLifecycle(),
+                    Cron.Daily(4),
+                    new RecurringJobOptions { TimeZone = jobTimeZone });
+                RecurringJob.AddOrUpdate<HangfireJobService>(
+                    "monthly-leave-accrual",
+                    service => service.AccrueMonthlyLeaveBalances(),
+                    Cron.Monthly(1, 2),
+                    new RecurringJobOptions { TimeZone = jobTimeZone });
             }
             catch (Exception ex)
             {

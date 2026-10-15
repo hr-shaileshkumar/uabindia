@@ -68,6 +68,7 @@ namespace UabIndia.Worker
                     services.AddScoped<IStorageProvider, LocalStorageProvider>();
                     services.AddScoped<IDataScopeEvaluator, DataScopeEvaluator>();
                     services.AddSingleton<IBusinessRuleEvaluator, BusinessRuleEvaluator>();
+                    services.AddScoped<HangfireJobService>();
 
                     // Configure Hangfire Storage and Server
                     if (!string.IsNullOrWhiteSpace(connectionString))
