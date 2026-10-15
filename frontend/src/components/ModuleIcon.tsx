@@ -40,6 +40,7 @@ export default function ModuleIcon({ name, className }: { name?: string | null; 
           <circle cx="19" cy="19" r="1.5" {...p} />
         </svg>
       );
+    case "user":
     case "employees":
     case "users":
       return (
@@ -545,13 +546,65 @@ export default function ModuleIcon({ name, className }: { name?: string | null; 
           <circle cx="17.5" cy="17.5" r="2.5" {...p} />
         </svg>
       );
+    case "kanban":
+      return (
+        <svg className={sz} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <rect x="3" y="3" width="5" height="18" rx="1" {...p} />
+          <rect x="10" y="3" width="5" height="11" rx="1" {...p} />
+          <rect x="17" y="3" width="5" height="15" rx="1" {...p} />
+        </svg>
+      );
+    case "compass":
+      return (
+        <svg className={sz} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <circle cx="12" cy="12" r="10" {...p} />
+          <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" {...p} />
+        </svg>
+      );
+    case "bot":
+      return (
+        <svg className={sz} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path {...p} d="M12 8V4H8" />
+          <rect x="4" y="8" width="16" height="12" rx="2" {...p} />
+          <path {...p} d="M2 14h2M20 14h2M9 13v2M15 13v2" />
+        </svg>
+      );
+    case "factory":
+      return (
+        <svg className={sz} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path {...p} d="M2 20a2 2 0 002 2h16a2 2 0 002-2V8l-7 5V8l-7 5V4L2 20z" />
+          <path {...p} d="M17 18h1M12 18h1M7 18h1" />
+        </svg>
+      );
+    case "file-spreadsheet":
+      return (
+        <svg className={sz} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path {...p} d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6" />
+          <path {...p} d="M8 13h8M8 17h8M12 9v12" />
+        </svg>
+      );
+    case "pie-chart":
+      return (
+        <svg className={sz} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path {...p} d="M21.21 15.89A10 10 0 118 2.83M22 12A10 10 0 0012 2v10z" />
+        </svg>
+      );
+    case "sparkles":
+      return (
+        <svg className={sz} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path {...p} d="M12 3l1.912 5.885L20 10.8l-4.5 4.385 1.062 6.2L12 18.277 7.438 21.385l1.062-6.2L4 10.8l6.088-1.915L12 3z" />
+        </svg>
+      );
+    case "line-chart":
+      return (
+        <svg className={sz} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path {...p} d="M3 3v18h18M19 9l-5 5-4-4-3 3" />
+        </svg>
+      );
     default: {
       return (
         <svg className={sz} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <rect x="3" y="3" width="7" height="7" rx="1" {...p} />
-          <rect x="14" y="3" width="7" height="7" rx="1" {...p} />
-          <rect x="3" y="14" width="7" height="7" rx="1" {...p} />
-          <rect x="14" y="14" width="7" height="7" rx="1" {...p} />
+          <path {...p} d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M9 13h6M9 17h4" />
         </svg>
       );
     }

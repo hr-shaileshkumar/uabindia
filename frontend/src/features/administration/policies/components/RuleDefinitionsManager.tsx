@@ -247,7 +247,7 @@ export function RuleDefinitionsManager() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search rule code, label, key..."
-                className={`${erpFormInputClassName} pl-9 text-xs`}
+                className="erp-input h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-xs transition placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
               />
             </div>
           </div>

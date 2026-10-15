@@ -1810,6 +1810,17 @@ tr:hover .row-hover-actions {
 }
 
 /* ── HIGH DENSITY INPUT OVERRIDES ────────────────────────────────── */
+input[type="text"]:not([class*="h-"]):not([class*="py-"]):not(.erp-input),
+input[type="email"]:not([class*="h-"]):not([class*="py-"]):not(.erp-input),
+input[type="password"]:not([class*="h-"]):not([class*="py-"]):not(.erp-input),
+input[type="number"]:not([class*="h-"]):not([class*="py-"]):not(.erp-input),
+input[type="search"]:not([class*="h-"]):not([class*="py-"]):not(.erp-input),
+select:not([class*="h-"]):not([class*="py-"]):not(.erp-select),
+textarea:not([class*="h-"]):not([class*="py-"]):not(.erp-input),
+.high-density-input {
+  height: 44px;
+}
+
 input[type="text"],
 input[type="email"],
 input[type="password"],
@@ -1818,15 +1829,67 @@ input[type="search"],
 select,
 textarea,
 .high-density-input {
-  height: 44px !important;
-  border-radius: 8px !important;
-  border: 1px solid var(--border-subtle) !important;
-  padding: 0 16px;
-  font-size: 14px !important;
-  background-color: #ffffff !important;
-  color: var(--foreground) !important;
-  transition: all 150ms ease-in-out !important;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  font-size: 14px;
+  background-color: var(--background, #ffffff);
+  color: var(--foreground);
+  transition: all 150ms ease-in-out;
 }
+
+/* Default horizontal padding only when no custom padding classes exist */
+input[type="text"]:not([class*="pl-"]):not([class*="px-"]):not([class*="p-"]),
+input[type="email"]:not([class*="pl-"]):not([class*="px-"]):not([class*="p-"]),
+input[type="password"]:not([class*="pl-"]):not([class*="px-"]):not([class*="p-"]),
+input[type="number"]:not([class*="pl-"]):not([class*="px-"]):not([class*="p-"]),
+input[type="search"]:not([class*="pl-"]):not([class*="px-"]):not([class*="p-"]),
+select:not([class*="pl-"]):not([class*="px-"]):not([class*="p-"]),
+textarea:not([class*="pl-"]):not([class*="px-"]):not([class*="p-"]),
+.high-density-input:not([class*="pl-"]):not([class*="px-"]):not([class*="p-"]) {
+  padding-left: 16px;
+}
+
+input[type="text"]:not([class*="pr-"]):not([class*="px-"]):not([class*="p-"]),
+input[type="email"]:not([class*="pr-"]):not([class*="px-"]):not([class*="p-"]),
+input[type="password"]:not([class*="pr-"]):not([class*="px-"]):not([class*="p-"]),
+input[type="number"]:not([class*="pr-"]):not([class*="px-"]):not([class*="p-"]),
+input[type="search"]:not([class*="pr-"]):not([class*="px-"]):not([class*="p-"]),
+select:not([class*="pr-"]):not([class*="px-"]):not([class*="p-"]),
+textarea:not([class*="pr-"]):not([class*="px-"]):not([class*="p-"]),
+.high-density-input:not([class*="pr-"]):not([class*="px-"]):not([class*="p-"]) {
+  padding-right: 16px;
+}
+
+/* ── INPUT ICON & PADDING UTILITY PRESERVATION ─────────────────────── */
+/* Guaranteed specificity so left/right icons never overlap input text */
+input[class*="pl-6"], select[class*="pl-6"] { padding-left: 1.5rem !important; }
+input[class*="pl-7"], select[class*="pl-7"] { padding-left: 1.75rem !important; }
+input[class*="pl-8"], select[class*="pl-8"] { padding-left: 2rem !important; }
+input[class*="pl-8.5"], select[class*="pl-8.5"] { padding-left: 2.125rem !important; }
+input[class*="pl-9"], select[class*="pl-9"] { padding-left: 2.25rem !important; }
+input[class*="pl-9.5"], select[class*="pl-9.5"] { padding-left: 2.375rem !important; }
+input[class*="pl-10"], select[class*="pl-10"] { padding-left: 2.5rem !important; }
+input[class*="pl-11"], select[class*="pl-11"] { padding-left: 2.75rem !important; }
+input[class*="pl-12"], select[class*="pl-12"] { padding-left: 3rem !important; }
+input[class*="pl-14"], select[class*="pl-14"] { padding-left: 3.5rem !important; }
+input[class*="pl-16"], select[class*="pl-16"] { padding-left: 4rem !important; }
+
+input[class*="pr-6"], select[class*="pr-6"] { padding-right: 1.5rem !important; }
+input[class*="pr-7"], select[class*="pr-7"] { padding-right: 1.75rem !important; }
+input[class*="pr-8"], select[class*="pr-8"] { padding-right: 2rem !important; }
+input[class*="pr-8.5"], select[class*="pr-8.5"] { padding-right: 2.125rem !important; }
+input[class*="pr-9"], select[class*="pr-9"] { padding-right: 2.25rem !important; }
+input[class*="pr-10"], select[class*="pr-10"] { padding-right: 2.5rem !important; }
+input[class*="pr-11"], select[class*="pr-11"] { padding-right: 2.75rem !important; }
+input[class*="pr-12"], select[class*="pr-12"] { padding-right: 3rem !important; }
+
+/* Compact inputs height enforcement */
+input[class*="h-7"], select[class*="h-7"] { height: 1.75rem !important; }
+input[class*="h-7.5"], select[class*="h-7.5"] { height: 1.875rem !important; }
+input[class*="h-8"], select[class*="h-8"] { height: 2rem !important; }
+input[class*="h-8.5"], select[class*="h-8.5"] { height: 2.125rem !important; }
+input[class*="h-9"], select[class*="h-9"] { height: 2.25rem !important; }
+input[class*="h-10"], select[class*="h-10"] { height: 2.5rem !important; }
 
 /* Compact ERP fields must beat the 44px rule so Qty/Rate/GST stay visible. */
 input.erp-input:not([class*="pl-"]),

@@ -502,7 +502,7 @@ export function useErpListView<T>({
                     value={columnSearch}
                     onChange={(e) => setColumnSearch(e.target.value)}
                     placeholder="Search columns…"
-                    className="h-7 w-full rounded-md border border-slate-200 bg-slate-50 pl-7 pr-2 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                    className="h-7.5 w-full rounded-md border border-slate-200 bg-slate-50 pl-8 pr-2 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                   />
                 </div>
               )}

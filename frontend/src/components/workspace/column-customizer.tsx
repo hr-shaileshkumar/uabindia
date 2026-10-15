@@ -84,7 +84,7 @@ export function ColumnCustomizer({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Find column..."
-              className="h-7.5 w-full rounded-lg border border-slate-200 bg-slate-50/60 pl-8 pr-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+              className="h-7.5 w-full rounded-lg border border-slate-200 bg-slate-50/60 pl-8.5 pr-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-white"
             />
           </div>
 

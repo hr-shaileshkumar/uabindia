@@ -226,7 +226,7 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
     label: "Projects & Service",
     eyebrow: "Projects / Workspace",
     description: "Project masters, tasks, delivery governance, timesheets, field service, and asset depreciation.",
-    icon: "folder",
+    icon: "kanban",
     shellOrder: 150,
     tier: "business",
     sourceModuleKey: "erp",

@@ -24,6 +24,7 @@ import {
   Lock,
   Workflow,
   Server,
+  FileText,
 } from "lucide-react";
 import StandardPageLayout from "@/components/layout/StandardPageLayout";
 import { findFrontendModuleMap } from "@/lib/workspace/frontend-module-map";
@@ -213,7 +214,7 @@ export default function AdministrationOverviewPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search administration pages..."
-              className="w-full rounded-lg border border-slate-200 bg-white py-1.5 pl-8 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs dark:border-slate-800 dark:bg-slate-900 dark:text-white"
+              className="w-full rounded-lg border border-slate-200 bg-white py-1.5 pl-9 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs dark:border-slate-800 dark:bg-slate-900 dark:text-white"
             />
           </div>
 
@@ -268,9 +269,6 @@ export default function AdministrationOverviewPage() {
               >
                 {/* Pillar Header */}
                 <div className="flex items-center gap-2.5 pb-2.5 border-b border-slate-100 dark:border-slate-800">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-slate-100 font-mono text-[11px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                    {index + 1 < 10 ? `0${index + 1}` : index + 1}
-                  </span>
                   <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${config.bgLight} ${config.color}`}>
                     <IconComponent className="h-3.5 w-3.5" />
                   </div>
@@ -279,17 +277,17 @@ export default function AdministrationOverviewPage() {
                   </h3>
                 </div>
 
-                {/* Submodule Pages List in Sequence */}
+                {/* Submodule Pages List */}
                 <div className="mt-2.5 space-y-0.5">
-                  {submodule.pages.map((page, pageIndex) => (
+                  {submodule.pages.map((page) => (
                     <Link
                       key={page.route}
                       href={page.route}
                       className="group flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-xs text-slate-600 hover:bg-slate-50 hover:text-blue-600 dark:text-slate-300 dark:hover:bg-slate-800/60 dark:hover:text-blue-400 transition-colors"
                     >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="flex h-4 w-4 shrink-0 items-center justify-center font-mono text-[10px] text-slate-400 group-hover:text-blue-600">
-                          {pageIndex + 1}
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600 dark:bg-slate-800 dark:text-slate-400 dark:group-hover:bg-blue-950/60 dark:group-hover:text-blue-400 transition-colors">
+                          <FileText className="h-3 w-3" />
                         </span>
                         <span className="truncate font-medium">{page.label}</span>
                       </div>

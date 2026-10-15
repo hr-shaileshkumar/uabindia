@@ -42,6 +42,17 @@ import {
   Box,
   ArrowRightLeft,
   Sliders,
+  Compass,
+  Layers,
+  Kanban,
+  MessageSquare,
+  Megaphone,
+  Sparkles,
+  Ticket,
+  FileSpreadsheet,
+  PieChart,
+  DollarSign,
+  Settings2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/constants/routes";
@@ -85,15 +96,24 @@ const GROUP_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>
   // ERP & HRMS Groups
   "Self-Service": UserCheck,
   "Core HR": Users,
+  "HR": Users,
   "Employee Lifecycle": UserPlus,
   "Attendance & Time": Clock,
   "Talent Acquisition": Search,
   "Learning & Development": Award,
   "HR Operations": Wallet,
+  "Payroll": Wallet,
   "Processing": PlayCircle,
   "Setup": Sliders,
-  "Compliance": Shield,
-  "Overview": LayoutDashboard,
+  "Compliance": ShieldCheck,
+  "Overview": Compass,
+  "Reports": BarChart3,
+  "Reports Home": BarChart3,
+  "Business Operations": Briefcase,
+  "Operations": Briefcase,
+  "Finance": Landmark,
+  "Advanced": Sliders,
+  "Projects": Kanban,
   "Accounting": Landmark,
   "Treasury": Wallet,
   "Sourcing": Truck,
@@ -117,7 +137,64 @@ const GROUP_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>
   "Devices": Activity,
   "Sessions": Activity,
   "Service": LifeBuoy,
+  "Helpdesk": LifeBuoy,
+  "Communication": MessageSquare,
+  "Workspaces": Layers,
+  "Report Categories": BarChart3,
 };
+
+function resolveGroupIcon(label: string): React.ComponentType<{ className?: string }> {
+  if (GROUP_ICON_MAP[label]) {
+    return GROUP_ICON_MAP[label];
+  }
+  const l = label.toLowerCase();
+  if (l.includes("overview")) return Compass;
+  if (l.includes("hr") || l.includes("employee") || l.includes("talent") || l.includes("people")) return Users;
+  if (l.includes("payroll") || l.includes("salary") || l.includes("payout")) return Wallet;
+  if (l.includes("compliance") || l.includes("statutory") || l.includes("policy")) return ShieldCheck;
+  if (l.includes("business oper") || l.includes("operation") || l.includes("delivery")) return Briefcase;
+  if (l.includes("finance") || l.includes("accounting") || l.includes("ledger") || l.includes("treasury")) return Landmark;
+  if (l.includes("project")) return Kanban;
+  if (l.includes("advance") || l.includes("config") || l.includes("custom")) return Sliders;
+  if (l.includes("report") || l.includes("analyt")) return BarChart3;
+  if (l.includes("helpdesk") || l.includes("support") || l.includes("ticket")) return Ticket;
+  if (l.includes("communi") || l.includes("message") || l.includes("broadcast")) return MessageSquare;
+  if (l.includes("doc") || l.includes("template")) return FileText;
+  if (l.includes("invent") || l.includes("stock") || l.includes("warehous")) return Box;
+  if (l.includes("sales") || l.includes("crm")) return ShoppingBag;
+  if (l.includes("procure") || l.includes("order")) return ShoppingCart;
+  if (l.includes("security") || l.includes("auth")) return ShieldCheck;
+  if (l.includes("ai") || l.includes("intel")) return Sparkles;
+  if (l.includes("workspace") || l.includes("module")) return Layers;
+  return Layers;
+}
+
+function resolveNavItemIconName(item: WorkspaceNavItem): string {
+  if (item.name === "Reports Home" || item.key === "reports-home") {
+    return "bar-chart";
+  }
+  if (item.icon && item.icon !== "grid" && item.icon !== "default") {
+    return item.icon;
+  }
+  const n = (item.name + " " + (item.path || "")).toLowerCase();
+  if (n.includes("report") || n.includes("analytics")) return "bar-chart";
+  if (n.includes("hr") || n.includes("employee") || n.includes("headcount")) return "employees";
+  if (n.includes("payroll") || n.includes("salary") || n.includes("payslip")) return "payroll";
+  if (n.includes("compliance") || n.includes("statutory") || n.includes("audit")) return "shield";
+  if (n.includes("finance") || n.includes("account") || n.includes("pnl") || n.includes("ledger")) return "bank";
+  if (n.includes("invoice") || n.includes("bill")) return "receipt";
+  if (n.includes("setting") || n.includes("config") || n.includes("builder")) return "settings";
+  if (n.includes("user") || n.includes("role") || n.includes("permission")) return "users";
+  if (n.includes("log") || n.includes("audit") || n.includes("activity")) return "activity";
+  if (n.includes("workflow") || n.includes("approval")) return "workflow";
+  if (n.includes("ticket") || n.includes("support")) return "ticket";
+  if (n.includes("project")) return "kanban";
+  if (n.includes("inventory") || n.includes("stock") || n.includes("item")) return "box";
+  if (n.includes("vendor") || n.includes("procure") || n.includes("order")) return "shopping-cart";
+  if (n.includes("attendance") || n.includes("time") || n.includes("shift")) return "clock";
+  if (n.includes("leave") || n.includes("holiday")) return "calendar";
+  return item.icon || "file-text";
+}
 
 function SidebarTooltip({ label }: { label: string }) {
   return (
@@ -174,41 +251,48 @@ function SidebarNavGroupItem({
     }
   }, [isGroupActive, forceExpandAll]);
 
-  const GroupIconComponent = GROUP_ICON_MAP[group.label] || Folder;
+  const GroupIconComponent = resolveGroupIcon(group.label);
 
   return (
-    <div className="ml-3 mt-0.5 border-l border-slate-200/80 dark:border-slate-800 pl-2">
+    <div className={cn(
+      "mt-0.5",
+      modHasMultipleGroups ? "ml-3.5 pl-2 border-l border-slate-200/80 dark:border-slate-800" : "ml-3.5 pl-2 border-l border-slate-200/80 dark:border-slate-800"
+    )}>
+      {/* ── Level 2: Submodule / Functional Group Header ── */}
       {modHasMultipleGroups ? (
         <button
           type="button"
           onClick={() => setGroupOpen((prev: boolean) => !prev)}
           className={cn(
-            "flex w-full items-center gap-1.5 py-1.5 px-2 text-left group/grp rounded-md transition-colors",
+            "flex w-full items-center justify-between gap-1.5 py-1.5 px-2 text-left group/grp rounded-lg transition-colors select-none",
             isGroupActive
               ? "bg-slate-100/90 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 font-semibold"
               : "text-slate-500 hover:text-slate-800 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-850"
           )}
         >
-          <GroupIconComponent
-            className={cn(
-              "h-3.5 w-3.5 shrink-0 transition-colors",
-              isGroupActive
-                ? "text-blue-600 dark:text-blue-400"
-                : "text-slate-400 group-hover/grp:text-slate-600 dark:group-hover/grp:text-slate-300"
-            )}
-          />
-          <span className="text-[11.5px] font-medium leading-none tracking-normal truncate">
-            {group.label}
-          </span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <GroupIconComponent
+              className={cn(
+                "h-3.5 w-3.5 shrink-0 transition-colors",
+                isGroupActive
+                  ? "text-blue-600 dark:text-blue-400"
+                  : "text-slate-400 group-hover/grp:text-slate-600 dark:group-hover/grp:text-slate-300"
+              )}
+            />
+            <span className="text-[11.5px] font-semibold text-slate-700 dark:text-slate-200 tracking-wide truncate">
+              {group.label}
+            </span>
+          </div>
           <ChevronRight
             className={cn(
-              "ml-auto h-3 w-3 shrink-0 text-slate-400 transition-transform duration-200",
+              "h-3 w-3 shrink-0 text-slate-400 transition-transform duration-200",
               groupOpen && "rotate-90 text-slate-600 dark:text-slate-300"
             )}
           />
         </button>
       ) : null}
 
+      {/* ── Level 3: Leaf Destination Pages (Indented with guide rail) ── */}
       <AnimatePresence initial={false}>
         {(!modHasMultipleGroups || groupOpen) && (
           <motion.ul
@@ -216,11 +300,17 @@ function SidebarNavGroupItem({
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.16, ease: "easeInOut" }}
-            className="space-y-0.5 py-0.5 overflow-hidden"
+            className={cn(
+              "space-y-0.5 overflow-hidden",
+              modHasMultipleGroups
+                ? "ml-3.5 pl-2.5 border-l border-slate-200/80 dark:border-slate-800 my-1 py-0.5"
+                : "py-0.5"
+            )}
           >
             {group.items.map((item: WorkspaceNavItem) => {
               const isItemActive = isPathActive(pathname, item.path);
               const isPinned = favorites.some((f) => f.id === item.key || f.href === item.path);
+              const itemIcon = resolveNavItemIconName(item);
 
               return (
                 <li key={item.key} className="group/item relative flex items-center">
@@ -229,30 +319,23 @@ function SidebarNavGroupItem({
                     prefetch={true}
                     onClick={onNavigate}
                     className={cn(
-                      "flex flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] transition-all pr-6",
+                      "flex flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-[11.5px] transition-all pr-6",
                       isItemActive
-                        ? "bg-blue-50/90 font-semibold text-blue-700 shadow-xs dark:bg-blue-950/50 dark:text-blue-300 ring-1 ring-blue-200/60 dark:ring-blue-800/40"
-                        : "text-slate-600 hover:bg-slate-100/70 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-slate-100",
+                        ? "bg-blue-50/90 font-semibold text-blue-700 shadow-xs dark:bg-blue-950/50 dark:text-blue-300 ring-1 ring-blue-200/70 dark:ring-blue-800/40"
+                        : "text-slate-600 hover:bg-slate-100/70 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-slate-100 font-normal",
                     )}
                   >
-                    {item.icon ? (
+                    <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center">
                       <ModuleIcon
-                        name={item.icon}
+                        name={itemIcon}
                         className={cn(
-                          "h-3.5 w-3.5 shrink-0 transition-colors",
+                          "h-3 w-3 shrink-0 transition-colors",
                           isItemActive
                             ? "text-blue-600 dark:text-blue-400"
-                            : "text-slate-400 group-hover/item:text-slate-700 dark:text-slate-500"
+                            : "text-slate-400 group-hover/item:text-slate-600 dark:text-slate-500"
                         )}
                       />
-                    ) : (
-                      <span
-                        className={cn(
-                          "h-1.5 w-1.5 shrink-0 rounded-full transition-colors",
-                          isItemActive ? "bg-blue-600 ring-2 ring-blue-200" : "bg-slate-300 dark:bg-slate-600",
-                        )}
-                      />
-                    )}
+                    </span>
                     <span className="truncate leading-tight">{item.name}</span>
                   </Link>
 
@@ -374,12 +457,7 @@ function SidebarNavItem({
             <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-blue-600" />
           ) : null}
           {iconWrap}
-          <span className="min-w-0 flex-1 truncate text-left font-medium">{displayLabel}</span>
-          {mod.pageCount > 1 ? (
-            <span className="mr-1 rounded-full bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 text-[9.5px] font-semibold text-slate-400 dark:text-slate-500">
-              {mod.pageCount}
-            </span>
-          ) : null}
+          <span className="min-w-0 flex-1 truncate text-left font-semibold text-[13px] text-slate-800 dark:text-slate-200">{displayLabel}</span>
         </Link>
         <button
           type="button"
@@ -585,8 +663,9 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Filter pages & modules..."
-                className="w-full rounded-lg border border-slate-200 bg-slate-50/70 py-1.5 pl-8 pr-7 text-xs text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none transition dark:border-slate-800 dark:bg-slate-850 dark:text-slate-200"
+                placeholder="Search modules & pages..."
+                aria-label="Search modules & pages"
+                className="h-8 w-full rounded-lg border border-slate-200 bg-slate-50/70 pl-8.5 pr-7 text-xs text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none transition dark:border-slate-800 dark:bg-slate-850 dark:text-slate-200"
               />
               {searchQuery ? (
                 <button

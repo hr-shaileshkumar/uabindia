@@ -426,7 +426,7 @@ export function ProtectedWorkspaceShell({ children }: { children: ReactNode }) {
 
   return (
     <div className={cn("fixed inset-0 flex flex-col overflow-hidden bg-background text-foreground", portal.shellClassName)}>
-      <Header onMenuClick={handleShellMenuClick} onSearchClick={() => setSearchOpen(true)} />
+      <Header onMenuClick={handleShellMenuClick} />
       <div className="flex flex-1 min-h-0 overflow-hidden bg-slate-50/60 dark:bg-slate-950">
         <Sidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
         <main id="erp-workspace-content" className="relative isolate min-h-0 flex-1 overflow-y-auto p-3.5 sm:p-5 lg:p-6 scrollbar-thin">

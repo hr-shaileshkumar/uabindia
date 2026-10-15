@@ -976,7 +976,7 @@ export function UabListToolbar({
                     value={sortSearch}
                     onChange={(e) => setSortSearch(e.target.value)}
                     placeholder="Search field…"
-                    className="h-7 w-full rounded-md border border-slate-200 bg-slate-50 pl-7 pr-2 text-xs text-slate-800 placeholder-slate-400 focus:border-indigo-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                    className="h-7.5 w-full rounded-md border border-slate-200 bg-slate-50 pl-8 pr-2 text-xs text-slate-800 placeholder-slate-400 focus:border-indigo-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
                   />
                 </div>
 

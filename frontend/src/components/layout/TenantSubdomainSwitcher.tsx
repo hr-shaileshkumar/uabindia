@@ -417,7 +417,7 @@ export function TenantSubdomainSwitcher() {
                 {/* Filter Search */}
                 {tenants.length > 5 && (
                   <div className="relative mt-2">
-                    <Search className="absolute left-2 top-2 h-3.5 w-3.5 text-slate-400" />
+                    <Search className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                     <input
                       id="tenant-search-input"
                       name="tenant_search"
@@ -425,7 +425,7 @@ export function TenantSubdomainSwitcher() {
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       placeholder="Search registered tenants..."
-                      className="h-7 w-full rounded-md border border-slate-100 bg-slate-50/70 pl-7 pr-2 text-[11px] text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-200"
+                      className="h-7.5 w-full rounded-md border border-slate-100 bg-slate-50/70 pl-8 pr-2 text-[11px] text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-200"
                     />
                   </div>
                 )}

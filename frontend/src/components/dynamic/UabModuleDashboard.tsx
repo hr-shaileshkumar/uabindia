@@ -25,6 +25,17 @@ import {
   ShoppingCart,
   Landmark,
   ShieldCheck,
+  Compass,
+  DollarSign,
+  FileSpreadsheet,
+  PieChart,
+  Settings,
+  Clock,
+  Ticket,
+  FileText,
+  Sliders,
+  Kanban,
+  LayoutDashboard,
   LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -246,6 +257,79 @@ function QuickLinkCard({ link }: { link: ModuleDashboardLink }) {
   );
 }
 
+// ─── Submodule and Page Icon Resolvers ──────────────────────────────────────
+
+function SubmoduleCategoryIcon({ label, className }: { label: string; className?: string }) {
+  const l = label.toLowerCase();
+  if (l.includes("report") || l.includes("analytics")) return <BarChart3 className={className} />;
+  if (l.includes("hr") || l.includes("employee") || l.includes("talent")) return <Users className={className} />;
+  if (l.includes("payroll") || l.includes("salary") || l.includes("payout")) return <Wallet className={className} />;
+  if (l.includes("compliance") || l.includes("statutory") || l.includes("audit")) return <ShieldCheck className={className} />;
+  if (l.includes("business") || l.includes("operation")) return <Briefcase className={className} />;
+  if (l.includes("finance") || l.includes("account")) return <Landmark className={className} />;
+  if (l.includes("project")) return <Kanban className={className} />;
+  if (l.includes("inventory") || l.includes("stock")) return <Package className={className} />;
+  if (l.includes("procurement") || l.includes("order")) return <ShoppingCart className={className} />;
+  if (l.includes("support") || l.includes("ticket") || l.includes("helpdesk")) return <Ticket className={className} />;
+  if (l.includes("system") || l.includes("setting") || l.includes("advance")) return <Sliders className={className} />;
+  if (l.includes("identity") || l.includes("access") || l.includes("iam")) return <ShieldCheck className={className} />;
+  return <Layers className={className} />;
+}
+
+function PageItemIcon({ page, className }: { page: SubmodulePageItem; className?: string }) {
+  if (page.icon && (typeof page.icon === "function" || typeof page.icon === "object")) {
+    const IconComponent = page.icon;
+    return <IconComponent className={className} />;
+  }
+
+  if (typeof page.icon === "string" && page.icon) {
+    return <ModuleIcon name={page.icon} className={className} />;
+  }
+
+  const n = (page.name + " " + page.href).toLowerCase();
+  if (n.includes("financial") || n.includes("finance") || n.includes("pnl") || n.includes("cash") || n.includes("ledger")) {
+    return <DollarSign className={className} />;
+  }
+  if (n.includes("payroll") || n.includes("salary") || n.includes("payslip")) {
+    return <FileSpreadsheet className={className} />;
+  }
+  if (n.includes("hr") || n.includes("employee") || n.includes("headcount") || n.includes("attrition") || n.includes("people")) {
+    return <Users className={className} />;
+  }
+  if (n.includes("compliance") || n.includes("audit") || n.includes("regulatory") || n.includes("statutory")) {
+    return <ShieldCheck className={className} />;
+  }
+  if (n.includes("operations") || n.includes("erp") || n.includes("business")) {
+    return <BarChart3 className={className} />;
+  }
+  if (n.includes("custom") || n.includes("builder") || n.includes("designer")) {
+    return <Sliders className={className} />;
+  }
+  if (n.includes("home") || n.includes("overview")) {
+    return <LayoutDashboard className={className} />;
+  }
+  if (n.includes("attend") || n.includes("time") || n.includes("clock")) {
+    return <Clock className={className} />;
+  }
+  if (n.includes("ticket") || n.includes("help") || n.includes("support")) {
+    return <Ticket className={className} />;
+  }
+  if (n.includes("setting") || n.includes("config") || n.includes("policy")) {
+    return <Settings className={className} />;
+  }
+  if (n.includes("analytic") || n.includes("trend") || n.includes("stat")) {
+    return <TrendingUp className={className} />;
+  }
+  if (n.includes("inventory") || n.includes("stock") || n.includes("item")) {
+    return <Package className={className} />;
+  }
+  if (n.includes("order") || n.includes("procure") || n.includes("vendor")) {
+    return <ShoppingCart className={className} />;
+  }
+
+  return <FileText className={className} />;
+}
+
 // ─── Main Dashboard Component ────────────────────────────────────────────────
 
 export function UabModuleDashboard({
@@ -346,15 +430,18 @@ export function UabModuleDashboard({
         label: sub.label,
         purpose: sub.purpose,
         sequence: sIdx + 1,
-        pages: sub.pages.map((p, pIdx) => ({
-          name: p.label,
-          href: p.route,
-          icon: null,
-          desc: p.purpose,
-          status: p.status,
-          display: p.display,
-          sequence: pIdx + 1,
-        })),
+        pages: sub.pages.map((p, pIdx) => {
+          const matchingLink = links?.find((l) => l.href === p.route || l.label === p.label);
+          return {
+            name: p.label,
+            href: p.route,
+            icon: matchingLink?.icon || null,
+            desc: p.purpose,
+            status: p.status,
+            display: p.display,
+            sequence: pIdx + 1,
+          };
+        }),
       }));
     }
 
@@ -500,7 +587,7 @@ export function UabModuleDashboard({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search pages..."
-              className="w-full rounded-lg border border-slate-200 bg-white py-1.5 pl-8 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs dark:border-slate-800 dark:bg-slate-900 dark:text-white"
+              className="w-full rounded-lg border border-slate-200 bg-white py-1.5 pl-9 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs dark:border-slate-800 dark:bg-slate-900 dark:text-white"
             />
           </div>
 
@@ -547,15 +634,15 @@ export function UabModuleDashboard({
             >
               {/* Submodule Box Header */}
               <div className="flex items-center gap-2.5 pb-2.5 border-b border-slate-100 dark:border-slate-800">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-slate-100 font-mono text-[11px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                  {submodule.sequence < 10 ? `0${submodule.sequence}` : submodule.sequence}
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
+                  <SubmoduleCategoryIcon label={submodule.label} className="h-3.5 w-3.5" />
                 </span>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 truncate">
                   {submodule.label}
                 </h3>
               </div>
 
-              {/* Submodule Pages in Clean Sequence */}
+              {/* Submodule Pages with Contextual Icons */}
               <div className="mt-2.5 space-y-0.5">
                 {submodule.pages.map((page) => (
                   <Link
@@ -563,9 +650,9 @@ export function UabModuleDashboard({
                     href={page.href}
                     className="group/page flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-xs text-slate-600 hover:bg-slate-50 hover:text-blue-600 dark:text-slate-300 dark:hover:bg-slate-800/60 dark:hover:text-blue-400 transition-colors"
                   >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="flex h-4 w-4 shrink-0 items-center justify-center font-mono text-[10px] text-slate-400 group-hover/page:text-blue-600">
-                        {page.sequence}
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-500 group-hover/page:bg-blue-50 group-hover/page:text-blue-600 dark:bg-slate-800 dark:text-slate-400 dark:group-hover/page:bg-blue-950/60 dark:group-hover/page:text-blue-400 transition-colors">
+                        <PageItemIcon page={page} className="h-3 w-3" />
                       </span>
                       <span className="truncate font-medium">{page.name}</span>
                     </div>
