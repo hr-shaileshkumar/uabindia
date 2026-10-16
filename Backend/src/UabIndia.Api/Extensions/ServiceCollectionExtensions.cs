@@ -230,6 +230,7 @@ namespace UabIndia.Api.Extensions
             services.AddScoped<IPaymentService, PaymentService>();
             services.AddSingleton<IPaymentGatewayFactory, PaymentGatewayFactory>();
             services.AddScoped<ISubscriptionBillingService, SubscriptionBillingService>();
+            services.AddScoped<IWebhookDispatcherService, WebhookDispatcherService>();
 
             // Global HRMS & Payroll
             services.AddScoped<IEmployeeService, EmployeeService>();

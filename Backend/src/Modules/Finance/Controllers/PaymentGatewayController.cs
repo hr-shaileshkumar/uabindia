@@ -14,15 +14,18 @@ namespace UabIndia.Api.Modules.Finance.Controllers
         private readonly IPaymentGatewayFactory _gatewayFactory;
         private readonly ISubscriptionBillingService _billingService;
         private readonly ITenantAccessor _tenantAccessor;
+        private readonly IWebhookDispatcherService? _webhooks;
 
         public PaymentGatewayController(
             IPaymentGatewayFactory gatewayFactory,
             ISubscriptionBillingService billingService,
-            ITenantAccessor tenantAccessor)
+            ITenantAccessor tenantAccessor,
+            IWebhookDispatcherService? webhooks = null)
         {
             _gatewayFactory = gatewayFactory;
             _billingService = billingService;
             _tenantAccessor = tenantAccessor;
+            _webhooks = webhooks;
         }
 
         [HttpGet("gateways")]
@@ -47,9 +50,10 @@ namespace UabIndia.Api.Modules.Finance.Controllers
         [HttpPost("intent")]
         public async Task<IActionResult> CreatePaymentIntent([FromBody] CreateIntentApiRequest req)
         {
+            var tenantId = _tenantAccessor.GetTenantId();
             var provider = !string.IsNullOrWhiteSpace(req.Provider)
-                ? _gatewayFactory.GetProvider(req.Provider)
-                : _gatewayFactory.GetProviderForCurrency(req.Currency);
+                ? _gatewayFactory.GetProvider(req.Provider, tenantId)
+                : _gatewayFactory.GetProviderForCurrency(req.Currency, tenantId);
 
             var intentReq = new PaymentIntentRequest
             {
@@ -77,11 +81,33 @@ namespace UabIndia.Api.Modules.Finance.Controllers
         [HttpPost("capture")]
         public async Task<IActionResult> CapturePayment([FromBody] CapturePaymentApiRequest req)
         {
+            var tenantId = _tenantAccessor.GetTenantId();
             var provider = !string.IsNullOrWhiteSpace(req.Provider)
-                ? _gatewayFactory.GetProvider(req.Provider)
-                : _gatewayFactory.GetProviderForCurrency(req.Currency);
+                ? _gatewayFactory.GetProvider(req.Provider, tenantId)
+                : _gatewayFactory.GetProviderForCurrency(req.Currency, tenantId);
 
             var result = await provider.CapturePaymentAsync(req.PaymentReference, req.Amount, req.Currency);
+
+            if (result.Success && _webhooks != null && tenantId != Guid.Empty)
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await _webhooks.DispatchEventAsync(tenantId, "payment.captured", new
+                        {
+                            provider = result.Provider,
+                            transactionId = result.TransactionId,
+                            amount = result.AmountCaptured,
+                            currency = result.Currency,
+                            paymentReference = req.PaymentReference,
+                            capturedAt = DateTime.UtcNow
+                        }, System.Threading.CancellationToken.None);
+                    }
+                    catch { }
+                });
+            }
+
             return Ok(new { success = result.Success, data = result });
         }
 
@@ -96,7 +122,8 @@ namespace UabIndia.Api.Modules.Finance.Controllers
         [HttpPost("refund")]
         public async Task<IActionResult> RefundPayment([FromBody] RefundPaymentApiRequest req)
         {
-            var provider = _gatewayFactory.GetProvider(req.Provider ?? "Stripe");
+            var tenantId = _tenantAccessor.GetTenantId();
+            var provider = _gatewayFactory.GetProvider(req.Provider ?? "Stripe", tenantId);
             var result = await provider.RefundPaymentAsync(req.PaymentReference, req.Amount, req.Reason);
             return Ok(new { success = result.Success, data = result });
         }

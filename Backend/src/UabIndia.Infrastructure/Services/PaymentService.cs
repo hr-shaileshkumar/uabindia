@@ -14,17 +14,20 @@ namespace UabIndia.Infrastructure.Services
         private readonly ITenantAccessor _tenantAccessor;
         private readonly IDocumentNumberService _numbers;
         private readonly ILedgerPostingService _ledger;
+        private readonly IWebhookDispatcherService? _webhooks;
 
         public PaymentService(
             ApplicationDbContext db,
             ITenantAccessor tenantAccessor,
             IDocumentNumberService numbers,
-            ILedgerPostingService ledger)
+            ILedgerPostingService ledger,
+            IWebhookDispatcherService? webhooks = null)
         {
             _db = db;
             _tenantAccessor = tenantAccessor;
             _numbers = numbers;
             _ledger = ledger;
+            _webhooks = webhooks;
         }
 
         public async Task<Payment> RecordAsync(RecordPaymentCommand command, CancellationToken cancellationToken = default)
@@ -76,6 +79,30 @@ namespace UabIndia.Infrastructure.Services
                 cancellationToken);
             payment.JournalEntryId = journal.Id;
             await _db.SaveChangesAsync(cancellationToken);
+
+            if (_webhooks != null && tenantId != Guid.Empty)
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await _webhooks.DispatchEventAsync(tenantId, "payment.received", new
+                        {
+                            paymentId = payment.Id,
+                            paymentNumber = payment.PaymentNumber,
+                            amount = payment.Amount,
+                            paymentType = payment.PaymentType,
+                            paymentMode = payment.PaymentMode,
+                            partyName = payment.PartyName,
+                            invoiceNumber = payment.InvoiceNumber,
+                            status = payment.Status,
+                            recordedAt = payment.CreatedAt
+                        }, CancellationToken.None);
+                    }
+                    catch { }
+                });
+            }
+
             return payment;
         }
 

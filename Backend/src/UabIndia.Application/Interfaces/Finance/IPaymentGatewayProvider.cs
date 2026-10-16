@@ -73,8 +73,8 @@ namespace UabIndia.Application.Interfaces
 
     public interface IPaymentGatewayFactory
     {
-        IPaymentGatewayProvider GetProvider(string providerName);
-        IPaymentGatewayProvider GetProviderForCurrency(string currencyCode);
+        IPaymentGatewayProvider GetProvider(string providerName, Guid? tenantId = null);
+        IPaymentGatewayProvider GetProviderForCurrency(string currencyCode, Guid? tenantId = null);
         IReadOnlyList<string> GetSupportedProviders();
     }
 }

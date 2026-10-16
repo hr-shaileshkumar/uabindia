@@ -31,6 +31,13 @@ namespace UabIndia.Infrastructure.Services.Payments
                 ?? "mock_rzp_webhook_secret";
         }
 
+        public RazorpayPaymentProvider(string keyId, string keySecret, string webhookSecret = "mock_rzp_webhook_secret")
+        {
+            _keyId = string.IsNullOrWhiteSpace(keyId) ? "rzp_test_mock_id" : keyId;
+            _keySecret = string.IsNullOrWhiteSpace(keySecret) ? "mock_rzp_secret" : keySecret;
+            _webhookSecret = string.IsNullOrWhiteSpace(webhookSecret) ? "mock_rzp_webhook_secret" : webhookSecret;
+        }
+
         public string ProviderName => "Razorpay";
 
         public bool SupportsCurrency(string currencyCode)
