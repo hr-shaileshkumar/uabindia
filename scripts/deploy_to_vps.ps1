@@ -14,7 +14,7 @@ param(
     [string]$VpsUser = $env:VPS_USER,
     [string]$VpsHost = $env:VPS_HOST,
     [string]$VpsPath = $env:VPS_PATH,
-    [string]$PublishDir = "$PSScriptRoot\..\Backend\src\UabIndia.Api\bin\Release\net8.0\publish"
+    [string]$PublishDir = "$PSScriptRoot\..\Backend\src\UabIndia.Api\bin\Release\net10.0\publish"
 )
 
 if (-not $VpsUser -or -not $VpsHost -or -not $VpsPath) {

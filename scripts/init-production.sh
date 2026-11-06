@@ -21,8 +21,12 @@ if [ ! -f .env ]; then
 fi
 
 # 2. Build and Launch Containers
-echo "🐳 Starting Docker containers (SQL Server, Redis, .NET API, Next.js, Nginx)..."
-docker compose up -d --build
+echo "🐳 Starting Production Docker stack (SQL Server, Redis, .NET API, Next.js ERP, HRMS, Nginx)..."
+if [ -f "docker-compose.prod.yml" ]; then
+  docker compose -f docker-compose.prod.yml up -d --build
+else
+  docker compose up -d --build
+fi
 
 echo "⏳ Waiting for Database & Backend API to become healthy..."
 sleep 15

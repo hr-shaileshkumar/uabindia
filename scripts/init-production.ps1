@@ -22,8 +22,12 @@ if (-not (Test-Path ".env")) {
 }
 
 # 2. Build and Launch Containers
-Write-Host "🐳 Starting Docker containers (SQL Server, Redis, .NET API, Next.js, Nginx)..." -ForegroundColor Yellow
-docker compose up -d --build
+Write-Host "🐳 Starting Production Docker stack (SQL Server, Redis, .NET API, Next.js ERP, HRMS, Nginx)..." -ForegroundColor Yellow
+if (Test-Path "docker-compose.prod.yml") {
+    docker compose -f docker-compose.prod.yml up -d --build
+} else {
+    docker compose up -d --build
+}
 
 Write-Host "⏳ Waiting for Database & Backend API to become healthy..." -ForegroundColor Yellow
 Start-Sleep -Seconds 15

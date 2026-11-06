@@ -12,7 +12,7 @@ param(
     [string]$VpsUser = $env:STAGING_VPS_USER,
     [string]$VpsHost = $env:STAGING_VPS_HOST,
     [string]$VpsPath = $env:STAGING_VPS_PATH,
-    [string]$PublishDir = "$PSScriptRoot\..\Backend\src\UabIndia.Api\bin\Release\net8.0\publish"
+    [string]$PublishDir = "$PSScriptRoot\..\Backend\src\UabIndia.Api\bin\Release\net10.0\publish"
 )
 
 if (-not $VpsUser -or -not $VpsHost -or -not $VpsPath) {

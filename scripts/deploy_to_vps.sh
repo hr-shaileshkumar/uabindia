@@ -8,7 +8,7 @@ set -euo pipefail
 VPS_USER=${VPS_USER:-}
 VPS_HOST=${VPS_HOST:-}
 VPS_PATH=${VPS_PATH:-}
-PUBLISH_DIR="$(pwd)/Backend/src/UabIndia.Api/bin/Release/net8.0/publish"
+PUBLISH_DIR="$(pwd)/Backend/src/UabIndia.Api/bin/Release/net10.0/publish"
 
 if [ -z "$VPS_USER" ] || [ -z "$VPS_HOST" ] || [ -z "$VPS_PATH" ]; then
   echo "Missing VPS_USER, VPS_HOST or VPS_PATH environment variables"
