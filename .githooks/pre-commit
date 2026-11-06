@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Cross-platform pre-commit launcher (calls PS or sh checks)
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+if command -v pwsh >/dev/null 2>&1; then
+  pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File "$REPO_ROOT/scripts/pre-commit-checks.ps1"
+  exit $?
+elif command -v powershell >/dev/null 2>&1; then
+  powershell -NoProfile -ExecutionPolicy Bypass -File "$REPO_ROOT/scripts/pre-commit-checks.ps1"
+  exit $?
+else
+  # fallback to sh script if pwsh/powershell not available
+  if [ -f "$REPO_ROOT/scripts/pre-commit-checks.sh" ]; then
+    sh "$REPO_ROOT/scripts/pre-commit-checks.sh"
+    exit $?
+  fi
+  echo "No PowerShell or shell pre-commit checks available." >&2
+  exit 0
+fi

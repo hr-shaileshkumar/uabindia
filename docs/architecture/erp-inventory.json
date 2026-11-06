@@ -1,0 +1,40 @@
+{
+  "version": "2.0.0",
+  "generatedAt": "2026-09-15T23:17:51.729Z",
+  "architecture": {
+    "backend": ".NET 10 / ASP.NET Core / EF Core",
+    "frontend": "Next.js 15.1+ / React 19.0.0",
+    "database": "Relational Database / EF Core ApplicationDbContext",
+    "multiTenancy": "Database-Level Global Query Filters on TenantId"
+  },
+  "summary": {
+    "totalPages": 192,
+    "totalControllers": 108,
+    "totalEndpoints": 542,
+    "totalDbSets": 172,
+    "totalEntities": 124,
+    "scannedAt": "2026-09-15T23:17:51.590Z"
+  },
+  "modules": [
+    "Administration",
+    "HRMS",
+    "Payroll",
+    "Finance",
+    "Procurement",
+    "Inventory",
+    "Sales",
+    "CRM",
+    "Projects",
+    "Assets",
+    "Manufacturing",
+    "Compliance",
+    "Reports",
+    "Workflow",
+    "Notifications",
+    "Identity",
+    "Billing",
+    "Helpdesk",
+    "Communication",
+    "Integrations"
+  ]
+}

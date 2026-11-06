@@ -1,0 +1,20 @@
+{
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "dev:erp": "npm --prefix frontend run dev",
+    "dev:hrms": "npm --prefix frontend-hrms run dev",
+    "dev:clean": "npm --prefix frontend run dev:clean",
+    "api": "powershell -NoProfile -Command \"Get-Process UabIndia.Api -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue\"; dotnet run --project Backend/src/UabIndia.Api/UabIndia.Api.csproj --urls http://127.0.0.1:5000",
+    "api:watch": "cmd /c run-backend.bat",
+    "build": "npm --prefix frontend run build",
+    "build:erp": "npm --prefix frontend run build",
+    "build:hrms": "npm --prefix frontend-hrms run build",
+    "start": "npm --prefix frontend run start",
+    "lint": "npm --prefix frontend run lint",
+    "typecheck": "npm --prefix frontend run typecheck",
+    "test": "npm --prefix frontend run test",
+    "test:erp": "npm --prefix frontend run test",
+    "test:hrms": "npm --prefix frontend-hrms run test"
+  }
+}

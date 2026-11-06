@@ -1,0 +1,301 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { ArrowRight, Eye, EyeOff, Loader2, LockKeyhole, Mail } from "lucide-react";
+import PublicAudiencePageFrame from "@/components/public/PublicAudiencePageFrame";
+import PublicAuthAlert from "@/components/public/PublicAuthAlert";
+import PublicAuthCard, { PublicAuthFooterLink } from "@/components/public/PublicAuthCard";
+import { PublicAuthFormField, PublicAuthInput } from "@/components/public/PublicAuthFormField";
+import PublicAuthShell from "@/components/public/PublicAuthShell";
+import { publicAuthLinkClassName, publicButtonClassName } from "@/components/public/publicStyles";
+import { useAuth } from "@/context/AuthContext";
+import { usePublicPageData } from "@/hooks/usePublicPageData";
+import { useResolvedPublicAudience } from "@/hooks/useResolvedPublicAudience";
+import { getApiErrorMessage, isApiConnectivityError } from "@/lib/api-errors";
+import { readRememberedLogin, writeRememberedLogin } from "@/lib/auth-remember";
+import { withPublicAudience } from "@/lib/public-audience";
+import { canonicalizeProtectedPath, getDefaultAppPath } from "@/lib/workspace/route-config";
+import { cn } from "@/lib/utils";
+import apiClient, { getDeviceId, setClientAuthToken } from "@/services/apiClient";
+import { authApi } from "@/services/modules";
+
+const loginSchema = z.object({
+  email: z.string().email("Enter a valid work email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  remember: z.boolean().optional(),
+});
+
+type LoginValues = z.infer<typeof loginSchema>;
+
+type LoginContent = {
+  title: string;
+  subtitle: string;
+  loginButtonLabel: string;
+};
+
+export default function LoginPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { refreshUser } = useAuth();
+  const nextPath = searchParams?.get("next") ?? null;
+  const { audience } = useResolvedPublicAudience();
+  const { profile, headerContent, footerContent, allowedPaths, pageVisible, parseContent } =
+    usePublicPageData("login", audience);
+  const content = parseContent<LoginContent>({
+    title: "Welcome back",
+    subtitle: "Enter your work email and password to continue.",
+    loginButtonLabel: "Sign in",
+  });
+
+  const [errorMessage, setErrorMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [savedEmail, setSavedEmail] = useState("");
+
+  const emailFieldId = "login-email";
+  const passwordFieldId = "login-password";
+  const rememberFieldId = "login-remember";
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "", remember: false },
+  });
+
+  useEffect(() => {
+    // Security: sanitize URL immediately if credentials ever leaked into query parameters (e.g. from accidental GET submission)
+    if (typeof window !== "undefined" && window.location.search) {
+      try {
+        const url = new URL(window.location.href);
+        if (url.searchParams.has("password") || url.searchParams.has("email")) {
+          const leakedEmail = url.searchParams.get("email");
+          if (leakedEmail) {
+            reset((prev) => ({ ...prev, email: leakedEmail }));
+          }
+          url.searchParams.delete("password");
+          url.searchParams.delete("email");
+          const cleanedSearch = url.searchParams.toString();
+          window.history.replaceState({}, "", url.pathname + (cleanedSearch ? `?${cleanedSearch}` : ""));
+        }
+      } catch {}
+    }
+
+    const saved = readRememberedLogin();
+    setSavedEmail(saved.email);
+    reset({
+      email: saved.email,
+      password: "",
+      remember: saved.remember,
+    });
+  }, [reset]);
+
+
+  const targetPath = useMemo(
+    () => (nextPath ? canonicalizeProtectedPath(nextPath) : getDefaultAppPath()),
+    [nextPath]
+  );
+
+  useEffect(() => {
+    router.prefetch(targetPath);
+
+    // If user already authenticated via SSO, redirect to returnUrl or target
+    const checkSso = async () => {
+      try {
+        const res = await apiClient.get("/auth/me");
+        if (res.data?.id) {
+          const returnUrl = searchParams?.get("returnUrl");
+          if (returnUrl) {
+            window.location.href = returnUrl;
+            return;
+          }
+          router.replace(targetPath);
+        }
+      } catch {
+        // Not authenticated
+      }
+    };
+    void checkSso();
+  }, [router, searchParams, targetPath]);
+
+  const onSubmit = async (values: LoginValues) => {
+    setErrorMessage("");
+    const email = values.email.trim().toLowerCase();
+    const remember = Boolean(values.remember);
+
+    try {
+      writeRememberedLogin(remember, email);
+      const res = await authApi.login({
+        email,
+        password: values.password,
+        deviceId: getDeviceId(),
+      });
+
+      const token = res.data?.access_token || res.data?.token;
+      if (token) {
+        setClientAuthToken(token);
+      }
+
+      await refreshUser();
+      const returnUrl = searchParams?.get("returnUrl");
+      if (returnUrl) {
+        window.location.href = returnUrl;
+        return;
+      }
+      const resolvedAppPath = targetPath && targetPath !== "/" ? targetPath : "/employee-self-service";
+      if (typeof document !== "undefined") {
+        document.cookie = `active_path=${encodeURIComponent(resolvedAppPath)}; path=/; max-age=604800; SameSite=Lax`;
+        try {
+          sessionStorage.setItem("erp.active.path", resolvedAppPath);
+        } catch {}
+      }
+      router.replace("/");
+    } catch (error: unknown) {
+      if (isApiConnectivityError(error)) {
+        setErrorMessage("Unable to reach the server. Please check your connection and try again.");
+        return;
+      }
+      setErrorMessage(getApiErrorMessage(error, "Invalid email or password. Please try again."));
+    }
+  };
+
+  const brandName = profile.brandName || profile.companyName || process.env.NEXT_PUBLIC_APP_NAME || "UabIndia ERP";
+  const homeHref = withPublicAudience("/", audience);
+  const busy = isSubmitting;
+
+  return (
+    <PublicAudiencePageFrame
+      audience={audience}
+      profile={profile}
+      headerContent={headerContent}
+      footerContent={footerContent}
+      allowedPaths={allowedPaths}
+      pageVisible={pageVisible}
+      showHeader={false}
+      showFooter={false}
+    >
+      <PublicAuthShell
+        brandName={brandName}
+        homeHref={homeHref}
+        audience={audience}
+        variant="login"
+        profile={profile}
+        headerContent={headerContent}
+        allowedPaths={allowedPaths}
+      >
+        <PublicAuthCard
+          title={content.title}
+          subtitle={content.subtitle}
+          footer={
+            <>
+              Need workspace access?{" "}
+              <PublicAuthFooterLink href={withPublicAudience("/register", audience)}>
+                Request workspace
+              </PublicAuthFooterLink>
+            </>
+          }
+        >
+          <form
+            method="POST"
+            action="#"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void handleSubmit(onSubmit)(e);
+            }}
+            className="space-y-3.5"
+            noValidate
+          >
+            <PublicAuthFormField id={emailFieldId} label="Work email" error={errors.email?.message}>
+              <PublicAuthInput
+                id={emailFieldId}
+                {...register("email")}
+                type="email"
+                placeholder="you@company.com"
+                autoComplete="username"
+                autoFocus={!savedEmail}
+                icon={<Mail className="h-4 w-4" />}
+              />
+            </PublicAuthFormField>
+
+            <PublicAuthFormField
+              id={passwordFieldId}
+              label="Password"
+              error={errors.password?.message}
+              hint={
+                <Link
+                  href={withPublicAudience("/forgot-password", audience)}
+                  className={cn(publicAuthLinkClassName, "text-xs")}
+                >
+                  Forgot password?
+                </Link>
+              }
+            >
+              <PublicAuthInput
+                id={passwordFieldId}
+                {...register("password")}
+                type={showPassword ? "text" : "password"}
+                placeholder="Enter your password"
+                autoComplete="current-password"
+                autoFocus={Boolean(savedEmail)}
+                icon={<LockKeyhole className="h-4 w-4" />}
+                trailing={
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((value) => !value)}
+                    className="absolute right-3.5 top-1/2 z-10 -translate-y-1/2 rounded-md p-1 text-slate-400 transition-colors hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                }
+              />
+            </PublicAuthFormField>
+
+            <label htmlFor={rememberFieldId} className="flex cursor-pointer items-start gap-2.5 pt-0.5">
+              <input
+                id={rememberFieldId}
+                type="checkbox"
+                {...register("remember")}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800"
+              />
+              <span className="text-sm leading-snug text-slate-600 dark:text-slate-400">
+                <span className="font-medium text-slate-800 dark:text-slate-200">Remember me</span>
+                <span className="block text-xs text-slate-500 dark:text-slate-400">
+                  Saves your email on this device. Your browser can securely store the password.
+                </span>
+              </span>
+            </label>
+
+            {errorMessage ? <PublicAuthAlert tone="error">{errorMessage}</PublicAuthAlert> : null}
+
+            <button
+              type="submit"
+              disabled={busy}
+              className={cn(publicButtonClassName.primary, "mt-1.5 w-full")}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  {content.loginButtonLabel}
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
+            </button>
+          </form>
+        </PublicAuthCard>
+      </PublicAuthShell>
+    </PublicAudiencePageFrame>
+  );
+}

@@ -1,0 +1,61 @@
+name: PR Pre-commit Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+jobs:
+  precommit:
+    name: Pre-commit checks (matrix)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Stage PR changed files and run checks (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          set -e
+          BASE_REF="${{ github.event.pull_request.base.ref }}"
+          echo "Fetching base branch: $BASE_REF"
+          git fetch origin "$BASE_REF"
+          git diff --name-only "origin/$BASE_REF...HEAD" > changed_files.txt || true
+          echo "Files changed in PR:"; cat changed_files.txt || true
+          while IFS= read -r file; do
+            if [ -e "$file" ]; then
+              git add "$file" || true
+            fi
+          done < changed_files.txt || true
+          echo "Staged files:"; git diff --cached --name-only || true
+          chmod +x scripts/pre-commit-checks.sh || true
+          ./scripts/pre-commit-checks.sh
+
+      - name: Stage PR changed files and run checks (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $base = '${{ github.event.pull_request.base.ref }}'
+          Write-Host "Fetching base branch: $base"
+          git fetch origin $base
+          git diff --name-only "origin/$base...HEAD" | Out-File -FilePath changed_files.txt -Encoding utf8 -Force
+          Write-Host "Files changed in PR:"; Get-Content changed_files.txt | ForEach-Object { Write-Host $_ }
+          Get-Content changed_files.txt | ForEach-Object { if (Test-Path $_) { git add $_ } }
+          Write-Host "Staged files:"; git diff --cached --name-only
+          pwsh -NoProfile -NoLogo -ExecutionPolicy Bypass scripts/pre-commit-checks.ps1

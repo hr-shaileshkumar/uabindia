@@ -1,0 +1,32 @@
+name: Deploy Migrations
+
+on:
+  workflow_dispatch:
+
+jobs:
+  apply-migrations:
+    if: ${{ false }}
+    name: Apply migration SQL to staging
+    runs-on: ubuntu-latest
+    # This job targets the `staging` environment so repository admins
+    # can require manual approval before it runs.
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify SQL artifact
+        run: |
+          echo "Found migration script:"
+          ls -la Backend/migrations_scripts | sed -n '1,200p'
+      - name: Execute migration SQL
+        if: always()
+        env:
+          DB_SERVER: ${{ secrets.STAGING_DB_SERVER }}
+          DB_USER: ${{ secrets.STAGING_DB_USER }}
+          DB_PASSWORD: ${{ secrets.STAGING_DB_PASSWORD }}
+        run: |
+          if [ -z "$DB_SERVER" ] || [ -z "$DB_USER" ] || [ -z "$DB_PASSWORD" ]; then
+            echo "ERROR: Missing staging DB secrets (STAGING_DB_SERVER/STAGING_DB_USER/STAGING_DB_PASSWORD)."
+            exit 1
+          fi
+          echo "Running migration script against $DB_SERVER"
+          docker run --rm -v "${{ github.workspace }}:/workspace" mcr.microsoft.com/mssql-tools bash -c "/opt/mssql-tools/bin/sqlcmd -S \"$DB_SERVER\" -U \"$DB_USER\" -P \"$DB_PASSWORD\" -i /workspace/Backend/migrations_scripts/archive/migrate-20260201.sql"

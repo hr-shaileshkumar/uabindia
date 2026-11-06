@@ -1,0 +1,38 @@
+name: Deploy Migrations - Production
+
+on:
+  workflow_dispatch:
+
+jobs:
+  apply-prod:
+    if: ${{ false }}
+    name: Apply migration SQL to production
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify SQL artifact
+        run: |
+          echo "Migration scripts in repository:"
+          ls -la Backend/migrations_scripts || true
+      - name: Create audit metadata
+        run: |
+          mkdir -p migration_audit
+          printf '{"run_id":"%s","run_number":"%s","actor":"%s","ref":"%s","sha":"%s","timestamp":"%s"}' "${{ github.run_id }}" "${{ github.run_number }}" "${{ github.actor }}" "${{ github.ref }}" "${{ github.sha }}" "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" > migration_audit/metadata.json
+      - name: Upload audit artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: migration-audit-${{ github.run_id }}
+          path: migration_audit
+      - name: Execute migration SQL
+        env:
+          DB_SERVER: ${{ secrets.PRODUCTION_DB_SERVER }}
+          DB_USER: ${{ secrets.PRODUCTION_DB_USER }}
+          DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
+        run: |
+          if [ -z "$DB_SERVER" ] || [ -z "$DB_USER" ] || [ -z "$DB_PASSWORD" ]; then
+            echo "ERROR: Missing production DB secrets (PRODUCTION_DB_SERVER/PRODUCTION_DB_USER/PRODUCTION_DB_PASSWORD)."
+            exit 1
+          fi
+          echo "Running migration script against $DB_SERVER"
+          docker run --rm -v "${{ github.workspace }}:/workspace" mcr.microsoft.com/mssql-tools bash -c "/opt/mssql-tools/bin/sqlcmd -S \"$DB_SERVER\" -U \"$DB_USER\" -P \"$DB_PASSWORD\" -i /workspace/Backend/migrations_scripts/archive/migrate-20260201.sql"

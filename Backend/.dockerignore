@@ -1,0 +1,10 @@
+**/bin/
+**/obj/
+_build_*/
+artifacts-startup-check/
+tests/
+scripts/
+deploy/
+**/*.user
+**/*.md
+.git

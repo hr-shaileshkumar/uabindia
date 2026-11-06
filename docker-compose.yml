@@ -1,0 +1,107 @@
+version: '3.8'
+
+services:
+  # 1. SQL Server Database
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: uabindia-sqlserver
+    restart: always
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "${DB_PASSWORD:-YourSecurePassword123!}"
+      MSSQL_PID: "Developer"
+    ports:
+      - "127.0.0.1:1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "${DB_PASSWORD:-YourSecurePassword123!}" -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - uabindia-network
+
+  # 2. Redis Distributed Cache
+  redis:
+    image: redis:7-alpine
+    container_name: uabindia-redis
+    restart: always
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - uabindia-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 3. .NET 10 ERP Backend API
+  api:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    container_name: uabindia-api
+    restart: always
+    environment:
+      ConnectionStrings__DefaultConnection: "Server=sqlserver;Database=UabIndia_HRMS;User Id=sa;Password=${DB_PASSWORD:-YourSecurePassword123!};TrustServerCertificate=True;Encrypt=True;MultipleActiveResultSets=true"
+      ConnectionStrings__Redis: "redis:6379"
+      Jwt__Key: "${JWT_SECRET:-your-secure-jwt-key-minimum-64-characters-long-production-key-here}"
+      Jwt__Issuer: "https://api.uabindia.com"
+      Jwt__Audience: "uabindia_clients"
+      Cors__AllowedOrigins: "http://localhost:3000,http://localhost,https://uabindia.com"
+      ASPNETCORE_ENVIRONMENT: "Production"
+      ASPNETCORE_URLS: "http://+:5000"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - uabindia-network
+
+  # 4. Next.js Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: uabindia-frontend
+    restart: always
+    environment:
+      NODE_ENV: "production"
+      NEXT_PUBLIC_API_URL: "http://api:5000"
+      API_BASE_URL: "http://api:5000"
+      PORT: 3000
+    depends_on:
+      - api
+    networks:
+      - uabindia-network
+
+  # 5. Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: uabindia-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api
+      - frontend
+    networks:
+      - uabindia-network
+
+volumes:
+  sqlserver_data:
+  redis_data:
+
+networks:
+  uabindia-network:
+    driver: bridge

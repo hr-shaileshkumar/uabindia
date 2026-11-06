@@ -1,0 +1,7 @@
+dist/
+src_backup/
+screenshots/
+reports/
+node_modules/
+/.env
+*.log

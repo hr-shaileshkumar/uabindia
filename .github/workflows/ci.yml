@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (.NET 10)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore UabIndia.sln
+
+      - name: Build
+        run: dotnet build UabIndia.sln --no-restore --configuration Release
+
+      - name: Test
+        env:
+          ASPNETCORE_ENVIRONMENT: Test
+          Jwt__Key: "test_jwt_key_for_automated_tests_only_0123456789"
+          Jwt__Issuer: "test-issuer"
+          Jwt__Audience: "test-audience"
+          Encryption__Key: "dev_encryption_key_1234567890"
+        run: dotnet test UabIndia.sln --no-build --configuration Release --verbosity normal
+
+  frontend:
+    name: Frontend (Next.js)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm run test
+
+      - name: Build
+        run: npm run build
+
+  secret-scan:
+    name: Secret / env file guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Block committed env and key material
+        run: |
+          set -euo pipefail
+          forbidden=$(git ls-files | grep -E '\.(env|jks|keystore|pfx|pem)$' || true)
+          if [ -n "$forbidden" ]; then
+            echo "Forbidden sensitive files tracked in git:" >&2
+            echo "$forbidden" >&2
+            exit 1
+          fi
+
+          credential_hits=$(git ls-files '**/appsettings*.json' | while read -r file; do
+            if grep -Eiq 'Password=[^;\"]+|User ID=SA|Hrms@|DESKTOP-' "$file"; then
+              echo "$file"
+            fi
+          done || true)
+
+          if [ -n "$credential_hits" ]; then
+            echo "Potential credentials found in tracked appsettings JSON:" >&2
+            echo "$credential_hits" >&2
+            exit 1
+          fi
+
+          echo "Secret scan passed."

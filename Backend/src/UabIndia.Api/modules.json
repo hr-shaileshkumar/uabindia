@@ -1,0 +1,9 @@
+{
+  "Modules": [
+    { "Name": "hrms", "Enabled": true, "Version": "1.0.0" },
+    { "Name": "payroll", "Enabled": true, "Version": "1.0.0" },
+    { "Name": "reports", "Enabled": true, "Version": "1.0.0" },
+    { "Name": "compliance", "Enabled": true, "Version": "1.0.0" },
+    { "Name": "crm", "Enabled": true, "Version": "1.0.0" }
+  ]
+}
