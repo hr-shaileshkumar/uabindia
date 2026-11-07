@@ -102,166 +102,181 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             if (emailExists)
                 return BadRequest(new { success = false, message = "An account with this email address already exists." });
 
-            // 1. Create Tenant
-            var tenant = new Tenant
+            var strategy = _db.Database.CreateExecutionStrategy();
+            return await strategy.ExecuteAsync<IActionResult>(async () =>
             {
-                Name = dto.CompanyName.Trim(),
-                Subdomain = slug,
-                IsActive = true,
-                ProvisionStatus = "Completed"
-            };
-            _db.Tenants.Add(tenant);
-            await _db.SaveChangesAsync();
-
-            // 2. Create Default Company
-            var company = new Company
-            {
-                TenantId = tenant.Id,
-                Name = dto.CompanyName.Trim(),
-                LegalName = dto.CompanyName.Trim(),
-                Industry = string.IsNullOrWhiteSpace(dto.Industry) ? "Technology & Services" : dto.Industry.Trim(),
-                Country = "India",
-                Email = dto.AdminEmail.Trim(),
-                PhoneNumber = dto.PhoneNumber?.Trim(),
-                IsActive = true
-            };
-            _db.Companies.Add(company);
-
-            // 3. Create Admin Role & User
-            var adminRole = new Role
-            {
-                TenantId = tenant.Id,
-                Name = RoleCatalog.AdminRoleName,
-                Description = "Tenant administrator with full company permissions."
-            };
-            _db.Roles.Add(adminRole);
-
-            var user = new User
-            {
-                TenantId = tenant.Id,
-                CompanyId = company.Id,
-                Email = normalizedAdminEmail,
-                EmailHash = adminEmailHash,
-                FullName = string.IsNullOrWhiteSpace(dto.AdminName) ? "Admin" : dto.AdminName.Trim(),
-                IsActive = true,
-                IsSystemAdmin = false
-            };
-            user.PasswordHash = _hasher.HashPassword(user, dto.Password);
-            _db.Users.Add(user);
-
-            var userRole = new UserRole
-            {
-                TenantId = tenant.Id,
-                UserId = user.Id,
-                RoleId = adminRole.Id
-            };
-            _db.UserRoles.Add(userRole);
-
-            // 4. Provision Free Trial Subscription
-            var sub = new TenantSubscription
-            {
-                TenantId = tenant.Id,
-                PlanCode = "trial",
-                Status = "Active",
-                BillingCycle = "Monthly",
-                Amount = 0,
-                Currency = "INR",
-                StartDate = DateTime.UtcNow,
-                EndDate = DateTime.UtcNow.AddDays(14),
-                TrialEndsAt = DateTime.UtcNow.AddDays(14),
-                GatewayProvider = "Manual"
-            };
-            _db.TenantSubscriptions.Add(sub);
-
-            // 5. Seed Core Chart of Accounts for Indian SME Accounting
-            var coaDefaults = new (string Code, string Name, string Type, string SubType)[]
-            {
-                ("1000", "Cash in Hand", "Asset", "Current Asset"),
-                ("1010", "Main Operating Bank Account", "Asset", "Current Asset"),
-                ("1200", "Accounts Receivable (Trade Debtors)", "Asset", "Current Asset"),
-                ("1400", "Finished Goods Inventory", "Asset", "Current Asset"),
-                ("2000", "Accounts Payable (Trade Creditors)", "Liability", "Current Liability"),
-                ("2100", "GST Output Tax Payable", "Liability", "Current Liability"),
-                ("3000", "Shareholder Capital / Equity", "Equity", "Equity"),
-                ("4000", "Sales Revenue (Goods & Services)", "Revenue", "Operating Revenue"),
-                ("5000", "Cost of Goods Sold (COGS)", "Expense", "Direct Cost"),
-                ("6000", "Salaries & Payroll Expense", "Expense", "Operating Expense"),
-                ("6100", "Rent, Utilities & Office Expense", "Expense", "Operating Expense")
-            };
-
-            foreach (var (code, name, type, subType) in coaDefaults)
-            {
-                _db.ChartOfAccounts.Add(new ChartOfAccount
+                await using var tx = await _db.Database.BeginTransactionAsync();
+                try
                 {
-                    TenantId = tenant.Id,
-                    AccountCode = code,
-                    AccountName = name,
-                    AccountType = type,
-                    SubType = subType,
-                    IsActive = true
-                });
-            }
+                    // 1. Create Tenant
+                    var tenant = new Tenant
+                    {
+                        Name = dto.CompanyName.Trim(),
+                        Subdomain = slug,
+                        IsActive = true,
+                        ProvisionStatus = "Completed"
+                    };
+                    _db.Tenants.Add(tenant);
+                    await _db.SaveChangesAsync();
 
-            // 5b. Seed Default Tenant Modules & SuperAdmin Role Permissions
-            var defaultModuleKeys = new[]
-            {
-                "security", "sales", "compliance", "erp", "projects", "payroll",
-                "procurement", "reports", "licensing", "notifications", "crm",
-                "hrms", "workflow", "finance", "inventory", "platform"
-            };
+                    // 2. Create Default Company
+                    var company = new Company
+                    {
+                        TenantId = tenant.Id,
+                        Name = dto.CompanyName.Trim(),
+                        LegalName = dto.CompanyName.Trim(),
+                        Industry = string.IsNullOrWhiteSpace(dto.Industry) ? "Technology & Services" : dto.Industry.Trim(),
+                        Country = "India",
+                        Email = dto.AdminEmail.Trim(),
+                        PhoneNumber = dto.PhoneNumber?.Trim(),
+                        IsActive = true
+                    };
+                    _db.Companies.Add(company);
 
-            foreach (var modKey in defaultModuleKeys)
-            {
-                _db.TenantModules.Add(new TenantModule
+                    // 3. Create Admin Role & User
+                    var adminRole = new Role
+                    {
+                        TenantId = tenant.Id,
+                        Name = RoleCatalog.AdminRoleName,
+                        Description = "Tenant administrator with full company permissions."
+                    };
+                    _db.Roles.Add(adminRole);
+
+                    var user = new User
+                    {
+                        TenantId = tenant.Id,
+                        CompanyId = company.Id,
+                        Email = normalizedAdminEmail,
+                        EmailHash = adminEmailHash,
+                        FullName = string.IsNullOrWhiteSpace(dto.AdminName) ? "Admin" : dto.AdminName.Trim(),
+                        IsActive = true,
+                        IsSystemAdmin = false
+                    };
+                    user.PasswordHash = _hasher.HashPassword(user, dto.Password);
+                    _db.Users.Add(user);
+
+                    var userRole = new UserRole
+                    {
+                        TenantId = tenant.Id,
+                        UserId = user.Id,
+                        RoleId = adminRole.Id
+                    };
+                    _db.UserRoles.Add(userRole);
+
+                    // 4. Provision Free Trial Subscription
+                    var sub = new TenantSubscription
+                    {
+                        TenantId = tenant.Id,
+                        PlanCode = "trial",
+                        Status = "Active",
+                        BillingCycle = "Monthly",
+                        Amount = 0,
+                        Currency = "INR",
+                        StartDate = DateTime.UtcNow,
+                        EndDate = DateTime.UtcNow.AddDays(14),
+                        TrialEndsAt = DateTime.UtcNow.AddDays(14),
+                        GatewayProvider = "Manual"
+                    };
+                    _db.TenantSubscriptions.Add(sub);
+
+                    // 5. Seed Core Chart of Accounts for Indian SME Accounting
+                    var coaDefaults = new (string Code, string Name, string Type, string SubType)[]
+                    {
+                        ("1000", "Cash in Hand", "Asset", "Current Asset"),
+                        ("1010", "Main Operating Bank Account", "Asset", "Current Asset"),
+                        ("1200", "Accounts Receivable (Trade Debtors)", "Asset", "Current Asset"),
+                        ("1400", "Finished Goods Inventory", "Asset", "Current Asset"),
+                        ("2000", "Accounts Payable (Trade Creditors)", "Liability", "Current Liability"),
+                        ("2100", "GST Output Tax Payable", "Liability", "Current Liability"),
+                        ("3000", "Shareholder Capital / Equity", "Equity", "Equity"),
+                        ("4000", "Sales Revenue (Goods & Services)", "Revenue", "Operating Revenue"),
+                        ("5000", "Cost of Goods Sold (COGS)", "Expense", "Direct Cost"),
+                        ("6000", "Salaries & Payroll Expense", "Expense", "Operating Expense"),
+                        ("6100", "Rent, Utilities & Office Expense", "Expense", "Operating Expense")
+                    };
+
+                    foreach (var (code, name, type, subType) in coaDefaults)
+                    {
+                        _db.ChartOfAccounts.Add(new ChartOfAccount
+                        {
+                            TenantId = tenant.Id,
+                            AccountCode = code,
+                            AccountName = name,
+                            AccountType = type,
+                            SubType = subType,
+                            IsActive = true
+                        });
+                    }
+
+                    // 5b. Seed Default Tenant Modules & SuperAdmin Role Permissions
+                    var defaultModuleKeys = new[]
+                    {
+                        "security", "sales", "compliance", "erp", "projects", "payroll",
+                        "procurement", "reports", "licensing", "notifications", "crm",
+                        "hrms", "workflow", "finance", "inventory", "platform"
+                    };
+
+                    foreach (var modKey in defaultModuleKeys)
+                    {
+                        _db.TenantModules.Add(new TenantModule
+                        {
+                            TenantId = tenant.Id,
+                            ModuleKey = modKey,
+                            IsEnabled = true,
+                            EnabledAt = DateTime.UtcNow
+                        });
+                    }
+
+                    var allPermissions = await _db.Permissions.AsNoTracking().Where(p => !p.IsDeleted).ToListAsync();
+                    foreach (var perm in allPermissions)
+                    {
+                        _db.RolePermissions.Add(new RolePermission
+                        {
+                            TenantId = tenant.Id,
+                            RoleId = adminRole.Id,
+                            PermissionId = perm.Id
+                        });
+                    }
+
+                    await _db.SaveChangesAsync();
+                    await tx.CommitAsync();
+
+                    // 6. Generate Token & Session Cookies
+                    var token = _jwt.GenerateToken(user.Id, tenant.Id, new[] { RoleCatalog.AdminRoleName }, TimeSpan.FromDays(7), isSystemAdmin: false);
+
+                    Response.Cookies.Append("access_token", token, new CookieOptions
+                    {
+                        HttpOnly = true,
+                        Secure = false,
+                        SameSite = SameSiteMode.Lax,
+                        Expires = DateTimeOffset.UtcNow.AddDays(7),
+                        Path = "/"
+                    });
+
+                    return Ok(new
+                    {
+                        success = true,
+                        message = "Workspace created successfully! Redirecting to setup...",
+                        token,
+                        tenant = new
+                        {
+                            id = tenant.Id,
+                            name = tenant.Name,
+                            subdomain = tenant.Subdomain
+                        },
+                        user = new
+                        {
+                            id = user.Id,
+                            email = user.Email,
+                            fullName = user.FullName
+                        }
+                    });
+                }
+                catch (Exception ex)
                 {
-                    TenantId = tenant.Id,
-                    ModuleKey = modKey,
-                    IsEnabled = true,
-                    EnabledAt = DateTime.UtcNow
-                });
-            }
-
-            var allPermissions = await _db.Permissions.AsNoTracking().Where(p => !p.IsDeleted).ToListAsync();
-            foreach (var perm in allPermissions)
-            {
-                _db.RolePermissions.Add(new RolePermission
-                {
-                    TenantId = tenant.Id,
-                    RoleId = adminRole.Id,
-                    PermissionId = perm.Id
-                });
-            }
-
-            await _db.SaveChangesAsync();
-
-            // 6. Generate Token & Session Cookies
-            var token = _jwt.GenerateToken(user.Id, tenant.Id, new[] { RoleCatalog.AdminRoleName }, TimeSpan.FromDays(7), isSystemAdmin: false);
-
-            Response.Cookies.Append("access_token", token, new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = false,
-                SameSite = SameSiteMode.Lax,
-                Expires = DateTimeOffset.UtcNow.AddDays(7),
-                Path = "/"
-            });
-
-            return Ok(new
-            {
-                success = true,
-                message = "Workspace created successfully! Redirecting to setup...",
-                token,
-                tenant = new
-                {
-                    id = tenant.Id,
-                    name = tenant.Name,
-                    subdomain = tenant.Subdomain
-                },
-                user = new
-                {
-                    id = user.Id,
-                    email = user.Email,
-                    fullName = user.FullName
+                    await tx.RollbackAsync();
+                    _logger.LogError(ex, "Failed to self-register tenant for company {Company} and email {Email}. Transaction rolled back.", dto.CompanyName, dto.AdminEmail);
+                    return StatusCode(500, new { success = false, message = "Workspace creation failed. No data was saved to the server. Please try again." });
                 }
             });
         }
