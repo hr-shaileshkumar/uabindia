@@ -72,31 +72,26 @@ using UabIndia.Api.Swagger;
 
 var builder = WebApplication.CreateBuilder(args);
 
-LoadDotEnvConfiguration(builder.Configuration, builder.Environment.ContentRootPath);
-
 var explicitEnvironment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
-
     ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
 
 var preserveTestHost = builder.Environment.IsEnvironment("Test");
 
 if (!preserveTestHost)
-
 {
-
     if (string.IsNullOrWhiteSpace(explicitEnvironment))
-
     {
-
         explicitEnvironment = Environments.Development;
-
     }
 
     builder.Environment.EnvironmentName = explicitEnvironment;
 
     builder.Configuration.AddJsonFile($"appsettings.{explicitEnvironment}.json", optional: true, reloadOnChange: true);
-
 }
+
+// Load .env configuration and environment variables AFTER JSON files so env overrides take precedence
+LoadDotEnvConfiguration(builder.Configuration, builder.Environment.ContentRootPath);
+builder.Configuration.AddEnvironmentVariables();
 
 var env = builder.Environment;
 
@@ -1009,15 +1004,20 @@ static void LoadDotEnvConfiguration(ConfigurationManager configuration, string c
             if (separatorIndex <= 0) continue;
 
             var key = line[..separatorIndex].Trim();
-
             var value = line[(separatorIndex + 1)..].Trim().Trim('"');
 
             if (key.Length == 0) continue;
 
+            // Preserve launchSettings / explicit environment variable if already configured
+            if ((key.Equals("ASPNETCORE_ENVIRONMENT", StringComparison.OrdinalIgnoreCase) ||
+                 key.Equals("DOTNET_ENVIRONMENT", StringComparison.OrdinalIgnoreCase)) &&
+                !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(key)))
+            {
+                continue;
+            }
+
             values[key] = value;
-
             values[key.Replace("__", ":", StringComparison.Ordinal)] = value;
-
             Environment.SetEnvironmentVariable(key, value);
 
         }

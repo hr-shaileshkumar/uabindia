@@ -34,8 +34,15 @@ namespace UabIndia.Api.Extensions
             var rawConnectionString = configuration.GetConnectionString("DefaultConnection");
             if (string.IsNullOrWhiteSpace(rawConnectionString) && !env.IsEnvironment("Test"))
             {
-                throw new InvalidOperationException(
-                    "ConnectionStrings:DefaultConnection is not configured. Set it via environment variable or appsettings.json.");
+                if (env.IsDevelopment())
+                {
+                    rawConnectionString = "Server=localhost;Database=UabIndia_ERP_Dev;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true;Max Pool Size=256;Connect Timeout=45;";
+                }
+                else
+                {
+                    throw new InvalidOperationException(
+                        "ConnectionStrings:DefaultConnection is not configured. Set it via environment variable or appsettings.json.");
+                }
             }
 
             var sqlServerConnectionString = NormalizeSqlServerConnectionString(rawConnectionString ?? string.Empty, env);

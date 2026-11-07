@@ -40,9 +40,11 @@ if [ -f ".env.production.example" ]; then
         .env.production.example > .env.production
 
     chmod 600 .env.production
-    cp -f .env.production .env
-    chmod 600 .env
-    echo "🎉 Secrets successfully written to .env.production and synced to .env (mode 600)!"
+    if [ ! -f ".env" ]; then
+        cp -f .env.production .env
+        chmod 600 .env
+    fi
+    echo "🎉 Secrets successfully written to .env.production (mode 600)!"
     echo "⚠️  IMPORTANT: Keep .env.production secure and never commit it to git."
 else
     echo "❌ Error: .env.production.example not found!"

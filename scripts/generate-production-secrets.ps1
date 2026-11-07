@@ -61,7 +61,9 @@ if (Test-Path ".env.production.example") {
     $content = $content.Replace("YOUR_COMPLEX_INITIAL_SUPERADMIN_PASSWORD_MIN_16_CHARS", $adminPassword)
 
     [System.IO.File]::WriteAllText($targetEnv, $content, [System.Text.Encoding]::UTF8)
-    [System.IO.File]::WriteAllText(".env", $content, [System.Text.Encoding]::UTF8)
-    Write-Host "Secrets successfully written to .env.production and synced to .env!" -ForegroundColor Green
+    if (!(Test-Path ".env")) {
+        [System.IO.File]::WriteAllText(".env", $content, [System.Text.Encoding]::UTF8)
+    }
+    Write-Host "Secrets successfully written to .env.production!" -ForegroundColor Green
     Write-Host "IMPORTANT: Keep .env.production secure and never commit it to git repository." -ForegroundColor Yellow
 }
