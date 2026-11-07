@@ -18,6 +18,11 @@ const frontendRoot = path.resolve(__dirname);
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: frontendRoot,
+  poweredByHeader: false,
+  productionBrowserSourceMaps: false,
+  compiler: {
+    removeConsole: isProd ? { exclude: ["error"] } : false,
+  },
   allowedDevOrigins: [
     "127.0.0.1",
     "127.0.0.1:3000",

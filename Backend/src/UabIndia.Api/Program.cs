@@ -860,11 +860,10 @@ var healthCheckOptions = new HealthCheckOptions
         context.Response.ContentType = "application/json";
 
         var result = System.Text.Json.JsonSerializer.Serialize(new
-
         {
-
             status = report.Status.ToString(),
-
+            version = "1.0.1",
+            timestamp = DateTime.UtcNow,
             checks = report.Entries.Select(e => new
 
             {

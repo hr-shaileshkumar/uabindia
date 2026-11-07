@@ -737,7 +737,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       </nav>
 
       {/* Bottom Utility Dock */}
-      <div className={cn("border-t border-slate-100 p-2.5 dark:border-slate-800", collapsed && "flex justify-center p-2")}>
+      <div className={cn("border-t border-slate-100 p-2.5 dark:border-slate-800", collapsed && "flex flex-col items-center p-2")}>
         <Link
           href={ROUTES.HELPDESK_HOME}
           onClick={onMobileClose}
@@ -749,6 +749,18 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           <LifeBuoy className="h-4 w-4 shrink-0 text-slate-400 group-hover:text-blue-600" />
           {!collapsed ? <span>Help & Support</span> : <SidebarTooltip label="Help & Support" />}
         </Link>
+        {!collapsed ? (
+          <div className="flex items-center justify-between px-2.5 pt-2 text-[10px] text-slate-400 dark:text-slate-500 font-mono">
+            <span>UabIndia ERP</span>
+            <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400 font-bold">
+              v{process.env.NEXT_PUBLIC_APP_VERSION || "1.0.1"}
+            </span>
+          </div>
+        ) : (
+          <div className="pt-2 text-[9px] text-slate-400 font-mono text-center">
+            v{process.env.NEXT_PUBLIC_APP_VERSION || "1.0.1"}
+          </div>
+        )}
       </div>
     </div>
   );
