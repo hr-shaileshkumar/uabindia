@@ -153,6 +153,17 @@ recordings/
 *_FIX*.md
 
 ########################################################
+# Production Persistent Uploads, Backups & SSL
+########################################################
+uploads/
+**/uploads/
+backups/
+**/backups/
+certbot/
+**/certbot/
+msbuild.log
+
+########################################################
 # Generated files / backups
 ########################################################
 *.zip

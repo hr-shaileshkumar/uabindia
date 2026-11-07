@@ -1,6 +1,7 @@
 # ==============================================================================
 # UabIndia SaaS ERP - Production Cryptographic Secrets Generator
-# Generates high-entropy random keys for JWT (512-bit), AES-256-GCM, and HMAC
+# Generates high-entropy random keys for JWT (512-bit), AES-256-GCM, HMAC,
+# database credentials, Redis auth, and initial superadmin provisioning.
 # ==============================================================================
 
 Write-Host "======================================================================" -ForegroundColor Cyan
@@ -25,13 +26,17 @@ $hmacKey = [Convert]::ToBase64String($hmacBytes)
 # 4. Generate Random DB Password
 $dbBytes = New-Object byte[] 24
 [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($dbBytes)
-$dbPassword = [Convert]::ToBase64String($dbBytes) -replace '[^a-zA-Z0-9]', ''
-$dbPassword = $dbPassword + "!A1"
+$dbPassword = ([Convert]::ToBase64String($dbBytes) -replace '[^a-zA-Z0-9]', '').Substring(0, 20) + "!A1"
 
 # 5. Generate Random Redis Password
 $redisBytes = New-Object byte[] 24
 [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($redisBytes)
-$redisPassword = [Convert]::ToBase64String($redisBytes) -replace '[^a-zA-Z0-9]', ''
+$redisPassword = ([Convert]::ToBase64String($redisBytes) -replace '[^a-zA-Z0-9]', '').Substring(0, 24)
+
+# 6. Generate Random Initial SuperAdmin Password
+$adminBytes = New-Object byte[] 16
+[System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($adminBytes)
+$adminPassword = ([Convert]::ToBase64String($adminBytes) -replace '[^a-zA-Z0-9]', '').Substring(0, 16) + "!Aa9"
 
 Write-Host "Generated High-Entropy Cryptographic Keys:" -ForegroundColor Green
 Write-Host (" - JWT Secret (512-bit):        " + $jwtSecret.Substring(0, 16) + "...")
@@ -39,18 +44,24 @@ Write-Host (" - AES-256 Master Key:          " + $aesMasterKey.Substring(0, 16) 
 Write-Host (" - HMAC Blind Index Key:        " + $hmacKey.Substring(0, 16) + "...")
 Write-Host (" - Generated DB Password:       " + $dbPassword.Substring(0, 10) + "...")
 Write-Host (" - Generated Redis Password:    " + $redisPassword.Substring(0, 10) + "...")
+Write-Host (" - Initial SuperAdmin Password: " + $adminPassword)
 Write-Host ""
 
 $targetEnv = ".env.production"
 if (Test-Path ".env.production.example") {
     $content = [System.IO.File]::ReadAllText(".env.production.example")
     $content = $content.Replace("CHANGE_THIS_TO_YOUR_SECURE_512_BIT_RANDOM_JWT_SECRET_KEY_MIN_64_CHARS", $jwtSecret)
+    $content = $content.Replace("YOUR_SECURE_512_BIT_RANDOM_JWT_SECRET_KEY_MIN_64_CHARS", $jwtSecret)
     $content = $content.Replace("CHANGE_THIS_TO_YOUR_SECURE_256_BIT_AES_GCM_BASE64_KEY_32_BYTES", $aesMasterKey)
     $content = $content.Replace("CHANGE_THIS_TO_YOUR_SECURE_256_BIT_HMAC_SHA256_BASE64_KEY_32_BYTES", $hmacKey)
+    $content = $content.Replace("YOUR_COMPLEX_SQL_SERVER_PASSWORD_MIN_16_CHARS", $dbPassword)
     $content = $content.Replace("YOUR_SECURE_COMPLEX_PASSWORD_HERE", $dbPassword)
+    $content = $content.Replace("YOUR_COMPLEX_REDIS_PASSWORD_MIN_32_CHARS", $redisPassword)
     $content = $content.Replace("YOUR_REDIS_PASSWORD", $redisPassword)
+    $content = $content.Replace("YOUR_COMPLEX_INITIAL_SUPERADMIN_PASSWORD_MIN_16_CHARS", $adminPassword)
 
     [System.IO.File]::WriteAllText($targetEnv, $content, [System.Text.Encoding]::UTF8)
-    Write-Host "Secrets successfully written to .env.production!" -ForegroundColor Green
+    [System.IO.File]::WriteAllText(".env", $content, [System.Text.Encoding]::UTF8)
+    Write-Host "Secrets successfully written to .env.production and synced to .env!" -ForegroundColor Green
     Write-Host "IMPORTANT: Keep .env.production secure and never commit it to git repository." -ForegroundColor Yellow
 }

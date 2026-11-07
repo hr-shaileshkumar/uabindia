@@ -165,13 +165,16 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                 : projectId;
 
             var safeFileName = Path.GetFileName(file.FileName);
+            var safeCategory = string.IsNullOrWhiteSpace(category) ? "general" : category.Trim().ToLowerInvariant().Replace(" ", "-");
+            var targetFolder = $"documents/{safeCategory}";
+
             await using var stream = file.OpenReadStream();
             var relativePath = await _storageProvider.UploadFileAsync(
                 stream,
                 safeFileName,
                 string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType,
                 tenantId,
-                "documents",
+                targetFolder,
                 HttpContext.RequestAborted);
 
             var doc = new DocumentRecord

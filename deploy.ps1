@@ -24,24 +24,36 @@ if (-not (Test-Path ".env.production")) {
     }
 }
 
+# Ensure .env exists and mirrors .env.production
+if (Test-Path ".env.production") {
+    Copy-Item -Path ".env.production" -Destination ".env" -Force
+}
+
+# Ensure local directories exist
+if (-not (Test-Path "backups")) { New-Item -ItemType Directory -Path "backups" | Out-Null }
+if (-not (Test-Path "uploads")) { New-Item -ItemType Directory -Path "uploads" | Out-Null }
+if (-not (Test-Path "certbot\conf")) { New-Item -ItemType Directory -Path "certbot\conf" -Force | Out-Null }
+if (-not (Test-Path "certbot\www")) { New-Item -ItemType Directory -Path "certbot\www" -Force | Out-Null }
+
 Write-Host "✅ Environment configuration loaded (.env.production)." -ForegroundColor Green
 
 # 3. Pull / Build & Launch Containers
 Write-Host "--> Building and starting containers via docker-compose.prod.yml..." -ForegroundColor Yellow
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
 
 # 4. Wait for services to stabilize
-Write-Host "--> Waiting for services to become healthy (15 seconds)..." -ForegroundColor Yellow
-Start-Sleep -Seconds 15
+Write-Host "--> Waiting for services to become healthy (20 seconds)..." -ForegroundColor Yellow
+Start-Sleep -Seconds 20
 
 # 5. Health Check
 Write-Host "--> Checking service status..." -ForegroundColor Yellow
-docker compose -f docker-compose.prod.yml ps
+docker compose --env-file .env.production -f docker-compose.prod.yml ps
 
 Write-Host "======================================================================" -ForegroundColor Green
 Write-Host "🎉 UabIndia ERP deployed successfully without any code modifications!" -ForegroundColor Green
 Write-Host "======================================================================" -ForegroundColor Green
 Write-Host "Web Portal:        http://localhost" -ForegroundColor Cyan
+Write-Host "HRMS Portal:       http://localhost/hrms/" -ForegroundColor Cyan
 Write-Host "REST API Docs:     http://localhost/swagger" -ForegroundColor Cyan
 Write-Host "Health Endpoint:   http://localhost/health" -ForegroundColor Cyan
 Write-Host ""

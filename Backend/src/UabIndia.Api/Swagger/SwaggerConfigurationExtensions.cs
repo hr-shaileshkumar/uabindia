@@ -84,6 +84,14 @@ All protected routes require standard `Authorization: Bearer <JWT_ACCESS_TOKEN>`
 
         public static IApplicationBuilder UseEnterpriseSwagger(this IApplicationBuilder app, IWebHostEnvironment env)
         {
+            var enableSwagger = env.IsDevelopment() ||
+                string.Equals(Environment.GetEnvironmentVariable("ENABLE_SWAGGER"), "true", StringComparison.OrdinalIgnoreCase);
+
+            if (!enableSwagger)
+            {
+                return app;
+            }
+
             app.UseSwagger(c =>
             {
                 c.RouteTemplate = "swagger/{documentName}/swagger.json";

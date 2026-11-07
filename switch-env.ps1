@@ -17,7 +17,7 @@ param (
     [switch]$Status
 )
 
-$server = "localhost\SHAILESH"
+$server = if ($env:SQL_SERVER_INSTANCE) { $env:SQL_SERVER_INSTANCE } else { "localhost" }
 $devDb = "UabIndia_ERP_Dev"
 $prodDb = "UabIndia_ERP_Prod"
 

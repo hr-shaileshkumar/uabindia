@@ -657,57 +657,50 @@ if (app.Environment.IsDevelopment())
         }
 
         if (adminUser == null)
-
         {
+            var seedPassword = Environment.GetEnvironmentVariable("SEED_ADMIN_PASSWORD");
+            if (string.IsNullOrWhiteSpace(seedPassword))
+            {
+                if (app.Environment.IsDevelopment())
+                {
+                    seedPassword = AuthUserLookup.DevAdminPassword;
+                }
+                else
+                {
+                    throw new InvalidOperationException(
+                        "FATAL: In production environments, SEED_ADMIN_PASSWORD must be configured before startup. Default credentials are prohibited.");
+                }
+            }
 
             adminUser = new User
-
             {
-
                 TenantId = tenant.Id,
-
-                Email = AuthUserLookup.DevAdminEmail,
-
-                FullName = "Enterprise Admin",
-
+                Email = Environment.GetEnvironmentVariable("SEED_ADMIN_EMAIL") ?? AuthUserLookup.DevAdminEmail,
+                FullName = Environment.GetEnvironmentVariable("SEED_ADMIN_NAME") ?? "Enterprise Admin",
                 IsSystemAdmin = true,
-
                 IsActive = true
-
             };
 
-            adminUser.PasswordHash = hasher.HashPassword(adminUser, AuthUserLookup.DevAdminPassword);
-
+            adminUser.PasswordHash = hasher.HashPassword(adminUser, seedPassword);
             db.Users.Add(adminUser);
-
             db.SaveChanges();
-
         }
-
         else
-
         {
-
             adminUser.IsDeleted = false;
-
             adminUser.IsActive = true;
-
             adminUser.IsSystemAdmin = true;
-
             adminUser.TenantId = tenant.Id;
-
-            adminUser.Email = AuthUserLookup.DevAdminEmail;
-
             AccountLockoutPolicy.ResetFailedAttempts(adminUser);
 
-            adminUser.PasswordHash = hasher.HashPassword(adminUser, AuthUserLookup.DevAdminPassword);
+            if (app.Environment.IsDevelopment() && string.IsNullOrEmpty(adminUser.PasswordHash))
+            {
+                adminUser.PasswordHash = hasher.HashPassword(adminUser, AuthUserLookup.DevAdminPassword);
+            }
 
             adminUser.UpdatedAt = DateTime.UtcNow;
-
             db.Users.Update(adminUser);
-
             db.SaveChanges();
-
         }
 
         var adminUserRole = db.UserRoles.IgnoreQueryFilters().FirstOrDefault(ur => ur.TenantId == tenant.Id && ur.UserId == adminUser.Id && ur.RoleId == adminRole.Id);

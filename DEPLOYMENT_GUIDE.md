@@ -34,27 +34,31 @@
 ssh root@YOUR_SERVER_IP
 ```
 
-### 2. Install Docker & Docker Compose (if not already installed)
-```bash
-curl -fsSL https://get.docker.com | sh
-sudo systemctl enable --now docker
-```
-
-### 3. Clone Repository
+### 2. Clone Repository
 ```bash
 git clone https://github.com/hr-shaileshkumar/uabindia.git /opt/uabindia
 cd /opt/uabindia
 ```
 
-### 4. Run the 1-Click Deployment Script
+### 3. Server Hardening & Preparation (Run Once)
+```bash
+sudo bash scripts/setup-vps.sh
+```
+*What this automatically does for you:*
+- Configures 4GB Swap file to permanently prevent MSSQL Out-of-Memory (OOM) crashes.
+- Configures UFW Firewall: enables ports 22, 80, 443; protects internal database (1433) and Redis (6379).
+- Installs Docker Engine & Compose v2 (if not already installed).
+- Configures automated daily database backups at 02:00 AM via cron.
+
+### 4. Run the 1-Click Production Deployment Script
 ```bash
 chmod +x deploy.sh
 ./deploy.sh
 ```
 *That's it!* The script automatically:
 - Generates high-entropy production cryptographic keys (512-bit JWT, AES-256-GCM, DB & Redis passwords).
-- Builds Next.js 15 standalone frontend, .NET 10 Web API, and Hangfire worker.
-- Configures Nginx reverse proxy with rate limiting and SignalR WebSocket proxy.
+- Builds Next.js 15 standalone frontend, Vite HRMS portal, .NET 10 Web API, and Hangfire worker.
+- Configures Nginx reverse proxy with rate limiting, WebSocket upgrade, and isolated subdomains.
 
 ### 5. Setup Free SSL Certificate (Let's Encrypt / Certbot)
 ```bash
@@ -160,7 +164,14 @@ docker compose -f docker-compose.prod.yml logs -f frontend
 
 ### Automated Database Backup
 ```bash
-./scripts/backup-database.sh
+# Manual snapshot (saves to ./backups/)
+bash scripts/backup-database.sh
+```
+
+### Database Disaster Recovery / Restore
+```bash
+# Restore from a backup archive
+bash scripts/restore-database.sh ./backups/UabIndia_Enterprise_Full_YYYYMMDD_HHMMSS.bak
 ```
 
 ### Stopping or Restarting Services
