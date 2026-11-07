@@ -56,7 +56,11 @@ namespace UabIndia.Api.Extensions
                     sql.CommandTimeout(60);
                     sql.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
                 });
-                options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
+                options.ConfigureWarnings(w =>
+                {
+                    w.Ignore(RelationalEventId.PendingModelChangesWarning);
+                    w.Ignore(SqlServerEventId.SavepointsDisabledBecauseOfMARS);
+                });
                 options.ReplaceService<IModelCacheKeyFactory, TenantModelCacheKeyFactory>();
             });
 

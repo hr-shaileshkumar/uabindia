@@ -133,36 +133,25 @@ builder.Services.AddSingleton<UabIndia.Api.Modules.IModuleRegistry, UabIndia.Api
 
 builder.Configuration.AddJsonFile("modules.json", optional: true, reloadOnChange: true);
 
-// Sentry for error tracking
-
+// Sentry for error tracking (only enabled if a genuine, non-dummy DSN is configured)
 var sentryDsn = configuration["Sentry:Dsn"];
+var isDummySentry = string.IsNullOrWhiteSpace(sentryDsn) ||
+                    sentryDsn.Contains("your-sentry-dsn-here", StringComparison.OrdinalIgnoreCase) ||
+                    sentryDsn.Contains("example", StringComparison.OrdinalIgnoreCase);
 
-if (!string.IsNullOrEmpty(sentryDsn))
-
+if (!isDummySentry)
 {
-
     builder.WebHost.UseSentry();
-
     builder.Services.Configure<SentryAspNetCoreOptions>(options =>
-
     {
-
         options.Dsn = sentryDsn;
-
         options.Environment = env.EnvironmentName;
-
-        options.TracesSampleRate = env.IsDevelopment() ? 1.0 : 0.1;
-
-        options.Debug = env.IsDevelopment();
-
+        options.TracesSampleRate = env.IsDevelopment() ? 0.0 : 0.1;
+        options.Debug = false; // Never spam console with internal Sentry envelope debug logs
         options.MaxBreadcrumbs = 200;
-
         options.AttachStacktrace = true;
-
         options.IsGlobalModeEnabled = false;
-
     });
-
 }
 
 // Logging Configuration (Clean, concise enterprise logging: suppresses verbose SQL DDL/Command dumps)
