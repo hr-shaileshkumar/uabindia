@@ -320,11 +320,20 @@ export function ProtectedWorkspaceShell({ children }: { children: ReactNode }) {
     if (!user) {
       if (typeof document !== "undefined") {
         document.cookie = "access_token=; path=/; max-age=0; SameSite=Lax";
+        try {
+          window.sessionStorage.removeItem("erp.auth.user");
+          window.sessionStorage.removeItem("erp.active.path");
+        } catch {}
       }
       const isTenantHost = typeof window !== "undefined" && hasTenantScopedHost(window.location.hostname);
       const audience = !isTenantHost && matchesAnyPrefix(pathname, OWNER_PATH_PREFIXES) ? "platform" : "tenant";
       const targetPath = pathname === "/" ? "/dashboard" : pathname;
-      router.replace(withPublicAudience(`/login?next=${encodeURIComponent(targetPath)}`, audience));
+      const targetLoginUrl = withPublicAudience(`/login?next=${encodeURIComponent(targetPath)}`, audience);
+      if (typeof window !== "undefined") {
+        window.location.href = targetLoginUrl;
+      } else {
+        router.replace(targetLoginUrl);
+      }
       return;
     }
 

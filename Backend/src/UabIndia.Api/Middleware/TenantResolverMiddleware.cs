@@ -270,21 +270,32 @@ namespace UabIndia.Api.Middleware
 
 
         private static async Task WriteTenantScopeDeniedAsync(HttpContext context)
-
         {
+            // Clear cross-tenant / mismatched session cookies from caller's browser
+            context.Response.Cookies.Delete("access_token", new CookieOptions { Path = "/" });
+            context.Response.Cookies.Delete("refresh_token", new CookieOptions { Path = "/" });
+
+            var path = context.Request.Path.Value ?? string.Empty;
+            if (path.Equals("/api/v1/auth/me", StringComparison.OrdinalIgnoreCase) ||
+                path.Equals("/api/auth/me", StringComparison.OrdinalIgnoreCase))
+            {
+                // When asking "who am I" on a different tenant domain, return 401 Unauthorized
+                // so the client immediately prompts for credentials for this tenant workspace.
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                await context.Response.WriteAsJsonAsync(new
+                {
+                    message = "Active session belongs to a different workspace. Please sign in to this workspace.",
+                    code = "tenant_mismatch"
+                });
+                return;
+            }
 
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
-
             await context.Response.WriteAsJsonAsync(new
-
             {
-
                 message = "Tenant scope denied.",
-
                 code = "tenant_scope_denied"
-
             });
-
         }
 
 
@@ -453,12 +464,11 @@ namespace UabIndia.Api.Middleware
 
             if (value == "/" || value == "/login" || value.StartsWith("/swagger", StringComparison.OrdinalIgnoreCase) || value.StartsWith("/hangfire", StringComparison.OrdinalIgnoreCase)
                 || value.StartsWith("/.well-known", StringComparison.OrdinalIgnoreCase)
-                || value.StartsWith("/connect", StringComparison.OrdinalIgnoreCase))
-
+                || value.StartsWith("/connect", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/v1/auth/logout", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/auth/logout", StringComparison.OrdinalIgnoreCase))
             {
-
                 return true;
-
             }
 
 

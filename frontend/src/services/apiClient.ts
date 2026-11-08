@@ -244,6 +244,20 @@ const isCsrfExempt = (url?: string): boolean => {
 
 const shouldAttemptRefresh = (url?: string): boolean => {
   if (!url) return false;
+
+  // Never attempt background token refresh if currently on public auth screens
+  if (typeof window !== "undefined") {
+    const currentPath = window.location.pathname.toLowerCase();
+    if (
+      currentPath.startsWith("/login") ||
+      currentPath.startsWith("/register") ||
+      currentPath.startsWith("/forgot-password") ||
+      currentPath.startsWith("/reset-password")
+    ) {
+      return false;
+    }
+  }
+
   let normalized = url.toLowerCase().replace(/^\/+/, "");
   if (normalized.startsWith("api/v1/")) normalized = normalized.slice(7);
   else if (normalized.startsWith("api/")) normalized = normalized.slice(4);
@@ -467,6 +481,32 @@ apiClient.interceptors.response.use(
         connectionCode === "ECONNRESET" ||
         connectionCode === "ECONNABORTED" ||
         connectionCode === "ETIMEDOUT");
+
+    const errorData = error.response?.data as { code?: string; message?: string } | undefined;
+    const isTenantMismatch =
+      errorData?.code === "tenant_scope_denied" ||
+      errorData?.code === "tenant_mismatch" ||
+      (typeof errorData?.message === "string" &&
+        (errorData.message.toLowerCase().includes("tenant scope denied") ||
+         errorData.message.toLowerCase().includes("belongs to a different workspace")));
+
+    if (isTenantMismatch) {
+      setClientAuthToken(null);
+      if (typeof window !== "undefined") {
+        try {
+          window.sessionStorage.removeItem("erp.auth.user");
+          window.sessionStorage.removeItem("erp.active.path");
+          document.cookie = "access_token=; path=/; max-age=0; SameSite=Lax";
+        } catch {}
+
+        const path = window.location.pathname;
+        if (!path.startsWith("/login")) {
+          const audience = matchesAnyPrefix(path, OWNER_PATH_PREFIXES) ? "platform" : "tenant";
+          window.location.href = withPublicAudience("/login", audience);
+          return Promise.reject(error);
+        }
+      }
+    }
 
     if (
       !isConnectionDrop &&

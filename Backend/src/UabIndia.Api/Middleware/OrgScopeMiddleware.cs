@@ -68,6 +68,7 @@ namespace UabIndia.Api.Middleware
                 string.Equals(controller, "Auth", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(controller, "Public", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(controller, "Tenants", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(controller, "Localization", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(controller, "OrgContext", StringComparison.OrdinalIgnoreCase) ||
                 (HttpMethods.IsGet(context.Request.Method) &&
                  (string.Equals(controller, "Companies", StringComparison.OrdinalIgnoreCase) ||

@@ -32,11 +32,32 @@ interface TenantHostCacheEntry {
 const TENANT_CACHE_TTL_MS = 60_000;
 const tenantHostCache = new Map<string, TenantHostCacheEntry>();
 
+const isTokenValid = (token: string | undefined): boolean => {
+  if (!token) return false;
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return false;
+    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const json = atob(base64);
+    const payload = JSON.parse(json);
+    if (payload.exp && typeof payload.exp === "number") {
+      // Expired tokens must never be considered valid
+      if (payload.exp * 1000 <= Date.now()) {
+        return false;
+      }
+    }
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 export async function middleware(request: NextRequest) {
   const rawHost = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? request.nextUrl.hostname;
   const hostname = normalizeHostname(rawHost);
   const pathname = request.nextUrl.pathname;
-  const hasAccessToken = Boolean(request.cookies.get("access_token")?.value);
+  const rawToken = request.cookies.get("access_token")?.value;
+  const hasAccessToken = isTokenValid(rawToken);
   const isLocal = isLocalhostHostname(hostname) || isLocalhostHostname(request.nextUrl.hostname);
 
   if (pathname.startsWith("/tenant-not-found")) {

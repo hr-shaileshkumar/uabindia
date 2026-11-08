@@ -42,6 +42,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             return Ok(profile);
         }
 
+        [AllowAnonymous]
         [HttpGet("current-tenant")]
         public async Task<IActionResult> GetCurrentTenantLocalization()
         {

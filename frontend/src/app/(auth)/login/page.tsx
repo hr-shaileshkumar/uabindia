@@ -106,10 +106,16 @@ export default function LoginPage() {
   useEffect(() => {
     router.prefetch(targetPath);
 
-    // If user already authenticated via SSO, redirect to returnUrl or target
+    // If user already authenticated via SSO/session cookie, redirect to returnUrl or target
     const checkSso = async () => {
+      if (typeof document === "undefined") return;
+      const hasCookieSession = /(?:^|;\s*)(?:access_token|UabIndia\.SSO\.Session)=/.test(document.cookie);
+      if (!hasCookieSession) return;
+
       try {
-        const res = await apiClient.get("/auth/me");
+        const res = await apiClient.get("/auth/me", {
+          headers: { "X-Silent-Error": "1" },
+        });
         if (res.data?.id) {
           const returnUrl = searchParams?.get("returnUrl");
           if (returnUrl) {
@@ -119,7 +125,7 @@ export default function LoginPage() {
           router.replace(targetPath);
         }
       } catch {
-        // Not authenticated
+        // Not authenticated in this workspace
       }
     };
     void checkSso();
