@@ -12,7 +12,15 @@ import {
 
 import {
   DEFAULT_SCHEMAS,
+  getMetadataSchema,
 } from '../src/engine/metadataStore.js'
+
+import {
+  normalizeTableColumn,
+  normalizeField,
+  normalizeFormSchema,
+  normalizePageSchema,
+} from '../src/engine/schemaAdapter.js'
 
 import {
   checkUserPermission,
@@ -163,6 +171,51 @@ assert(sortedByName[2].name === 'Zoya Khan', 'Sorting asc by name places Zoya Kh
 const searchQuery = 'EMP-002'
 const searchResults = mockEmployees.filter(e => [e.name, e.code].join(' ').includes(searchQuery))
 assert(searchResults.length === 1 && searchResults[0].id === '2', 'Search query EMP-002 returns correct employee')
+
+// -------------------------------------------------------------
+// 5. Bi-Directional Schema Adapter & Next.js Interop Test
+// -------------------------------------------------------------
+console.log('\n5. Testing Bi-Directional Schema Adapter & Next.js Interop...')
+
+// Column normalization test
+const nextJsCol = { key: 'status', label: 'Status', dataType: 'badge', badgeMap: { Active: 'positive' }, width: 120 }
+const normCol = normalizeTableColumn(nextJsCol)
+assert(normCol.format === 'badge', 'Next.js dataType=badge maps to column format=badge')
+assert(normCol.header === 'Status' && normCol.label === 'Status', 'Column has both header and label populated')
+assert(normCol.badgeMap?.Active === 'positive', 'Column preserves badgeMap')
+
+// Field normalization test
+const nextJsField = { key: 'designation', label: 'Designation', span: 2, options: ['Lead', 'Associate'] }
+const normField = normalizeField(nextJsField, 'general')
+assert(normField.id === 'designation' && normField.key === 'designation', 'Field provides both id and key')
+assert(normField.colSpan === 2 && normField.span === 2, 'Field maps span to colSpan')
+assert(normField.options[0].value === 'Lead' && normField.options[0].label === 'Lead', 'Field options normalized to object pairs')
+
+// Form schema normalization test
+const nextJsFormSchema = {
+  key: 'hrms.custom',
+  label: 'Custom Form',
+  form: {
+    sections: [
+      {
+        key: 'sec_bio',
+        label: 'Bio Section',
+        fields: [
+          { key: 'firstName', label: 'First Name', type: 'text', required: true, span: 1 },
+          { key: 'lastName', label: 'Last Name', type: 'text', required: true, span: 1 },
+        ],
+      },
+    ],
+  },
+}
+const normForm = normalizeFormSchema(nextJsFormSchema)
+assert(Array.isArray(normForm.tabs) && normForm.tabs[0].id === 'sec_bio', 'Next.js sections map to tabs')
+assert(Array.isArray(normForm.fields) && normForm.fields.length === 2, 'Next.js sections.fields map to fields array')
+assert(normForm.fields[0].tabId === 'sec_bio', 'Flattened fields preserve tabId')
+
+// Schema Aliases in getMetadataSchema
+const aliasSchema = getMetadataSchema('hrms.employees')
+assert(aliasSchema && aliasSchema.id === 'employee_directory', 'getMetadataSchema resolves hrms.employees alias to employee_directory')
 
 console.log(`\n=== TEST RESULTS: ${passed} PASSED, ${failed} FAILED ===\n`)
 

@@ -133,11 +133,11 @@ export default function EmployeeList() {
   // Handle table row actions (view, edit, delete, custom)
   const handleAction = async (action, row) => {
     if (action.key === 'view' && row?.id) {
-      navigate(`/module/hrms/employee-master/view/${row.id}`)
+      navigate(`/hrms/employees/view/${row.id}`)
     } else if (action.key === 'edit' && row?.id) {
-      navigate(`/module/hrms/employee-master/edit/${row.id}`)
+      navigate(`/hrms/employees/edit/${row.id}`)
     } else if (action.key === 'create') {
-      navigate('/module/hrms/employee-master/create')
+      navigate('/hrms/employees/create')
     } else if (action.key === 'delete' && row?.id) {
       const ok = await confirm({
         message: `Are you sure you want to delete employee record for ${row.name} (${row.code})?`,

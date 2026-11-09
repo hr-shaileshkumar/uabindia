@@ -46,3 +46,4 @@ export default function SuperAdminRedirect({ title = 'Platform Governance Centra
     </div>
   )
 }
+

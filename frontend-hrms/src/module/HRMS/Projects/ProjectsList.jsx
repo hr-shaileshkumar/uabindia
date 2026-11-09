@@ -184,13 +184,13 @@ export default function ProjectsList() {
 
   const handleAction = async (action, row) => {
     if (action.key === 'view' && row?.id) {
-      navigate(`/module/hrms/projects/view/${row.id}`)
+      navigate(`/hrms/projects/view/${row.id}`)
     } else if (action.key === 'edit' && row?.id) {
-      navigate(`/module/hrms/projects/edit/${row.id}`)
+      navigate(`/hrms/projects/edit/${row.id}`)
     } else if (action.key === 'toggleStatus' && row?.id) {
       await toggleStatus(row)
     } else if (action.key === 'create') {
-      navigate(`/module/hrms/projects/create${tenantId ? `?tenantId=${tenantId}` : ''}`)
+      navigate(`/hrms/projects/create${tenantId ? `?tenantId=${tenantId}` : ''}`)
     }
   }
 

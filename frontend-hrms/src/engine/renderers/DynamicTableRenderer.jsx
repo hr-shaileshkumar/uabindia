@@ -256,11 +256,15 @@ export default function DynamicTableRenderer({
                 onChange={(e) => handleFilterChange(filter.key, e.target.value)}
                 className="px-2.5 py-1 rounded-xl border border-slate-200 bg-slate-50/70 text-xs font-semibold text-slate-700 outline-none cursor-pointer focus:border-purple-600 focus:bg-white shadow-2xs"
               >
-                {(filter.options || []).map((opt, i) => (
-                  <option key={i} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
+                {(filter.options || []).map((opt, i) => {
+                  const optVal = typeof opt === 'object' && opt !== null ? opt.value : opt
+                  const optLabel = typeof opt === 'object' && opt !== null ? opt.label : opt
+                  return (
+                    <option key={i} value={optVal}>
+                      {optLabel}
+                    </option>
+                  )
+                })}
               </select>
             </div>
           ))}
@@ -349,19 +353,27 @@ export default function DynamicTableRenderer({
                   )}
                   {columns.map((col) => {
                     const isSorted = sortKey === col.key
-                    const isActions = col.format === 'actions' || col.key === 'actions'
+                    const isActions = col.format === 'actions' || col.key === 'actions' || col.type === 'actions'
+                    const colHeaderLabel = col.label || col.header || col.name || col.key
+                    const colWidthClass = typeof col.width === 'string' && col.width.startsWith('w-') ? col.width : ''
+                    const colWidthStyle = typeof col.width === 'number'
+                      ? { width: `${col.width}px` }
+                      : (typeof col.width === 'string' && col.width.endsWith('px') ? { width: col.width } : undefined)
+                    const isRightAligned = col.align === 'right' || col.alignment === 'right' || isActions
+
                     return (
                       <th
                         key={col.key}
-                        className={`px-4 py-3.5 whitespace-nowrap text-left ${col.width || ''} ${
-                          col.align === 'right' || isActions ? 'text-right' : ''
+                        style={colWidthStyle}
+                        className={`px-4 py-3.5 whitespace-nowrap text-left ${colWidthClass} ${
+                          isRightAligned ? 'text-right' : ''
                         } ${col.sortable ? 'cursor-pointer hover:bg-slate-100/70 transition-colors select-none' : ''} ${
                           isActions ? 'sticky right-0 bg-slate-50/95 backdrop-blur-xs shadow-[-6px_0_10px_-2px_rgba(0,0,0,0.06)] z-20' : ''
                         }`}
                         onClick={() => col.sortable && handleSort(col.key)}
                       >
-                        <div className={`flex items-center gap-1.5 ${col.align === 'right' || isActions ? 'justify-end' : ''}`}>
-                          <span className={isSorted ? 'text-purple-700 font-extrabold' : ''}>{col.label}</span>
+                        <div className={`flex items-center gap-1.5 ${isRightAligned ? 'justify-end' : ''}`}>
+                          <span className={isSorted ? 'text-purple-700 font-extrabold' : ''}>{colHeaderLabel}</span>
                           {col.sortable && (
                             <span className="text-slate-400">
                               {isSorted ? (
@@ -402,11 +414,18 @@ export default function DynamicTableRenderer({
                         </td>
                       )}
                       {columns.map((col) => {
-                        const isActions = col.format === 'actions' || col.key === 'actions'
+                        const isActions = col.format === 'actions' || col.key === 'actions' || col.type === 'actions'
+                        const colWidthClass = typeof col.width === 'string' && col.width.startsWith('w-') ? col.width : ''
+                        const colWidthStyle = typeof col.width === 'number'
+                          ? { width: `${col.width}px` }
+                          : (typeof col.width === 'string' && col.width.endsWith('px') ? { width: col.width } : undefined)
+                        const isRightAligned = col.align === 'right' || col.alignment === 'right' || isActions
+
                         return (
                           <td
                             key={col.key}
-                            className={`px-4 py-3.5 whitespace-nowrap ${col.align === 'right' || isActions ? 'text-right' : ''} ${
+                            style={colWidthStyle}
+                            className={`px-4 py-3.5 whitespace-nowrap ${colWidthClass} ${isRightAligned ? 'text-right' : ''} ${
                               isActions
                                 ? 'sticky right-0 bg-white group-hover:bg-slate-50/95 backdrop-blur-xs shadow-[-6px_0_10px_-2px_rgba(0,0,0,0.06)] z-10'
                                 : ''

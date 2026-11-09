@@ -9,6 +9,40 @@
  */
 
 import { validateMetadataSchema } from './types.js'
+import { normalizePageSchema } from './schemaAdapter.js'
+
+export const SCHEMA_ALIASES = {
+  'hrms.employees': 'employee_directory',
+  'employees': 'employee_directory',
+  'employee': 'employee_form',
+  'hrms.leave': 'leave_management',
+  'leave': 'leave_management',
+  'hrms.attendance': 'attendance_management',
+  'attendance': 'attendance_management',
+  'hrms.payroll': 'payroll_management',
+  'payroll': 'payroll_management',
+  'hrms.performance': 'performance_appraisals',
+  'performance': 'performance_appraisals',
+  'hrms.offboarding': 'exit_management',
+  'offboarding': 'exit_management',
+  'exit': 'exit_management',
+  'hrms.company': 'company_directory',
+  'companies': 'company_directory',
+  'company': 'company_directory',
+  'hrms.projects': 'project_directory',
+  'projects': 'project_directory',
+  'project': 'project_directory',
+  'hrms.recruitment': 'candidates',
+  'recruitment': 'candidates',
+  'hrms.shifts': 'shift',
+  'shifts': 'shift',
+  'shift': 'shift',
+  'hrms.grades': 'grade',
+  'grades': 'grade',
+  'grade': 'grade',
+  'hrms.training': 'training_programs',
+  'training': 'training_programs',
+}
 
 // Built-in standard schemas for core HRMS entities
 export const DEFAULT_SCHEMAS = {
@@ -128,8 +162,8 @@ export const DEFAULT_SCHEMAS = {
         align: 'right',
         width: 'w-28',
         actions: [
-          { key: 'view', label: 'View Profile', icon: 'Eye', variant: 'outline', href: '/module/hrms/employee-master/view/:id' },
-          { key: 'edit', label: 'Edit', icon: 'Edit3', variant: 'outline', href: '/module/hrms/employee-master/edit/:id' },
+          { key: 'view', label: 'View Profile', icon: 'Eye', variant: 'outline', href: '/hrms/employees/view/:id' },
+          { key: 'edit', label: 'Edit', icon: 'Edit3', variant: 'outline', href: '/hrms/employees/edit/:id' },
           { key: 'delete', label: 'Delete', icon: 'Trash2', variant: 'danger', requiresConfirm: true },
         ],
       },
@@ -140,7 +174,7 @@ export const DEFAULT_SCHEMAS = {
         label: 'Add Employee',
         icon: 'Plus',
         variant: 'primary',
-        href: '/module/hrms/employee-master/create',
+        href: '/hrms/employees/create',
         permission: 'EmployeeMaster',
       },
     ],
@@ -438,8 +472,8 @@ export const DEFAULT_SCHEMAS = {
         format: 'actions',
         align: 'right',
         actions: [
-          { key: 'view', label: 'View Project', icon: 'Eye', variant: 'outline', href: '/module/hrms/projects/view/:id' },
-          { key: 'edit', label: 'Edit', icon: 'Edit3', variant: 'outline', href: '/module/hrms/projects/edit/:id' },
+          { key: 'view', label: 'View Project', icon: 'Eye', variant: 'outline', href: '/hrms/projects/view/:id' },
+          { key: 'edit', label: 'Edit', icon: 'Edit3', variant: 'outline', href: '/hrms/projects/edit/:id' },
           { key: 'toggleStatus', label: 'Toggle Status', icon: 'Power', variant: 'outline' },
         ],
       },
@@ -450,7 +484,7 @@ export const DEFAULT_SCHEMAS = {
         label: 'Add Project',
         icon: 'Plus',
         variant: 'primary',
-        href: '/module/hrms/projects/create',
+        href: '/hrms/projects/create',
         permission: 'Projects',
       },
     ],
@@ -503,9 +537,9 @@ export const DEFAULT_SCHEMAS = {
         format: 'actions',
         align: 'right',
         actions: [
-          { key: 'view', label: 'View Entity', icon: 'Eye', variant: 'outline', href: '/module/hrms/company-master/view/:id' },
-          { key: 'setup', label: 'Setup', icon: 'Settings2', variant: 'outline', href: '/module/hrms/company-master/view/:id?tab=setup' },
-          { key: 'edit', label: 'Edit', icon: 'Edit3', variant: 'outline', href: '/module/hrms/company-master/edit/:id' },
+          { key: 'view', label: 'View Entity', icon: 'Eye', variant: 'outline', href: '/hrms/company-master/view/:id' },
+          { key: 'setup', label: 'Setup', icon: 'Settings2', variant: 'outline', href: '/hrms/company-master/view/:id?tab=setup' },
+          { key: 'edit', label: 'Edit', icon: 'Edit3', variant: 'outline', href: '/hrms/company-master/edit/:id' },
           { key: 'toggleStatus', label: 'Toggle Status', icon: 'Power', variant: 'outline' },
           { key: 'delete', label: 'Delete', icon: 'Trash2', variant: 'danger', requiresConfirm: true },
         ],
@@ -517,7 +551,7 @@ export const DEFAULT_SCHEMAS = {
         label: 'Add Company',
         icon: 'Plus',
         variant: 'primary',
-        href: '/module/hrms/company-master/create',
+        href: '/hrms/company-master/create',
         permission: 'Companies',
       },
     ],
@@ -1042,16 +1076,18 @@ export async function syncSchemaFromDb(schemaId, tenantOrCompanyId = 'default', 
  * Get active published metadata schema
  */
 export function getMetadataSchema(schemaId, tenantOrCompanyId = 'default') {
+  const resolvedId = SCHEMA_ALIASES[schemaId] || schemaId
+
   // Trigger background sync from database if in browser
   if (typeof window !== 'undefined') {
     setTimeout(() => {
-      syncSchemaFromDb(schemaId, tenantOrCompanyId)
+      syncSchemaFromDb(resolvedId, tenantOrCompanyId)
     }, 10)
   }
 
   try {
-    const publishedKey = `${STORAGE_PREFIX}${schemaId}_${tenantOrCompanyId}_published`
-    const stored = localStorage.getItem(publishedKey)
+    const publishedKey = `${STORAGE_PREFIX}${resolvedId}_${tenantOrCompanyId}_published`
+    const stored = typeof localStorage !== 'undefined' ? localStorage.getItem(publishedKey) : null
     if (stored) {
       let parsed = null
       try {
@@ -1062,7 +1098,7 @@ export function getMetadataSchema(schemaId, tenantOrCompanyId = 'default') {
       }
 
       if (parsed) {
-        const defaultSchema = DEFAULT_SCHEMAS[schemaId]
+        const defaultSchema = DEFAULT_SCHEMAS[resolvedId]
         // Auto-upgrade legacy schema if it has compound columns or version is older
         const hasLegacyCompoundColumns = Array.isArray(parsed.columns) && (
           parsed.columns.some(c => c.key === 'role' && c.secondaryKey === 'department') ||
@@ -1073,7 +1109,7 @@ export function getMetadataSchema(schemaId, tenantOrCompanyId = 'default') {
 
         if (defaultSchema && (hasLegacyCompoundColumns || isOutdatedVersion)) {
           localStorage.setItem(publishedKey, JSON.stringify(defaultSchema))
-          return defaultSchema
+          return normalizePageSchema(defaultSchema)
         }
 
         if (Array.isArray(parsed.columns) && parsed.columns.length === 0 && defaultSchema?.columns?.length > 0) {
@@ -1100,7 +1136,7 @@ export function getMetadataSchema(schemaId, tenantOrCompanyId = 'default') {
             return copy
           })
         }
-        return parsed
+        return normalizePageSchema(parsed)
       } else {
         localStorage.removeItem(publishedKey)
       }
@@ -1110,7 +1146,8 @@ export function getMetadataSchema(schemaId, tenantOrCompanyId = 'default') {
   }
 
   // Fallback to system default
-  return DEFAULT_SCHEMAS[schemaId] || null
+  const fallback = DEFAULT_SCHEMAS[resolvedId] || DEFAULT_SCHEMAS[schemaId] || null
+  return fallback ? normalizePageSchema(fallback) : null
 }
 
 /**

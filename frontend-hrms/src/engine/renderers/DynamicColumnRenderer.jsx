@@ -56,7 +56,7 @@ export default function DynamicColumnRenderer({
   row,
   onAction,
 }) {
-  const format = column.format || 'text'
+  const format = column.format || column.type || column.dataType || 'text'
   const rawValue = row[column.key]
 
   switch (format) {
@@ -102,6 +102,7 @@ export default function DynamicColumnRenderer({
       )
     }
 
+    case 'status':
     case 'badge': {
       const val = String(rawValue || '-').trim()
       const lower = val.toLowerCase()
@@ -109,16 +110,37 @@ export default function DynamicColumnRenderer({
       let badgeClasses = 'bg-slate-100 text-slate-700 border-slate-200/70'
       let dotColor = 'bg-slate-400'
 
-      if (lower === 'active' || lower === 'approved' || lower === 'completed') {
+      // Check badgeMap if configured on column
+      const customBadge = column.badgeMap?.[val] || column.badgeMap?.[lower]
+      if (customBadge) {
+        if (customBadge === 'positive' || customBadge === 'success') {
+          badgeClasses = 'bg-emerald-50/80 text-emerald-700 border-emerald-200/70'
+          dotColor = 'bg-emerald-500'
+        } else if (customBadge === 'warning') {
+          badgeClasses = 'bg-amber-50/80 text-amber-700 border-amber-200/70'
+          dotColor = 'bg-amber-500'
+        } else if (customBadge === 'negative' || customBadge === 'danger') {
+          badgeClasses = 'bg-rose-50/80 text-rose-700 border-rose-200/70'
+          dotColor = 'bg-rose-500'
+        } else if (customBadge === 'info' || customBadge === 'primary') {
+          badgeClasses = 'bg-blue-50/80 text-blue-700 border-blue-200/70'
+          dotColor = 'bg-blue-500'
+        } else if (customBadge === 'neutral') {
+          badgeClasses = 'bg-slate-100 text-slate-700 border-slate-200/70'
+          dotColor = 'bg-slate-400'
+        } else if (typeof customBadge === 'string' && customBadge.includes('bg-')) {
+          badgeClasses = customBadge
+        }
+      } else if (lower === 'active' || lower === 'approved' || lower === 'completed') {
         badgeClasses = 'bg-emerald-50/80 text-emerald-700 border-emerald-200/70'
         dotColor = 'bg-emerald-500'
-      } else if (lower === 'pending' || lower === 'hold' || lower === 'draft') {
+      } else if (lower === 'pending' || lower === 'hold' || lower === 'draft' || lower === 'onleave') {
         badgeClasses = 'bg-amber-50/80 text-amber-700 border-amber-200/70'
         dotColor = 'bg-amber-500'
-      } else if (lower === 'exited' || lower === 'rejected' || lower === 'inactive') {
+      } else if (lower === 'exited' || lower === 'rejected' || lower === 'inactive' || lower === 'terminated') {
         badgeClasses = 'bg-rose-50/80 text-rose-700 border-rose-200/70'
         dotColor = 'bg-rose-500'
-      } else if (lower.includes('full time') || lower.includes('permanent')) {
+      } else if (lower.includes('full time') || lower.includes('permanent') || lower === 'onboarding') {
         badgeClasses = 'bg-blue-50/80 text-blue-700 border-blue-200/70'
         dotColor = 'bg-blue-500'
       } else if (lower.includes('contract') || lower.includes('intern')) {

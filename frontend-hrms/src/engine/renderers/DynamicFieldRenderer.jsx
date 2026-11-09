@@ -20,10 +20,14 @@ export default function DynamicFieldRenderer({
   const [refOptions, setRefOptions] = useState([])
   const [refLoading, setRefLoading] = useState(false)
 
-  // Fetch reference options if ref_select
+  const fieldKey = field.id || field.key
+  const fieldType = field.type || field.dataType || 'text'
+  const fieldRefApi = field.referenceApi || field.lookupEndpoint
+
+  // Fetch reference options if ref_select or lookup
   useEffect(() => {
-    if (field.type === 'ref_select' && field.referenceApi) {
-      const cacheKey = field.referenceApi
+    if ((fieldType === 'ref_select' || fieldType === 'lookup') && fieldRefApi) {
+      const cacheKey = fieldRefApi
       if (referenceCache.has(cacheKey)) {
         setRefOptions(referenceCache.get(cacheKey))
         return
@@ -35,7 +39,7 @@ export default function DynamicFieldRenderer({
       const fetchRef = async () => {
         try {
           let opts = []
-          if (field.referenceApi === 'companies') {
+          if (fieldRefApi.includes('compan')) {
             const data = await listCompanies()
             const items = Array.isArray(data) ? data : data?.items || []
             opts = items.map(c => ({
@@ -43,7 +47,7 @@ export default function DynamicFieldRenderer({
               label: c.companyName || c.name,
               code: c.companyCode || c.code,
             }))
-          } else if (field.referenceApi === 'projects') {
+          } else if (fieldRefApi.includes('project')) {
             const data = await listProjects()
             const items = Array.isArray(data) ? data : data?.items || []
             opts = items.map(p => ({
@@ -56,7 +60,7 @@ export default function DynamicFieldRenderer({
           referenceCache.set(cacheKey, opts)
           if (mounted) setRefOptions(opts)
         } catch (err) {
-          console.warn(`Failed to fetch reference options for ${field.referenceApi}:`, err)
+          console.warn(`Failed to fetch reference options for ${fieldRefApi}:`, err)
         } finally {
           if (mounted) setRefLoading(false)
         }
@@ -65,23 +69,24 @@ export default function DynamicFieldRenderer({
       fetchRef()
       return () => { mounted = false }
     }
-  }, [field.type, field.referenceApi])
+  }, [fieldType, fieldRefApi])
 
   const handleChange = (e) => {
     const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value
-    if (onChange) onChange(field.id, val)
+    if (onChange) onChange(fieldKey, val)
   }
 
-  const inputId = `field_${field.id}`
+  const inputId = `field_${fieldKey}`
   const isRequired = !!field.required
 
   // Dynamic Responsive Column Span calculation according to active form grid (1 to 6 columns)
+  const span = field.span || field.colSpan || field.columnSpan
   let colSpanClass = 'col-span-1'
-  if (field.width === 'full' || field.colSpan === 'full' || field.type === 'textarea') {
+  if (field.width === 'full' || span === 'full' || span === 4 || fieldType === 'textarea') {
     colSpanClass = 'col-span-full'
-  } else if (typeof field.colSpan === 'number' && field.colSpan > 1) {
-    const span = Math.min(field.colSpan, gridColumns)
-    colSpanClass = `col-span-1 md:col-span-${span}`
+  } else if (typeof span === 'number' && span > 1) {
+    const effectiveSpan = Math.min(span, gridColumns)
+    colSpanClass = `col-span-1 md:col-span-${effectiveSpan}`
   } else if (field.width === '1/2' && gridColumns >= 4) {
     colSpanClass = `col-span-1 md:col-span-${Math.floor(gridColumns / 2)}`
   } else if (field.width === '1/3' && gridColumns >= 6) {
@@ -117,12 +122,12 @@ export default function DynamicFieldRenderer({
 
       {/* Field Input Control */}
       {(() => {
-        switch (field.type) {
+        switch (fieldType) {
           case 'textarea':
             return (
               <textarea
                 id={inputId}
-                name={field.id}
+                name={fieldKey}
                 value={value ?? ''}
                 onChange={handleChange}
                 onBlur={onBlur}
@@ -139,7 +144,7 @@ export default function DynamicFieldRenderer({
             return (
               <select
                 id={inputId}
-                name={field.id}
+                name={fieldKey}
                 value={value ?? ''}
                 onChange={handleChange}
                 onBlur={onBlur}
@@ -148,8 +153,8 @@ export default function DynamicFieldRenderer({
               >
                 <option value="">{field.placeholder || '-- Select an option --'}</option>
                 {options.map((opt, idx) => {
-                  const optVal = typeof opt === 'object' ? opt.value : opt
-                  const optLabel = typeof opt === 'object' ? opt.label : opt
+                  const optVal = typeof opt === 'object' && opt !== null ? opt.value : opt
+                  const optLabel = typeof opt === 'object' && opt !== null ? opt.label : opt
                   return (
                     <option key={idx} value={optVal}>
                       {optLabel}
@@ -160,11 +165,12 @@ export default function DynamicFieldRenderer({
             )
           }
 
+          case 'lookup':
           case 'ref_select':
             return (
               <select
                 id={inputId}
-                name={field.id}
+                name={fieldKey}
                 value={value ?? ''}
                 onChange={handleChange}
                 onBlur={onBlur}

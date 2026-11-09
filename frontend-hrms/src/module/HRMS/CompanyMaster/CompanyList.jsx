@@ -181,17 +181,17 @@ export default function CompanyList() {
 
   const handleAction = async (action, row) => {
     if (action.key === 'view' && row?.id) {
-      navigate(`/module/hrms/company-master/view/${row.id}${tenantId ? `?tenantId=${tenantId}` : ''}`)
+      navigate(`/hrms/company-master/view/${row.id}${tenantId ? `?tenantId=${tenantId}` : ''}`)
     } else if (action.key === 'setup' && row?.id) {
-      navigate(`/module/hrms/company-master/view/${row.id}?tab=setup${tenantId ? `?tenantId=${tenantId}` : ''}`)
+      navigate(`/hrms/company-master/view/${row.id}?tab=setup${tenantId ? `&tenantId=${tenantId}` : ''}`)
     } else if (action.key === 'edit' && row?.id) {
-      navigate(`/module/hrms/company-master/edit/${row.id}${tenantId ? `?tenantId=${tenantId}` : ''}`)
+      navigate(`/hrms/company-master/edit/${row.id}${tenantId ? `?tenantId=${tenantId}` : ''}`)
     } else if (action.key === 'toggleStatus' && row?.id) {
       await toggleStatus(row)
     } else if (action.key === 'delete' && row?.id) {
       await removeCompany(row)
     } else if (action.key === 'create') {
-      navigate(`/module/hrms/company-master/create${tenantId ? `?tenantId=${tenantId}` : ''}`)
+      navigate(`/hrms/company-master/create${tenantId ? `?tenantId=${tenantId}` : ''}`)
     }
   }
 

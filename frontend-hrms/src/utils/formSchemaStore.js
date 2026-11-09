@@ -1,6 +1,9 @@
 // Central Form Schema Store & Registry for Uabindia HRMS
 // Supports full multi-tab, dynamic fields, reordering, tab-shifting and validation
 import { DEFAULT_SCHEMAS as META_SCHEMAS, getMetadataSchema, publishSchema, saveDraftSchema } from '../engine/metadataStore.js'
+import { normalizeFormSchema, normalizePageSchema, normalizeField, normalizeTableColumn } from '../engine/schemaAdapter.js'
+
+export { normalizeFormSchema, normalizePageSchema, normalizeField, normalizeTableColumn }
 
 export const ENTITY_TYPES = [
   { id: 'employee', label: 'Employee Form', icon: 'UserCheck', description: 'Employee registration, profile info, statutory, bank, and experience' },

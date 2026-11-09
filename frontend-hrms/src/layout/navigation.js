@@ -47,10 +47,10 @@ export const navigationGroups = [
         permission: 'Dashboard',
         badge: 'Portal',
         children: [
-          { label: 'ESS Hub Overview', path: '/module/hrms/ess', icon: User, permission: 'Dashboard' },
-          { label: 'My Leaves & Balances', path: '/module/hrms/ess/leaves', icon: CalendarDays, permission: 'Dashboard' },
-          { label: 'My Salary Slips', path: '/module/hrms/ess/payslips', icon: CreditCard, permission: 'Dashboard' },
-          { label: 'HR Helpdesk Queries', path: '/module/hrms/ess/helpdesk', icon: FileText, permission: 'Dashboard' }
+          { label: 'ESS Hub Overview', path: '/ess', icon: User, permission: 'Dashboard' },
+          { label: 'My Leaves & Balances', path: '/ess/leaves', icon: CalendarDays, permission: 'Dashboard' },
+          { label: 'My Salary Slips', path: '/ess/payslips', icon: CreditCard, permission: 'Dashboard' },
+          { label: 'HR Helpdesk Queries', path: '/ess/helpdesk', icon: FileText, permission: 'Dashboard' }
         ]
       }
     ]
@@ -58,50 +58,50 @@ export const navigationGroups = [
   {
     title: 'People & Operations',
     items: [
-      { label: 'Employee Master', path: '/module/hrms/employee-master', icon: UserCheck, permission: 'EmployeeMaster' },
-      { label: 'Attendance & Time', path: '/module/hrms/attendance', icon: Clock, permission: 'Attendance' },
-      { label: 'Leave & Absence', path: '/module/hrms/leave', icon: CalendarDays, permission: 'Leave' },
-      { label: 'Payroll & Slips', path: '/module/hrms/payroll', icon: CreditCard, permission: 'Payroll' },
-      { label: 'Performance & KPI', path: '/module/hrms/performance', icon: Target, permission: 'Performance' },
-      { label: 'Exit & Offboarding', path: '/module/hrms/exit-management', icon: LogOut, permission: 'ExitManagement' },
+      { label: 'Employee Master', path: '/hrms/employees', icon: UserCheck, permission: 'EmployeeMaster' },
+      { label: 'Attendance & Time', path: '/hrms/attendance', icon: Clock, permission: 'Attendance' },
+      { label: 'Leave & Absence', path: '/hrms/leave', icon: CalendarDays, permission: 'Leave' },
+      { label: 'Payroll & Slips', path: '/payroll', icon: CreditCard, permission: 'Payroll' },
+      { label: 'Performance & KPI', path: '/hrms/performance', icon: Target, permission: 'Performance' },
+      { label: 'Exit & Offboarding', path: '/hrms/exit-management', icon: LogOut, permission: 'ExitManagement' },
     ]
   },
   {
     title: 'Talent, Staffing & Mobility',
     items: [
-      { label: 'Staffing Plans', path: '/module/hrms/staffing-plans', icon: Users, permission: 'EmployeeMaster' },
-      { label: 'Job Requisitions & Board', path: '/module/hrms/job-postings', icon: Briefcase, permission: 'EmployeeMaster' },
-      { label: 'Candidate ATS Pipeline', path: '/module/hrms/candidates', icon: UserPlus, permission: 'EmployeeMaster', badge: 'ATS' },
-      { label: 'Automated Onboarding', path: '/module/hrms/onboarding', icon: UserCheck, permission: 'EmployeeMaster', badge: '1-Click' },
-      { label: 'Employee Transfers', path: '/module/hrms/transfers', icon: ArrowRightLeft, permission: 'EmployeeMaster' },
-      { label: 'Promotions & Hikes', path: '/module/hrms/promotions', icon: TrendingUp, permission: 'EmployeeMaster' },
+      { label: 'Staffing Plans', path: '/hrms/staffing-plans', icon: Users, permission: 'EmployeeMaster' },
+      { label: 'Job Requisitions & Board', path: '/hrms/job-postings', icon: Briefcase, permission: 'EmployeeMaster' },
+      { label: 'Candidate ATS Pipeline', path: '/hrms/candidates', icon: UserPlus, permission: 'EmployeeMaster', badge: 'ATS' },
+      { label: 'Automated Onboarding', path: '/hrms/onboarding', icon: UserCheck, permission: 'EmployeeMaster', badge: '1-Click' },
+      { label: 'Employee Transfers', path: '/hrms/transfers', icon: ArrowRightLeft, permission: 'EmployeeMaster' },
+      { label: 'Promotions & Hikes', path: '/hrms/promotions', icon: TrendingUp, permission: 'EmployeeMaster' },
     ]
   },
   {
     title: 'Learning & Development',
     items: [
-      { label: 'Training Programs', path: '/module/hrms/training-programs', icon: GraduationCap, permission: 'EmployeeMaster' },
-      { label: 'Training Nominations', path: '/module/hrms/training-nominations', icon: Award, permission: 'EmployeeMaster' },
+      { label: 'Training Programs', path: '/hrms/training-programs', icon: GraduationCap, permission: 'EmployeeMaster' },
+      { label: 'Training Nominations', path: '/hrms/training-nominations', icon: Award, permission: 'EmployeeMaster' },
     ]
   },
   {
     title: 'Organization & Structure',
     items: [
-      { label: 'Enterprise Setup Hub', path: '/module/hrms/setup', icon: SlidersHorizontal, permission: 'SetupCenter' },
-      { label: 'Companies Master', path: '/module/hrms/company-master', icon: Building2, permission: 'Companies' },
+      { label: 'Enterprise Setup Hub', path: '/hrms/setup', icon: SlidersHorizontal, permission: 'SetupCenter' },
+      { label: 'Companies Master', path: '/hrms/company-master', icon: Building2, permission: 'Companies' },
       {
         label: 'Location Hierarchy (7 Levels)',
         icon: MapPin,
         permission: 'OrganizationMaster',
         badge: '7 Levels',
         children: [
-          { label: 'L1 • Country', path: '/module/hrms/country', icon: Globe, permission: 'OrganizationMaster' },
-          { label: 'L2 • Zone', path: '/module/hrms/zone', icon: Layers, permission: 'OrganizationMaster' },
-          { label: 'L3 • Region', path: '/module/hrms/region', icon: Compass, permission: 'OrganizationMaster' },
-          { label: 'L4 • State', path: '/module/hrms/state', icon: Landmark, permission: 'OrganizationMaster' },
-          { label: 'L5 • Cluster', path: '/module/hrms/cluster', icon: Network, permission: 'OrganizationMaster' },
-          { label: 'L6 • District', path: '/module/hrms/district', icon: MapPin, permission: 'OrganizationMaster' },
-          { label: 'L7 • Posting Location', path: '/module/hrms/location', icon: Navigation, permission: 'OrganizationMaster' }
+          { label: 'L1 • Country', path: '/hrms/country', icon: Globe, permission: 'OrganizationMaster' },
+          { label: 'L2 • Zone', path: '/hrms/zone', icon: Layers, permission: 'OrganizationMaster' },
+          { label: 'L3 • Region', path: '/hrms/region', icon: Compass, permission: 'OrganizationMaster' },
+          { label: 'L4 • State', path: '/hrms/state', icon: Landmark, permission: 'OrganizationMaster' },
+          { label: 'L5 • Cluster', path: '/hrms/cluster', icon: Network, permission: 'OrganizationMaster' },
+          { label: 'L6 • District', path: '/hrms/district', icon: MapPin, permission: 'OrganizationMaster' },
+          { label: 'L7 • Posting Location', path: '/hrms/location', icon: Navigation, permission: 'OrganizationMaster' }
         ]
       },
       {
@@ -110,10 +110,10 @@ export const navigationGroups = [
         permission: 'OrganizationMaster',
         badge: '4 Masters',
         children: [
-          { label: 'Departments', path: '/module/hrms/department', icon: Briefcase, permission: 'OrganizationMaster' },
-          { label: 'Designations', path: '/module/hrms/designation', icon: Award, permission: 'OrganizationMaster' },
-          { label: 'Branch Offices', path: '/module/hrms/branch', icon: GitBranch, permission: 'OrganizationMaster' },
-          { label: 'Reporting Hierarchy', path: '/module/hrms/reporting-manager', icon: GitBranch, permission: 'OrganizationMaster' }
+          { label: 'Departments', path: '/hrms/department', icon: Briefcase, permission: 'OrganizationMaster' },
+          { label: 'Designations', path: '/hrms/designation', icon: Award, permission: 'OrganizationMaster' },
+          { label: 'Branch Offices', path: '/hrms/branch', icon: GitBranch, permission: 'OrganizationMaster' },
+          { label: 'Reporting Hierarchy', path: '/hrms/reporting-manager', icon: GitBranch, permission: 'OrganizationMaster' }
         ]
       },
       {
@@ -122,16 +122,16 @@ export const navigationGroups = [
         permission: 'OrganizationMaster',
         badge: '6 Masters',
         children: [
-          { label: 'Grades & Pay Bands', path: '/module/hrms/grade', icon: ShieldCheck, permission: 'OrganizationMaster' },
-          { label: 'Work Shifts', path: '/module/hrms/shift', icon: Clock, permission: 'OrganizationMaster' },
-          { label: 'Cost Centers', path: '/module/hrms/cost-center', icon: CreditCard, permission: 'OrganizationMaster' },
-          { label: 'Employment Types', path: '/module/hrms/employment-type', icon: Users, permission: 'OrganizationMaster' },
-          { label: 'Holiday Calendars', path: '/module/hrms/holiday-calendar', icon: CalendarDays, permission: 'OrganizationMaster' },
-          { label: 'Leave Types', path: '/module/hrms/leave-type', icon: FileText, permission: 'OrganizationMaster' }
+          { label: 'Grades & Pay Bands', path: '/hrms/grade', icon: ShieldCheck, permission: 'OrganizationMaster' },
+          { label: 'Work Shifts', path: '/hrms/shift', icon: Clock, permission: 'OrganizationMaster' },
+          { label: 'Cost Centers', path: '/hrms/cost-center', icon: CreditCard, permission: 'OrganizationMaster' },
+          { label: 'Employment Types', path: '/hrms/employment-type', icon: Users, permission: 'OrganizationMaster' },
+          { label: 'Holiday Calendars', path: '/hrms/holiday-calendar', icon: CalendarDays, permission: 'OrganizationMaster' },
+          { label: 'Leave Types', path: '/hrms/leave-type', icon: FileText, permission: 'OrganizationMaster' }
         ]
       },
-      { label: 'Projects & Allocations', path: '/module/hrms/projects', icon: FolderKanban, permission: 'Projects' },
-      { label: 'Statutory Compliance', path: '/module/hrms/compliance', icon: ShieldCheck, permission: 'Compliance' },
+      { label: 'Projects & Allocations', path: '/hrms/projects', icon: FolderKanban, permission: 'Projects' },
+      { label: 'Statutory Compliance', path: '/hrms/compliance', icon: ShieldCheck, permission: 'Compliance' },
     ]
   },
   {

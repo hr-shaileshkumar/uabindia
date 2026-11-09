@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { Save, RotateCcw, X, CheckCircle2, AlertCircle } from 'lucide-react'
 import MetadataTabRenderer from './MetadataTabRenderer'
 import DynamicFieldRenderer from './DynamicFieldRenderer'
+import { normalizeFormSchema } from '../schemaAdapter'
 
 export default function DynamicFormRenderer({
   schema,
@@ -15,6 +16,7 @@ export default function DynamicFormRenderer({
   actions = true,
   className = '',
 }) {
+  const normalizedSchema = useMemo(() => normalizeFormSchema(schema), [schema])
   const [formData, setFormData] = useState(() => ({ ...initialValues }))
   const [errors, setErrors] = useState({})
   const [isDirty, setIsDirty] = useState(false)
@@ -23,15 +25,15 @@ export default function DynamicFormRenderer({
   const [submitError, setSubmitError] = useState('')
 
   // Active Tab for multi-tab forms
-  const hasTabs = Array.isArray(schema?.tabs) && schema.tabs.length > 0
-  const [activeTabId, setActiveTabId] = useState(() => schema?.tabs?.[0]?.id || '')
+  const hasTabs = Array.isArray(normalizedSchema?.tabs) && normalizedSchema.tabs.length > 0
+  const [activeTabId, setActiveTabId] = useState(() => normalizedSchema?.tabs?.[0]?.id || '')
 
   // Keep activeTabId synchronized if schema tabs reorder or change
   useEffect(() => {
-    if (hasTabs && (!activeTabId || !schema.tabs.some(t => t.id === activeTabId))) {
-      setActiveTabId(schema.tabs[0]?.id || '')
+    if (hasTabs && (!activeTabId || !normalizedSchema.tabs.some(t => t.id === activeTabId))) {
+      setActiveTabId(normalizedSchema.tabs[0]?.id || '')
     }
-  }, [schema?.tabs, hasTabs, activeTabId])
+  }, [normalizedSchema?.tabs, hasTabs, activeTabId])
 
   // Sync initialValues when they load asynchronously
   useEffect(() => {
@@ -56,20 +58,21 @@ export default function DynamicFormRenderer({
   // Validation engine
   const validateForm = useCallback(() => {
     const newErrors = {}
-    const fields = schema?.fields || []
+    const fields = normalizedSchema?.fields || []
 
     fields.forEach(field => {
+      const fId = field.id || field.key
       // Check conditional visibility
       if (field.condition && typeof field.condition === 'function') {
         if (!field.condition(formData)) return
       }
 
-      const val = formData[field.id]
+      const val = formData[fId]
 
       // Required validation
       if (field.required) {
         if (val === undefined || val === null || String(val).trim() === '') {
-          newErrors[field.id] = `${field.label} is required`
+          newErrors[fId] = `${field.label} is required`
           return
         }
       }
@@ -78,7 +81,7 @@ export default function DynamicFormRenderer({
       if (field.type === 'email' && val) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
         if (!emailRegex.test(String(val))) {
-          newErrors[field.id] = 'Please enter a valid email address'
+          newErrors[fId] = 'Please enter a valid email address'
           return
         }
       }
@@ -87,7 +90,7 @@ export default function DynamicFormRenderer({
       if (field.type === 'phone' && val) {
         const phoneClean = String(val).replace(/[^0-9]/g, '')
         if (phoneClean.length < 10) {
-          newErrors[field.id] = 'Phone number must have at least 10 digits'
+          newErrors[fId] = 'Phone number must have at least 10 digits'
           return
         }
       }
@@ -96,15 +99,15 @@ export default function DynamicFormRenderer({
       if ((field.type === 'number' || field.type === 'currency') && val !== '' && val !== null && val !== undefined) {
         const num = Number(val)
         if (Number.isNaN(num)) {
-          newErrors[field.id] = 'Must be a valid numeric value'
+          newErrors[fId] = 'Must be a valid numeric value'
           return
         }
         if (field.min !== undefined && num < field.min) {
-          newErrors[field.id] = `Minimum allowed value is ${field.min}`
+          newErrors[fId] = `Minimum allowed value is ${field.min}`
           return
         }
         if (field.max !== undefined && num > field.max) {
-          newErrors[field.id] = `Maximum allowed value is ${field.max}`
+          newErrors[fId] = `Maximum allowed value is ${field.max}`
           return
         }
       }
@@ -112,7 +115,7 @@ export default function DynamicFormRenderer({
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
-  }, [schema, formData])
+  }, [normalizedSchema, formData])
 
   // Form submit handler
   const handleSubmit = async (e) => {
@@ -123,8 +126,8 @@ export default function DynamicFormRenderer({
     const isValid = validateForm()
     if (!isValid) {
       // If error is in another tab, switch to the tab containing the first error
-      if (hasTabs) {
-        const firstErrorField = schema.fields.find(f => errors[f.id])
+      if (hasTabs && Array.isArray(normalizedSchema?.fields)) {
+        const firstErrorField = normalizedSchema.fields.find(f => errors[f.id || f.key])
         if (firstErrorField?.tabId && firstErrorField.tabId !== activeTabId) {
           setActiveTabId(firstErrorField.tabId)
         }
@@ -157,34 +160,35 @@ export default function DynamicFormRenderer({
 
   // Group fields by active tab or all fields
   const activeFields = useMemo(() => {
-    const fields = schema?.fields || []
+    const fields = normalizedSchema?.fields || []
     if (!hasTabs) return fields
     return fields.filter(f => f.tabId === activeTabId)
-  }, [schema, hasTabs, activeTabId])
+  }, [normalizedSchema, hasTabs, activeTabId])
 
   // Count errors per tab for badge indicators
   const tabErrorBadges = useMemo(() => {
-    if (!hasTabs) return {}
+    if (!hasTabs || !Array.isArray(normalizedSchema?.fields)) return {}
     const counts = {}
-    schema.fields.forEach(f => {
-      if (f.tabId && errors[f.id]) {
+    normalizedSchema.fields.forEach(f => {
+      const fId = f.id || f.key
+      if (f.tabId && errors[fId]) {
         counts[f.tabId] = (counts[f.tabId] || 0) + 1
       }
     })
     return counts
-  }, [schema, hasTabs, errors])
+  }, [normalizedSchema, hasTabs, errors])
 
   return (
     <form onSubmit={handleSubmit} className={`space-y-4 ${className}`} noValidate>
       {/* Header Info (Optional - only when showHeader is explicitly enabled) */}
-      {showHeader && (title || subtitle || schema?.title) && (
+      {showHeader && (title || subtitle || normalizedSchema?.title) && (
         <div className="flex items-center justify-between border-b border-slate-100 pb-2">
           <div>
             <h2 className="text-sm md:text-base font-extrabold text-slate-900">
-              {title || schema.title}
+              {title || normalizedSchema.title}
             </h2>
-            {(subtitle || schema.subtitle) && (
-              <p className="text-xs text-slate-400 mt-0.5">{subtitle || schema.subtitle}</p>
+            {(subtitle || normalizedSchema.subtitle) && (
+              <p className="text-xs text-slate-400 mt-0.5">{subtitle || normalizedSchema.subtitle}</p>
             )}
           </div>
           {isDirty && !readOnly && (
@@ -198,7 +202,7 @@ export default function DynamicFormRenderer({
       {/* Tabs Navigation (if defined in schema) */}
       {hasTabs && (
         <MetadataTabRenderer
-          tabs={schema.tabs}
+          tabs={normalizedSchema.tabs}
           activeTabId={activeTabId}
           onTabChange={setActiveTabId}
           badges={tabErrorBadges}
@@ -223,7 +227,7 @@ export default function DynamicFormRenderer({
 
       {/* Render Fields in Responsive Grid (Configurable 1 to 6 columns across width) */}
       {(() => {
-        const gridColsCount = Number(schema?.gridColumns || schema?.columnsCount || 2)
+        const gridColsCount = Number(normalizedSchema?.gridColumns || normalizedSchema?.columnsCount || 2)
         const gridClassMap = {
           1: 'grid-cols-1',
           2: 'grid-cols-1 md:grid-cols-2',
@@ -238,6 +242,7 @@ export default function DynamicFormRenderer({
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs">
             <div className={`grid ${activeGridClass} gap-4`}>
               {activeFields.map((field) => {
+                const fId = field.id || field.key
                 // Conditional visibility
                 if (field.condition && typeof field.condition === 'function') {
                   if (!field.condition(formData)) return null
@@ -245,11 +250,11 @@ export default function DynamicFormRenderer({
 
                 return (
                   <DynamicFieldRenderer
-                    key={field.id}
+                    key={fId}
                     field={field}
-                    value={formData[field.id]}
+                    value={formData[fId]}
                     onChange={handleFieldChange}
-                    error={errors[field.id]}
+                    error={errors[fId]}
                     disabled={submitting}
                     readOnly={readOnly}
                     gridColumns={gridColsCount}
