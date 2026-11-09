@@ -58,6 +58,7 @@ const EssPayslips = React.lazy(() => import('./module/HRMS/SelfService/EssPaysli
 const EssHelpdesk = React.lazy(() => import('./module/HRMS/SelfService/EssHelpdesk'))
 
 import ErrorBoundary from './components/ErrorBoundary'
+import SuperAdminRedirect from './components/SuperAdminRedirect'
 
 function Lazy({ children }) {
   return (
@@ -218,19 +219,18 @@ export default function App() {
               <Route path="module/operations" element={<Navigate to="/dashboard" replace />} />
               <Route path="module/operations/*" element={<Navigate to="/dashboard" replace />} />
 
-              {/* 8. Administration, Security & Multi-Tenancy */}
+              {/* 8. HR Administration & Security */}
               <Route path="administration/users" element={<Lazy><PermissionRoute requiredPages={['Users']}><UserList /></PermissionRoute></Lazy>} />
               <Route path="users" element={<Navigate to="/administration/users" replace />} />
-              <Route path="administration/role-access" element={<Lazy><PermissionRoute requiredPages={['RoleAccess']}><RoleAccess /></PermissionRoute></Lazy>} />
-              <Route path="role-access" element={<Navigate to="/administration/role-access" replace />} />
-              <Route path="tenant-master" element={<Lazy><PermissionRoute requiredRole="SuperAdmin"><TenantMaster /></PermissionRoute></Lazy>} />
-              <Route path="tenant-master/provider-setup" element={<Lazy><PermissionRoute requiredRole="SuperAdmin"><PlatformSettings /></PermissionRoute></Lazy>} />
-              <Route path="tenant-master/create" element={<Lazy><PermissionRoute requiredRole="SuperAdmin"><TenantCreate /></PermissionRoute></Lazy>} />
-              <Route path="tenant-master/view/:id" element={<Lazy><PermissionRoute requiredRole="SuperAdmin"><TenantView /></PermissionRoute></Lazy>} />
-              <Route path="tenant-master/edit/:id" element={<Lazy><PermissionRoute requiredRole="SuperAdmin"><TenantEdit /></PermissionRoute></Lazy>} />
               <Route path="bulk-import" element={<Lazy><PermissionRoute requiredPages={['Import']}><BulkImportCenter /></PermissionRoute></Lazy>} />
               <Route path="module/import" element={<Navigate to="/bulk-import" replace />} />
-              <Route path="administration/form-studio" element={<Lazy><FormStudio /></Lazy>} />
+
+              {/* Centralized SuperAdmin & Platform Governance - Redirect to Cloud ERP Control Plane */}
+              <Route path="tenant-master" element={<SuperAdminRedirect title="Tenant Administration Centralized" />} />
+              <Route path="tenant-master/*" element={<SuperAdminRedirect title="Tenant Administration Centralized" />} />
+              <Route path="administration/role-access" element={<SuperAdminRedirect title="Role Access & IAM Centralized" />} />
+              <Route path="role-access" element={<Navigate to="/administration/role-access" replace />} />
+              <Route path="administration/form-studio" element={<SuperAdminRedirect title="Form Studio Centralized" />} />
               <Route path="form-studio" element={<Navigate to="/administration/form-studio" replace />} />
               <Route path="profile" element={<Profile />} />
               <Route path="change-password" element={<ChangePassword />} />

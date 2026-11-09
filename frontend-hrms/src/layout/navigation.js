@@ -135,14 +135,10 @@ export const navigationGroups = [
     ]
   },
   {
-    title: 'Administration & Security',
+    title: 'HR Administration',
     items: [
-      { label: 'User Management', path: '/administration/users', icon: UserCog, permission: 'Users' },
-      { label: 'Role Permissions', path: '/administration/role-access', icon: ShieldAlert, permission: 'RoleAccess' },
-      { label: 'Form & Tab Studio', path: '/administration/form-studio', icon: LayoutGrid, permission: 'RoleAccess' },
+      { label: 'User Directory', path: '/administration/users', icon: UserCog, permission: 'Users' },
       { label: 'Universal Data Import', path: '/bulk-import', icon: UploadCloud, permission: 'Import' },
-      { label: 'Tenant Master', path: '/tenant-master', icon: Building2, superAdminOnly: true, permission: 'TenantMaster' },
-      { label: 'Platform Settings', path: '/tenant-master/provider-setup', icon: SlidersHorizontal, superAdminOnly: true, permission: 'PlatformSettings' },
     ]
   }
 ]
