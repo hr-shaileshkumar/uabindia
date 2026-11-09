@@ -19,6 +19,7 @@ import {
 import { listCompanies, getCompany } from '../../api/companies'
 import { listProjects } from '../../api/projects'
 import { listTenants } from '../../api/tenants'
+import api from '../../api/axios'
 import CompanySetupPanel from './CompanyMaster/CompanySetupPanel'
 import PageHeader from '../../components/PageHeader'
 import LayoutVersionBadge from '../../components/LayoutVersionBadge'

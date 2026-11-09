@@ -212,11 +212,10 @@ export default function Leave() {
   const loadData = async () => {
     setLoading(true)
     try {
-      const [bRes, aRes, ltRes, metaRes] = await Promise.all([
+      const [bRes, aRes, ltRes] = await Promise.all([
         getLeaveBalances().catch(() => []),
         getLeaveApplications(null, statusFilter).catch(() => []),
         getMasterItems('leave-type').catch(() => []),
-        getUiLayout('leave_management').catch(() => null),
       ])
 
       setBalances(Array.isArray(bRes) ? bRes : [])
@@ -231,8 +230,6 @@ export default function Leave() {
           leaveTypeName: types[0].name || types[0].Name || 'Casual Leave',
         }))
       }
-
-      if (metaRes) setLayoutMeta(metaRes)
     } catch (err) {
       console.error('Failed to load leave data', err)
     } finally {

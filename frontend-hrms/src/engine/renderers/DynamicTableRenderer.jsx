@@ -10,6 +10,7 @@ import {
   ChevronRight,
   RefreshCw,
   Sliders,
+  X,
 } from 'lucide-react'
 import DynamicColumnRenderer from './DynamicColumnRenderer'
 import MetadataLoadingState from './MetadataLoadingState'

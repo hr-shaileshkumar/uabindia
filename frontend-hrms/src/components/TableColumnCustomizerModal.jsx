@@ -611,7 +611,7 @@ export default function TableColumnCustomizerModal({
 
   if (!isOpen || !schema) return null
 
-  const rawSchemaId = schema.id || schemaIdProp || 'employee_directory'
+  const rawSchemaId = schema.id || schema.key || 'employee_directory'
   const schemaId = rawSchemaId === 'candidates' ? 'candidate_pipeline' : rawSchemaId
   const presetsForSchema = PRESET_COLUMNS[schemaId] || PRESET_COLUMNS[rawSchemaId] || []
   const catalogGroups = DB_ATTRIBUTES_CATALOG[schemaId] || DB_ATTRIBUTES_CATALOG[rawSchemaId] || []
