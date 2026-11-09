@@ -1155,8 +1155,8 @@ export default function TableColumnCustomizerModal({
         {/* Footer */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-t border-slate-100 bg-slate-50/70">
           <div className="flex items-center gap-1.5 text-xs text-slate-500">
-            <Database size={13} className="text-purple-600" />
-            <span className="hidden sm:inline">Persists to SQL Server for all tenant users</span>
+            <Sliders size={13} className="text-purple-600" />
+            <span className="hidden sm:inline">Personalized view preference saved for your workspace</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -1173,11 +1173,11 @@ export default function TableColumnCustomizerModal({
                   setError('')
                 }
               }}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-purple-200 bg-purple-50/70 hover:bg-purple-100 text-purple-700 text-xs font-bold transition shadow-2xs cursor-pointer mr-1"
-              title="Reset table to clean separate columns (Plan Layout)"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition shadow-2xs cursor-pointer mr-1"
+              title="Reset table to default schema columns"
             >
               <RotateCcw size={13} />
-              <span>Reset to Plan Layout</span>
+              <span>Reset to Default</span>
             </button>
             <button
               type="button"
@@ -1194,7 +1194,7 @@ export default function TableColumnCustomizerModal({
               className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 disabled:opacity-50 text-white text-xs font-bold transition shadow-xs cursor-pointer"
             >
               <Save size={14} className={saving ? 'animate-spin' : ''} />
-              <span>{saving ? 'Saving...' : 'Save & Apply to Tenant'}</span>
+              <span>{saving ? 'Saving...' : 'Save & Apply'}</span>
             </button>
           </div>
         </div>

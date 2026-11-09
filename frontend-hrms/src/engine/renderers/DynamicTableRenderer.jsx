@@ -313,12 +313,12 @@ export default function DynamicTableRenderer({
             <button
               type="button"
               onClick={() => setColumnModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-xl border border-purple-200/80 bg-purple-50/60 hover:bg-purple-100/70 text-purple-700 text-xs font-semibold transition shadow-2xs cursor-pointer"
-              title="Customize Table Columns (Admin / SuperAdmin)"
+              className="flex items-center gap-1.5 px-3 py-1 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition shadow-2xs cursor-pointer"
+              title="Customize visible columns"
             >
-              <Sliders size={13} className="text-purple-600" />
-              <span>Customize Columns</span>
-              <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-purple-200/70 text-purple-800 text-[10px] font-bold">
+              <Sliders size={13} className="text-slate-500" />
+              <span>Columns</span>
+              <span className="px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 text-[10px] font-mono font-bold">
                 {columns.length}
               </span>
             </button>
