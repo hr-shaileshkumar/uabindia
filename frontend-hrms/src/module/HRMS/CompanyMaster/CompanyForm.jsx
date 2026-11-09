@@ -18,7 +18,6 @@ import { brandingLogoUrl } from '../../../api/branding'
 import { getPreviewSequence } from '../../../api/sequences'
 import PageHeader from '../../../components/PageHeader'
 import LayoutVersionBadge from '../../../components/LayoutVersionBadge'
-import PageCustomizationMenu from '../../../components/PageCustomizationMenu'
 
 export function generateCompanyCode() {
   return ''
@@ -371,10 +370,6 @@ export default function CompanyForm({
         actions={
           <div className="flex items-center gap-2">
             <LayoutVersionBadge entity="company" version={1.0} />
-            <PageCustomizationMenu
-              entityType="company"
-              schemaId="company"
-            />
             <button type="button" onClick={handleBack} className="btn btn-back text-xs py-1 px-2.5">
               <ArrowLeft size={14} /> Back
             </button>

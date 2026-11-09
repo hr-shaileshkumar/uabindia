@@ -5,7 +5,6 @@ import { createEmployee, getEmployee, updateEmployee } from '../../../api/employ
 import { getMetadataSchema, syncSchemaFromDb } from '../../../engine/metadataStore'
 import DynamicFormRenderer from '../../../engine/renderers/DynamicFormRenderer'
 import MetadataLoadingState from '../../../engine/renderers/MetadataLoadingState'
-import PageCustomizationMenu from '../../../components/PageCustomizationMenu'
 
 function clean(value) {
   return String(value ?? '').trim()
@@ -317,14 +316,6 @@ export default function EmployeeForm({ initial = null }) {
             </h1>
           </div>
         </div>
-
-        {/* Right side: Customization Dropdown for Super Admin & Admin */}
-        <PageCustomizationMenu
-          schema={schema}
-          entityType="employee"
-          schemaId="employee_form"
-          onSchemaUpdated={setSchema}
-        />
       </div>
 
       {/* 2. Metadata-Driven Dynamic Form Engine */}

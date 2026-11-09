@@ -8,7 +8,6 @@ import { useAuth } from '../../../context/AuthContext'
 import { useToast } from '../../../components/ToastProvider'
 import PageHeader from '../../../components/PageHeader'
 import LayoutVersionBadge from '../../../components/LayoutVersionBadge'
-import PageCustomizationMenu from '../../../components/PageCustomizationMenu'
 import ProjectForm from './ProjectForm'
 
 export default function ProjectCreate() {
@@ -96,10 +95,6 @@ export default function ProjectCreate() {
         actions={
           <div className="flex items-center gap-2">
             <LayoutVersionBadge entity="project" version={1.0} />
-            <PageCustomizationMenu
-              entityType="project"
-              schemaId="project"
-            />
             <Link to="/module/hrms/projects" className="btn btn-back text-xs py-1 px-2.5">
               <ArrowLeft size={14} /> Back
             </Link>

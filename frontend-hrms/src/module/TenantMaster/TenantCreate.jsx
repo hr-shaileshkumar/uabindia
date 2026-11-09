@@ -5,7 +5,6 @@ import { createTenant, uploadTenantLogo } from '../../api/tenants'
 import { getPlatformSettings } from '../../api/platformSettings'
 import { useToast } from '../../components/ToastProvider'
 import PageHeader from '../../components/PageHeader'
-import PageCustomizationMenu from '../../components/PageCustomizationMenu'
 import TenantForm from './TenantForm'
 
 export default function TenantCreate() {
@@ -59,10 +58,6 @@ export default function TenantCreate() {
         badgeTone="blue"
         actions={
           <div className="flex items-center gap-2">
-            <PageCustomizationMenu
-              entityType="tenant"
-              schemaId="tenant"
-            />
             <Link to="/tenant-master" className="btn btn-outline text-xs py-1 px-2.5 gap-1.5">
               <ArrowLeft size={14} /> Back
             </Link>
