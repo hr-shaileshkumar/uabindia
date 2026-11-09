@@ -70,10 +70,15 @@ export default function SetupCenter() {
     }
   })
 
-  const handleSavePolicies = (e) => {
+  const handleSavePolicies = async (e) => {
     e.preventDefault()
     try {
       localStorage.setItem('hrms_company_policies', JSON.stringify(policies))
+      try {
+        await api.post('/policies/evaluate', policies)
+      } catch (err) {
+        // Backend fallback
+      }
       setPolicySaved(true)
       setTimeout(() => setPolicySaved(false), 2500)
     } catch {}

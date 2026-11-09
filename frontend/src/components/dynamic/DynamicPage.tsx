@@ -89,6 +89,8 @@ export function pageSchemaToDynamicSchema(cat: PageSchema): DynamicPageSchema {
       filterable: true,
       hidden: c.defaultVisible === false,
       width: c.width ? String(c.width) : undefined,
+      format: c.format,
+      security: c.security || (c.readRoles ? { restrictedRoles: c.readRoles } : undefined),
     })),
     filters: (cat.filters || []).map((f) => ({
       key: f.key,
@@ -115,6 +117,7 @@ export function pageSchemaToDynamicSchema(cat: PageSchema): DynamicPageSchema {
           optionsEndpoint: f.lookupEndpoint,
           lookupValueKey: f.lookupValueKey,
           lookupLabelKey: f.lookupLabelKey,
+          security: f.security || (f.readRoles ? { restrictedRoles: f.readRoles } : undefined),
         })),
       })),
     },

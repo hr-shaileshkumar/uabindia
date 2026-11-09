@@ -170,55 +170,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, [requiresAuthBootstrap]);
 
-  // Auto-detect when cookies are cleared in Chrome DevTools / Settings and immediately redirect to login
-  useEffect(() => {
-    if (typeof window === "undefined" || isAuthRoute) return;
 
-    const checkCookiePresence = () => {
-      if (!user) return;
-      const hasCookie = Boolean(document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/));
-      if (!hasCookie) {
-        setUser(null);
-        try {
-          window.sessionStorage.removeItem("erp.auth.user");
-          window.sessionStorage.removeItem("erp.active.path");
-        } catch {}
-        clearClientSessionArtifacts();
-        window.location.href = "/login";
-      }
-    };
-
-    // 1. Focus event: triggers immediately when user switches back from DevTools / Settings to page
-    window.addEventListener("focus", checkCookiePresence);
-
-    // 2. CookieStore API event: native Chrome/Edge event fired when cookies are deleted
-    let cookieStoreRef: any = null;
-    let cookieChangeHandler: ((e: any) => void) | null = null;
-    if ("cookieStore" in window) {
-      try {
-        cookieStoreRef = (window as any).cookieStore;
-        cookieChangeHandler = (event: any) => {
-          if (event.deleted?.some((c: any) => c.name === "access_token" || c.name === "active_path")) {
-            checkCookiePresence();
-          }
-        };
-        cookieStoreRef.addEventListener("change", cookieChangeHandler);
-      } catch {}
-    }
-
-    // 3. Fallback polling interval (every 2.5s)
-    const interval = setInterval(checkCookiePresence, 2500);
-
-    return () => {
-      window.removeEventListener("focus", checkCookiePresence);
-      clearInterval(interval);
-      if (cookieStoreRef && cookieChangeHandler) {
-        try {
-          cookieStoreRef.removeEventListener("change", cookieChangeHandler);
-        } catch {}
-      }
-    };
-  }, [user, isAuthRoute]);
 
   const refreshUser = async () => {
     try {

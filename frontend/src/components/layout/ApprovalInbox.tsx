@@ -212,7 +212,7 @@ export function ApprovalInbox() {
 
                     {item.comments && (
                       <p className="text-[11px] text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-950/60 p-2 rounded-lg italic border border-slate-100 dark:border-slate-800/60">
-                        "{item.comments}"
+                        &ldquo;{item.comments}&rdquo;
                       </p>
                     )}
 

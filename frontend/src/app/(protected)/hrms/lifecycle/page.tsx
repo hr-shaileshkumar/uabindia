@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 
-import { DynamicPage } from "@/components/dynamic/DynamicPage";
+import { WorkforceMovementSuite } from "@/features/hrms/lifecycle/WorkforceMovementSuite";
 
 export default function HrLifecyclePage() {
-  return <DynamicPage pageKey="hrms.lifecycle" />;
+  return <WorkforceMovementSuite />;
 }

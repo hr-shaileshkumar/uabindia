@@ -48,7 +48,7 @@
   </ItemGroup>
 
   <!-- Auto-terminate any existing local instance before build so dotnet run never hits MSB3027 file lock on Windows -->
-  <Target Name="KillExistingBackend" BeforeTargets="BeforeBuild" Condition="'$(OS)' == 'Windows_NT' And '$(Configuration)' == 'Debug'">
-    <Exec Command="taskkill /F /IM UabIndia.Api.exe 2>nul || exit 0" StandardOutputImportance="Low" StandardErrorImportance="Low" ContinueOnError="true" IgnoreExitCode="true" />
+  <Target Name="KillExistingBackend" BeforeTargets="BeforeBuild" Condition="'$(OS)' == 'Windows_NT' And '$(Configuration)' == 'Debug' And '$(DOTNET_BUILD_NO_KILL)' != 'true'">
+    <Exec Command="cmd /c &quot;taskkill /F /IM UabIndia.Api.exe 2&gt;nul || exit 0&quot;" StandardOutputImportance="Low" StandardErrorImportance="Low" ContinueOnError="WarnAndContinue" IgnoreExitCode="true" />
   </Target>
 </Project>

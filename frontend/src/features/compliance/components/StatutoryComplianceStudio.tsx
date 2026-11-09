@@ -110,6 +110,7 @@ export function StatutoryComplianceStudio() {
   const [searchQuery, setSearchQuery] = useState("");
   const [bodyFilter, setBodyFilter] = useState("ALL");
   const [markModalItem, setMarkModalItem] = useState<ComplianceFiling | null>(null);
+  const [ackNumber, setAckNumber] = useState(() => `ACK-${Date.now().toString().slice(-8)}`);
 
   // Filtered
   const filteredFilings = useMemo(() => {
@@ -373,7 +374,8 @@ export function StatutoryComplianceStudio() {
                 <input
                   type="text"
                   placeholder="e.g. CIN / BRN / EPFO Challan No"
-                  defaultValue={`ACK-${Date.now().toString().slice(-8)}`}
+                  value={ackNumber}
+                  onChange={(e) => setAckNumber(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-input bg-background font-mono font-bold"
                 />
               </div>

@@ -1,7 +1,5 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { FleetManagementCockpit } from "@/features/fleet/components/FleetManagementCockpit";
-
-export default function FleetPage() {
-  return <FleetManagementCockpit />;
+export default function FleetRedirect() {
+  redirect("/assets?tab=fleet");
 }

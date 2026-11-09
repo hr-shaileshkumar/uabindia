@@ -15,6 +15,8 @@ export const ROUTES = {
   // Core HR
   EMPLOYEES: "/hrms/employees",
   EMPLOYEES_360: "/hrms/employees/360",
+  LIFECYCLE: "/hrms/lifecycle",
+  COMPANY_SETUP_WIZARD: "/administration/companies/setup-wizard",
   GRADES: "/hrms/grades",
   EMPLOYMENT_TYPES: "/hrms/employment-types",
   ORG_CHART: "/hrms/org-chart",

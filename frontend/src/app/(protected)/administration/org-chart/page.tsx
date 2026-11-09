@@ -1,7 +1,5 @@
-﻿"use client";
+import { redirect } from "next/navigation";
 
-import { DynamicPage } from "@/components/dynamic/DynamicPage";
-
-export default function AdministrationOrgChartPage() {
-  return <DynamicPage pageKey="administration.org-chart" />;
+export default function AdministrationOrgChartRedirect() {
+  redirect("/hrms/org-chart");
 }

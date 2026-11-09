@@ -50,7 +50,14 @@ export function AuthProvider({ children }) {
     }
   }
 
-  const [token, setToken] = useState(() => _safeGet('auth_token'))
+  function getCookie(name) {
+    if (typeof document === 'undefined') return ''
+    const parts = document.cookie.split('; ').map(p => p.split('='))
+    const found = parts.find(p => p[0] === name)
+    return found ? decodeURIComponent(found[1] || '') : ''
+  }
+
+  const [token, setToken] = useState(() => _safeGet('auth_token') || getCookie('access_token'))
   const [user, setUser] = useState(() => {
     const raw = _safeGet('auth_user')
     return raw ? JSON.parse(raw) : null

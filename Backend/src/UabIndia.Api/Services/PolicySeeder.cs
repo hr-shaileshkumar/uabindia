@@ -36,6 +36,8 @@ namespace UabIndia.Api.Services
                     return;
                 }
 
+                await UabIndia.Infrastructure.Data.Migrations.MigrationBootstrap.EnsureTenantConfigColumnsAsync(db, logger);
+
                 tenants = await db.Tenants.AsNoTracking().ToListAsync();
             }
             catch (Microsoft.Data.SqlClient.SqlException ex)

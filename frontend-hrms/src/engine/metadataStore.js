@@ -1000,6 +1000,8 @@ export async function syncSchemaFromDb(schemaId, tenantOrCompanyId = 'default', 
         dbSchema.columns = dbSchema.columns.map(c => {
           const copy = { ...c }
           if (copy.subKey === 'code' || copy.subKey === 'employeeCode') copy.subKey = 'none'
+          if (!copy.format && copy.type) copy.format = copy.type
+          if (!copy.type && copy.format) copy.type = copy.format
           return copy
         })
       }

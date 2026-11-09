@@ -100,10 +100,10 @@ export const INITIAL_ASSETS: FixedAsset[] = [
   },
 ];
 
-export function FixedAssetLifecycleStudio() {
+export function FixedAssetLifecycleStudio({ initialCategory = "ALL" }: { initialCategory?: string } = {}) {
   const [assets, setAssets] = useState<FixedAsset[]>(INITIAL_ASSETS);
   const [searchQuery, setSearchQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("ALL");
+  const [categoryFilter, setCategoryFilter] = useState(initialCategory);
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
   // Aggregations

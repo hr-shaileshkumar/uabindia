@@ -289,6 +289,7 @@ namespace UabIndia.Api.Services
             }
 
             _logger.LogInformation("Database migrations applied.");
+            await UabIndia.Infrastructure.Data.Migrations.MigrationBootstrap.EnsureExtendedSchemaAsync(db, _logger, ct);
 
             // ── Step 2: Seed global modules & SaaS Subscription Plans ────────────────
             await EnsureGlobalModulesAsync(db, ct);

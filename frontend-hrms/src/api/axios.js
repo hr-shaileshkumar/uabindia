@@ -340,7 +340,7 @@ api.interceptors.request.use((config) => {
 
   try {
 
-    const t = _safeGet('auth_token')
+    const t = _safeGet('auth_token') || getCookie('access_token')
 
     if (t && !config.headers.Authorization) {
 

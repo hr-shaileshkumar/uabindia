@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ChevronRight,
@@ -251,7 +251,6 @@ function SidebarNavGroupItem({
     }
   }, [isGroupActive, forceExpandAll]);
 
-  const GroupIconComponent = resolveGroupIcon(group.label);
 
   return (
     <div className={cn(
@@ -271,14 +270,14 @@ function SidebarNavGroupItem({
           )}
         >
           <div className="flex items-center gap-1.5 min-w-0">
-            <GroupIconComponent
-              className={cn(
+            {React.createElement(resolveGroupIcon(group.label), {
+              className: cn(
                 "h-3.5 w-3.5 shrink-0 transition-colors",
                 isGroupActive
                   ? "text-blue-600 dark:text-blue-400"
                   : "text-slate-400 group-hover/grp:text-slate-600 dark:group-hover/grp:text-slate-300"
-              )}
-            />
+              ),
+            })}
             <span className="text-[11.5px] font-semibold text-slate-700 dark:text-slate-200 tracking-wide truncate">
               {group.label}
             </span>

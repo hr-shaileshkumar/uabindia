@@ -1,7 +1,5 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { FixedAssetLifecycleStudio } from "@/features/assets/components/FixedAssetLifecycleStudio";
-
-export default function HrmsAssetsPage() {
-  return <FixedAssetLifecycleStudio />;
+export default function HrmsAssetsRedirect() {
+  redirect("/assets?tab=custody");
 }

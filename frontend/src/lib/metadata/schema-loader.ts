@@ -2,8 +2,37 @@ import apiClient from "@/services/apiClient";
 import { PageSchema, ColumnDefinition, FormFieldDefinition } from "./types";
 import { getCatalogSchema } from "./catalog";
 
-export async function loadPageSchema(pageKey: string): Promise<PageSchema> {
+interface SchemaCacheEntry {
+  schema: PageSchema;
+  timestamp: number;
+}
+
+const schemaCache = new Map<string, SchemaCacheEntry>();
+const SCHEMA_CACHE_TTL_MS = 60_000;
+
+export function invalidateSchemaCache(pageKey?: string): void {
+  if (pageKey) {
+    schemaCache.delete(pageKey.toLowerCase().trim());
+  } else {
+    schemaCache.clear();
+  }
+}
+
+export async function loadPageSchema(pageKey: string, bypassCache = false): Promise<PageSchema> {
   const normalizedKey = pageKey.toLowerCase().trim();
+
+  // Tier 0: In-Memory / Stale-While-Revalidate Cache Check
+  if (!bypassCache) {
+    const cached = schemaCache.get(normalizedKey);
+    if (cached && Date.now() - cached.timestamp < SCHEMA_CACHE_TTL_MS) {
+      return cached.schema;
+    }
+  }
+
+  const cacheAndReturn = (schema: PageSchema): PageSchema => {
+    schemaCache.set(normalizedKey, { schema, timestamp: Date.now() });
+    return schema;
+  };
 
   // Tier 1: Check backend Metadata / UI Pages API (published or draft custom schema)
   try {
@@ -13,13 +42,13 @@ export async function loadPageSchema(pageKey: string): Promise<PageSchema> {
       const schemaJson = raw.schemaJson;
       const parsed: PageSchema = typeof schemaJson === "string" ? JSON.parse(schemaJson) : schemaJson;
       if (parsed && (parsed.columns?.length || parsed.form?.sections?.length || parsed.viewType)) {
-        return {
+        return cacheAndReturn({
           ...parsed,
           pageKey: raw.pageKey || normalizedKey,
           title: raw.title || parsed.title,
           subTitle: raw.subTitle || parsed.subTitle,
           apiEndpoint: parsed.apiEndpoint || raw.apiEndpoint || `/api/v1/${normalizedKey.replace(".", "/")}`,
-        };
+        });
       }
     }
   } catch {
@@ -34,13 +63,13 @@ export async function loadPageSchema(pageKey: string): Promise<PageSchema> {
       const schemaJson = raw.schemaJson;
       const parsed: PageSchema = typeof schemaJson === "string" ? JSON.parse(schemaJson) : schemaJson;
       if (parsed && (parsed.columns?.length || parsed.form?.sections?.length || parsed.viewType)) {
-        return {
+        return cacheAndReturn({
           ...parsed,
           pageKey: raw.pageKey || normalizedKey,
           title: raw.title || parsed.title,
           subTitle: raw.subTitle || parsed.subTitle,
           apiEndpoint: parsed.apiEndpoint || raw.apiEndpoint || `/api/v1/${normalizedKey.replace(".", "/")}`,
-        };
+        });
       }
     }
   } catch {
@@ -50,7 +79,7 @@ export async function loadPageSchema(pageKey: string): Promise<PageSchema> {
   // Tier 2: Built-in Standard ERP Schema Catalog (Zero hardcoded view, pure metadata)
   const catalogSchema = getCatalogSchema(normalizedKey);
   if (catalogSchema) {
-    return catalogSchema;
+    return cacheAndReturn(catalogSchema);
   }
 
   // Tier 3: Auto-synthesize schema on the fly from Backend Entity Reflection
@@ -77,7 +106,7 @@ export async function loadPageSchema(pageKey: string): Promise<PageSchema> {
         span: 1,
       }));
 
-      return {
+      return cacheAndReturn({
         pageKey: normalizedKey,
         title: entityName.charAt(0).toUpperCase() + entityName.slice(1),
         subTitle: `Dynamic metadata view for ${entityName}`,
@@ -100,14 +129,14 @@ export async function loadPageSchema(pageKey: string): Promise<PageSchema> {
           { key: "edit", label: "Edit", variant: "secondary", icon: "Pencil" },
           { key: "delete", label: "Delete", variant: "danger", icon: "Trash2" },
         ],
-      };
+      });
     }
   } catch {
     // Ignore fallback
   }
 
   // Final graceful fallback if entity has zero registered fields
-  return {
+  return cacheAndReturn({
     pageKey: normalizedKey,
     title: normalizedKey,
     subTitle: "Dynamic Page",
@@ -139,5 +168,5 @@ export async function loadPageSchema(pageKey: string): Promise<PageSchema> {
       { key: "edit", label: "Edit", variant: "secondary", icon: "Pencil" },
       { key: "delete", label: "Delete", variant: "danger", icon: "Trash2" },
     ],
-  };
+  });
 }

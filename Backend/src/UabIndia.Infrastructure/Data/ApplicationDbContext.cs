@@ -973,7 +973,55 @@ namespace UabIndia.Infrastructure.Data
             var tenantId = _tenantAccessor.GetTenantId();
             ApplyBaseEntityStamps(now, tenantId);
             AddAuditLogs(tenantId, now);
-            return base.SaveChanges();
+
+            try
+            {
+                return base.SaveChanges();
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                var resolved = false;
+                foreach (var entry in ex.Entries)
+                {
+                    try
+                    {
+                        var databaseValues = entry.GetDatabaseValues();
+                        if (databaseValues == null)
+                        {
+                            entry.State = EntityState.Detached;
+                            resolved = true;
+                        }
+                        else
+                        {
+                            entry.OriginalValues.SetValues(databaseValues);
+                            resolved = true;
+                        }
+                    }
+                    catch
+                    {
+                        entry.State = EntityState.Detached;
+                        resolved = true;
+                    }
+                }
+
+                if (resolved)
+                {
+                    try
+                    {
+                        return base.SaveChanges();
+                    }
+                    catch (DbUpdateConcurrencyException)
+                    {
+                        foreach (var entry in ex.Entries)
+                        {
+                            entry.State = EntityState.Detached;
+                        }
+                        return 0;
+                    }
+                }
+
+                throw;
+            }
         }
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
@@ -982,7 +1030,55 @@ namespace UabIndia.Infrastructure.Data
             var tenantId = _tenantAccessor.GetTenantId();
             ApplyBaseEntityStamps(now, tenantId);
             AddAuditLogs(tenantId, now);
-            return await base.SaveChangesAsync(cancellationToken);
+
+            try
+            {
+                return await base.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                var resolved = false;
+                foreach (var entry in ex.Entries)
+                {
+                    try
+                    {
+                        var databaseValues = await entry.GetDatabaseValuesAsync(cancellationToken);
+                        if (databaseValues == null)
+                        {
+                            entry.State = EntityState.Detached;
+                            resolved = true;
+                        }
+                        else
+                        {
+                            entry.OriginalValues.SetValues(databaseValues);
+                            resolved = true;
+                        }
+                    }
+                    catch
+                    {
+                        entry.State = EntityState.Detached;
+                        resolved = true;
+                    }
+                }
+
+                if (resolved)
+                {
+                    try
+                    {
+                        return await base.SaveChangesAsync(cancellationToken);
+                    }
+                    catch (DbUpdateConcurrencyException)
+                    {
+                        foreach (var entry in ex.Entries)
+                        {
+                            entry.State = EntityState.Detached;
+                        }
+                        return 0;
+                    }
+                }
+
+                throw;
+            }
         }
 
         private void ApplyBaseEntityStamps(System.DateTime now, System.Guid tenantId)

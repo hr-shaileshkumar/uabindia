@@ -150,6 +150,7 @@ export function CrmDealPipelineStudio() {
   const [selectedOwner, setSelectedOwner] = useState("ALL");
   const [activeDealModal, setActiveDealModal] = useState<DealItem | null>(null);
   const [newDealOpen, setNewDealOpen] = useState(false);
+  const [targetCloseDate, setTargetCloseDate] = useState(() => new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0]);
 
   // Pipeline Metrics
   const totalPipelineValue = useMemo(() => {
@@ -591,7 +592,8 @@ export function CrmDealPipelineStudio() {
                   <label className="font-semibold text-muted-foreground block mb-1">Target Close Date:</label>
                   <input
                     type="date"
-                    defaultValue={new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0]}
+                    value={targetCloseDate}
+                    onChange={(e) => setTargetCloseDate(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-input bg-background"
                   />
                 </div>

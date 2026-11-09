@@ -1,7 +1,5 @@
-﻿"use client";
+import { redirect } from "next/navigation";
 
-import { DynamicPage } from "@/components/dynamic/DynamicPage";
-
-export default function IntegrationsRoute() {
-  return <DynamicPage pageKey="administration.integrations" />;
+export default function AdministrationIntegrationsRedirect() {
+  redirect("/integrations");
 }

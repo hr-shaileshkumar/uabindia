@@ -32,6 +32,7 @@ namespace UabIndia.Identity.Services
             {
                 using var scope = _serviceProvider.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                await UabIndia.Infrastructure.Data.Migrations.MigrationBootstrap.EnsureOpenIddictTablesAsync(context, _logger, cancellationToken);
                 var appManager = scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
                 var scopeManager = scope.ServiceProvider.GetRequiredService<IOpenIddictScopeManager>();
 

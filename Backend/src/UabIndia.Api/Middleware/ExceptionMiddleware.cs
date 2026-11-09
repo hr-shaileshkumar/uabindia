@@ -89,6 +89,7 @@ namespace UabIndia.Api.Middleware
                 UnauthorizedAccessException => (StatusCodes.Status403Forbidden, "Access to the requested resource is forbidden.", "forbidden"),
                 KeyNotFoundException => (StatusCodes.Status404NotFound, "The requested resource was not found.", "not_found"),
                 InvalidOperationException => (StatusCodes.Status409Conflict, "The request could not be completed due to a conflict.", "conflict"),
+                Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException => (StatusCodes.Status409Conflict, "The record was updated or deleted by another operation. Please refresh and try again.", "concurrency_conflict"),
                 _ => (StatusCodes.Status500InternalServerError, "An unhandled server error occurred.", "server_error")
             };
         }

@@ -1,7 +1,5 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { DynamicPage } from "@/components/dynamic/DynamicPage";
-
-export default function SecuritySessionsPage() {
-  return <DynamicPage pageKey="administration.security-sessions" />;
+export default function SecuritySessionsRedirect() {
+  redirect("/security/access-logs");
 }

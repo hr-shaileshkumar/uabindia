@@ -97,7 +97,7 @@ export const COST_CENTERS = [
 
 export function JournalVoucherStudio() {
   const [viewMode, setViewMode] = useState<"STUDIO" | "PRINT">("STUDIO");
-  const [voucherNumber, setVoucherNumber] = useState(`JV-2026-${Math.floor(1000 + Math.random() * 9000)}`);
+  const [voucherNumber, setVoucherNumber] = useState(() => `JV-2026-${Math.floor(1000 + Math.random() * 9000)}`);
   const [voucherType, setVoucherType] = useState<"General Journal" | "Payment" | "Receipt" | "Contra" | "Adjustment">("General Journal");
   const [postingDate, setPostingDate] = useState(new Date().toISOString().split("T")[0]);
   const [period, setPeriod] = useState("FY 2026-27 / P-08");

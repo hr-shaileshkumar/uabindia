@@ -624,4 +624,584 @@ export const hrmsSchemas: Record<string, PageSchema> = {
       { key: "managementTier", label: "Reporting Nodes", icon: "Network", color: "blue" },
     ],
   },
+
+  "hrms.shifts": {
+    pageKey: "hrms.shifts",
+    title: "Work Shifts & Rosters",
+    subTitle: "Operational shift timings, grace periods, lunch breaks, and night allowances.",
+    entityName: "Shift",
+    moduleKey: "hrms",
+    viewType: "table",
+    apiEndpoint: "/api/v1/hrms/shifts",
+    icon: "Clock",
+    requiredPermission: "hrms.shifts.read",
+    columns: [
+      { key: "shiftCode", label: "Shift Code", width: 120 },
+      { key: "shiftName", label: "Shift Name", width: 200 },
+      { key: "startTime", label: "Start Time", width: 130 },
+      { key: "endTime", label: "End Time", width: 130 },
+      { key: "graceTimeMinutes", label: "Grace (Mins)", width: 120 },
+      { key: "breakDurationMinutes", label: "Break (Mins)", width: 120 },
+      { key: "isNightShift", label: "Night Shift", type: "badge", width: 120 },
+      { key: "status", label: "Status", type: "badge", width: 110 },
+    ],
+    filters: [
+      { key: "search", label: "Search shift name or code...", type: "text" },
+      {
+        key: "isNightShift",
+        label: "Shift Type",
+        type: "select",
+        options: [
+          { value: "true", label: "Night Shift" },
+          { value: "false", label: "Day Shift" },
+        ],
+      },
+    ],
+    form: {
+      sections: [
+        {
+          key: "shift_info",
+          label: "Shift Configuration",
+          fields: [
+            { key: "shiftName", label: "Shift Name", type: "text", required: true, span: 2 },
+            { key: "shiftCode", label: "Shift Code", type: "text", required: true, span: 1 },
+            { key: "startTime", label: "Start Time", type: "text", placeholder: "09:00", required: true, span: 1 },
+            { key: "endTime", label: "End Time", type: "text", placeholder: "18:00", required: true, span: 1 },
+            { key: "graceTimeMinutes", label: "Grace Period (Minutes)", type: "number", span: 1 },
+            { key: "breakDurationMinutes", label: "Break Duration (Minutes)", type: "number", span: 1 },
+            { key: "isNightShift", label: "Is Night Shift", type: "boolean", span: 1 },
+          ],
+        },
+      ],
+    },
+    actions: [
+      { key: "create", label: "Create Shift", variant: "primary", icon: "Plus" },
+      { key: "export", label: "Export Shifts", variant: "secondary", icon: "Download" },
+    ],
+    kpis: [
+      { key: "totalShifts", label: "Active Shifts", icon: "Clock", color: "blue" },
+      { key: "nightShifts", label: "Night Shifts", icon: "Moon", color: "indigo" },
+    ],
+  },
+
+  "hrms.overtime": {
+    pageKey: "hrms.overtime",
+    title: "Overtime Requests & Payouts",
+    subTitle: "Employee extra working hour approvals, multiplier calculations, and payroll push.",
+    entityName: "OvertimeRecord",
+    moduleKey: "hrms",
+    viewType: "table",
+    apiEndpoint: "/api/v1/hrms/overtime",
+    icon: "Clock3",
+    requiredPermission: "hrms.attendance.read",
+    workflowConfig: {
+      enabled: true,
+      stateField: "status",
+      initialState: "Pending",
+      states: [
+        { name: "Pending", label: "Pending Approval", tone: "warning" },
+        { name: "Approved", label: "Approved", tone: "positive" },
+        { name: "Rejected", label: "Rejected", tone: "negative", isFinal: true },
+        { name: "Paid", label: "Processed in Payroll", tone: "info", isFinal: true },
+      ],
+      transitions: [
+        { action: "approve", label: "Approve OT", fromState: "Pending", toState: "Approved", variant: "success" },
+        { action: "reject", label: "Reject OT", fromState: "Pending", toState: "Rejected", variant: "danger", requiresRemarks: true },
+      ],
+    },
+    columns: [
+      { key: "employeeCode", label: "Emp. Code", width: 120 },
+      { key: "employeeName", label: "Employee Name", width: 200 },
+      { key: "overtimeDate", label: "OT Date", type: "date", width: 130 },
+      { key: "hours", label: "Hours Claimed", width: 120 },
+      { key: "rateMultiplier", label: "Rate (1.5x / 2.0x)", width: 140 },
+      { key: "calculatedAmount", label: "Estimated Pay (₹)", width: 140 },
+      { key: "status", label: "Status", type: "badge", width: 130 },
+    ],
+    filters: [
+      { key: "search", label: "Search by employee...", type: "text" },
+      {
+        key: "status",
+        label: "Status",
+        type: "select",
+        options: [
+          { value: "Pending", label: "Pending" },
+          { value: "Approved", label: "Approved" },
+          { value: "Rejected", label: "Rejected" },
+          { value: "Paid", label: "Paid" },
+        ],
+      },
+    ],
+    form: {
+      sections: [
+        {
+          key: "ot_details",
+          label: "Overtime Claim",
+          fields: [
+            { key: "employeeId", label: "Employee", type: "lookup", lookupEndpoint: "/hrms/employees", required: true, span: 2 },
+            { key: "overtimeDate", label: "Date Worked", type: "date", required: true, span: 1 },
+            { key: "hours", label: "Total Overtime Hours", type: "number", required: true, span: 1 },
+            { key: "rateMultiplier", label: "Multiplier", type: "select", options: [{ value: "1.5", label: "1.5x Standard" }, { value: "2.0", label: "2.0x Holiday / Night" }], span: 1 },
+            { key: "reason", label: "Business Reason", type: "textarea", required: true, span: 3 },
+          ],
+        },
+      ],
+    },
+    actions: [
+      { key: "create", label: "Submit OT Claim", variant: "primary", icon: "Plus" },
+    ],
+  },
+
+  "hrms.performance": {
+    pageKey: "hrms.performance",
+    title: "Appraisals & Performance Reviews",
+    subTitle: "Quarterly OKRs, manager assessments, 360 feedback, and rating calibrations.",
+    entityName: "PerformanceAppraisal",
+    moduleKey: "hrms",
+    viewType: "table",
+    apiEndpoint: "/api/v1/hrms/performance",
+    icon: "TrendingUp",
+    requiredPermission: "hrms.employees.read",
+    workflowConfig: {
+      enabled: true,
+      stateField: "status",
+      initialState: "SelfReview",
+      states: [
+        { name: "SelfReview", label: "Self Review", tone: "info" },
+        { name: "ManagerReview", label: "Manager Review", tone: "warning" },
+        { name: "Calibrated", label: "Calibrated", tone: "positive" },
+        { name: "Completed", label: "Appraisal Closed", tone: "neutral", isFinal: true },
+      ],
+      transitions: [
+        { action: "submit_self", label: "Submit to Manager", fromState: "SelfReview", toState: "ManagerReview", variant: "primary" },
+        { action: "calibrate", label: "Calibrate Rating", fromState: "ManagerReview", toState: "Calibrated", variant: "success" },
+        { action: "close", label: "Finalize & Close", fromState: "Calibrated", toState: "Completed", variant: "secondary" },
+      ],
+    },
+    columns: [
+      { key: "employeeName", label: "Employee Name", width: 200 },
+      { key: "departmentName", label: "Department", width: 160 },
+      { key: "appraisalCycle", label: "Appraisal Cycle", width: 150 },
+      { key: "selfRating", label: "Self Score", width: 110 },
+      { key: "managerRating", label: "Manager Score", width: 130 },
+      { key: "finalRating", label: "Calibrated Rating", width: 140 },
+      { key: "status", label: "Workflow Status", type: "badge", width: 140 },
+    ],
+    filters: [
+      { key: "search", label: "Search by employee...", type: "text" },
+      { key: "appraisalCycle", label: "Cycle", type: "text" },
+    ],
+    form: {
+      sections: [
+        {
+          key: "appraisal_info",
+          label: "Performance Evaluation",
+          fields: [
+            { key: "employeeId", label: "Employee", type: "lookup", lookupEndpoint: "/hrms/employees", required: true, span: 2 },
+            { key: "appraisalCycle", label: "Cycle (e.g. Q4 2026 / Annual)", type: "text", required: true, span: 1 },
+            { key: "selfRating", label: "Self Rating (1-5)", type: "number", span: 1 },
+            { key: "managerRating", label: "Manager Rating (1-5)", type: "number", span: 1 },
+            { key: "keyAchievements", label: "Key Achievements & OKR Outcomes", type: "textarea", span: 3 },
+            { key: "improvementAreas", label: "Growth & Improvement Areas", type: "textarea", span: 3 },
+          ],
+        },
+      ],
+    },
+    actions: [
+      { key: "create", label: "Initiate Review", variant: "primary", icon: "Plus" },
+      { key: "export", label: "Export Calibration Matrix", variant: "secondary", icon: "Download" },
+    ],
+  },
+
+  "hrms.training": {
+    pageKey: "hrms.training",
+    title: "Learning & Development (L&D)",
+    subTitle: "Skill development workshops, employee nominations, attendance, and certifications.",
+    entityName: "TrainingProgram",
+    moduleKey: "hrms",
+    viewType: "table",
+    apiEndpoint: "/api/v1/hrms/training",
+    icon: "GraduationCap",
+    requiredPermission: "hrms.employees.read",
+    columns: [
+      { key: "programCode", label: "Program Ref", width: 130 },
+      { key: "title", label: "Training Title", width: 240 },
+      { key: "trainerName", label: "Instructor / Agency", width: 180 },
+      { key: "startDate", label: "Start Date", type: "date", width: 130 },
+      { key: "durationHours", label: "Duration (Hrs)", width: 120 },
+      { key: "totalNominations", label: "Nominees", width: 110 },
+      { key: "status", label: "Status", type: "badge", width: 120 },
+    ],
+    filters: [
+      { key: "search", label: "Search program or trainer...", type: "text" },
+    ],
+    form: {
+      sections: [
+        {
+          key: "program_info",
+          label: "Program Details",
+          fields: [
+            { key: "title", label: "Program Title", type: "text", required: true, span: 2 },
+            { key: "programCode", label: "Program Code", type: "text", required: true, span: 1 },
+            { key: "trainerName", label: "Trainer / Organization", type: "text", required: true, span: 1 },
+            { key: "startDate", label: "Commencement Date", type: "date", required: true, span: 1 },
+            { key: "durationHours", label: "Total Hours", type: "number", span: 1 },
+            { key: "costPerParticipant", label: "Budget Per Seat (₹)", type: "number", span: 1 },
+            { key: "description", label: "Course Syllabus & Objectives", type: "textarea", span: 3 },
+          ],
+        },
+      ],
+    },
+    actions: [
+      { key: "create", label: "Add Training Program", variant: "primary", icon: "Plus" },
+    ],
+  },
+
+  "hrms.probation": {
+    pageKey: "hrms.probation",
+    title: "Probation & Confirmation Management",
+    subTitle: "New joinee probation timelines, manager confirmation sign-offs, and extension tracking.",
+    entityName: "ProbationAssessment",
+    moduleKey: "hrms",
+    viewType: "table",
+    apiEndpoint: "/api/v1/hrms/probation",
+    icon: "UserCheck",
+    requiredPermission: "hrms.employees.read",
+    workflowConfig: {
+      enabled: true,
+      stateField: "status",
+      initialState: "UnderProbation",
+      states: [
+        { name: "UnderProbation", label: "In Probation", tone: "info" },
+        { name: "Extended", label: "Probation Extended", tone: "warning" },
+        { name: "Confirmed", label: "Confirmed Employee", tone: "positive", isFinal: true },
+        { name: "Separated", label: "Released During Probation", tone: "negative", isFinal: true },
+      ],
+      transitions: [
+        { action: "confirm", label: "Confirm Employment", fromState: "UnderProbation", toState: "Confirmed", variant: "success" },
+        { action: "extend", label: "Extend Period", fromState: "UnderProbation", toState: "Extended", variant: "secondary", requiresRemarks: true },
+      ],
+    },
+    columns: [
+      { key: "employeeCode", label: "Emp. Code", width: 120 },
+      { key: "employeeName", label: "Employee Name", width: 220 },
+      { key: "designationName", label: "Designation", width: 180 },
+      { key: "joiningDate", label: "Joining Date", type: "date", width: 130 },
+      { key: "probationEndDate", label: "Due Date", type: "date", width: 130 },
+      { key: "managerRecommendation", label: "Manager Note", width: 200 },
+      { key: "status", label: "Status", type: "badge", width: 130 },
+    ],
+    filters: [
+      { key: "search", label: "Search by employee...", type: "text" },
+      {
+        key: "status",
+        label: "Status",
+        type: "select",
+        options: [
+          { value: "UnderProbation", label: "Under Probation" },
+          { value: "Extended", label: "Extended" },
+          { value: "Confirmed", label: "Confirmed" },
+        ],
+      },
+    ],
+    form: {
+      sections: [
+        {
+          key: "probation_eval",
+          label: "Probation Assessment",
+          fields: [
+            { key: "employeeId", label: "Employee", type: "lookup", lookupEndpoint: "/hrms/employees", required: true, span: 2 },
+            { key: "probationEndDate", label: "Probation End Date", type: "date", required: true, span: 1 },
+            { key: "performanceScore", label: "Score (out of 100)", type: "number", span: 1 },
+            { key: "managerRecommendation", label: "Manager Recommendation", type: "textarea", required: true, span: 3 },
+          ],
+        },
+      ],
+    },
+    actions: [
+      { key: "create", label: "Initiate Review", variant: "primary", icon: "Plus" },
+    ],
+  },
+
+  "hrms.travel": {
+    pageKey: "hrms.travel",
+    title: "Business Travel & Requisitions",
+    subTitle: "Domestic and international travel approvals, advance claims, and expense settlements.",
+    entityName: "TravelRequest",
+    moduleKey: "hrms",
+    viewType: "table",
+    apiEndpoint: "/api/v1/hrms/travel",
+    icon: "Plane",
+    requiredPermission: "hrms.employees.read",
+    workflowConfig: {
+      enabled: true,
+      stateField: "status",
+      initialState: "Submitted",
+      states: [
+        { name: "Submitted", label: "Awaiting Approval", tone: "warning" },
+        { name: "Approved", label: "Trip Approved", tone: "positive" },
+        { name: "Rejected", label: "Rejected", tone: "negative", isFinal: true },
+        { name: "Settled", label: "Expenses Settled", tone: "info", isFinal: true },
+      ],
+      transitions: [
+        { action: "approve", label: "Approve Trip", fromState: "Submitted", toState: "Approved", variant: "success" },
+        { action: "reject", label: "Reject Trip", fromState: "Submitted", toState: "Rejected", variant: "danger", requiresRemarks: true },
+        { action: "settle", label: "Settle Expenses", fromState: "Approved", toState: "Settled", variant: "primary" },
+      ],
+    },
+    columns: [
+      { key: "travelCode", label: "Travel Ref", width: 130 },
+      { key: "employeeName", label: "Employee", width: 200 },
+      { key: "destination", label: "Destination", width: 160 },
+      { key: "startDate", label: "Departure", type: "date", width: 130 },
+      { key: "endDate", label: "Return", type: "date", width: 130 },
+      { key: "estimatedCost", label: "Estimated (₹)", width: 130 },
+      { key: "status", label: "Status", type: "badge", width: 130 },
+    ],
+    filters: [
+      { key: "search", label: "Search trip ref or employee...", type: "text" },
+    ],
+    form: {
+      sections: [
+        {
+          key: "travel_info",
+          label: "Travel Itinerary",
+          fields: [
+            { key: "employeeId", label: "Employee", type: "lookup", lookupEndpoint: "/hrms/employees", required: true, span: 2 },
+            { key: "destination", label: "Destination City / Country", type: "text", required: true, span: 1 },
+            { key: "startDate", label: "Departure Date", type: "date", required: true, span: 1 },
+            { key: "endDate", label: "Return Date", type: "date", required: true, span: 1 },
+            { key: "estimatedCost", label: "Estimated Budget (₹)", type: "number", span: 1 },
+            { key: "advanceRequested", label: "Cash Advance Requested (₹)", type: "number", span: 1 },
+            { key: "purpose", label: "Business Purpose", type: "textarea", required: true, span: 3 },
+          ],
+        },
+      ],
+    },
+    actions: [
+      { key: "create", label: "Book Travel Request", variant: "primary", icon: "Plus" },
+    ],
+  },
+
+  "hrms.assessments": {
+    pageKey: "hrms.assessments",
+    title: "Technical & Behavioral Assessments",
+    subTitle: "Candidate screening tests, scorecards, online assessment results, and skill benchmarks.",
+    entityName: "CandidateAssessment",
+    moduleKey: "hrms",
+    viewType: "table",
+    apiEndpoint: "/api/v1/hrms/assessments",
+    icon: "FileCheck",
+    requiredPermission: "hrms.recruitment.read",
+    columns: [
+      { key: "candidateName", label: "Candidate Name", width: 220 },
+      { key: "testName", label: "Test / Subject", width: 200 },
+      { key: "scorePercent", label: "Score (%)", width: 120 },
+      { key: "passingPercent", label: "Pass Mark (%)", width: 130 },
+      { key: "status", label: "Result", type: "badge", width: 110 },
+      { key: "conductedOn", label: "Conducted Date", type: "date", width: 130 },
+    ],
+    filters: [
+      { key: "search", label: "Search candidate or test...", type: "text" },
+    ],
+    form: {
+      sections: [
+        {
+          key: "test_result",
+          label: "Assessment Scorecard",
+          fields: [
+            { key: "candidateName", label: "Candidate Name", type: "text", required: true, span: 2 },
+            { key: "testName", label: "Assessment Name", type: "text", required: true, span: 1 },
+            { key: "scorePercent", label: "Score Obtained (%)", type: "number", required: true, span: 1 },
+            { key: "passingPercent", label: "Passing Cutoff (%)", type: "number", span: 1 },
+            { key: "proctorNotes", label: "Evaluator / Proctor Notes", type: "textarea", span: 3 },
+          ],
+        },
+      ],
+    },
+    actions: [
+      { key: "create", label: "Log Test Result", variant: "primary", icon: "Plus" },
+    ],
+  },
+
+  "hrms.certificates": {
+    pageKey: "hrms.certificates",
+    title: "Compliance & Skill Certifications",
+    subTitle: "Mandatory statutory licenses, professional credentials, and renewal alarms.",
+    entityName: "EmployeeCertificate",
+    moduleKey: "hrms",
+    viewType: "table",
+    apiEndpoint: "/api/v1/hrms/certificates",
+    icon: "Award",
+    requiredPermission: "hrms.employees.read",
+    columns: [
+      { key: "employeeName", label: "Employee Name", width: 200 },
+      { key: "certificateName", label: "Certification Title", width: 220 },
+      { key: "issuingAuthority", label: "Issuing Body", width: 180 },
+      { key: "issueDate", label: "Issued Date", type: "date", width: 130 },
+      { key: "expiryDate", label: "Valid Until", type: "date", width: 130 },
+      { key: "verificationStatus", label: "Status", type: "badge", width: 120 },
+    ],
+    filters: [
+      { key: "search", label: "Search credential or employee...", type: "text" },
+    ],
+    form: {
+      sections: [
+        {
+          key: "cert_details",
+          label: "Credential Verification",
+          fields: [
+            { key: "employeeId", label: "Employee", type: "lookup", lookupEndpoint: "/hrms/employees", required: true, span: 2 },
+            { key: "certificateName", label: "Certificate Title", type: "text", required: true, span: 2 },
+            { key: "issuingAuthority", label: "Issuing Authority", type: "text", span: 1 },
+            { key: "licenseNumber", label: "License / Credential ID", type: "text", span: 1 },
+            { key: "issueDate", label: "Issue Date", type: "date", required: true, span: 1 },
+            { key: "expiryDate", label: "Expiry Date", type: "date", span: 1 },
+          ],
+        },
+      ],
+    },
+    actions: [
+      { key: "create", label: "Add Certificate", variant: "primary", icon: "Plus" },
+    ],
+  },
+
+  "hrms.screening-schedule": {
+    pageKey: "hrms.screening-schedule",
+    title: "Interview & Screening Schedules",
+    subTitle: "Technical interview slots, panel allocation, calendar sync, and feedback forms.",
+    entityName: "InterviewSchedule",
+    moduleKey: "hrms",
+    viewType: "table",
+    apiEndpoint: "/api/v1/hrms/screening-schedule",
+    icon: "Calendar",
+    requiredPermission: "hrms.recruitment.read",
+    columns: [
+      { key: "candidateName", label: "Candidate", width: 200 },
+      { key: "jobTitle", label: "Job Opening", width: 180 },
+      { key: "interviewerName", label: "Panel Member", width: 180 },
+      { key: "scheduledAt", label: "Date & Time", width: 160 },
+      { key: "roundNumber", label: "Round", width: 100 },
+      { key: "status", label: "Status", type: "badge", width: 120 },
+    ],
+    filters: [
+      { key: "search", label: "Search interview slots...", type: "text" },
+    ],
+    form: {
+      sections: [
+        {
+          key: "slot_info",
+          label: "Interview Slot",
+          fields: [
+            { key: "candidateName", label: "Candidate Name", type: "text", required: true, span: 2 },
+            { key: "jobTitle", label: "Position", type: "text", required: true, span: 1 },
+            { key: "interviewerName", label: "Interviewer Name", type: "text", required: true, span: 1 },
+            { key: "scheduledAt", label: "Date & Time", type: "text", placeholder: "YYYY-MM-DD HH:mm", required: true, span: 1 },
+            { key: "meetingLink", label: "Meeting Link (Google Meet / Teams)", type: "text", span: 2 },
+          ],
+        },
+      ],
+    },
+    actions: [
+      { key: "create", label: "Schedule Round", variant: "primary", icon: "Plus" },
+    ],
+  },
+
+  "hrms.screening-results": {
+    pageKey: "hrms.screening-results",
+    title: "Interview Feedback & Round Scores",
+    subTitle: "Interviewer evaluation criteria, recommendation status (Hire/Reject), and notes.",
+    entityName: "InterviewResult",
+    moduleKey: "hrms",
+    viewType: "table",
+    apiEndpoint: "/api/v1/hrms/screening-results",
+    icon: "CheckSquare",
+    requiredPermission: "hrms.recruitment.read",
+    columns: [
+      { key: "candidateName", label: "Candidate", width: 200 },
+      { key: "jobTitle", label: "Role", width: 180 },
+      { key: "interviewerName", label: "Panel Member", width: 180 },
+      { key: "recommendation", label: "Decision", type: "badge", width: 130 },
+      { key: "technicalRating", label: "Tech (1-5)", width: 110 },
+      { key: "communicationRating", label: "Comm (1-5)", width: 120 },
+    ],
+    filters: [
+      { key: "search", label: "Search candidate or interviewer...", type: "text" },
+    ],
+    form: {
+      sections: [
+        {
+          key: "feedback",
+          label: "Interview Decision",
+          fields: [
+            { key: "candidateName", label: "Candidate Name", type: "text", required: true, span: 2 },
+            { key: "recommendation", label: "Verdict", type: "select", options: [{ value: "Hire", label: "Strong Hire" }, { value: "Hold", label: "Hold for next pool" }, { value: "Reject", label: "Reject" }], required: true, span: 1 },
+            { key: "technicalRating", label: "Technical Competence (1-5)", type: "number", span: 1 },
+            { key: "communicationRating", label: "Communication & Culture Fit (1-5)", type: "number", span: 1 },
+            { key: "detailedFeedback", label: "Evaluation Notes", type: "textarea", required: true, span: 3 },
+          ],
+        },
+      ],
+    },
+    actions: [
+      { key: "create", label: "Submit Feedback", variant: "primary", icon: "Plus" },
+    ],
+  },
+
+  "hrms.offboarding": {
+    pageKey: "hrms.offboarding",
+    title: "Separation, Resignations & Offboarding",
+    subTitle: "Resignation notice periods, department clearances, asset recovery, and handover.",
+    entityName: "OffboardingRecord",
+    moduleKey: "hrms",
+    viewType: "table",
+    apiEndpoint: "/api/v1/hrms/offboarding",
+    icon: "LogOut",
+    requiredPermission: "hrms.employees.read",
+    workflowConfig: {
+      enabled: true,
+      stateField: "status",
+      initialState: "Resigned",
+      states: [
+        { name: "Resigned", label: "Notice Period", tone: "warning" },
+        { name: "ClearancePending", label: "Clearances in Progress", tone: "info" },
+        { name: "Cleared", label: "All Assets & Depts Cleared", tone: "positive" },
+        { name: "Settled", label: "Exit Closed (Relieved)", tone: "neutral", isFinal: true },
+      ],
+      transitions: [
+        { action: "start_clearance", label: "Initiate Clearances", fromState: "Resigned", toState: "ClearancePending", variant: "primary" },
+        { action: "mark_cleared", label: "Mark Fully Cleared", fromState: "ClearancePending", toState: "Cleared", variant: "success" },
+        { action: "finalize", label: "Issue Relieving Letter", fromState: "Cleared", toState: "Settled", variant: "secondary" },
+      ],
+    },
+    columns: [
+      { key: "employeeCode", label: "Emp. Code", width: 120 },
+      { key: "employeeName", label: "Employee Name", width: 220 },
+      { key: "resignationDate", label: "Resignation Date", type: "date", width: 140 },
+      { key: "lastWorkingDay", label: "Last Working Day", type: "date", width: 140 },
+      { key: "noticePeriodDays", label: "Notice Days", width: 120 },
+      { key: "status", label: "Clearance Status", type: "badge", width: 150 },
+    ],
+    filters: [
+      { key: "search", label: "Search by employee...", type: "text" },
+    ],
+    form: {
+      sections: [
+        {
+          key: "exit_info",
+          label: "Exit Details",
+          fields: [
+            { key: "employeeId", label: "Employee", type: "lookup", lookupEndpoint: "/hrms/employees", required: true, span: 2 },
+            { key: "resignationDate", label: "Resignation Submission Date", type: "date", required: true, span: 1 },
+            { key: "lastWorkingDay", label: "Last Working Day", type: "date", required: true, span: 1 },
+            { key: "reasonForLeaving", label: "Reason For Leaving", type: "select", options: [{ value: "BetterOpportunity", label: "Better Career Opportunity" }, { value: "HigherStudies", label: "Higher Studies" }, { value: "Relocation", label: "Family / Relocation" }, { value: "Personal", label: "Personal" }], span: 1 },
+            { key: "handoverNotes", label: "Knowledge Transfer & Handover Summary", type: "textarea", span: 3 },
+          ],
+        },
+      ],
+    },
+    actions: [
+      { key: "create", label: "Log Resignation", variant: "primary", icon: "Plus" },
+    ],
+  },
 };

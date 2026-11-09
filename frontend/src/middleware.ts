@@ -82,7 +82,12 @@ export async function middleware(request: NextRequest) {
     "/hrms/departments": "/administration/departments",
     "/hrms/designations": "/administration/designations",
     "/hrms/payroll": "/payroll/runs",
-    "/assets": "/hrms/assets",
+    "/hrms/assets": "/assets?tab=custody",
+    "/fleet": "/assets?tab=fleet",
+    "/notifications": "/communication?tab=feed",
+    "/administration/integrations": "/integrations",
+    "/administration/org-chart": "/hrms/org-chart",
+    "/administration/security/sessions": "/security/access-logs",
     "/sales/customers": "/crm/customers",
   };
 

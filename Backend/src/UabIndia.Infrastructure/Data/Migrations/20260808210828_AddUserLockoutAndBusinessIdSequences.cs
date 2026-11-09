@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -19,11 +19,10 @@ namespace UabIndia.Infrastructure.Data.Migrations
                 name: "FK_ShiftSwaps_ShiftAssignments_TargetShiftAssignmentId",
                 table: "ShiftSwaps");
 
-            migrationBuilder.AddColumn<string>(
-                name: "BusinessId",
-                table: "WorkflowSteps",
-                type: "nvarchar(max)",
-                nullable: true);
+            migrationBuilder.Sql(@"
+IF OBJECT_ID(N'dbo.WorkflowSteps', N'U') IS NOT NULL AND COL_LENGTH('dbo.WorkflowSteps', 'BusinessId') IS NULL
+    ALTER TABLE dbo.WorkflowSteps ADD BusinessId NVARCHAR(MAX) NULL;
+");
 
             migrationBuilder.AddColumn<string>(
                 name: "BusinessId",

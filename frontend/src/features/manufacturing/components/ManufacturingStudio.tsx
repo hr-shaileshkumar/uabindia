@@ -150,6 +150,7 @@ export function ManufacturingStudio() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [targetCompletionDate, setTargetCompletionDate] = useState(() => new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0]);
 
   // BOM Costing Calculations
   const totalMaterialCost = useMemo(() => {
@@ -668,7 +669,8 @@ export function ManufacturingStudio() {
                   <label className="font-semibold text-muted-foreground block mb-1">Target Completion Date:</label>
                   <input
                     type="date"
-                    defaultValue={new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0]}
+                    value={targetCompletionDate}
+                    onChange={(e) => setTargetCompletionDate(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-input bg-background"
                   />
                 </div>

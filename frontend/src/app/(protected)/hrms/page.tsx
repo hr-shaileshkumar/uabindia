@@ -15,12 +15,16 @@ import {
   UserCheck,
   MapPin,
   CreditCard,
+  ArrowRightLeft,
+  Sparkles,
 } from "lucide-react";
 import { UabModuleDashboard } from "@/components/dynamic/UabModuleDashboard";
 import { ROUTES } from "@/constants/routes";
 
 const LINKS = [
   { href: ROUTES.EMPLOYEES, label: "Employees", icon: Users, desc: "Directory, master, and employment records" },
+  { href: "/hrms/lifecycle", label: "Workforce Movement & Succession", icon: ArrowRightLeft, desc: "Employee inter-branch transfers, deputations, and CTC promotions" },
+  { href: "/administration/companies/setup-wizard", label: "Company Onboarding Wizard", icon: Sparkles, desc: "6-step multi-master setup: territory, departments, pay bands, auto-codes" },
   { href: ROUTES.ATTENDANCE, label: "Attendance & Muster Roll", icon: Clock, desc: "Daily punches, shifts, and overtime" },
   { href: "/payroll/runs", label: "Unified Payroll Run Wizard", icon: CreditCard, desc: "Monthly salary computation, statutory compliance, and disbursement lock" },
   { href: "/hrms/staffing-plans", label: "Staffing Plans", icon: TrendingUp, desc: "Headcount budgets and position requisitions" },

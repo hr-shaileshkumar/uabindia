@@ -63,9 +63,9 @@ export function EnterpriseDocumentVoucher({
   const [viewMode, setViewMode] = useState<"EDITOR" | "PRINT">("EDITOR");
 
   // Document Header
-  const [docNumber, setDocNumber] = useState(`${defaultPrefix}-2026-${Math.floor(1000 + Math.random() * 9000)}`);
-  const [docDate, setDocDate] = useState(new Date().toISOString().split("T")[0]);
-  const [dueDate, setDueDate] = useState(new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0]);
+  const [docNumber, setDocNumber] = useState(() => `${defaultPrefix}-2026-${Math.floor(1000 + Math.random() * 9000)}`);
+  const [docDate, setDocDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [dueDate, setDueDate] = useState(() => new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0]);
   const [status, setStatus] = useState<"Draft" | "Approved" | "Dispatched" | "Closed">("Draft");
   const [partyName, setPartyName] = useState(isPurchase ? "Bharat Heavy Electricals & Precision Components Ltd" : "Apex Global Infotech Private Limited");
   const [partyGstin, setPartyGstin] = useState(isPurchase ? "27AAACB1234F1Z5" : "10AACCA9988D1Z2");

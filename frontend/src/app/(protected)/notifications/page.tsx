@@ -1,7 +1,5 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { NotificationCenterStudio } from "@/features/notifications/components/NotificationCenterStudio";
-
-export default function NotificationsInboxPage() {
-  return <NotificationCenterStudio />;
+export default function NotificationsInboxRedirect() {
+  redirect("/communication?tab=feed");
 }

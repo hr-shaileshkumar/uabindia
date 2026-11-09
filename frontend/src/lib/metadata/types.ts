@@ -33,14 +33,24 @@ export type FieldDataType =
   | "progress"
   | "password";
 
+export interface ColumnSecurityConfig {
+  maskType?: "none" | "full" | "partial" | "lastFour";
+  restrictedRoles?: string[];
+  restrictedPermissions?: string[];
+}
+
 export interface ColumnDefinition {
   key: string;
   label: string;
   type?: FieldDataType;
+  format?: string; // cross-compatible with frontend-hrms ('avatar', 'code', 'badge', 'currency', 'date')
   sortable?: boolean;
   defaultVisible?: boolean;
   width?: number | string;
   badgeMap?: Record<string, string> | string;
+  security?: ColumnSecurityConfig;
+  readRoles?: string[]; // Allowed roles to view this column (if empty, visible to all)
+  writeRoles?: string[];
   render?: (row: any) => React.ReactNode;
 }
 
@@ -73,6 +83,9 @@ export interface FormFieldDefinition {
   defaultValue?: any;
   validationPattern?: string;
   validationMessage?: string;
+  security?: ColumnSecurityConfig;
+  readRoles?: string[]; // Role-based field visibility
+  writeRoles?: string[]; // Role-based field editability
 }
 
 export interface FormSectionDefinition {
@@ -203,4 +216,38 @@ export interface DashboardWidget {
   title: string;
   span?: number;
   config: Record<string, any>;
+}
+
+export function isFieldAccessibleByRole(
+  fieldRoles?: string[],
+  userRoles: string[] = []
+): boolean {
+  if (!fieldRoles || fieldRoles.length === 0) return true;
+  if (userRoles.some((r) => r.toLowerCase() === "superadmin" || r.toLowerCase() === "admin")) return true;
+  return fieldRoles.some((fr) => userRoles.some((ur) => ur.toLowerCase() === fr.toLowerCase()));
+}
+
+export function filterColumnsByRole(
+  columns: ColumnDefinition[] = [],
+  userRoles: string[] = []
+): ColumnDefinition[] {
+  return columns.filter((col) => {
+    const roles = col.security?.restrictedRoles || col.readRoles;
+    return isFieldAccessibleByRole(roles, userRoles);
+  });
+}
+
+export function filterFormFieldsByRole(
+  sections: FormSectionDefinition[] = [],
+  userRoles: string[] = []
+): FormSectionDefinition[] {
+  return sections
+    .map((sec) => ({
+      ...sec,
+      fields: sec.fields.filter((f) => {
+        const roles = f.security?.restrictedRoles || f.readRoles;
+        return isFieldAccessibleByRole(roles, userRoles);
+      }),
+    }))
+    .filter((sec) => sec.fields.length > 0);
 }

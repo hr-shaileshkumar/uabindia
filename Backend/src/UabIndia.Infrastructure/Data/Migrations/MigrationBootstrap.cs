@@ -17,7 +17,7 @@ public static class MigrationBootstrap
 {
     private const string TenantsTable = "dbo.Tenants";
     private const string InitialCleanSchemaSql = "20260324190830_InitialCleanSchema.sql";
-    private const string ExtendedSchemaVersion = "20260911-fld-wms-v7";
+    private const string ExtendedSchemaVersion = "20261108-fix-metadata-schema-v8";
 
     public static async Task EnsureDatabaseExistsAsync(
         string? connectionString,
@@ -99,7 +99,8 @@ END;";
                 "20260205175739_AddContactSubmissions",
                 "20260207090000_ExpandEncryptedCompanyFields",
                 "20260209190829_AddWorkflowTables_Minimal",
-                "20260324190830_InitialCleanSchema"
+                "20260324190830_InitialCleanSchema",
+                "20260808210828_AddUserLockoutAndBusinessIdSequences"
             };
 
             var productVersion = typeof(ApplicationDbContext).Assembly
@@ -248,6 +249,10 @@ END;
             await EnsureStaffingPlansAndJobPostingsColumnsAsync(db, logger, cancellationToken);
             await EnsureTenantWebhooksTablesAsync(db, logger, cancellationToken);
             await EnsureUiViewDefinitionsTableAsync(db, logger, cancellationToken);
+            await EnsureUiPageDefinitionsTableAsync(db, logger, cancellationToken);
+            await EnsureOpenIddictTablesAsync(db, logger, cancellationToken);
+            await EnsureTenantConfigColumnsAsync(db, logger, cancellationToken);
+            await EnsureCommunicationTemplatesColumnsAsync(db, logger, cancellationToken);
             await EnsureSubModulesTableAsync(db, logger, cancellationToken);
             await EnsureDocumentTemplatesAndProjectBrandingAsync(db, logger, cancellationToken);
             logger?.LogInformation("Extended schema already current ({Version}); skipping column bootstrap.", ExtendedSchemaVersion);
@@ -258,6 +263,10 @@ END;
         await EnsureSubscriptionTablesAsync(db, logger, cancellationToken);
         await EnsureOutboxMessagesTableAsync(db, logger, cancellationToken);
         await EnsureUiViewDefinitionsTableAsync(db, logger, cancellationToken);
+        await EnsureUiPageDefinitionsTableAsync(db, logger, cancellationToken);
+        await EnsureOpenIddictTablesAsync(db, logger, cancellationToken);
+        await EnsureTenantConfigColumnsAsync(db, logger, cancellationToken);
+        await EnsureCommunicationTemplatesColumnsAsync(db, logger, cancellationToken);
         await EnsureSubModulesTableAsync(db, logger, cancellationToken);
         await EnsureBusinessIdColumnsAsync(db, logger, cancellationToken);
         await EnsureTenantWebhooksTablesAsync(db, logger, cancellationToken);
@@ -376,6 +385,9 @@ END;
 
             // OvertimeLogs
             ("OvertimeLogs", "ProjectId", "IF OBJECT_ID(N'dbo.OvertimeLogs', N'U') IS NOT NULL AND COL_LENGTH('dbo.OvertimeLogs', 'ProjectId') IS NULL ALTER TABLE dbo.OvertimeLogs ADD ProjectId UNIQUEIDENTIFIER NULL"),
+
+            // TenantConfigs
+            ("TenantConfigs", "CustomDomain", "IF OBJECT_ID(N'dbo.TenantConfigs', N'U') IS NOT NULL AND COL_LENGTH('dbo.TenantConfigs', 'CustomDomain') IS NULL ALTER TABLE dbo.TenantConfigs ADD CustomDomain NVARCHAR(450) NULL"),
         };
 
         var batchedAlters = new StringBuilder();
@@ -1071,6 +1083,300 @@ END;
         catch (System.Exception ex)
         {
             logger?.LogWarning(ex, "Could not ensure OutboxMessages table via DDL.");
+        }
+    }
+
+    public static async Task EnsureTenantConfigColumnsAsync(
+        ApplicationDbContext db,
+        ILogger? logger = null,
+        CancellationToken cancellationToken = default)
+    {
+        const string sql = @"
+IF OBJECT_ID(N'dbo.TenantConfigs', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.TenantConfigs', 'CustomDomain') IS NULL
+        ALTER TABLE dbo.TenantConfigs ADD CustomDomain NVARCHAR(450) NULL;
+
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_TenantConfigs_CustomDomain' AND object_id = OBJECT_ID('dbo.TenantConfigs'))
+        CREATE NONCLUSTERED INDEX IX_TenantConfigs_CustomDomain 
+        ON dbo.TenantConfigs (CustomDomain) 
+        WHERE [CustomDomain] IS NOT NULL AND [IsDeleted] = 0;
+END;
+";
+        try
+        {
+            var conn = db.Database.GetDbConnection();
+            if (conn.State != System.Data.ConnectionState.Open)
+            {
+                await conn.OpenAsync(cancellationToken);
+            }
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = sql;
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
+            logger?.LogInformation("Ensured TenantConfigs CustomDomain column and index exist.");
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure TenantConfigs CustomDomain column.");
+        }
+    }
+
+    public static async Task EnsureCommunicationTemplatesColumnsAsync(
+        ApplicationDbContext db,
+        ILogger? logger = null,
+        CancellationToken cancellationToken = default)
+    {
+        const string sql = @"
+IF OBJECT_ID(N'dbo.CommunicationTemplates', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.CommunicationTemplates', 'CompanyId') IS NULL
+        ALTER TABLE dbo.CommunicationTemplates ADD CompanyId UNIQUEIDENTIFIER NULL;
+
+    IF COL_LENGTH('dbo.CommunicationTemplates', 'ProjectId') IS NULL
+        ALTER TABLE dbo.CommunicationTemplates ADD ProjectId UNIQUEIDENTIFIER NULL;
+
+    IF COL_LENGTH('dbo.CommunicationTemplates', 'BusinessId') IS NULL
+        ALTER TABLE dbo.CommunicationTemplates ADD BusinessId NVARCHAR(100) NULL;
+END;
+";
+        try
+        {
+            var conn = db.Database.GetDbConnection();
+            if (conn.State != System.Data.ConnectionState.Open)
+            {
+                await conn.OpenAsync(cancellationToken);
+            }
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = sql;
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
+            logger?.LogInformation("Ensured CommunicationTemplates CompanyId, ProjectId, and BusinessId columns exist.");
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure CommunicationTemplates columns.");
+        }
+    }
+
+    public static async Task EnsureUiPageDefinitionsTableAsync(
+        ApplicationDbContext db,
+        ILogger? logger = null,
+        CancellationToken cancellationToken = default)
+    {
+        const string sql = @"
+IF OBJECT_ID(N'[dbo].[UiPageDefinitions]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[UiPageDefinitions] (
+        [Id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY DEFAULT NEWID(),
+        [TenantId] UNIQUEIDENTIFIER NOT NULL,
+        [BusinessId] NVARCHAR(100) NULL,
+        [CompanyId] UNIQUEIDENTIFIER NULL,
+        [ProjectId] UNIQUEIDENTIFIER NULL,
+        [PageKey] NVARCHAR(150) NOT NULL,
+        [EntityName] NVARCHAR(100) NOT NULL,
+        [Title] NVARCHAR(200) NOT NULL,
+        [SubTitle] NVARCHAR(500) NULL,
+        [ModuleKey] NVARCHAR(100) NOT NULL,
+        [SubModuleKey] NVARCHAR(100) NULL,
+        [ViewType] NVARCHAR(50) NOT NULL DEFAULT 'table',
+        [RoutePath] NVARCHAR(250) NOT NULL,
+        [Icon] NVARCHAR(50) NOT NULL DEFAULT 'Layers',
+        [Status] NVARCHAR(50) NOT NULL DEFAULT 'Draft',
+        [PublishedVersion] INT NULL,
+        [DraftVersion] INT NULL,
+        [AddToNavigation] BIT NOT NULL DEFAULT 1,
+        [NavGroup] NVARCHAR(100) NULL,
+        [NavSortOrder] INT NOT NULL DEFAULT 0,
+        [RequiredPermission] NVARCHAR(150) NULL,
+        [CreatedAt] DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        [UpdatedAt] DATETIME2 NULL,
+        [CreatedBy] UNIQUEIDENTIFIER NULL,
+        [IsDeleted] BIT NOT NULL DEFAULT 0
+    );
+
+    CREATE UNIQUE NONCLUSTERED INDEX IX_UiPageDefinitions_Tenant_PageKey
+        ON [dbo].[UiPageDefinitions] ([TenantId], [PageKey])
+        WHERE [IsDeleted] = 0;
+
+    CREATE NONCLUSTERED INDEX IX_UiPageDefinitions_Tenant_Module
+        ON [dbo].[UiPageDefinitions] ([TenantId], [ModuleKey]);
+END
+ELSE
+BEGIN
+    IF COL_LENGTH('dbo.UiPageDefinitions', 'SubModuleKey') IS NULL
+        ALTER TABLE dbo.UiPageDefinitions ADD SubModuleKey NVARCHAR(100) NULL;
+    IF COL_LENGTH('dbo.UiPageDefinitions', 'CompanyId') IS NULL
+        ALTER TABLE dbo.UiPageDefinitions ADD CompanyId UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('dbo.UiPageDefinitions', 'ProjectId') IS NULL
+        ALTER TABLE dbo.UiPageDefinitions ADD ProjectId UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('dbo.UiPageDefinitions', 'BusinessId') IS NULL
+        ALTER TABLE dbo.UiPageDefinitions ADD BusinessId NVARCHAR(100) NULL;
+END;
+
+IF OBJECT_ID(N'[dbo].[UiPageVersions]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[UiPageVersions] (
+        [Id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY DEFAULT NEWID(),
+        [TenantId] UNIQUEIDENTIFIER NOT NULL,
+        [BusinessId] NVARCHAR(100) NULL,
+        [CompanyId] UNIQUEIDENTIFIER NULL,
+        [ProjectId] UNIQUEIDENTIFIER NULL,
+        [PageDefinitionId] UNIQUEIDENTIFIER NOT NULL,
+        [Version] INT NOT NULL DEFAULT 1,
+        [SchemaJson] NVARCHAR(MAX) NOT NULL,
+        [ChangeSummary] NVARCHAR(500) NULL,
+        [IsPublished] BIT NOT NULL DEFAULT 0,
+        [PublishedAt] DATETIME2 NULL,
+        [PublishedBy] UNIQUEIDENTIFIER NULL,
+        [CreatedAt] DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        [UpdatedAt] DATETIME2 NULL,
+        [CreatedBy] UNIQUEIDENTIFIER NULL,
+        [IsDeleted] BIT NOT NULL DEFAULT 0,
+        CONSTRAINT [FK_UiPageVersions_UiPageDefinitions] FOREIGN KEY ([PageDefinitionId])
+            REFERENCES [dbo].[UiPageDefinitions] ([Id]) ON DELETE CASCADE
+    );
+
+    CREATE UNIQUE NONCLUSTERED INDEX IX_UiPageVersions_Definition_Version
+        ON [dbo].[UiPageVersions] ([PageDefinitionId], [Version])
+        WHERE [IsDeleted] = 0;
+END
+ELSE
+BEGIN
+    IF COL_LENGTH('dbo.UiPageVersions', 'CompanyId') IS NULL
+        ALTER TABLE dbo.UiPageVersions ADD CompanyId UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('dbo.UiPageVersions', 'ProjectId') IS NULL
+        ALTER TABLE dbo.UiPageVersions ADD ProjectId UNIQUEIDENTIFIER NULL;
+    IF COL_LENGTH('dbo.UiPageVersions', 'BusinessId') IS NULL
+        ALTER TABLE dbo.UiPageVersions ADD BusinessId NVARCHAR(100) NULL;
+END;
+";
+        try
+        {
+            var conn = db.Database.GetDbConnection();
+            if (conn.State != System.Data.ConnectionState.Open)
+            {
+                await conn.OpenAsync(cancellationToken);
+            }
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = sql;
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
+            logger?.LogInformation("Ensured UiPageDefinitions and UiPageVersions tables and indexes exist.");
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure UiPageDefinitions/UiPageVersions tables via DDL.");
+        }
+    }
+
+    public static async Task EnsureOpenIddictTablesAsync(
+        ApplicationDbContext db,
+        ILogger? logger = null,
+        CancellationToken cancellationToken = default)
+    {
+        const string sql = @"
+IF OBJECT_ID(N'[dbo].[OpenIddictApplications]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[OpenIddictApplications] (
+        [Id] nvarchar(450) NOT NULL PRIMARY KEY,
+        [ApplicationType] nvarchar(50) NULL,
+        [ClientId] nvarchar(100) NULL,
+        [ClientSecret] nvarchar(max) NULL,
+        [ClientType] nvarchar(50) NULL,
+        [ConcurrencyToken] nvarchar(50) NULL,
+        [ConsentType] nvarchar(50) NULL,
+        [DisplayName] nvarchar(max) NULL,
+        [DisplayNames] nvarchar(max) NULL,
+        [JsonWebKeySet] nvarchar(max) NULL,
+        [Permissions] nvarchar(max) NULL,
+        [PostLogoutRedirectUris] nvarchar(max) NULL,
+        [Properties] nvarchar(max) NULL,
+        [RedirectUris] nvarchar(max) NULL,
+        [Requirements] nvarchar(max) NULL,
+        [Settings] nvarchar(max) NULL
+    );
+    CREATE UNIQUE NONCLUSTERED INDEX [IX_OpenIddictApplications_ClientId]
+        ON [dbo].[OpenIddictApplications] ([ClientId]) WHERE [ClientId] IS NOT NULL;
+END;
+
+IF OBJECT_ID(N'[dbo].[OpenIddictScopes]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[OpenIddictScopes] (
+        [Id] nvarchar(450) NOT NULL PRIMARY KEY,
+        [ConcurrencyToken] nvarchar(50) NULL,
+        [Description] nvarchar(max) NULL,
+        [Descriptions] nvarchar(max) NULL,
+        [DisplayName] nvarchar(max) NULL,
+        [DisplayNames] nvarchar(max) NULL,
+        [Name] nvarchar(200) NULL,
+        [Properties] nvarchar(max) NULL,
+        [Resources] nvarchar(max) NULL
+    );
+    CREATE UNIQUE NONCLUSTERED INDEX [IX_OpenIddictScopes_Name]
+        ON [dbo].[OpenIddictScopes] ([Name]) WHERE [Name] IS NOT NULL;
+END;
+
+IF OBJECT_ID(N'[dbo].[OpenIddictAuthorizations]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[OpenIddictAuthorizations] (
+        [Id] nvarchar(450) NOT NULL PRIMARY KEY,
+        [ApplicationId] nvarchar(450) NULL,
+        [ConcurrencyToken] nvarchar(50) NULL,
+        [CreationDate] datetime2 NULL,
+        [Properties] nvarchar(max) NULL,
+        [Scopes] nvarchar(max) NULL,
+        [Status] nvarchar(50) NULL,
+        [Subject] nvarchar(400) NULL,
+        [Type] nvarchar(50) NULL,
+        CONSTRAINT [FK_OpenIddictAuthorizations_OpenIddictApplications_ApplicationId] FOREIGN KEY ([ApplicationId])
+            REFERENCES [dbo].[OpenIddictApplications] ([Id])
+    );
+    CREATE NONCLUSTERED INDEX [IX_OpenIddictAuthorizations_ApplicationId_Status_Subject_Type]
+        ON [dbo].[OpenIddictAuthorizations] ([ApplicationId], [Status], [Subject], [Type]);
+END;
+
+IF OBJECT_ID(N'[dbo].[OpenIddictTokens]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[OpenIddictTokens] (
+        [Id] nvarchar(450) NOT NULL PRIMARY KEY,
+        [ApplicationId] nvarchar(450) NULL,
+        [AuthorizationId] nvarchar(450) NULL,
+        [ConcurrencyToken] nvarchar(50) NULL,
+        [CreationDate] datetime2 NULL,
+        [ExpirationDate] datetime2 NULL,
+        [Payload] nvarchar(max) NULL,
+        [Properties] nvarchar(max) NULL,
+        [RedemptionDate] datetime2 NULL,
+        [ReferenceId] nvarchar(100) NULL,
+        [Status] nvarchar(50) NULL,
+        [Subject] nvarchar(400) NULL,
+        [Type] nvarchar(150) NULL,
+        CONSTRAINT [FK_OpenIddictTokens_OpenIddictApplications_ApplicationId] FOREIGN KEY ([ApplicationId])
+            REFERENCES [dbo].[OpenIddictApplications] ([Id]),
+        CONSTRAINT [FK_OpenIddictTokens_OpenIddictAuthorizations_AuthorizationId] FOREIGN KEY ([AuthorizationId])
+            REFERENCES [dbo].[OpenIddictAuthorizations] ([Id])
+    );
+    CREATE NONCLUSTERED INDEX [IX_OpenIddictTokens_ApplicationId_Status_Subject_Type]
+        ON [dbo].[OpenIddictTokens] ([ApplicationId], [Status], [Subject], [Type]);
+    CREATE NONCLUSTERED INDEX [IX_OpenIddictTokens_AuthorizationId]
+        ON [dbo].[OpenIddictTokens] ([AuthorizationId]);
+    CREATE UNIQUE NONCLUSTERED INDEX [IX_OpenIddictTokens_ReferenceId]
+        ON [dbo].[OpenIddictTokens] ([ReferenceId]) WHERE [ReferenceId] IS NOT NULL;
+END;
+";
+        try
+        {
+            var conn = db.Database.GetDbConnection();
+            if (conn.State != System.Data.ConnectionState.Open)
+            {
+                await conn.OpenAsync(cancellationToken);
+            }
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = sql;
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
+            logger?.LogInformation("Ensured OpenIddict tables and indexes exist.");
+        }
+        catch (System.Exception ex)
+        {
+            logger?.LogWarning(ex, "Could not ensure OpenIddict tables via DDL.");
         }
     }
 

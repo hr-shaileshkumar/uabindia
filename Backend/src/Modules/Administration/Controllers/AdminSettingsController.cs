@@ -129,10 +129,12 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                 _db.Tenants.Update(tenant);
             }
 
+            var isNewConfig = false;
             if (config == null)
             {
                 config = new TenantConfig { TenantId = tenantId };
                 _db.TenantConfigs.Add(config);
+                isNewConfig = true;
             }
 
             var brandingObj = new
@@ -146,7 +148,10 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             };
             config.BrandingJson = JsonSerializer.Serialize(brandingObj);
             config.UpdatedAt = DateTime.UtcNow;
-            _db.TenantConfigs.Update(config);
+            if (!isNewConfig)
+            {
+                _db.TenantConfigs.Update(config);
+            }
 
             await _db.SaveChangesAsync();
 
