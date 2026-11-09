@@ -42,10 +42,17 @@ export default function Dashboard() {
   const showToast = useToast()
   const navigate = useNavigate()
 
+  // Dynamic Financial Year calculation
+  const currentFY = useMemo(() => {
+    const now = new Date()
+    const base = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1
+    return `${base}-${String(base + 1).slice(-2)}`
+  }, [])
+
   // Selected Scope from LocalStorage/Context
-  const selectedCompanyName = localStorage.getItem('sel_company') || auth?.user?.companyName || 'Uabindia HRMS'
+  const selectedCompanyName = localStorage.getItem('sel_company') || auth?.user?.companyName || 'Corporate Headquarters'
   const selectedProjectName = localStorage.getItem('sel_project') || 'All Projects'
-  const selectedYear = localStorage.getItem('sel_year') || '2026-27'
+  const selectedYear = localStorage.getItem('sel_year') || currentFY
 
   // User details
   const userName = auth?.user?.fullName || auth?.user?.name || 'HR Manager'

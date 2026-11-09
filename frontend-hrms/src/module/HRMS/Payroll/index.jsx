@@ -444,7 +444,7 @@ export default function Payroll() {
               onChange={(e) => setSelectedYear(Number(e.target.value))}
               className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-1.5 text-xs font-bold text-slate-800 focus:bg-white focus:border-purple-600 focus:outline-none cursor-pointer shadow-2xs"
             >
-              {[2024, 2025, 2026, 2027].map((yr) => (
+              {[-2, -1, 0, 1].map((offset) => new Date().getFullYear() + offset).map((yr) => (
                 <option key={yr} value={yr}>
                   Calendar Year {yr}
                 </option>

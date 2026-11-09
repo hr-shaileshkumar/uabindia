@@ -2,7 +2,8 @@ import React from 'react'
 import { ShieldCheck, ExternalLink, ArrowRight, Building2 } from 'lucide-react'
 
 export default function SuperAdminRedirect({ title = 'Platform Governance Centralized' }) {
-  const targetUrl = window.location.port === '5173' ? 'http://localhost:3000/superadmin/dashboard' : '/superadmin/dashboard'
+  const erpBase = import.meta.env.VITE_ERP_BASE_URL || (typeof window !== 'undefined' && window.location.port === '5173' ? 'http://localhost:3000' : '')
+  const targetUrl = `${erpBase}/superadmin/dashboard`
 
   return (
     <div className="flex min-h-[500px] items-center justify-center p-6">

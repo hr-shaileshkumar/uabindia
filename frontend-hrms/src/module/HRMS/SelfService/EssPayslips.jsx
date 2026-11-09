@@ -114,6 +114,12 @@ export default function EssPayslips() {
   const [selectedSlip, setSelectedSlip] = useState(null)
   const { layoutMeta, columns: layoutColumns } = usePageLayout('ess_payslips', DEFAULT_PAYSLIP_COLUMNS)
 
+  const currentFY = useMemo(() => {
+    const now = new Date()
+    const base = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1
+    return `${base}-${String(base + 1).slice(-2)}`
+  }, [])
+
   const loadData = async () => {
     setLoading(true)
     try {
@@ -204,7 +210,7 @@ export default function EssPayslips() {
             ₹{totalYtdNet.toLocaleString('en-IN')}
           </div>
           <div className="text-[10px] text-slate-500 mt-1 font-medium border-t border-slate-100 pt-1.5 truncate">
-            Financial Year 2026-27
+            Financial Year {currentFY}
           </div>
         </div>
 

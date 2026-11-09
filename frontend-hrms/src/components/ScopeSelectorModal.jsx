@@ -12,6 +12,21 @@ import {
   RefreshCw
 } from 'lucide-react'
 
+const getCurrentFY = () => {
+  const now = new Date()
+  const base = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1
+  return `${base}-${String(base + 1).slice(-2)}`
+}
+
+const getFYList = () => {
+  const now = new Date()
+  const base = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1
+  return [0, 1, 2, 3].map(i => {
+    const yr = base - i
+    return `${yr}-${String(yr + 1).slice(-2)}`
+  })
+}
+
 export default function ScopeSelectorModal({ isOpen, onClose, onScopeChanged }) {
   if (!isOpen) return null
 
@@ -33,15 +48,15 @@ export default function ScopeSelectorModal({ isOpen, onClose, onScopeChanged }) 
     () => localStorage.getItem('sel_project') || 'All Projects'
   )
   const [selectedYear, setSelectedYear] = useState(
-    () => localStorage.getItem('sel_year') || '2026-27'
+    () => localStorage.getItem('sel_year') || getCurrentFY()
   )
 
   // Search terms
   const [companySearch, setCompanySearch] = useState('')
   const [projectSearch, setProjectSearch] = useState('')
 
-  // Financial Years
-  const fyList = ['2026-27', '2025-26', '2024-25', '2023-24']
+  // Financial Years (Dynamically generated)
+  const fyList = getFYList()
 
   // Load companies
   useEffect(() => {

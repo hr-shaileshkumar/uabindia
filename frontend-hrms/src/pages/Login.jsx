@@ -117,12 +117,12 @@ export default function Login() {
             />
           ) : (
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-tr from-purple-700 via-rose-600 to-orange-500 font-extrabold text-white text-lg shadow-md shadow-purple-500/20">
-              B
+              {branding?.companyName?.[0] || 'U'}
             </div>
           )}
           <div className="border-l border-slate-200 pl-3">
             <div className="font-extrabold text-base tracking-tight text-slate-900">
-              Uabindia HRMS
+              {branding?.companyName || 'Uabindia HRMS'}
             </div>
             <div className="text-xs text-purple-700 font-semibold">
               Enterprise Workforce Cloud
@@ -207,14 +207,14 @@ export default function Login() {
                 />
               ) : (
                 <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-purple-700 via-rose-600 to-orange-500 text-white font-black text-xl flex items-center justify-center mx-auto mb-3 shadow-md shadow-purple-600/20">
-                  U
+                  {branding?.companyName?.[0] || 'U'}
                 </div>
               )}
               <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">
                 Sign in to your account
               </h2>
               <p className="mt-1 text-xs text-slate-500 font-medium">
-                Enter your credentials to access the Uabindia HRMS portal
+                Enter your credentials to access the {branding?.companyName ? `${branding.companyName} portal` : 'Uabindia HRMS portal'}
               </p>
             </div>
 
@@ -314,10 +314,10 @@ export default function Login() {
                   Support:
                 </span>
                 <a
-                  href="tel:+917903055384"
+                  href={`tel:${branding?.supportPhone || branding?.phone || '+917903055384'}`}
                   className="font-bold text-slate-800 hover:text-indigo-600 transition-colors"
                 >
-                  +91 7903055384
+                  {branding?.supportPhone || branding?.phone || '+91 7903055384'}
                 </a>
               </div>
 
@@ -338,7 +338,7 @@ export default function Login() {
 
           {/* Footer Copyright & Security */}
           <div className="text-center text-xs text-slate-400 mt-4 space-y-1">
-            <p>© 2026 Uabindia HRMS • All Rights Reserved</p>
+            <p>© {new Date().getFullYear()} {branding?.companyName || 'Uabindia HRMS'} • All Rights Reserved</p>
             <p className="text-[11px] text-slate-400">Global Multi-Tenant Cloud · Multi-Region Tier-IV Security & SOC-2 Compliant</p>
           </div>
         </div>

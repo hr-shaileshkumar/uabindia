@@ -15,7 +15,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 
-const erpBaseUrl = import.meta.env.VITE_ERP_BASE_URL || 'http://localhost:3000';
+const erpBaseUrl = import.meta.env.VITE_ERP_BASE_URL || (typeof window !== 'undefined' && window.location.port === '5173' ? 'http://localhost:3000' : '');
 
 const APPS = [
   {

@@ -6,7 +6,6 @@ import { navigationGroups } from './navigation'
 import logoImg from '../assets/logo.png'
 import { APP_RELEASE_LABEL, APP_BUILD_FULL, APP_FULL_NAME, BUILD_TIME } from '../config/version'
 import { getCurrentBranding, brandingLogoUrl } from '../api/branding'
-import { searchTenants } from '../api/tenants'
 import { listCompanies } from '../api/companies'
 import { listProjects } from '../api/projects'
 import {
@@ -87,47 +86,7 @@ export default function Topbar() {
   const isSuperAdmin = String(roleName).toLowerCase() === 'superadmin'
 
   // -------------------------------------------------------------
-  // 3. SuperAdmin Tenant Dropdown State
-  // -------------------------------------------------------------
-  const [tenants, setTenants] = useState([])
-  const [selectedTenantId, setSelectedTenantId] = useState(
-    () => localStorage.getItem('sel_tenant_id') || ''
-  )
-  const [tenantsLoading, setTenantsLoading] = useState(false)
-
-  useEffect(() => {
-    if (isSuperAdmin) {
-      setTenantsLoading(true)
-      searchTenants({ status: 'active' })
-        .then(res => {
-          const list = Array.isArray(res) ? res : res?.items || []
-          setTenants(list)
-        })
-        .catch(() => setTenants([]))
-        .finally(() => setTenantsLoading(false))
-    }
-  }, [isSuperAdmin])
-
-  const handleTenantChange = (tenantId) => {
-    setSelectedTenantId(tenantId)
-    if (tenantId) {
-      localStorage.setItem('sel_tenant_id', tenantId)
-    } else {
-      localStorage.removeItem('sel_tenant_id')
-    }
-    // Also reset company and project when tenant changes
-    localStorage.removeItem('sel_company_id')
-    localStorage.setItem('sel_company', 'All Companies')
-    localStorage.removeItem('sel_project_id')
-    localStorage.setItem('sel_project', 'All Projects')
-    window.dispatchEvent(new CustomEvent('app:context-changed', {
-      detail: { tenantId, companyId: null, companyName: 'All Companies', projectId: null, projectName: 'All Projects' }
-    }))
-    window.location.reload()
-  }
-
-  // -------------------------------------------------------------
-  // 4. Regular User Company & Project Dropdowns State
+  // 3. Corporate Entity & Project Scope State
   // -------------------------------------------------------------
   const [companies, setCompanies] = useState([])
   const [projects, setProjects] = useState([])
@@ -146,7 +105,6 @@ export default function Topbar() {
 
   useEffect(() => {
     const handleContextChange = () => {
-      setSelectedTenantId(localStorage.getItem('sel_tenant_id') || '')
       setSelectedCompanyId(localStorage.getItem('sel_company_id') || '')
       setSelectedCompanyName(localStorage.getItem('sel_company') || 'All Companies')
       setSelectedProjectId(localStorage.getItem('sel_project_id') || '')
@@ -180,7 +138,7 @@ export default function Topbar() {
     }
     fetchCompanies()
     return () => { isMounted = false }
-  }, [selectedTenantId])
+  }, [])
 
   // Load Projects based on selected company
   useEffect(() => {
@@ -192,7 +150,7 @@ export default function Topbar() {
         setProjects(list)
       })
       .catch(() => setProjects([]))
-  }, [selectedCompanyId, selectedTenantId])
+  }, [selectedCompanyId])
 
   const handleCompanyChange = (cId) => {
     setSelectedCompanyId(cId)
@@ -365,9 +323,9 @@ export default function Topbar() {
     return () => document.removeEventListener('mousedown', handleClose)
   }, [])
 
-  const userName = auth?.user?.fullName || auth?.user?.name || 'Administrator'
-  const userEmail = auth?.user?.email || auth?.user?.username || 'admin@uabindia.in'
-  const userInitials = userName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'AD'
+  const userName = auth?.user?.fullName || auth?.user?.name || auth?.user?.userName || 'User'
+  const userEmail = auth?.user?.email || (auth?.user?.userName ? `@${auth?.user?.userName}` : '')
+  const userInitials = userName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'U'
 
   const handleLogout = async () => {
     try {
@@ -493,29 +451,7 @@ export default function Topbar() {
         {/* RIGHT SECTION: Features without borders or background colors */}
         {/* ========================================================= */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {/* 1. SuperAdmin Tenant Dropdown (Clean Transparent) */}
-          {isSuperAdmin && (
-            <div className="hidden md:flex items-center gap-1.5 hover:bg-slate-50 px-2 py-1 rounded-lg text-xs transition">
-              <ShieldCheck size={13} className="text-amber-700 shrink-0" />
-              <select id="topbar-tenant-select" name="tenantId" value={selectedTenantId} onChange={e => handleTenantChange(e.target.value)}
-                disabled={tenantsLoading}
-                className="bg-transparent text-amber-900 font-bold text-xs border-0 outline-none focus:outline-none focus:ring-0 cursor-pointer max-w-[130px] truncate"
-                title="SuperAdmin Tenant Switcher"
-              >
-                <option value="">All Tenants</option>
-                {tenants.map((t, idx) => {
-                  const val = t.id || t.tenantId || t.TenantId || ''
-                  return (
-                    <option key={val || `tenant-${idx}`} value={val}>
-                      {t.companyName || t.CompanyName || t.name || 'Unnamed Tenant'}
-                    </option>
-                  )
-                })}
-              </select>
-            </div>
-          )}
-
-          {/* 2. Company Dropdown (Clean Transparent) */}
+          {/* 1. Company Dropdown (Clean Transparent) */}
           <div className="hidden lg:flex items-center gap-1.5 hover:bg-slate-50 px-2 py-1 rounded-lg text-xs transition">
             <Building2 size={13} className="text-purple-700 shrink-0" />
             <select id="topbar-company-select" name="companyId" value={selectedCompanyId} onChange={e => handleCompanyChange(e.target.value)}

@@ -51,7 +51,9 @@ const SYSTEM_PAGES = [
   { key: 'Projects', label: 'Projects & Allocations' },
   { key: 'Compliance', label: 'Statutory Compliance' },
   { key: 'Users', label: 'User Management' },
-  { key: 'RoleAccess', label: 'Role Permissions & RBAC' },
+  { key: 'Recruitment', label: 'Recruitment & ATS' },
+  { key: 'WorkforceMovement', label: 'Transfers & Promotions' },
+  { key: 'Training', label: 'Training & Development' },
   { key: 'Import', label: 'Universal Data Import' },
 ]
 

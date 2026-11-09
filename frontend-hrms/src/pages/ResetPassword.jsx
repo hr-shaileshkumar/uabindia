@@ -260,7 +260,7 @@ export default function ResetPassword() {
         </div>
 
         <div className="text-center text-xs text-slate-400 mt-4">
-          © 2026 Uabindia HRMS • All Rights Reserved
+          © {new Date().getFullYear()} {branding?.companyName || 'Uabindia HRMS'} • All Rights Reserved
         </div>
       </div>
     </div>
