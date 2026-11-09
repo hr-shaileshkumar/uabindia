@@ -198,7 +198,7 @@ export default function PageCustomizationMenu({
               </div>
             </button>
 
-            {/* Option 2: Customize Sections & Columns (Form Studio) */}
+            {/* Option 2: Enterprise Schema & Form Studio */}
             <button
               type="button"
               onClick={() => {
@@ -212,28 +212,28 @@ export default function PageCustomizationMenu({
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-xs font-bold text-slate-900 group-hover:text-purple-700 flex items-center justify-between">
-                  <span>Sections & Columns Studio</span>
+                  <span>Schema & Form Studio</span>
                   <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 text-purple-600 transition" />
                 </div>
                 <div className="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                  Add custom fields, drag/reorder, required fields & validations
+                  Enterprise schema governance & Form Studio (Control Plane)
                 </div>
               </div>
             </button>
           </div>
 
-          {/* Footer Info & Access Management Link for Super Admin */}
+          {/* Footer Info & User Management Link */}
           <div className="mt-1 pt-2 border-t border-slate-100 px-3 py-1.5 flex items-center justify-between text-[10px] text-slate-400">
             <span className="flex items-center gap-1">
               <ShieldCheck size={12} className="text-emerald-600" />
               <span>Visible to Super Admin & Admin</span>
             </span>
             <Link
-              to="/administration/roles"
+              to="/administration/users"
               onClick={() => setDropdownOpen(false)}
               className="text-purple-600 hover:text-purple-800 font-bold hover:underline"
             >
-              Manage Access
+              User Directory
             </Link>
           </div>
         </div>

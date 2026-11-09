@@ -576,6 +576,7 @@ export default function TableColumnCustomizerModal({
   onClose,
   schema,
   tenantId = 'default',
+  userId = 'default',
   onSave,
 }) {
   const [columns, setColumns] = useState([])
@@ -768,12 +769,20 @@ export default function TableColumnCustomizerModal({
         updatedAt: new Date().toISOString(),
       }
 
-      // 1. Persist to SQL Server Database
+      // 1. Scoped User Personal Table View Preference
+      const userPrefKey = `uab_table_cols_${schemaId}_${userId || 'default'}`
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(userPrefKey, JSON.stringify(visibleCols))
+      }
+
+      // 2. Persist to SQL Server Database
       await saveSchemaToDb(schemaId, updatedSchema, tenantId)
 
-      // 2. Persist to localStorage published key
+      // 3. Persist to localStorage published key
       const publishedKey = `hrms_meta_${schemaId}_${tenantId}_published`
-      localStorage.setItem(publishedKey, JSON.stringify(updatedSchema))
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(publishedKey, JSON.stringify(updatedSchema))
+      }
 
       // 3. Broadcast update across all open components
       window.dispatchEvent(
@@ -1154,6 +1163,10 @@ export default function TableColumnCustomizerModal({
             <button
               type="button"
               onClick={() => {
+                const userPrefKey = `uab_table_cols_${schemaId}_${userId || 'default'}`
+                if (typeof localStorage !== 'undefined') {
+                  localStorage.removeItem(userPrefKey)
+                }
                 const standard = (PRESET_COLUMNS[schemaId] || []).filter(c => !['mobile', 'email', 'joiningDate'].includes(c.key))
                 if (standard.length > 0) {
                   setColumns(standard.map(c => ({ ...c, visible: true })))

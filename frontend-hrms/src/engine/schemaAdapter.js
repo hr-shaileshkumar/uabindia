@@ -190,3 +190,4 @@ export function normalizePageSchema(schema) {
 
   return normalized
 }
+

@@ -51,14 +51,27 @@ export default function DynamicTableRenderer({
     return false
   }, [user])
 
-  // Resilient column resolution with default schema fallback
+  // Resilient column resolution with default schema fallback and user personal view preference
   const columns = useMemo(() => {
     let cols = schema?.columns || []
     if (cols.length === 0 && DEFAULT_SCHEMAS[schema?.id]?.columns?.length > 0) {
       cols = DEFAULT_SCHEMAS[schema.id].columns
     }
+    const schemaKey = schema?.id || schema?.key
+    if (typeof localStorage !== 'undefined' && schemaKey) {
+      const userPrefKey = `uab_table_cols_${schemaKey}_${user?.id || user?.userId || 'default'}`
+      try {
+        const saved = localStorage.getItem(userPrefKey)
+        if (saved) {
+          const userCols = JSON.parse(saved)
+          if (Array.isArray(userCols) && userCols.length > 0) {
+            cols = userCols
+          }
+        }
+      } catch {}
+    }
     return cols.filter(c => c.visible !== false)
-  }, [schema])
+  }, [schema, user?.id, user?.userId])
 
   // Search & Filters State
   const [search, setSearch] = useState('')
@@ -520,6 +533,7 @@ export default function DynamicTableRenderer({
           onClose={() => setColumnModalOpen(false)}
           schema={schema}
           tenantId={user?.tenantId || 'default'}
+          userId={user?.id || user?.userId || 'default'}
         />
       )}
     </div>
