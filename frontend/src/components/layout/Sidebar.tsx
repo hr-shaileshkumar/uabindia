@@ -53,6 +53,26 @@ import {
   PieChart,
   DollarSign,
   Settings2,
+  Contact,
+  Fingerprint,
+  CalendarClock,
+  CalendarDays,
+  CalendarCheck2,
+  Hourglass,
+  Receipt,
+  Calculator,
+  Banknote,
+  GraduationCap,
+  LogOut,
+  FolderArchive,
+  Boxes,
+  PackageCheck,
+  BookOpen,
+  FileSignature,
+  KeyRound,
+  Grid,
+  Target,
+  CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/constants/routes";
@@ -196,9 +216,78 @@ function resolveNavItemIconName(item: WorkspaceNavItem): string {
   return item.icon || "file-text";
 }
 
+function resolveItemLucideIcon(item: WorkspaceNavItem, groupLabel?: string): React.ComponentType<{ className?: string }> {
+  const name = (item.name || "").toLowerCase();
+  const path = (item.path || "").toLowerCase();
+  const grp = (groupLabel || "").toLowerCase();
+  const text = `${name} ${path} ${grp}`;
+
+  // HRMS & People Specific
+  if (text.includes("biometric") || text.includes("punch") || text.includes("machine") || text.includes("telemetry") || text.includes("device")) return Fingerprint;
+  if (text.includes("roster") || text.includes("shift")) return CalendarClock;
+  if (text.includes("attendance") || text.includes("muster") || text.includes("presence")) return Clock;
+  if (text.includes("holiday") || text.includes("leave calendar")) return CalendarCheck2;
+  if (text.includes("leave") || text.includes("absence") || text.includes("vacation")) return CalendarDays;
+  if (text.includes("transfer") || text.includes("movement") || text.includes("deputation")) return ArrowRightLeft;
+  if (text.includes("promotion") || text.includes("increment") || text.includes("progression")) return TrendingUp;
+  if (text.includes("onboard") || text.includes("hire") || text.includes("recruit") || text.includes("candidate") || text.includes("job post") || text.includes("add employee")) return UserPlus;
+  if (text.includes("exit") || text.includes("reliev") || text.includes("resign") || text.includes("offboard") || text.includes("settlement")) return LogOut;
+  if (text.includes("appraisal") || text.includes("kpi") || text.includes("performance") || text.includes("okr") || text.includes("goal")) return Target;
+  if (text.includes("training") || text.includes("learn") || text.includes("course") || text.includes("skill") || text.includes("lms")) return GraduationCap;
+  if (text.includes("award") || text.includes("recognition")) return Award;
+  if (text.includes("document") || text.includes("letter") || text.includes("policy") || text.includes("vault")) return FolderArchive;
+  if (text.includes("directory") || text.includes("employee master") || text.includes("staff")) return Contact;
+
+  // Payroll Specific
+  if (text.includes("slip") || text.includes("payslip")) return Receipt;
+  if (text.includes("structure") || text.includes("ctc") || text.includes("formula") || text.includes("slab") || text.includes("calc")) return Calculator;
+  if (text.includes("run") || text.includes("payout") || text.includes("disburse") || text.includes("bank transfer")) return Banknote;
+  if (text.includes("statutory") || text.includes("tax") || text.includes("form 16") || text.includes("pf") || text.includes("esi") || text.includes("tds")) return ShieldCheck;
+
+  // Supply Chain & Commerce Specific
+  if (text.includes("warehouse") || text.includes("location") || text.includes("godown")) return Boxes;
+  if (text.includes("goods receipt") || text.includes("grn") || text.includes("inward") || text.includes("receiving")) return PackageCheck;
+  if (text.includes("vendor") || text.includes("supplier") || text.includes("fleet") || text.includes("carrier")) return Truck;
+  if (text.includes("purchase") || text.includes("procure") || text.includes("po")) return ShoppingCart;
+  if (text.includes("lead") || text.includes("prospect")) return UserPlus;
+  if (text.includes("deal") || text.includes("opportunity") || text.includes("pipeline")) return TrendingUp;
+  if (text.includes("customer") || text.includes("client")) return Building2;
+  if (text.includes("sales") || text.includes("order")) return ShoppingBag;
+  if (text.includes("item") || text.includes("sku") || text.includes("product") || text.includes("inventory")) return Package;
+
+  // Finance & Accounting Specific
+  if (text.includes("chart of account") || text.includes("coa") || text.includes("ledger account")) return BookOpen;
+  if (text.includes("journal") || text.includes("voucher") || text.includes("entry")) return FileSignature;
+  if (text.includes("invoice") || text.includes("billing") || text.includes("receivable") || text.includes("ar")) return Receipt;
+  if (text.includes("bill") || text.includes("payable") || text.includes("ap")) return FileSpreadsheet;
+  if (text.includes("bank") || text.includes("cash account") || text.includes("treasury") || text.includes("reconcil")) return Landmark;
+  if (text.includes("payment") || text.includes("collection")) return CreditCard;
+  if (text.includes("pnl") || text.includes("balance sheet") || text.includes("cashflow") || text.includes("financial report")) return BarChart3;
+
+  // Productivity & Operations Specific
+  if (text.includes("ticket") || text.includes("helpdesk") || text.includes("issue") || text.includes("support")) return Ticket;
+  if (text.includes("broadcast") || text.includes("announc") || text.includes("notice") || text.includes("sms") || text.includes("whatsapp")) return Megaphone;
+  if (text.includes("project") || text.includes("task") || text.includes("kanban") || text.includes("sprint")) return Kanban;
+  if (text.includes("ai") || text.includes("copilot") || text.includes("smart") || text.includes("intel")) return Sparkles;
+  if (text.includes("approval") || text.includes("workflow") || text.includes("pending")) return Hourglass;
+
+  // Administration Specific
+  if (text.includes("compan") || text.includes("branch") || text.includes("subsidiary") || text.includes("legal entit")) return Building2;
+  if (text.includes("role") || text.includes("permission") || text.includes("iam") || text.includes("access")) return KeyRound;
+  if (text.includes("user") || text.includes("account") || text.includes("membership")) return Users;
+  if (text.includes("audit") || text.includes("log") || text.includes("activity") || text.includes("trail")) return History;
+  if (text.includes("webhook") || text.includes("api") || text.includes("connect") || text.includes("endpoint")) return Webhook;
+  if (text.includes("setting") || text.includes("config") || text.includes("system") || text.includes("preference")) return Settings2;
+
+  return FileText;
+}
+
 function SidebarTooltip({ label }: { label: string }) {
   return (
-    <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 whitespace-nowrap rounded-lg border border-slate-800 bg-slate-900 px-2.5 py-1 text-[11px] font-semibold text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 dark:border-slate-700">
+    <span
+      role="tooltip"
+      className="pointer-events-none fixed left-[68px] z-[9999] whitespace-nowrap rounded-md border border-slate-800 bg-slate-900/95 px-2.5 py-1 text-[11.5px] font-semibold text-white opacity-0 shadow-xl backdrop-blur-xs transition-opacity duration-150 group-hover:opacity-100 dark:border-slate-700"
+    >
       {label}
     </span>
   );
@@ -309,7 +398,7 @@ function SidebarNavGroupItem({
             {group.items.map((item: WorkspaceNavItem) => {
               const isItemActive = isPathActive(pathname, item.path);
               const isPinned = favorites.some((f) => f.id === item.key || f.href === item.path);
-              const itemIcon = resolveNavItemIconName(item);
+              const ItemLucideIcon = resolveItemLucideIcon(item, group.label);
 
               return (
                 <li key={item.key} className="group/item relative flex items-center">
@@ -325,10 +414,9 @@ function SidebarNavGroupItem({
                     )}
                   >
                     <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center">
-                      <ModuleIcon
-                        name={itemIcon}
+                      <ItemLucideIcon
                         className={cn(
-                          "h-3 w-3 shrink-0 transition-colors",
+                          "h-3.5 w-3.5 shrink-0 transition-colors",
                           isItemActive
                             ? "text-blue-600 dark:text-blue-400"
                             : "text-slate-400 group-hover/item:text-slate-600 dark:text-slate-500"
@@ -580,157 +668,294 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
   const dashboardLabel = "Dashboard";
 
+  const isSingleModuleAccess = dynamicModules.length === 1;
+  const focusModule = activeModule || (isSingleModuleAccess ? dynamicModules[0] : null);
+
   const renderNav = (collapsed: boolean) => (
-    <div className={cn("flex flex-1 flex-col min-h-0", collapsed ? "pt-2" : "pt-2")}>
+    <div className={cn("flex flex-1 flex-col min-h-0 w-full", collapsed ? "pt-2" : "pt-2")}>
 
       {/* Nav list */}
-      <nav className="flex flex-1 flex-col overflow-y-auto px-2.5 py-2 scrollbar-thin">
-        <ul role="list" className="flex flex-col gap-y-0.5">
-          {!activeModule && (
-            <li className="list-none">
-              <Link
-                href={ROUTES.DASHBOARD}
-                onClick={onMobileClose}
-                className={cn(
-                  "group relative flex items-center gap-x-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all",
-                  dashboardActive
-                    ? "bg-blue-50/80 font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
-                    : "text-slate-700 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/60 dark:hover:text-slate-200",
-                  collapsed && "justify-center px-0 py-2",
-                )}
-              >
-                {dashboardActive && (
-                  <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-blue-600" />
-                )}
-                <span
+      <nav
+        className={cn(
+          "flex flex-1 flex-col overflow-x-hidden w-full",
+          collapsed ? "sidebar-collapsed-scroll px-1.5 py-2" : "sidebar-scroll px-2.5 py-2"
+        )}
+      >
+        <ul role="list" className="flex flex-col gap-y-0.5 w-full">
+          {/* ── CASE 1: COLLAPSED SIDEBAR WITH A FOCUSED MODULE (Single-module user OR active module focused) ── */}
+          {collapsed && focusModule ? (
+            <>
+              {/* Executive Dashboard */}
+              <li className="list-none">
+                <Link
+                  href={ROUTES.DASHBOARD}
+                  onClick={onMobileClose}
+                  title="Executive Dashboard"
                   className={cn(
-                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors",
+                    "group relative flex w-full items-center justify-center rounded-lg py-2 transition-all",
                     dashboardActive
-                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300"
-                      : "text-slate-500 group-hover:text-slate-800 dark:text-slate-400",
+                      ? "bg-blue-50/80 font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
+                      : "text-slate-700 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/60 dark:hover:text-slate-200",
                   )}
                 >
-                  <LayoutDashboard className="h-4 w-4" />
-                </span>
-                {!collapsed ? (
-                  <span className="truncate font-semibold">{isSuperAdmin ? "Super Admin Hub" : "Executive Dashboard"}</span>
-                ) : (
-                  <SidebarTooltip label="Dashboard" />
-                )}
-              </Link>
-            </li>
-          )}
+                  {dashboardActive && (
+                    <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-blue-600" />
+                  )}
+                  <span
+                    className={cn(
+                      "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors",
+                      dashboardActive
+                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300"
+                        : "text-slate-500 group-hover:text-slate-800 dark:text-slate-400",
+                    )}
+                  >
+                    <LayoutDashboard className="h-4 w-4" />
+                  </span>
+                  <SidebarTooltip label="Executive Dashboard" />
+                </Link>
+              </li>
 
-          {/* Pinned Favorites Section */}
-          {!collapsed && favorites.length > 0 && (
-            <li className="list-none">
-              <SectionLabel label="Pinned Shortcuts" collapsed={collapsed} />
-              <ul className="space-y-0.5 py-0.5">
-                {favorites.map((fav) => {
-                  const isFavActive = isPathActive(pathname, fav.href);
-                  return (
-                    <li key={fav.id} className="group/fav relative flex items-center">
-                      <Link
-                        href={fav.href}
-                        prefetch={false}
-                        onClick={onMobileClose}
-                        className={cn(
-                          "flex flex-1 items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12.5px] transition-colors pr-7",
-                          isFavActive
-                            ? "bg-amber-50/80 font-bold text-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
-                            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50",
-                        )}
-                      >
-                        <Star className="h-3.5 w-3.5 shrink-0 fill-amber-400 text-amber-500" />
-                        <span className="truncate">{fav.label}</span>
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          removeFavorite(fav.id);
-                        }}
-                        className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 opacity-0 group-hover/fav:opacity-100 hover:text-rose-600 transition-opacity"
-                        title="Unpin shortcut"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </li>
-          )}
+              {/* Quick switch to All Modules view if user has multiple modules */}
+              {!isSingleModuleAccess && (
+                <li className="list-none">
+                  <button
+                    type="button"
+                    onClick={() => setActiveModuleKey(null)}
+                    title="View All Modules"
+                    className="group relative flex w-full items-center justify-center rounded-lg py-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    <Grid className="h-3.5 w-3.5" />
+                    <SidebarTooltip label="View All Modules" />
+                  </button>
+                </li>
+              )}
 
-          {/* Active Module Mode vs All Modules Directory Mode */}
-          {activeModule ? (
-            <li className="list-none">
-              {/* Module-Specific Dashboard Link */}
-              {activeModule.homeHref && (
-                <div className="mb-2 px-0.5">
+              {/* Module Home Dashboard Link */}
+              {focusModule.homeHref && focusModule.homeHref !== ROUTES.DASHBOARD && (
+                <li className="list-none">
                   <Link
-                    href={activeModule.homeHref}
+                    href={focusModule.homeHref}
                     prefetch={false}
                     onClick={onMobileClose}
+                    title={`${focusModule.label} Dashboard`}
                     className={cn(
-                      "group relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[12.5px] font-semibold transition-all",
-                      pathname === activeModule.homeHref
-                        ? "bg-blue-600 font-bold text-white shadow-xs ring-1 ring-blue-700"
+                      "group relative flex w-full items-center justify-center rounded-lg py-2 transition-all",
+                      pathname === focusModule.homeHref
+                        ? "bg-blue-600 font-bold text-white shadow-xs"
                         : "text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/60"
                     )}
                   >
+                    {pathname === focusModule.homeHref && (
+                      <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-blue-600" />
+                    )}
                     <span
                       className={cn(
-                        "flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition-colors",
-                        pathname === activeModule.homeHref
+                        "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors",
+                        pathname === focusModule.homeHref
                           ? "bg-blue-700 text-white"
-                          : "bg-blue-100 text-blue-600 dark:bg-blue-900/60 dark:text-blue-300"
+                          : "bg-blue-50 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300"
                       )}
                     >
-                      <LayoutDashboard className="h-3.5 w-3.5" />
+                      <ModuleIcon name={focusModule.icon as string} className="h-4 w-4 shrink-0" />
                     </span>
-                    <span className="truncate">{activeModule.label} Dashboard</span>
+                    <SidebarTooltip label={`${focusModule.label} Dashboard`} />
                   </Link>
-                </div>
+                </li>
               )}
 
-              <SectionLabel label="Submodules & Registers" collapsed={collapsed} />
-              <ul className="space-y-1.5">
-                {activeModule.groups.map((group) => (
-                  <li key={group.label} className="list-none">
-                    <SidebarNavGroupItem
-                      group={group}
-                      modHasMultipleGroups={true}
-                      pathname={pathname}
-                      onNavigate={onMobileClose}
-                      favorites={favorites}
-                      addFavorite={addFavorite}
-                      removeFavorite={removeFavorite}
-                      forceExpandAll={true}
-                    />
-                  </li>
-                ))}
-              </ul>
-            </li>
+              <div className="mx-2 my-1.5 border-t border-slate-200/80 dark:border-slate-800" />
+
+              {/* Submodules & Leaf Destination Pages */}
+              {focusModule.groups.map((group, gIdx) => (
+                <React.Fragment key={group.label}>
+                  {gIdx > 0 && <div className="mx-3 my-1 border-t border-slate-100 dark:border-slate-800/60" />}
+                  {group.items.map((item) => {
+                    const isItemActive = isPathActive(pathname, item.path);
+                    const ItemLucideIcon = resolveItemLucideIcon(item, group.label);
+                    return (
+                      <li key={item.key || item.path} className="list-none">
+                        <Link
+                          href={item.path}
+                          prefetch={false}
+                          onClick={onMobileClose}
+                          title={item.name}
+                          className={cn(
+                            "group relative flex w-full items-center justify-center rounded-lg py-1.5 transition-all",
+                            isItemActive
+                              ? "bg-blue-50/90 font-semibold text-blue-700 dark:bg-blue-950/50 dark:text-blue-400"
+                              : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-200"
+                          )}
+                        >
+                          {isItemActive && (
+                            <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-blue-600" />
+                          )}
+                          <span
+                            className={cn(
+                              "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors",
+                              isItemActive
+                                ? "bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300"
+                                : "text-slate-500 group-hover:text-slate-800 dark:text-slate-400 dark:group-hover:text-slate-200"
+                            )}
+                          >
+                            <ItemLucideIcon className="h-4 w-4 shrink-0" />
+                          </span>
+                          <SidebarTooltip label={item.name} />
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </React.Fragment>
+              ))}
+            </>
           ) : (
-            sections.map((section) => (
-              <li key={section.id} className="list-none">
-                <SectionLabel label={section.label} collapsed={collapsed} />
-                <ul>
-                  {section.modules.map((mod) => (
-                    <SidebarNavItem
-                      key={mod.key}
-                      mod={mod}
-                      isCollapsed={collapsed}
-                      pathname={pathname}
-                      onNavigate={onMobileClose}
-                      forceExpand={false}
-                    />
-                  ))}
-                </ul>
-              </li>
-            ))
+            <>
+              {(!activeModule || collapsed) && (
+                <li className="list-none">
+                  <Link
+                    href={ROUTES.DASHBOARD}
+                    onClick={onMobileClose}
+                    className={cn(
+                      "group relative flex items-center gap-x-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all",
+                      dashboardActive
+                        ? "bg-blue-50/80 font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
+                        : "text-slate-700 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/60 dark:hover:text-slate-200",
+                      collapsed && "justify-center px-0 py-2",
+                    )}
+                  >
+                    {dashboardActive && (
+                      <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-blue-600" />
+                    )}
+                    <span
+                      className={cn(
+                        "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors",
+                        dashboardActive
+                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300"
+                          : "text-slate-500 group-hover:text-slate-800 dark:text-slate-400",
+                      )}
+                    >
+                      <LayoutDashboard className="h-4 w-4" />
+                    </span>
+                    {!collapsed ? (
+                      <span className="truncate font-semibold">{isSuperAdmin ? "Super Admin Hub" : "Executive Dashboard"}</span>
+                    ) : (
+                      <SidebarTooltip label="Dashboard" />
+                    )}
+                  </Link>
+                </li>
+              )}
+
+              {/* Pinned Favorites Section */}
+              {!collapsed && favorites.length > 0 && (
+                <li className="list-none">
+                  <SectionLabel label="Pinned Shortcuts" collapsed={collapsed} />
+                  <ul className="space-y-0.5 py-0.5">
+                    {favorites.map((fav) => {
+                      const isFavActive = isPathActive(pathname, fav.href);
+                      return (
+                        <li key={fav.id} className="group/fav relative flex items-center">
+                          <Link
+                            href={fav.href}
+                            prefetch={false}
+                            onClick={onMobileClose}
+                            className={cn(
+                              "flex flex-1 items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12.5px] transition-colors pr-7",
+                              isFavActive
+                                ? "bg-amber-50/80 font-bold text-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+                                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50",
+                            )}
+                          >
+                            <Star className="h-3.5 w-3.5 shrink-0 fill-amber-400 text-amber-500" />
+                            <span className="truncate">{fav.label}</span>
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              removeFavorite(fav.id);
+                            }}
+                            className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 opacity-0 group-hover/fav:opacity-100 hover:text-rose-600 transition-opacity"
+                            title="Unpin shortcut"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </li>
+              )}
+
+              {/* Active Module Mode (ONLY WHEN EXPANDED) vs All Modules Directory Mode (WHEN COLLAPSED OR NO ACTIVE MODULE) */}
+              {activeModule && !collapsed ? (
+                <li className="list-none">
+                  {/* Module-Specific Dashboard Link */}
+                  {activeModule.homeHref && (
+                    <div className="mb-2 px-0.5">
+                      <Link
+                        href={activeModule.homeHref}
+                        prefetch={false}
+                        onClick={onMobileClose}
+                        className={cn(
+                          "group relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[12.5px] font-semibold transition-all",
+                          pathname === activeModule.homeHref
+                            ? "bg-blue-600 font-bold text-white shadow-xs ring-1 ring-blue-700"
+                            : "text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/60"
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition-colors",
+                            pathname === activeModule.homeHref
+                              ? "bg-blue-700 text-white"
+                              : "bg-blue-100 text-blue-600 dark:bg-blue-900/60 dark:text-blue-300"
+                          )}
+                        >
+                          <LayoutDashboard className="h-3.5 w-3.5" />
+                        </span>
+                        <span className="truncate">{activeModule.label} Dashboard</span>
+                      </Link>
+                    </div>
+                  )}
+
+                  <SectionLabel label="Submodules & Registers" collapsed={collapsed} />
+                  <ul className="space-y-1.5">
+                    {activeModule.groups.map((group) => (
+                      <li key={group.label} className="list-none">
+                        <SidebarNavGroupItem
+                          group={group}
+                          modHasMultipleGroups={true}
+                          pathname={pathname}
+                          onNavigate={onMobileClose}
+                          favorites={favorites}
+                          addFavorite={addFavorite}
+                          removeFavorite={removeFavorite}
+                          forceExpandAll={true}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ) : (
+                sections.map((section) => (
+                  <li key={section.id} className="list-none">
+                    <SectionLabel label={section.label} collapsed={collapsed} />
+                    <ul>
+                      {section.modules.map((mod) => (
+                        <SidebarNavItem
+                          key={mod.key}
+                          mod={mod}
+                          isCollapsed={collapsed}
+                          pathname={pathname}
+                          onNavigate={onMobileClose}
+                          forceExpand={false}
+                        />
+                      ))}
+                    </ul>
+                  </li>
+                ))
+              )}
+            </>
           )}
         </ul>
       </nav>

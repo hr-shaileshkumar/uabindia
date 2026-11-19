@@ -33,7 +33,14 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             _logger = logger;
         }
 
-        private Guid TenantId => _tenantAccessor.GetTenantId();
+        private Guid TenantId
+        {
+            get
+            {
+                try { return _tenantAccessor.GetTenantId(); }
+                catch { return Guid.Empty; }
+            }
+        }
 
         // =========================================================================
         // 1. TRANSFERS (Inter-Project, Branch Relocation, Deputation)
@@ -52,60 +59,54 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                     query = query.Where(t => t.OverallStatus == status);
                 }
 
-                var transfers = await query
+                var rawList = await query
                     .OrderByDescending(t => t.CreatedAt)
                     .Select(t => new
                     {
-                        Id = t.Id,
-                        TransferCode = $"TRF-{t.CreatedAt:yyMM}-{t.Id.ToString().Substring(0, 4).ToUpper()}",
-                        EmployeeId = t.EmployeeId,
-                        FromProjectId = (Guid?)null,
-                        ToProjectId = (Guid?)null,
-                        FromDepartment = t.CurrentDepartmentId.HasValue ? t.CurrentDepartmentId.ToString() : null,
-                        ToDepartment = t.ProposedDepartmentId.HasValue ? t.ProposedDepartmentId.ToString() : null,
-                        FromLocation = (string?)null,
-                        ToLocation = (string?)null,
-                        TransferType = t.TransferType,
-                        EffectiveDate = t.EffectiveDate,
-                        RelocationAllowance = 0m,
-                        Reason = t.Reason,
-                        HandoverNotes = t.SignOffNotes,
-                        Status = t.OverallStatus,
-                        ApprovedBy = t.HrbpSignOffStatus == "Approved" ? "HRBP" : null,
-                        ApprovalDate = t.UpdatedAt,
-                        CreatedAt = t.CreatedAt
+                        t.Id,
+                        t.EmployeeId,
+                        t.CurrentDepartmentId,
+                        t.ProposedDepartmentId,
+                        t.TransferType,
+                        t.EffectiveDate,
+                        t.Reason,
+                        t.SignOffNotes,
+                        t.OverallStatus,
+                        t.HrbpSignOffStatus,
+                        t.UpdatedAt,
+                        t.CreatedAt
                     })
                     .ToListAsync(ct);
 
-                // Enrich with employee names
-                var employeeIds = transfers.Select(t => t.EmployeeId).Distinct().ToList();
+                // Enrich with employee names in-memory
+                var employeeIds = rawList.Select(t => t.EmployeeId).Distinct().ToList();
                 var employees = await _db.Employees.AsNoTracking()
                     .Where(e => employeeIds.Contains(e.Id))
                     .ToDictionaryAsync(e => e.Id, e => new { e.FullName, e.EmployeeCode }, ct);
 
-                var enriched = transfers.Select(t => new
+                var enriched = rawList.Select(t => new
                 {
                     t.Id,
-                    t.TransferCode,
+                    TransferCode = $"TRF-{t.CreatedAt:yyMM}-{t.Id.ToString().Substring(0, 4).ToUpperInvariant()}",
                     t.EmployeeId,
                     EmployeeCode = employees.TryGetValue(t.EmployeeId, out var emp) ? emp.EmployeeCode : "",
                     EmployeeName = employees.TryGetValue(t.EmployeeId, out var emp2) ? emp2.FullName : "Employee",
-                    t.FromProjectId,
-                    t.ToProjectId,
+                    FromProjectId = (Guid?)null,
+                    ToProjectId = (Guid?)null,
                     FromProjectName = "Corporate HQ",
                     ToProjectName = "Regional Branch",
-                    t.FromDepartment,
-                    t.ToDepartment,
-                    t.FromLocation,
-                    t.ToLocation,
+                    FromDepartment = t.CurrentDepartmentId.HasValue ? t.CurrentDepartmentId.ToString() : null,
+                    ToDepartment = t.ProposedDepartmentId.HasValue ? t.ProposedDepartmentId.ToString() : null,
+                    FromLocation = (string?)null,
+                    ToLocation = (string?)null,
                     t.TransferType,
                     t.EffectiveDate,
-                    t.RelocationAllowance,
+                    RelocationAllowance = 0m,
                     t.Reason,
-                    t.HandoverNotes,
-                    t.Status,
-                    t.ApprovedBy,
-                    t.ApprovalDate,
+                    HandoverNotes = t.SignOffNotes,
+                    Status = t.OverallStatus,
+                    ApprovedBy = t.HrbpSignOffStatus == "Approved" ? "HRBP" : null,
+                    ApprovalDate = t.UpdatedAt,
                     t.CreatedAt
                 });
 
@@ -231,55 +232,46 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
                     query = query.Where(t => t.OverallStatus == status);
                 }
 
-                var promotions = await query
+                var rawPromotions = await query
                     .OrderByDescending(t => t.CreatedAt)
                     .Select(t => new
                     {
-                        Id = t.Id,
-                        PromotionCode = $"PRM-{t.CreatedAt:yyMM}-{t.Id.ToString().Substring(0, 4).ToUpper()}",
-                        EmployeeId = t.EmployeeId,
-                        CurrentDesignation = "Senior Specialist",
-                        ProposedDesignation = "Lead Architect",
-                        CurrentGrade = "L3",
-                        ProposedGrade = "L4",
-                        CurrentCtc = 850000m,
-                        ProposedCtc = 1050000m,
-                        HikePercentage = 23.5m,
-                        EffectiveDate = t.EffectiveDate,
-                        PerformanceRating = "Exceeds Expectations",
-                        JustificationNotes = t.Reason,
-                        Status = t.OverallStatus,
-                        ApprovedBy = t.HrbpSignOffStatus == "Approved" ? "Executive Committee" : null,
-                        ApprovalDate = t.UpdatedAt,
-                        CreatedAt = t.CreatedAt
+                        t.Id,
+                        t.EmployeeId,
+                        t.EffectiveDate,
+                        t.Reason,
+                        t.OverallStatus,
+                        t.HrbpSignOffStatus,
+                        t.UpdatedAt,
+                        t.CreatedAt
                     })
                     .ToListAsync(ct);
 
-                var empIds = promotions.Select(p => p.EmployeeId).Distinct().ToList();
+                var empIds = rawPromotions.Select(p => p.EmployeeId).Distinct().ToList();
                 var emps = await _db.Employees.AsNoTracking()
                     .Where(e => empIds.Contains(e.Id))
                     .ToDictionaryAsync(e => e.Id, e => new { e.FullName, e.EmployeeCode }, ct);
 
-                var enriched = promotions.Select(p => new
+                var enriched = rawPromotions.Select(p => new
                 {
                     p.Id,
-                    p.PromotionCode,
+                    PromotionCode = $"PRM-{p.CreatedAt:yyMM}-{p.Id.ToString().Substring(0, 4).ToUpperInvariant()}",
                     p.EmployeeId,
                     EmployeeCode = emps.TryGetValue(p.EmployeeId, out var emp) ? emp.EmployeeCode : "",
                     EmployeeName = emps.TryGetValue(p.EmployeeId, out var emp2) ? emp2.FullName : "Employee",
-                    p.CurrentDesignation,
-                    p.ProposedDesignation,
-                    p.CurrentGrade,
-                    p.ProposedGrade,
-                    p.CurrentCtc,
-                    p.ProposedCtc,
-                    p.HikePercentage,
+                    CurrentDesignation = "Senior Specialist",
+                    ProposedDesignation = "Lead Architect",
+                    CurrentGrade = "L3",
+                    ProposedGrade = "L4",
+                    CurrentCtc = 850000m,
+                    ProposedCtc = 1050000m,
+                    HikePercentage = 23.5m,
                     p.EffectiveDate,
-                    p.PerformanceRating,
-                    p.JustificationNotes,
-                    p.Status,
-                    p.ApprovedBy,
-                    p.ApprovalDate,
+                    PerformanceRating = "Exceeds Expectations",
+                    JustificationNotes = p.Reason,
+                    Status = p.OverallStatus,
+                    ApprovedBy = p.HrbpSignOffStatus == "Approved" ? "Executive Committee" : null,
+                    ApprovalDate = p.UpdatedAt,
                     p.CreatedAt
                 });
 

@@ -45,6 +45,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             public string Title { get; set; } = string.Empty;
             public string? SubTitle { get; set; }
             public string ModuleKey { get; set; } = string.Empty;
+            public string? SubModuleKey { get; set; }
             public string ViewType { get; set; } = "table";
             public string RoutePath { get; set; } = string.Empty;
             public string Icon { get; set; } = "Layers";
@@ -59,6 +60,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
         {
             public string? Title { get; set; }
             public string? SubTitle { get; set; }
+            public string? SubModuleKey { get; set; }
             public string? RoutePath { get; set; }
             public string? Icon { get; set; }
             public string? NavGroup { get; set; }
@@ -133,6 +135,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                         p.Title,
                         p.SubTitle,
                         p.ModuleKey,
+                        p.SubModuleKey,
                         p.ViewType,
                         p.RoutePath,
                         p.Icon,
@@ -461,6 +464,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                 Title = dto.Title.Trim(),
                 SubTitle = dto.SubTitle?.Trim(),
                 ModuleKey = string.IsNullOrWhiteSpace(dto.ModuleKey) ? "platform" : dto.ModuleKey.Trim().ToLowerInvariant(),
+                SubModuleKey = string.IsNullOrWhiteSpace(dto.SubModuleKey) ? null : dto.SubModuleKey.Trim().ToLowerInvariant(),
                 ViewType = dto.ViewType ?? "table",
                 RoutePath = dto.RoutePath?.Trim() ?? $"/{dto.ModuleKey}/{key}",
                 Icon = string.IsNullOrWhiteSpace(dto.Icon) ? "Layers" : dto.Icon.Trim(),
@@ -518,6 +522,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             // Update page header info if supplied
             if (!string.IsNullOrWhiteSpace(dto.Title)) page.Title = dto.Title.Trim();
             if (dto.SubTitle != null) page.SubTitle = dto.SubTitle.Trim();
+            if (dto.SubModuleKey != null) page.SubModuleKey = string.IsNullOrWhiteSpace(dto.SubModuleKey) ? null : dto.SubModuleKey.Trim().ToLowerInvariant();
             if (!string.IsNullOrWhiteSpace(dto.RoutePath)) page.RoutePath = dto.RoutePath.Trim();
             if (!string.IsNullOrWhiteSpace(dto.Icon)) page.Icon = dto.Icon.Trim();
             if (dto.NavGroup != null) page.NavGroup = dto.NavGroup.Trim();
@@ -773,6 +778,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                 Title = title,
                 SubTitle = subTitle,
                 ModuleKey = moduleKey,
+                SubModuleKey = PageSchemaSeeder.ResolveSubModuleKey(pageKey, moduleKey),
                 ViewType = "table",
                 RoutePath = routePath,
                 Icon = icon,

@@ -37,7 +37,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: false,
   },
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
   ...(isProd && !isVercel
     ? {
@@ -70,6 +70,21 @@ const nextConfig: NextConfig = {
   onDemandEntries: {
     maxInactiveAge: 24 * 60 * 60 * 1000,
     pagesBufferLength: 128,
+  },
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "X-XSS-Protection", value: "1; mode=block" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains; preload" },
+        ],
+      },
+    ];
   },
   async rewrites() {
     return [
@@ -113,7 +128,22 @@ const nextConfig: NextConfig = {
       { source: "/superadmin", destination: "/superadmin/dashboard", permanent: false },
       { source: "/app/:path*", destination: "/:path*", permanent: false },
       { source: "/hrms/departments", destination: "/administration/departments", permanent: false },
+      { source: "/hrms/department", destination: "/administration/departments", permanent: false },
       { source: "/hrms/designations", destination: "/administration/designations", permanent: false },
+      { source: "/hrms/designation", destination: "/administration/designations", permanent: false },
+      { source: "/hrms/branches", destination: "/administration/branches", permanent: false },
+      { source: "/hrms/branch", destination: "/administration/branches", permanent: false },
+      { source: "/hrms/shift", destination: "/hrms/shifts", permanent: false },
+      { source: "/hrms/leave-type", destination: "/hrms/leave-types", permanent: false },
+      { source: "/hrms/grade", destination: "/hrms/grades", permanent: false },
+      { source: "/hrms/employment-type", destination: "/hrms/employment-types", permanent: false },
+      { source: "/hrms/cost-center", destination: "/administration/cost-centers", permanent: false },
+      { source: "/hrms/cost-centers", destination: "/administration/cost-centers", permanent: false },
+      { source: "/hrms/holiday-calendar", destination: "/administration/holiday-calendar", permanent: false },
+      { source: "/hrms/company-master", destination: "/administration/companies", permanent: false },
+      { source: "/ess", destination: "/employee-self-service", permanent: false },
+      { source: "/ess/:path*", destination: "/employee-self-service", permanent: false },
+      { source: "/mss", destination: "/manager-self-service", permanent: false },
       { source: "/recruitment", destination: "/hrms/recruitment", permanent: false },
       { source: "/performance", destination: "/hrms/performance", permanent: false },
       { source: "/travel", destination: "/hrms/travel", permanent: false },

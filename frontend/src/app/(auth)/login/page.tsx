@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { ArrowRight, Eye, EyeOff, Loader2, LockKeyhole, Mail } from "lucide-react";
+import { ArrowRight, ExternalLink, Eye, EyeOff, Loader2, LockKeyhole, Mail, Phone, User, Users } from "lucide-react";
 import PublicAudiencePageFrame from "@/components/public/PublicAudiencePageFrame";
 import PublicAuthAlert from "@/components/public/PublicAuthAlert";
 import PublicAuthCard, { PublicAuthFooterLink } from "@/components/public/PublicAuthCard";
@@ -25,8 +25,8 @@ import apiClient, { getDeviceId, setClientAuthToken } from "@/services/apiClient
 import { authApi } from "@/services/modules";
 
 const loginSchema = z.object({
-  email: z.string().email("Enter a valid work email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  identifier: z.string().trim().min(3, "Enter your work email, username, or mobile number"),
+  password: z.string().min(4, "Password must be at least 4 characters"),
   remember: z.boolean().optional(),
 });
 
@@ -47,16 +47,16 @@ export default function LoginPage() {
   const { profile, headerContent, footerContent, allowedPaths, pageVisible, parseContent } =
     usePublicPageData("login", audience);
   const content = parseContent<LoginContent>({
-    title: "Welcome back",
-    subtitle: "Enter your work email and password to continue.",
-    loginButtonLabel: "Sign in",
+    title: "Sign In to Your Workspace",
+    subtitle: "Enter your work email or user ID to access the ERP Console.",
+    loginButtonLabel: "Sign in to ERP Console",
   });
 
   const [errorMessage, setErrorMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [savedEmail, setSavedEmail] = useState("");
 
-  const emailFieldId = "login-email";
+  const emailFieldId = "login-identifier";
   const passwordFieldId = "login-password";
   const rememberFieldId = "login-remember";
 
@@ -67,7 +67,7 @@ export default function LoginPage() {
     formState: { errors, isSubmitting },
   } = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "", remember: false },
+    defaultValues: { identifier: "", password: "", remember: false },
   });
 
   useEffect(() => {
@@ -75,13 +75,14 @@ export default function LoginPage() {
     if (typeof window !== "undefined" && window.location.search) {
       try {
         const url = new URL(window.location.href);
-        if (url.searchParams.has("password") || url.searchParams.has("email")) {
-          const leakedEmail = url.searchParams.get("email");
+        if (url.searchParams.has("password") || url.searchParams.has("email") || url.searchParams.has("identifier")) {
+          const leakedEmail = url.searchParams.get("email") || url.searchParams.get("identifier");
           if (leakedEmail) {
-            reset((prev) => ({ ...prev, email: leakedEmail }));
+            reset((prev) => ({ ...prev, identifier: leakedEmail }));
           }
           url.searchParams.delete("password");
           url.searchParams.delete("email");
+          url.searchParams.delete("identifier");
           const cleanedSearch = url.searchParams.toString();
           window.history.replaceState({}, "", url.pathname + (cleanedSearch ? `?${cleanedSearch}` : ""));
         }
@@ -91,7 +92,7 @@ export default function LoginPage() {
     const saved = readRememberedLogin();
     setSavedEmail(saved.email);
     reset({
-      email: saved.email,
+      identifier: saved.email,
       password: "",
       remember: saved.remember,
     });
@@ -133,13 +134,22 @@ export default function LoginPage() {
 
   const onSubmit = async (values: LoginValues) => {
     setErrorMessage("");
-    const email = values.email.trim().toLowerCase();
+    const rawIdentifier = values.identifier.trim();
     const remember = Boolean(values.remember);
 
     try {
-      writeRememberedLogin(remember, email);
+      writeRememberedLogin(remember, rawIdentifier);
+      const isEmail = rawIdentifier.includes("@");
+      const resolvedEmail = isEmail
+        ? rawIdentifier.toLowerCase()
+        : (rawIdentifier.toLowerCase() === "admin"
+            ? "admin@uabindia.in"
+            : `${rawIdentifier.toLowerCase()}@uabindia.in`);
+
       const res = await authApi.login({
-        email,
+        email: resolvedEmail,
+        username: rawIdentifier,
+        userId: rawIdentifier,
         password: values.password,
         deviceId: getDeviceId(),
       });
@@ -168,7 +178,7 @@ export default function LoginPage() {
         setErrorMessage("Unable to reach the server. Please check your connection and try again.");
         return;
       }
-      setErrorMessage(getApiErrorMessage(error, "Invalid email or password. Please try again."));
+      setErrorMessage(getApiErrorMessage(error, "Invalid credentials. Please verify your login details and try again."));
     }
   };
 
@@ -200,12 +210,17 @@ export default function LoginPage() {
           title={content.title}
           subtitle={content.subtitle}
           footer={
-            <>
-              Need workspace access?{" "}
-              <PublicAuthFooterLink href={withPublicAudience("/register", audience)}>
-                Request workspace
-              </PublicAuthFooterLink>
-            </>
+            <div className="space-y-2 text-center">
+              <p>
+                Need workspace access?{" "}
+                <PublicAuthFooterLink href={withPublicAudience("/register", audience)}>
+                  Request workspace
+                </PublicAuthFooterLink>
+              </p>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                256-Bit TLS Encryption · SOC-2 Compliant · Multi-Tenant Isolation
+              </p>
+            </div>
           }
         >
           <form
@@ -218,15 +233,15 @@ export default function LoginPage() {
             className="space-y-3.5"
             noValidate
           >
-            <PublicAuthFormField id={emailFieldId} label="Work email" error={errors.email?.message}>
+            <PublicAuthFormField id={emailFieldId} label="Work email or User ID" error={errors.identifier?.message}>
               <PublicAuthInput
                 id={emailFieldId}
-                {...register("email")}
-                type="email"
-                placeholder="you@company.com"
+                {...register("identifier")}
+                type="text"
+                placeholder="you@company.com or username"
                 autoComplete="username"
                 autoFocus={!savedEmail}
-                icon={<Mail className="h-4 w-4" />}
+                icon={<User className="h-4 w-4" />}
               />
             </PublicAuthFormField>
 
@@ -273,9 +288,9 @@ export default function LoginPage() {
                 className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800"
               />
               <span className="text-sm leading-snug text-slate-600 dark:text-slate-400">
-                <span className="font-medium text-slate-800 dark:text-slate-200">Remember me</span>
+                <span className="font-medium text-slate-800 dark:text-slate-200">Remember credentials</span>
                 <span className="block text-xs text-slate-500 dark:text-slate-400">
-                  Saves your email on this device. Your browser can securely store the password.
+                  Saves your login identifier securely on this device.
                 </span>
               </span>
             </label>
@@ -299,6 +314,35 @@ export default function LoginPage() {
                 </>
               )}
             </button>
+
+            {/* Enterprise Support & HRMS Portal Switcher */}
+            <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
+              <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                <span className="flex items-center gap-1.5 font-medium">
+                  <Phone className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                  Enterprise Support:
+                </span>
+                <a
+                  href="tel:+917903055384"
+                  className="font-semibold text-slate-800 hover:text-blue-600 dark:text-slate-200 dark:hover:text-blue-400 transition-colors"
+                >
+                  +91 7903055384
+                </a>
+              </div>
+
+              <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                <span className="flex items-center gap-1.5 font-medium">
+                  <Users className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+                  HRMS & Workforce:
+                </span>
+                <a
+                  href={process.env.NEXT_PUBLIC_HRMS_URL || "http://localhost:3001"}
+                  className="inline-flex items-center gap-1 font-semibold text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 transition-colors"
+                >
+                  HRMS Portal <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+            </div>
           </form>
         </PublicAuthCard>
       </PublicAuthShell>

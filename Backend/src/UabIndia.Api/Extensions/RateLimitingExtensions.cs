@@ -259,17 +259,55 @@ namespace UabIndia.Api.Extensions
 
         public static string GetClientIp(HttpContext context)
         {
-            var cfIp = context.Request.Headers["CF-Connecting-IP"].FirstOrDefault();
-            if (!string.IsNullOrWhiteSpace(cfIp)) return cfIp.Trim();
+            var remoteIp = context.Connection.RemoteIpAddress;
+            var isProxyOrLocal = remoteIp == null ||
+                                 System.Net.IPAddress.IsLoopback(remoteIp) ||
+                                 IsPrivateOrLocalNetwork(remoteIp);
 
-            var forwardedFor = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
-            if (!string.IsNullOrWhiteSpace(forwardedFor))
+            // Only trust forwarded headers if the immediate peer is a local/proxy network
+            if (isProxyOrLocal)
             {
-                var firstIp = forwardedFor.Split(',')[0].Trim();
-                if (!string.IsNullOrWhiteSpace(firstIp)) return firstIp;
+                var cfIp = context.Request.Headers["CF-Connecting-IP"].FirstOrDefault();
+                if (!string.IsNullOrWhiteSpace(cfIp) && System.Net.IPAddress.TryParse(cfIp.Trim(), out _))
+                {
+                    return cfIp.Trim();
+                }
+
+                var forwardedFor = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+                if (!string.IsNullOrWhiteSpace(forwardedFor))
+                {
+                    var ips = forwardedFor.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    foreach (var ip in ips)
+                    {
+                        if (System.Net.IPAddress.TryParse(ip, out _))
+                        {
+                            return ip;
+                        }
+                    }
+                }
             }
 
-            return context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            return remoteIp?.ToString() ?? "unknown";
+        }
+
+        private static bool IsPrivateOrLocalNetwork(System.Net.IPAddress ip)
+        {
+            if (ip.IsIPv4MappedToIPv6)
+            {
+                ip = ip.MapToIPv4();
+            }
+
+            var bytes = ip.GetAddressBytes();
+            if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+            {
+                // 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.0.0.0/8
+                return bytes[0] == 10 ||
+                       bytes[0] == 127 ||
+                       (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31) ||
+                       (bytes[0] == 192 && bytes[1] == 168);
+            }
+
+            return false;
         }
     }
 }

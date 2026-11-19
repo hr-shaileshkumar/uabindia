@@ -36,7 +36,9 @@ export const getDeviceId = (): string => {
   if (typeof window === "undefined") return "server-device";
   let d = window.localStorage.getItem("deviceId");
   if (!d) {
-    d = `dev-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    d = typeof window.crypto?.randomUUID === "function"
+      ? `dev-${window.crypto.randomUUID()}`
+      : `dev-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
     window.localStorage.setItem("deviceId", d);
   }
   return d;
@@ -120,15 +122,19 @@ export const getTenantSubdomain = (): string | null => {
   if (typeof window === "undefined") return tenantFromEnv;
 
   const hostname = window.location.hostname.toLowerCase();
-  const queryTenant = normalizeTenantSubdomain(new URLSearchParams(window.location.search).get("tenant"));
   const tenantFromHost = normalizeTenantSubdomain(getTenantSubdomainFromHost(hostname));
 
   if (tenantFromHost) {
     return tenantFromHost;
   }
 
-  if (queryTenant) {
-    return queryTenant;
+  // Only allow URL query parameter tenant override in development/localhost to prevent phishing/CSRF in production
+  const isDev = process.env.NODE_ENV !== "production" || isLocalhostHostname(hostname);
+  if (isDev) {
+    const queryTenant = normalizeTenantSubdomain(new URLSearchParams(window.location.search).get("tenant"));
+    if (queryTenant) {
+      return queryTenant;
+    }
   }
 
   const storedTenant = normalizeTenantSubdomain(window.localStorage.getItem(TENANT_STORAGE_KEY));

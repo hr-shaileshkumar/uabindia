@@ -25,6 +25,20 @@ import {
   Clock,
   Lock,
   Globe,
+  GitBranch,
+  Bell,
+  LifeBuoy,
+  Megaphone,
+  FileText,
+  Bot,
+  UserCheck,
+  Plug,
+  Kanban,
+  Contact,
+  Landmark,
+  ShieldCheck,
+  ShoppingBag,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import apiClient from "@/services/apiClient";
@@ -40,6 +54,7 @@ interface AppSuiteItem {
   name: string;
   desc: string;
   href: string;
+  category?: "work" | "people" | "commerce" | "finance" | "ops" | "administration";
   icon: React.ComponentType<{ size?: number; className?: string }>;
   color: string;
   tag?: string;
@@ -80,12 +95,68 @@ interface AppContextSummary {
  * Each module specifies its RBAC permission keys and allowed operational roles.
  */
 const ALL_ERP_APPS: AppSuiteItem[] = [
+  // ── 1. My Work ──
+  {
+    id: "ess",
+    moduleKey: "ess",
+    name: "Employee Self-Service",
+    desc: "Personal profile, punch logs, leave & claims",
+    href: "/ess",
+    category: "work",
+    icon: UserCheck,
+    color: "from-blue-500 to-indigo-600",
+    tag: "ESS",
+    requiredPermissions: ["module:ess"],
+    allowedRoles: ["admin", "superadmin", "hr", "manager", "employee", "accountant"],
+  },
+  {
+    id: "mss",
+    moduleKey: "mss",
+    name: "Manager Self-Service",
+    desc: "Team attendance, approvals & OKRs",
+    href: "/mss",
+    category: "work",
+    icon: Users,
+    color: "from-indigo-500 to-purple-600",
+    tag: "MSS",
+    requiredPermissions: ["module:mss"],
+    allowedRoles: ["admin", "superadmin", "hr", "manager", "lead"],
+  },
+  {
+    id: "workflow",
+    moduleKey: "workflow",
+    aliasKeys: ["approvals"],
+    name: "Approvals & Tasks",
+    desc: "Cross-module requests, delegations & state queue",
+    href: "/approvals",
+    category: "work",
+    icon: GitBranch,
+    color: "from-indigo-600 to-violet-700",
+    tag: "Queue",
+    requiredPermissions: ["module:workflow", "approvals.view"],
+    allowedRoles: ["admin", "superadmin", "hr", "manager", "accountant"],
+  },
+  {
+    id: "notifications",
+    moduleKey: "notifications",
+    name: "Notification Inbox",
+    desc: "Alerts, operational notices & broadcasts",
+    href: "/notifications",
+    category: "work",
+    icon: Bell,
+    color: "from-amber-600 to-yellow-600",
+    requiredPermissions: ["module:notifications", "notifications.view"],
+    allowedRoles: ["admin", "superadmin", "hr", "manager", "employee", "accountant"],
+  },
+
+  // ── 2. People & Talent ──
   {
     id: "hrms",
     moduleKey: "hrms",
-    name: "HRMS & People",
+    name: "HRMS & Workforce",
     desc: "Attendance, leave, employee records & staffing",
     href: "/hrms",
+    category: "people",
     icon: Users,
     color: "from-blue-600 to-indigo-600",
     requiredPermissions: ["module:hrms", "employees.view"],
@@ -94,96 +165,78 @@ const ALL_ERP_APPS: AppSuiteItem[] = [
   {
     id: "payroll",
     moduleKey: "payroll",
-    name: "Payroll Run Wizard",
-    desc: "Salary register, arrears & statutory compliance",
-    href: "/payroll/runs",
+    name: "Payroll & Compensation",
+    desc: "Salary register, arrears, payslips & tax",
+    href: "/payroll",
+    category: "people",
     icon: CreditCard,
     color: "from-emerald-600 to-teal-600",
-    tag: "Unified",
+    tag: "Payroll",
     requiredPermissions: ["module:payroll", "payroll.run", "payroll.view"],
     allowedRoles: ["admin", "superadmin", "hr", "finance", "accountant"],
   },
+
+  // ── 3. Supply Chain & Commerce ──
   {
-    id: "finance",
-    moduleKey: "finance",
-    name: "Finance & Tax Hub",
-    desc: "MSME 43B(h), TDS, Payouts & General Ledger",
-    href: "/compliance/msme-tds",
-    icon: BarChart3,
-    color: "from-emerald-700 to-green-800",
-    requiredPermissions: ["module:finance", "chartofaccounts.view", "payments.view"],
-    allowedRoles: ["admin", "superadmin", "finance", "accountant", "cfo", "director"],
+    id: "sales",
+    moduleKey: "sales",
+    name: "Sales & Commercial",
+    desc: "Quotations, sales orders, invoices & pricing",
+    href: "/sales",
+    category: "commerce",
+    icon: ShoppingBag,
+    color: "from-pink-600 to-rose-600",
+    requiredPermissions: ["module:sales", "salesorders.view"],
+    allowedRoles: ["admin", "superadmin", "sales", "crm", "marketing"],
   },
   {
-    id: "compliance",
-    moduleKey: "compliance",
-    aliasKeys: ["finance"],
-    name: "GST E-Invoice & EWB",
-    desc: "NIC IRP 64-char IRN, Signed QR & E-Way Bills",
-    href: "/compliance/einvoice",
-    icon: QrCode,
-    color: "from-purple-600 to-indigo-700",
-    tag: "GST 1.1",
-    requiredPermissions: ["module:compliance", "module:finance"],
-    allowedRoles: ["admin", "superadmin", "finance", "accountant", "taxation"],
-  },
-  {
-    id: "inventory",
-    moduleKey: "inventory",
-    name: "Inventory & WMS",
-    desc: "FEFO Batches, stock levels & serial numbers",
-    href: "/inventory/batches",
-    icon: Package,
-    color: "from-cyan-600 to-blue-600",
-    requiredPermissions: ["module:inventory", "inventory.view"],
-    allowedRoles: ["admin", "superadmin", "inventory", "storekeeper", "warehouse", "operations"],
+    id: "crm",
+    moduleKey: "crm",
+    name: "CRM & Pipelines",
+    desc: "Leads, customer accounts & deals funnel",
+    href: "/crm",
+    category: "commerce",
+    icon: Contact,
+    color: "from-purple-600 to-pink-600",
+    requiredPermissions: ["module:crm", "crm.access"],
+    allowedRoles: ["admin", "superadmin", "sales", "crm", "marketing"],
   },
   {
     id: "procurement",
     moduleKey: "procurement",
     name: "Procurement & SCM",
-    desc: "Purchase requests, orders & vendor invoices",
+    desc: "Purchase requests, orders & vendor bills",
     href: "/procurement",
+    category: "commerce",
     icon: ShoppingCart,
     color: "from-rose-600 to-red-600",
     requiredPermissions: ["module:procurement", "vendor.view"],
     allowedRoles: ["admin", "superadmin", "purchase", "procurement", "scm"],
   },
   {
-    id: "sales",
-    moduleKey: "sales",
-    aliasKeys: ["crm"],
-    name: "Sales & CRM",
-    desc: "Pipelines, leads, quotations & accounts",
-    href: "/sales",
-    icon: Briefcase,
-    color: "from-purple-600 to-pink-600",
-    requiredPermissions: ["module:sales", "module:crm", "customer.view"],
-    allowedRoles: ["admin", "superadmin", "sales", "crm", "marketing"],
+    id: "inventory",
+    moduleKey: "inventory",
+    name: "Inventory & WMS",
+    desc: "FEFO batches, stock levels, warehouses & transfers",
+    href: "/inventory",
+    category: "commerce",
+    icon: Package,
+    color: "from-cyan-600 to-blue-600",
+    requiredPermissions: ["module:inventory", "inventory.view"],
+    allowedRoles: ["admin", "superadmin", "inventory", "storekeeper", "warehouse", "operations"],
   },
   {
     id: "manufacturing",
     moduleKey: "manufacturing",
     aliasKeys: ["quality"],
-    name: "Quality & Job Work",
-    desc: "Inward QC lots, CoA, NCR & Rule 55 Challans",
-    href: "/manufacturing/quality",
+    name: "Manufacturing & MRP",
+    desc: "Production orders, QA inspections & job work",
+    href: "/manufacturing",
+    category: "commerce",
     icon: Factory,
     color: "from-slate-700 to-slate-900",
     requiredPermissions: ["module:manufacturing", "module:quality"],
     allowedRoles: ["admin", "superadmin", "production", "quality", "qc", "manufacturing"],
-  },
-  {
-    id: "fleet",
-    moduleKey: "fleet",
-    name: "Fleet & Logistics",
-    desc: "Vehicle telemetry, fuel logs & driver dispatch",
-    href: "/fleet",
-    icon: Truck,
-    color: "from-amber-500 to-orange-600",
-    tag: "Ecosystem",
-    requiredPermissions: ["module:fleet", "fleet.view"],
-    allowedRoles: ["admin", "superadmin", "logistics", "fleet", "transport"],
   },
   {
     id: "assets",
@@ -191,37 +244,185 @@ const ALL_ERP_APPS: AppSuiteItem[] = [
     name: "Asset Management",
     desc: "Asset custody, depreciation & physical audits",
     href: "/assets",
+    category: "commerce",
     icon: Layers,
     color: "from-teal-600 to-emerald-700",
     requiredPermissions: ["module:assets"],
     allowedRoles: ["admin", "superadmin", "finance", "assets", "operations"],
   },
   {
+    id: "fleet",
+    moduleKey: "fleet",
+    name: "Fleet & Logistics",
+    desc: "Vehicle telemetry, fuel logs & driver dispatch",
+    href: "/fleet",
+    category: "commerce",
+    icon: Truck,
+    color: "from-amber-500 to-orange-600",
+    tag: "Logistics",
+    requiredPermissions: ["module:fleet", "fleet.view"],
+    allowedRoles: ["admin", "superadmin", "logistics", "fleet", "transport"],
+  },
+
+  // ── 4. Finance & Accounts ──
+  {
+    id: "finance",
+    moduleKey: "finance",
+    name: "Finance & Accounts",
+    desc: "General ledger, chart of accounts, banking & P&L",
+    href: "/finance",
+    category: "finance",
+    icon: Landmark,
+    color: "from-emerald-700 to-green-800",
+    requiredPermissions: ["module:finance", "chartofaccounts.view", "payments.view"],
+    allowedRoles: ["admin", "superadmin", "finance", "accountant", "cfo", "director"],
+  },
+  {
+    id: "compliance",
+    moduleKey: "compliance",
+    name: "Statutory Compliance",
+    desc: "GST E-Invoice, E-Way Bill, MSME & TDS Calendar",
+    href: "/compliance",
+    category: "finance",
+    icon: ShieldCheck,
+    color: "from-purple-600 to-indigo-700",
+    tag: "Tax",
+    requiredPermissions: ["module:compliance", "module:finance"],
+    allowedRoles: ["admin", "superadmin", "finance", "accountant", "taxation"],
+  },
+
+  // ── 5. Operations & Intelligence ──
+  {
     id: "projects",
     moduleKey: "projects",
-    name: "Projects & Tasks",
+    name: "Projects & Service",
     desc: "Milestones, sprint velocity & timesheets",
     href: "/projects",
-    icon: Clock,
+    category: "ops",
+    icon: Kanban,
     color: "from-blue-700 to-indigo-800",
     requiredPermissions: ["module:projects"],
     allowedRoles: ["admin", "superadmin", "projectmanager", "delivery", "engineering"],
   },
   {
-    id: "admin",
-    moduleKey: "administration",
-    name: "Platform Settings",
+    id: "helpdesk",
+    moduleKey: "helpdesk",
+    name: "Service Helpdesk",
+    desc: "Support intake, tickets, SLA & knowledge base",
+    href: "/helpdesk",
+    category: "ops",
+    icon: LifeBuoy,
+    color: "from-sky-600 to-cyan-700",
+    requiredPermissions: ["module:helpdesk"],
+    allowedRoles: ["admin", "superadmin", "hr", "manager", "employee", "support"],
+  },
+  {
+    id: "communication",
+    moduleKey: "communication",
+    name: "Communications",
+    desc: "Broadcasts, email/SMS outreach templates",
+    href: "/communication",
+    category: "ops",
+    icon: Megaphone,
+    color: "from-blue-600 to-sky-600",
+    requiredPermissions: ["module:communication"],
+    allowedRoles: ["admin", "superadmin", "hr", "manager"],
+  },
+  {
+    id: "documents",
+    moduleKey: "documents",
+    name: "Document Vault",
+    desc: "Document templates, policy vault & signatures",
+    href: "/documents",
+    category: "ops",
+    icon: FileText,
+    color: "from-teal-700 to-emerald-800",
+    requiredPermissions: ["module:documents"],
+    allowedRoles: ["admin", "superadmin", "hr", "manager", "employee"],
+  },
+  {
+    id: "ai",
+    moduleKey: "ai",
+    name: "AI Copilot Engine",
+    desc: "AI HR screening, anomaly detection & automation",
+    href: "/ai",
+    category: "ops",
+    icon: Bot,
+    color: "from-violet-600 to-purple-800",
+    tag: "AI",
+    requiredPermissions: ["module:ai"],
+    allowedRoles: ["admin", "superadmin", "hr", "director"],
+  },
+  {
+    id: "reports",
+    moduleKey: "reports",
+    name: "Reports & Analytics",
+    desc: "Cross-module business intelligence & audits",
+    href: "/reports",
+    category: "ops",
+    icon: BarChart3,
+    color: "from-cyan-600 to-teal-700",
+    requiredPermissions: ["module:reports"],
+    allowedRoles: ["admin", "superadmin", "hr", "finance", "manager", "director"],
+  },
+
+  // ── 6. Administration & Platform ──
+  {
+    id: "platform",
+    moduleKey: "platform",
+    aliasKeys: ["administration"],
+    name: "Administration",
     desc: "Security, RBAC, tenant config & audit logs",
     href: "/administration",
+    category: "administration",
     icon: Settings,
     color: "from-slate-800 to-black",
-    requiredPermissions: ["module:administration", "users.view"],
+    requiredPermissions: ["module:platform", "module:administration"],
     allowedRoles: ["admin", "superadmin", "systemadmin"],
+  },
+  {
+    id: "superadmin",
+    moduleKey: "superadmin",
+    name: "Super Admin Platform",
+    desc: "Multi-tenant governance, telemetry & subscriptions",
+    href: "/superadmin/dashboard",
+    category: "administration",
+    icon: Shield,
+    color: "from-slate-900 to-black",
+    tag: "Operator",
+    requiredPermissions: ["superadmin"],
+    allowedRoles: ["superadmin"],
+  },
+  {
+    id: "security",
+    moduleKey: "security",
+    name: "Security & MFA",
+    desc: "Sessions, devices, password policies & SSO",
+    href: "/security",
+    category: "administration",
+    icon: Lock,
+    color: "from-slate-800 to-slate-950",
+    requiredPermissions: ["module:security"],
+    allowedRoles: ["admin", "superadmin"],
+  },
+  {
+    id: "integrations",
+    moduleKey: "integrations",
+    name: "API & Integrations",
+    desc: "Webhooks, API keys & external connectors",
+    href: "/integrations",
+    category: "administration",
+    icon: Plug,
+    color: "from-teal-600 to-cyan-700",
+    requiredPermissions: ["module:integrations"],
+    allowedRoles: ["admin", "superadmin"],
   },
 ];
 
 export function AppLauncher() {
   const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [summary, setSummary] = useState<AppContextSummary | null>(null);
   const [auditing, setAuditing] = useState(false);
   const [auditMessage, setAuditMessage] = useState<string | null>(null);
@@ -467,6 +668,45 @@ export function AppLauncher() {
             )}
           </div>
 
+          {/* Search & Category Filter */}
+          <div className="pt-2 pb-1 space-y-2">
+            <div className="relative">
+              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search apps..."
+                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-hidden focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+            <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none text-[10px] font-semibold">
+              {[
+                { id: "all", label: "All" },
+                { id: "work", label: "Work" },
+                { id: "people", label: "People" },
+                { id: "commerce", label: "Commerce" },
+                { id: "finance", label: "Finance" },
+                { id: "ops", label: "Ops" },
+                { id: "administration", label: "Admin" },
+              ].map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={cn(
+                    "px-2 py-0.5 rounded-full whitespace-nowrap transition-colors cursor-pointer",
+                    selectedCategory === cat.id
+                      ? "bg-blue-600 text-white shadow-2xs font-bold"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+                  )}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Dynamic Accessible App Grid */}
           {accessibleApps.length === 0 ? (
             <div className="py-8 text-center text-xs text-slate-400 space-y-1">
@@ -475,8 +715,23 @@ export function AppLauncher() {
               <p className="text-[10px]">Contact your Tenant Administrator to grant module permissions.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-2 pt-3 max-h-[380px] overflow-y-auto pr-0.5">
-              {accessibleApps.map((app) => {
+            <div className="grid grid-cols-3 gap-2 pt-1 max-h-[340px] overflow-y-auto pr-0.5 scrollbar-thin">
+              {accessibleApps
+                .filter((app) => {
+                  if (selectedCategory !== "all" && app.category && app.category !== selectedCategory) {
+                    return false;
+                  }
+                  if (searchQuery.trim()) {
+                    const q = searchQuery.toLowerCase().trim();
+                    return (
+                      app.name.toLowerCase().includes(q) ||
+                      app.desc.toLowerCase().includes(q) ||
+                      app.moduleKey.toLowerCase().includes(q)
+                    );
+                  }
+                  return true;
+                })
+                .map((app) => {
                 const Icon = app.icon;
                 const isActive =
                   app.href === "/"

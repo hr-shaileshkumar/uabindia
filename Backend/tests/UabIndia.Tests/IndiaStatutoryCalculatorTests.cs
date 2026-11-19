@@ -209,5 +209,47 @@ namespace UabIndia.Tests
             var next = AccountBalanceMath.Apply("Liability", 1000m, 0m, 250m);
             Assert.Equal(1250m, next);
         }
+
+        [Fact]
+        public void CalculateGratuity_EnforcesCeilingAndMinYears()
+        {
+            // Under 4.5 years returns 0
+            Assert.Equal(0m, IndiaStatutoryCalculator.CalculateGratuity(50000m, 4.0));
+
+            // 5 years of service with 50,000 basic: 15 * 50,000 * 5 / 26 = 144,230.77
+            var gratuity5Y = IndiaStatutoryCalculator.CalculateGratuity(50000m, 5.0);
+            Assert.Equal(144230.77m, gratuity5Y);
+
+            // 30 years with 2,00,000 basic: 15 * 200,000 * 30 / 26 = 34,61,538.46 -> capped at ₹20,00,000
+            var gratuityCapped = IndiaStatutoryCalculator.CalculateGratuity(200000m, 30.0);
+            Assert.Equal(2000000m, gratuityCapped);
+        }
+
+        [Fact]
+        public void CalculateLwf_ReturnsCorrectStateSchedules()
+        {
+            // Maharashtra: June and Dec only
+            var mhJune = IndiaStatutoryCalculator.CalculateLwf("MH", 25000m, 6);
+            Assert.True(mhJune.IsDeductionMonth);
+            Assert.Equal(25m, mhJune.EmployeeContribution);
+            Assert.Equal(75m, mhJune.EmployerContribution);
+            Assert.Equal(100m, mhJune.TotalContribution);
+
+            var mhJuly = IndiaStatutoryCalculator.CalculateLwf("MH", 25000m, 7);
+            Assert.False(mhJuly.IsDeductionMonth);
+            Assert.Equal(0m, mhJuly.TotalContribution);
+
+            // Karnataka: Dec only
+            var kaDec = IndiaStatutoryCalculator.CalculateLwf("KA", 35000m, 12);
+            Assert.True(kaDec.IsDeductionMonth);
+            Assert.Equal(20m, kaDec.EmployeeContribution);
+            Assert.Equal(40m, kaDec.EmployerContribution);
+
+            // Delhi: Monthly
+            var dlOct = IndiaStatutoryCalculator.CalculateLwf("DL", 20000m, 10);
+            Assert.True(dlOct.IsDeductionMonth);
+            Assert.Equal(0.75m, dlOct.EmployeeContribution);
+            Assert.Equal(2.25m, dlOct.EmployerContribution);
+        }
     }
 }

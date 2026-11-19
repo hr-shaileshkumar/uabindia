@@ -146,7 +146,6 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: "bank",
     shellOrder: 100,
     tier: "business",
-    sourceModuleKey: "erp",
     pathPrefixes: [
       "/finance",
       "/chart-of-accounts",
@@ -168,7 +167,6 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: "box",
     shellOrder: 110,
     tier: "business",
-    sourceModuleKey: "erp",
     pathPrefixes: [
       "/inventory",
       "/items",
@@ -206,7 +204,6 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: "factory",
     shellOrder: 115,
     tier: "business",
-    sourceModuleKey: "erp",
     pathPrefixes: ["/manufacturing"],
   },
   {
@@ -217,7 +214,6 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: "shopping-cart",
     shellOrder: 120,
     tier: "business",
-    sourceModuleKey: "erp",
     pathPrefixes: ["/procurement", "/vendors", "/purchase-requests", "/purchase-orders", "/grn", "/vendor-bills"],
   },
   {
@@ -238,7 +234,6 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: "shopping-bag",
     shellOrder: 140,
     tier: "business",
-    sourceModuleKey: "erp",
     pathPrefixes: ["/sales", "/customers", "/crm/customers", "/quotations", "/discounts", "/sales-orders", "/returns", "/portal"],
   },
   {
@@ -249,7 +244,6 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: "kanban",
     shellOrder: 150,
     tier: "business",
-    sourceModuleKey: "erp",
     pathPrefixes: ["/projects", "/platform/projects", "/field-service", "/assets/depreciation"],
   },
   {
@@ -260,7 +254,6 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: "monitor",
     shellOrder: 160,
     tier: "business",
-    sourceModuleKey: "erp",
     pathPrefixes: ["/assets", "/hrms/assets"],
   },
   {
@@ -291,7 +284,6 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: "ticket",
     shellOrder: 200,
     tier: "cross-cutting",
-    sourceModuleKey: "erp",
     pathPrefixes: ["/helpdesk"],
   },
   {
@@ -302,7 +294,6 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: "megaphone",
     shellOrder: 210,
     tier: "cross-cutting",
-    sourceModuleKey: "erp",
     pathPrefixes: ["/communication"],
   },
   {
@@ -313,7 +304,6 @@ const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: "plug",
     shellOrder: 220,
     tier: "cross-cutting",
-    sourceModuleKey: "erp",
     pathPrefixes: ["/integrations"],
   },
   {

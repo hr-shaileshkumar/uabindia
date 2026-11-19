@@ -61,9 +61,23 @@ namespace UabIndia.Api.Services
 
             foreach (var module in modules)
             {
-                var groups = tenantNavGroups.TryGetValue(module.Key, out var tenantGroups) && tenantGroups.Count > 0
-                    ? tenantGroups
-                    : DefaultUiSchemaCatalog.GetNavigationGroups(module.Key);
+                List<NavGroupDto> groups;
+                if (tenantNavGroups.TryGetValue(module.Key, out var customGroups) && customGroups.Count > 0)
+                {
+                    groups = customGroups;
+                }
+                else
+                {
+                    var dbGroups = await BuildDatabaseNavGroupsForModuleAsync(tenantId, module.Key, permissionSnapshot, pageRolePolicies);
+                    if (dbGroups.Count > 0)
+                    {
+                        groups = dbGroups;
+                    }
+                    else
+                    {
+                        groups = DefaultUiSchemaCatalog.GetNavigationGroups(module.Key);
+                    }
+                }
 
                 var filteredGroups = groups
                     .Select(group => new NavGroupDto
@@ -420,6 +434,142 @@ namespace UabIndia.Api.Services
             }
 
             return permissionKey.Split('.')[0];
+        }
+
+        private async Task<List<NavGroupDto>> BuildDatabaseNavGroupsForModuleAsync(
+            Guid tenantId,
+            string moduleKey,
+            PermissionSnapshot permissionSnapshot,
+            Dictionary<string, List<string>> pageRolePolicies)
+        {
+            var mod = moduleKey.Trim().ToLowerInvariant();
+            var modKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { mod };
+            if (mod == "administration" || mod == "platform")
+            {
+                modKeys.Add("administration");
+                modKeys.Add("platform");
+            }
+
+            // 1. Fetch submodules for this module from database
+            var dbSubmodules = await _db.SubModules
+                .AsNoTracking()
+                .Where(sm => sm.TenantId == tenantId && modKeys.Contains(sm.ModuleKey) && sm.IsEnabled && !sm.IsDeleted)
+                .OrderBy(sm => sm.SortOrder)
+                .ThenBy(sm => sm.Title)
+                .ToListAsync();
+
+            // 2. Fetch pages for this module from database
+            var dbPages = await _db.UiPageDefinitions
+                .AsNoTracking()
+                .Where(p => p.TenantId == tenantId && modKeys.Contains(p.ModuleKey) && !p.IsDeleted && (p.AddToNavigation || p.Status == "Published"))
+                .OrderBy(p => p.NavSortOrder)
+                .ThenBy(p => p.Title)
+                .ToListAsync();
+
+            if (dbPages.Count == 0 && dbSubmodules.Count == 0)
+            {
+                return new List<NavGroupDto>();
+            }
+
+            var subModuleMap = dbSubmodules
+                .GroupBy(sm => sm.SubModuleKey, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+            var groupDict = new Dictionary<string, (string Label, int SortOrder, List<NavItemDto> Items)>(StringComparer.OrdinalIgnoreCase);
+
+            // Pre-seed groups in exact sort order of registered SubModules
+            foreach (var sm in dbSubmodules)
+            {
+                var label = !string.IsNullOrWhiteSpace(sm.DisplayName) ? sm.DisplayName : sm.Title;
+                groupDict[sm.SubModuleKey] = (label, sm.SortOrder, new List<NavItemDto>());
+            }
+
+            foreach (var page in dbPages)
+            {
+                var requiredPerms = string.IsNullOrWhiteSpace(page.RequiredPermission)
+                    ? new List<string>()
+                    : new List<string> { page.RequiredPermission };
+
+                if (!HasRequiredPermission(requiredPerms, permissionSnapshot))
+                {
+                    continue;
+                }
+
+                var allowedRoles = pageRolePolicies.TryGetValue(page.PageKey, out var roles) && roles.Count > 0
+                    ? roles
+                    : new List<string>();
+
+                var navItem = new NavItemDto
+                {
+                    Key = page.PageKey,
+                    Name = page.Title,
+                    Path = page.RoutePath,
+                    Icon = string.IsNullOrWhiteSpace(page.Icon) ? "layers" : page.Icon,
+                    SortOrder = page.NavSortOrder,
+                    RequiredPermissions = requiredPerms,
+                    AllowedRoles = allowedRoles,
+                };
+
+                string targetKey;
+                string targetLabel;
+                int targetSortOrder;
+
+                if (!string.IsNullOrWhiteSpace(page.SubModuleKey) && subModuleMap.TryGetValue(page.SubModuleKey, out var sm))
+                {
+                    targetKey = sm.SubModuleKey;
+                    targetLabel = !string.IsNullOrWhiteSpace(sm.DisplayName) ? sm.DisplayName : sm.Title;
+                    targetSortOrder = sm.SortOrder;
+                }
+                else if (!string.IsNullOrWhiteSpace(page.SubModuleKey))
+                {
+                    targetKey = page.SubModuleKey;
+                    targetLabel = FormatSubModuleKeyToTitle(page.SubModuleKey, page.NavGroup);
+                    targetSortOrder = 50;
+                }
+                else if (!string.IsNullOrWhiteSpace(page.NavGroup))
+                {
+                    targetKey = $"{mod}.{page.NavGroup.ToLowerInvariant().Replace(" ", "-")}";
+                    targetLabel = page.NavGroup;
+                    targetSortOrder = 60;
+                }
+                else
+                {
+                    targetKey = $"{mod}.general";
+                    targetLabel = "General";
+                    targetSortOrder = 100;
+                }
+
+                if (!groupDict.TryGetValue(targetKey, out var groupTuple))
+                {
+                    groupTuple = (targetLabel, targetSortOrder, new List<NavItemDto>());
+                    groupDict[targetKey] = groupTuple;
+                }
+
+                groupTuple.Items.Add(navItem);
+            }
+
+            var result = groupDict.Values
+                .Where(g => g.Items.Count > 0)
+                .OrderBy(g => g.SortOrder)
+                .ThenBy(g => g.Label)
+                .Select(g => new NavGroupDto
+                {
+                    Label = g.Label,
+                    SortOrder = g.SortOrder,
+                    Items = g.Items.OrderBy(i => i.SortOrder).ThenBy(i => i.Name).ToList()
+                })
+                .ToList();
+
+            return result;
+        }
+
+        private static string FormatSubModuleKeyToTitle(string subModuleKey, string? navGroup)
+        {
+            if (!string.IsNullOrWhiteSpace(navGroup)) return navGroup.Trim();
+
+            var part = subModuleKey.Contains('.') ? subModuleKey.Split('.')[1] : subModuleKey;
+            var words = part.Split('-', '_');
+            return string.Join(" ", words.Select(w => w.Length > 0 ? char.ToUpper(w[0]) + w[1..] : w));
         }
 
         private async Task<Dictionary<string, List<NavGroupDto>>> TryGetTenantNavGroupsAsync(Guid tenantId)

@@ -293,6 +293,71 @@ namespace UabIndia.Api.Modules.HRMS.Controllers
             return Ok(new { data, total, page, limit });
         }
 
+        [HttpGet("calendar")]
+        public async Task<IActionResult> GetCalendar([FromQuery] string? month = null, [FromQuery] Guid? employeeId = null, [FromQuery] string? view = null)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var now = DateTime.UtcNow;
+            int year = now.Year;
+            int m = now.Month;
+
+            if (!string.IsNullOrWhiteSpace(month) && month.Length >= 7)
+            {
+                var parts = month.Split('-');
+                if (parts.Length >= 2 && int.TryParse(parts[0], out var y) && int.TryParse(parts[1], out var mo))
+                {
+                    year = y;
+                    m = mo;
+                }
+            }
+
+            var startOfMonth = new DateTime(year, m, 1);
+            var endOfMonth = startOfMonth.AddMonths(1);
+
+            var query = _db.AttendanceRecords.AsNoTracking()
+                .Where(a => a.TenantId == tenantId && !a.IsDeleted && a.Timestamp >= startOfMonth && a.Timestamp < endOfMonth);
+
+            if (employeeId.HasValue)
+                query = query.Where(a => a.EmployeeId == employeeId.Value);
+
+            var records = await query.ToListAsync();
+
+            var daysInMonth = DateTime.DaysInMonth(year, m);
+            var days = new List<object>();
+
+            for (int day = 1; day <= daysInMonth; day++)
+            {
+                var date = new DateTime(year, m, day);
+                var dayPunches = records.Where(r => r.Timestamp.Date == date.Date).OrderBy(r => r.Timestamp).ToList();
+                var firstIn = dayPunches.FirstOrDefault(p => p.PunchType == "IN");
+                var lastOut = dayPunches.LastOrDefault(p => p.PunchType == "OUT");
+
+                string status = date.DayOfWeek == DayOfWeek.Sunday ? "Holiday" :
+                                dayPunches.Count > 0 ? "Present" :
+                                date.Date > DateTime.UtcNow.Date ? "Upcoming" : "Absent";
+
+                days.Add(new
+                {
+                    date = date.ToString("yyyy-MM-dd"),
+                    dayOfWeek = date.DayOfWeek.ToString(),
+                    status,
+                    punchIn = firstIn?.Timestamp.ToString("HH:mm:ss"),
+                    punchOut = lastOut?.Timestamp.ToString("HH:mm:ss"),
+                    durationHours = (firstIn != null && lastOut != null && lastOut.Timestamp > firstIn.Timestamp)
+                        ? Math.Round((decimal)(lastOut.Timestamp - firstIn.Timestamp).TotalHours, 1)
+                        : (decimal?)null
+                });
+            }
+
+            return Ok(new
+            {
+                year,
+                month = m,
+                totalDays = daysInMonth,
+                days
+            });
+        }
+
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetById(Guid id)
         {

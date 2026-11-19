@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
   <ItemGroup>
@@ -51,4 +52,8 @@
   <Target Name="KillExistingBackend" BeforeTargets="BeforeBuild" Condition="'$(OS)' == 'Windows_NT' And '$(Configuration)' == 'Debug' And '$(DOTNET_BUILD_NO_KILL)' != 'true'">
     <Exec Command="cmd /c &quot;taskkill /F /IM UabIndia.Api.exe 2&gt;nul || exit 0&quot;" StandardOutputImportance="Low" StandardErrorImportance="Low" ContinueOnError="WarnAndContinue" IgnoreExitCode="true" />
   </Target>
+  <ItemGroup>
+    <ProjectReference Include="..\\UabIndia.Application\\UabIndia.Application.csproj" />
+    <ProjectReference Include="..\\UabIndia.Core\\UabIndia.Core.csproj" />
+  </ItemGroup>
 </Project>

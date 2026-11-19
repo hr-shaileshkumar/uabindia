@@ -339,14 +339,13 @@ builder.Services.AddEnterpriseSwagger();
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
-
 {
-
     app.UseHsts();
-
     app.UseHttpsRedirection();
-
 }
+
+// Global Exception Handler must be at the very top of the request processing pipeline
+app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseResponseCompression();
 
@@ -355,151 +354,88 @@ app.UseCors("Strict");
 app.UseMiddleware<SystemMetricsMiddleware>();
 
 // Seamless /api/* to /api/v1/* compatibility rewrite middleware
-
 app.Use(async (context, next) =>
-
 {
-
     var p = context.Request.Path.Value;
-
     if (p != null && p.StartsWith("/api/", StringComparison.OrdinalIgnoreCase) && !p.StartsWith("/api/v1/", StringComparison.OrdinalIgnoreCase))
-
     {
-
         // Transparently rewrite /api/{rest} to /api/v1/{rest} so all client callers and HRMS frontend succeed
-
         context.Request.Path = "/api/v1" + p.Substring(4);
-
     }
-
     await next();
-
 });
+
+// Rate limiting early in the pipeline to drop abusive requests before running validation/crypto
+app.UseRateLimiter();
 
 app.UseMiddleware<CorrelationIdMiddleware>();
 
     // Content Security Policy (CSP) & Security Headers with nonce
-
     app.Use(async (context, next) =>
-
     {
-
         // Generate a nonce for this request
-
         var nonceBytes = System.Security.Cryptography.RandomNumberGenerator.GetBytes(16);
-
         var nonce = Convert.ToBase64String(nonceBytes);
-
         var csp = $"default-src 'self'; " +
-
                   $"script-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net; " +
-
                   $"style-src 'self' https://fonts.googleapis.com; " +
-
                   $"img-src 'self' data: https:; " +
-
                   $"font-src 'self' https://fonts.gstatic.com; " +
-
                   $"connect-src 'self'; " +
-
                   $"frame-ancestors 'none'; " +
-
                   $"base-uri 'self'; " +
-
                   $"form-action 'self'";
-
         context.Response.Headers.Append("Content-Security-Policy", csp);
-
         context.Response.Headers.Append("X-Content-Nonce", nonce);
-
         context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
-
         context.Response.Headers.Append("X-Frame-Options", "DENY");
-
         context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
-
         context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
-
         await next();
-
     });
 
 // Origin Header Validation (CSRF Protection)
-
 app.Use(async (context, next) =>
-
 {
-
     var method = context.Request.Method;
-
     var isStateChanging = method == "POST" || method == "PUT" || method == "DELETE" || method == "PATCH";
-
     if (isStateChanging)
-
     {
-
         var allowedOrigins = SecurityAndCorsExtensions.GetAllowedCorsOrigins(builder.Configuration);
-
         var legacyAllowedOrigin = builder.Configuration["CORS:AllowedOrigin"];
-
         var origin = context.Request.Headers["Origin"].ToString();
-
         var referer = context.Request.Headers["Referer"].ToString();
 
         if (string.IsNullOrWhiteSpace(origin) && string.IsNullOrWhiteSpace(referer))
-
         {
-
             if (!app.Environment.IsDevelopment())
-
             {
-
                 context.Response.StatusCode = 403;
-
                 await context.Response.WriteAsJsonAsync(new { error = "Invalid origin", message = "Origin or Referer header is required for state-changing requests." });
-
                 return;
-
             }
-
             await next();
-
             return;
-
         }
 
         var isValidOrigin = !string.IsNullOrEmpty(origin) &&
-
                            (allowedOrigins.Any(allowed => string.Equals(allowed, origin, StringComparison.OrdinalIgnoreCase)) ||
-
                             (!string.IsNullOrWhiteSpace(legacyAllowedOrigin) && string.Equals(origin, legacyAllowedOrigin, StringComparison.OrdinalIgnoreCase)) ||
-
                             (app.Environment.IsDevelopment() && SecurityAndCorsExtensions.IsAllowedDevelopmentOrigin(origin)));
 
         var isValidReferer = string.IsNullOrEmpty(origin) && !string.IsNullOrEmpty(referer) &&
-
                             (allowedOrigins.Any(allowed => referer.StartsWith(allowed, StringComparison.OrdinalIgnoreCase)) ||
-
                              (!string.IsNullOrWhiteSpace(legacyAllowedOrigin) && referer.StartsWith(legacyAllowedOrigin, StringComparison.OrdinalIgnoreCase)) ||
-
                              (app.Environment.IsDevelopment() && SecurityAndCorsExtensions.IsAllowedDevelopmentOrigin(referer)));
 
         if (!isValidOrigin && !isValidReferer)
-
         {
-
             context.Response.StatusCode = 403;
-
             await context.Response.WriteAsJsonAsync(new { error = "Invalid origin", message = "Request origin is not allowed" });
-
             return;
-
         }
-
     }
-
     await next();
-
 });
 
 app.UseMiddleware<CsrfValidationMiddleware>();
@@ -507,16 +443,9 @@ app.UseMiddleware<CsrfValidationMiddleware>();
 app.UseMiddleware<FileUploadValidationMiddleware>();
 
 if (app.Environment.IsDevelopment())
-
 {
-
     app.UseMiddleware<RequestResponseLoggingMiddleware>();
-
 }
-
-app.UseRateLimiter();
-
-app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseAuthentication();
 
@@ -873,6 +802,7 @@ var healthCheckOptions = new HealthCheckOptions
 };
 
 app.MapHealthChecks("/health", healthCheckOptions).AllowAnonymous();
+app.MapHealthChecks("/healthz", healthCheckOptions).AllowAnonymous();
 
 app.MapHealthChecks("/api/v1/health", healthCheckOptions).AllowAnonymous();
 
@@ -1047,9 +977,10 @@ static string? FindDotEnvPath(string? startDirectory)
 
 }
 
-public partial class Program
-
+namespace UabIndia.Api
 {
-
+    public partial class Program
+    {
+    }
 }
 

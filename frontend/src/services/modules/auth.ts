@@ -2,7 +2,7 @@ import apiClient from "@/services/apiClient";
 
 export const authApi = {
   csrfToken: () => apiClient.get("/auth/csrf-token"),
-  login: (data: { email: string; password: string; deviceId: string }) =>
+  login: (data: { email: string; password: string; deviceId: string; username?: string; userId?: string; phone?: string }) =>
     apiClient.post("/auth/login", data),
   refresh: (data: { deviceId: string }) => apiClient.post("/auth/refresh", data),
   logout: () => apiClient.post("/auth/logout", {}),

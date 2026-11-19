@@ -70,6 +70,8 @@ namespace UabIndia.Infrastructure.Data
         public DbSet<LeaveRequest> LeaveRequests { get; set; }
         public DbSet<LeavePolicyRule> LeavePolicyRules { get; set; }
         public DbSet<LeaveAllocation> LeaveAllocations { get; set; }
+        public DbSet<CompOffRecord> CompOffRecords { get; set; }
+        public DbSet<LeaveEncashmentRequest> LeaveEncashmentRequests { get; set; }
         public DbSet<AttendancePolicy> AttendancePolicies { get; set; }
         public DbSet<PayrollPolicy> PayrollPolicies { get; set; }
         public DbSet<PolicyMaster> PolicyMasters { get; set; }
@@ -386,6 +388,8 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<LeaveRequest>().ToTable("LeaveRequests");
             modelBuilder.Entity<LeavePolicyRule>().ToTable("LeavePolicyRules");
             modelBuilder.Entity<LeaveAllocation>().ToTable("LeaveAllocations");
+            modelBuilder.Entity<CompOffRecord>().ToTable("CompOffRecords");
+            modelBuilder.Entity<LeaveEncashmentRequest>().ToTable("LeaveEncashmentRequests");
             modelBuilder.Entity<Holiday>().ToTable("Holidays");
             modelBuilder.Entity<PayrollStructure>().ToTable("PayrollStructures");
             modelBuilder.Entity<PayrollComponent>().ToTable("PayrollComponents");
@@ -762,6 +766,8 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<LeaveRequest>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<LeavePolicyRule>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<LeaveAllocation>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<CompOffRecord>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<LeaveEncashmentRequest>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<Holiday>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<PayrollStructure>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<PayrollComponent>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
@@ -920,6 +926,25 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<WarehouseBin>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<CostCenterBudget>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
 
+            // Recruitment Module Query Filters (Multi-tenant isolation)
+            modelBuilder.Entity<StaffingPlan>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<JobPosting>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<Candidate>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<CandidateScreening>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<JobApplication>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<OfferLetter>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<AppointmentLetter>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+
+            // Banking & Disbursements Query Filters
+            modelBuilder.Entity<DisbursementBatch>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<DisbursementItem>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+
+            // Dashboards, Widgets & Webhooks Query Filters
+            modelBuilder.Entity<DashboardDefinition>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<WidgetDefinition>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<DashboardWidget>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<TenantWebhook>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+
             // Precision for Field Service & WMS
             modelBuilder.Entity<FieldServiceTechnician>().Property(t => t.CurrentLatitude).HasPrecision(10, 7);
             modelBuilder.Entity<FieldServiceTechnician>().Property(t => t.CurrentLongitude).HasPrecision(10, 7);
@@ -1010,13 +1035,13 @@ namespace UabIndia.Infrastructure.Data
                     {
                         return base.SaveChanges();
                     }
-                    catch (DbUpdateConcurrencyException)
+                    catch (DbUpdateConcurrencyException secondaryEx)
                     {
                         foreach (var entry in ex.Entries)
                         {
                             entry.State = EntityState.Detached;
                         }
-                        return 0;
+                        throw new DbUpdateConcurrencyException("Concurrency conflict could not be resolved. The record was modified by another operation.", secondaryEx);
                     }
                 }
 
@@ -1067,13 +1092,13 @@ namespace UabIndia.Infrastructure.Data
                     {
                         return await base.SaveChangesAsync(cancellationToken);
                     }
-                    catch (DbUpdateConcurrencyException)
+                    catch (DbUpdateConcurrencyException secondaryEx)
                     {
                         foreach (var entry in ex.Entries)
                         {
                             entry.State = EntityState.Detached;
                         }
-                        return 0;
+                        throw new DbUpdateConcurrencyException("Concurrency conflict could not be resolved. The record was modified by another operation.", secondaryEx);
                     }
                 }
 

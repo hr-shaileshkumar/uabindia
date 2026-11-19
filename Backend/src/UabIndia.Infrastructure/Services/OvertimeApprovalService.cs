@@ -55,6 +55,72 @@ namespace UabIndia.Infrastructure.Services
             {
                 approval.ApprovedDate = now;
                 request.Status = OvertimeRequestStatus.Approved;
+
+                var effectiveHours = command.ApprovedHours ?? (request.NetOvertimeHours > 0 ? request.NetOvertimeHours : request.TotalHours);
+                if (effectiveHours <= 0) effectiveHours = 1m;
+
+                var employee = await _db.Employees.AsNoTracking()
+                    .FirstOrDefaultAsync(e => e.Id == request.EmployeeId && e.TenantId == tenantId, cancellationToken);
+
+                // 1. Time-Off Compensation -> Credit CompOffRecord in HRMS Leave Ledger
+                if (request.CompensationType == CompensationType.TimeOff || request.CompensationType == CompensationType.Both)
+                {
+                    var compOffDays = Math.Round(effectiveHours / 8m, 2, MidpointRounding.AwayFromZero);
+                    if (compOffDays < 0.5m) compOffDays = 0.5m;
+
+                    var compOff = new CompOffRecord
+                    {
+                        TenantId = tenantId,
+                        EmployeeId = request.EmployeeId,
+                        WorkedDate = request.OvertimeDate.Date,
+                        DaysGranted = compOffDays,
+                        DaysRemaining = compOffDays,
+                        ExpiryDate = request.OvertimeDate.Date.AddDays(60),
+                        Status = CompOffStatus.Approved,
+                        Reason = $"Comp-Off earned for {effectiveHours}h overtime on {request.OvertimeDate:yyyy-MM-dd} ({request.OvertimeType})",
+                        ApprovedBy = command.ApproverId,
+                        ApprovedAt = now
+                    };
+                    _db.CompOffRecords.Add(compOff);
+                }
+
+                // 2. Cash Compensation -> Calculate statutory rate & queue into PayrollBonus
+                if (request.CompensationType == CompensationType.Cash || request.CompensationType == CompensationType.Both)
+                {
+                    decimal amount = command.ApprovedAmount ?? 0m;
+                    if (amount <= 0 && employee != null)
+                    {
+                        var basic = employee.BasicSalary > 0 ? employee.BasicSalary : (employee.MonthlyCtc * 0.40m);
+                        // Standard statutory hourly rate: Basic / 208 hours (26 days * 8 hours)
+                        var hourlyRate = basic > 0 ? (basic / 208m) : 0m;
+                        var multiplier = request.OvertimeRate > 0
+                            ? request.OvertimeRate
+                            : (request.OvertimeType == OvertimeType.Weekend || request.OvertimeType == OvertimeType.Holiday ? 2.0m : 1.5m);
+
+                        amount = Math.Round(effectiveHours * hourlyRate * multiplier, 2, MidpointRounding.AwayFromZero);
+                    }
+
+                    approval.ApprovedAmount = amount;
+                    request.OvertimeAmount = amount;
+
+                    if (amount > 0)
+                    {
+                        var bonus = new PayrollBonus
+                        {
+                            TenantId = tenantId,
+                            EmployeeId = request.EmployeeId,
+                            EmployeeName = employee?.FullName ?? "Employee",
+                            EmployeeCode = employee?.EmployeeCode ?? "—",
+                            BonusType = "Overtime",
+                            Amount = amount,
+                            PaymentMonth = request.OvertimeDate.ToString("yyyy-MM"),
+                            Remarks = $"Approved overtime payout for {effectiveHours}h on {request.OvertimeDate:yyyy-MM-dd}",
+                            Status = "Approved",
+                            PaidAt = null
+                        };
+                        _db.PayrollBonuses.Add(bonus);
+                    }
+                }
             }
             else if (command.Status == ApprovalStatus.Rejected)
             {

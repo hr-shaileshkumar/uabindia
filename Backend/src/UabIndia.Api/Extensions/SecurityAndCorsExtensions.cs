@@ -182,9 +182,8 @@ namespace UabIndia.Api.Extensions
             {
                 options.AddPolicy("Strict", policy =>
                 {
-                    // Resolve module registry if not provided
-                    var registry = moduleRegistry ?? services.BuildServiceProvider().GetService<IModuleRegistry>();
-                    var origins = GetAllowedCorsOrigins(configuration, registry);
+                    // Use module registry if passed, avoiding redundant BuildServiceProvider() container calls
+                    var origins = GetAllowedCorsOrigins(configuration, moduleRegistry);
                     if (env.IsDevelopment())
                     {
                         policy.SetIsOriginAllowed(origin =>

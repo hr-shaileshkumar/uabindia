@@ -1,390 +1,280 @@
-import React, { useState, useEffect } from 'react'
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
-import { useLayout } from '../context/LayoutContext'
-import { navigationGroups } from './navigation'
-import logoImg from '../assets/logo.png'
+import React, { useState, useEffect, useMemo } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import {
-  X,
-  LogOut,
   ChevronDown,
-  ChevronRight
-} from 'lucide-react'
+  Search,
+  LogOut,
+  ChevronLeft,
+  Users,
+} from "lucide-react";
+import {
+  NAVIGATION_SECTIONS,
+  resolveNavIcon,
+} from "../metadata/navigation";
+import { useAuth } from "../context/AuthContext";
+import hrmsService from "../services/hrmsService";
 
-export default function Sidebar() {
-  const auth = useAuth()
-  const location = useLocation()
-  const navigate = useNavigate()
-  const { sidebarCollapsed, toggleSidebar, mobileMenuOpen, closeMobileMenu } = useLayout()
+export const Sidebar = ({
+  isMobileOpen,
+  onMobileClose,
+  onOpenCommandPalette,
+  isSidebarCompact: controlledCompact,
+  onToggleCompact,
+}) => {
+  const { user, logout } = useAuth();
+  const location = useLocation();
 
-  const roles = React.useMemo(() => {
-    const list = auth?.user?.roles || auth?.user?.Roles
-    if (Array.isArray(list) && list.length > 0) {
-      return list.map(r => String(r).toLowerCase().trim())
-    }
-    const single = auth?.user?.roleName || auth?.user?.role || auth?.user?.Role || ''
-    if (single) {
-      return [String(single).toLowerCase().trim()]
-    }
-    return ['administrator']
-  }, [auth?.user])
-  const roleName = auth?.user?.roleName || auth?.user?.role || auth?.user?.Role || (roles.length > 0 ? (roles[0].charAt(0).toUpperCase() + roles[0].slice(1)) : 'Administrator')
+  const [internalCompact, setInternalCompact] = useState(false);
+  const isSidebarCompact = controlledCompact !== undefined ? controlledCompact : internalCompact;
+  const toggleCompact = onToggleCompact || (() => setInternalCompact((prev) => !prev));
 
+  const [collapsedSections, setCollapsedSections] = useState({});
+  const [navSections, setNavSections] = useState(NAVIGATION_SECTIONS);
 
-  const isSuperAdmin = Boolean(
-    auth?.user?.isSystemAdmin ||
-    roles.some(r => r.includes('superadmin') || r === 'systemadmin')
-  )
-
-  const isAdmin = Boolean(
-    isSuperAdmin ||
-    roles.length === 0 ||
-    roles.some(r => r.includes('admin') || r.includes('manager') || r.includes('hr') || r.includes('lead'))
-  )
-
-  // Dynamic database-driven allowed pages from backend API (/auth/me or user session)
-  const allowedPages = React.useMemo(() => {
-    const list = auth?.user?.allowedPages || auth?.user?.AllowedPages || []
-    return Array.isArray(list) ? list.map(p => String(p).toLowerCase().trim()) : []
-  }, [auth?.user])
-
-  const hasPageAccess = (permission, superAdminOnly) => {
-    if (isSuperAdmin) return true
-    if (superAdminOnly) return false
-    if (isAdmin) return true
-    if (!permission) return true
-    if (!allowedPages || allowedPages.length === 0) return true
-    if (allowedPages.includes('*')) return true
-    return allowedPages.includes(String(permission).toLowerCase().trim())
-  }
-
-  // Submenu accordion state
-  const [openSubmenus, setOpenSubmenus] = useState({})
-
-  // Automatically expand parent submenu if user is on any child route
+  // Fetch dynamic HRMS module & submodule schema directly from database API
   useEffect(() => {
-    const currentPath = location.pathname.toLowerCase()
-    navigationGroups.forEach(group => {
-      group.items.forEach(item => {
-        if (item.children) {
-          const isChildActive = item.children.some(c =>
-            currentPath === c.path.toLowerCase() || currentPath.startsWith(`${c.path.toLowerCase()}/`)
-          )
-          if (isChildActive) {
-            setOpenSubmenus(prev => ({ ...prev, [item.label]: true }))
+    let isMounted = true;
+
+    const loadDatabaseNavigation = async () => {
+      try {
+        const hrmsData = await hrmsService.getHrmsNavigation();
+        if (!isMounted || !hrmsData) return;
+
+        // If returned rich groups from /api/v1/ui-shell/navigation
+        if (Array.isArray(hrmsData.groups) && hrmsData.groups.length > 0) {
+          const dynamicSections = [];
+
+          // Retain Executive Overview at the top
+          const overviewSection = NAVIGATION_SECTIONS.find((s) => s.id === "overview");
+          if (overviewSection) {
+            dynamicSections.push(overviewSection);
+          }
+
+          hrmsData.groups.forEach((group, index) => {
+            if (!group.items || group.items.length === 0) return;
+
+            dynamicSections.push({
+              id: `db-hrms-${index}`,
+              title: group.label || "HRMS Section",
+              items: group.items.map((item) => ({
+                id: item.key || item.path,
+                title: item.name,
+                path: item.path?.startsWith("/hrms/")
+                  ? item.path.replace(/^\/hrms/, "") || "/dashboard"
+                  : item.path || "/dashboard",
+                icon: resolveNavIcon(item.icon),
+                pageKey: item.key,
+              })),
+            });
+          });
+
+          if (dynamicSections.length > 0) {
+            setNavSections(dynamicSections);
           }
         }
-      })
-    })
-  }, [location.pathname])
+      } catch (e) {
+        // Fallback safely to canonical database-aligned NAVIGATION_SECTIONS
+      }
+    };
 
-  const toggleSubmenu = (label) => {
-    if (sidebarCollapsed) {
-      toggleSidebar()
-    }
-    setOpenSubmenus(prev => ({ ...prev, [label]: !prev[label] }))
-  }
+    loadDatabaseNavigation();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
-  const filteredGroups = React.useMemo(() => {
-    return navigationGroups
-      .filter(group => !group.superAdminOnly || isSuperAdmin)
-      .map(group => ({
-        ...group,
-        items: group.items
-          .filter(item => hasPageAccess(item.permission, item.superAdminOnly))
-          .map(item => {
-            if (item.children) {
-              return {
-                ...item,
-                children: item.children.filter(child => hasPageAccess(child.permission, child.superAdminOnly))
-              }
-            }
-            return item
-          })
-      }))
-      .filter(group => group.items.length > 0)
-  }, [isSuperAdmin, isAdmin, allowedPages, auth?.user])
-
-  const handleLogout = () => {
-    auth?.logout?.()
-    navigate('/login')
-  }
-
-  const renderNavLinks = (isMobile = false) => (
-    <div className="flex flex-col gap-4 py-2">
-      {filteredGroups.map((group, groupIdx) => (
-        <div key={group.title || groupIdx} className="space-y-0.5">
-          {(!sidebarCollapsed || isMobile) && group.title && (
-            <div className="px-3 pt-2 pb-1 text-[10px] font-extrabold tracking-wider text-slate-400 uppercase">
-              {group.title}
-            </div>
-          )}
-
-          <div className="space-y-0.5">
-            {group.items.map(item => {
-              const Icon = item.icon
-              const p = location.pathname
-
-              // Handle items with children (collapsible submenus)
-              if (item.children && item.children.length > 0) {
-                const isAnyChildActive = item.children.some(c =>
-                  p === c.path || (c.path !== '/' && p.startsWith(`${c.path}/`))
-                )
-                const isOpen = openSubmenus[item.label] ?? isAnyChildActive
-
-                return (
-                  <div key={item.label} className="space-y-0.5">
-                    <button
-                      type="button"
-                      onClick={() => toggleSubmenu(item.label)}
-                      title={sidebarCollapsed && !isMobile ? item.label : undefined}
-                      className={`group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-all duration-150 ${
-                        isAnyChildActive
-                          ? 'bg-purple-50/70 text-purple-950 font-bold'
-                          : 'text-slate-600 hover:bg-slate-100/70 hover:text-slate-900'
-                      } ${sidebarCollapsed && !isMobile ? 'justify-center px-1.5' : ''}`}
-                    >
-                      <span
-                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors ${
-                          isAnyChildActive
-                            ? 'bg-purple-700 text-white shadow-xs'
-                            : 'text-slate-500 group-hover:text-purple-700 group-hover:bg-purple-50'
-                        }`}
-                      >
-                        <Icon size={15} />
-                      </span>
-
-                      {(!sidebarCollapsed || isMobile) && (
-                        <>
-                          <span className="truncate flex-1 text-left">{item.label}</span>
-                          {item.badge && (
-                            <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold text-slate-500 border border-slate-200">
-                              {item.badge}
-                            </span>
-                          )}
-                          <span className="text-slate-400 group-hover:text-slate-600 transition">
-                            {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                          </span>
-                        </>
-                      )}
-                    </button>
-
-                    {/* Collapsible Children Submenu */}
-                    {isOpen && (!sidebarCollapsed || isMobile) && (
-                      <div className="ml-5 pl-2.5 border-l-2 border-purple-100 space-y-0.5 mt-0.5 mb-1.5 animate-fadeIn">
-                        {item.children.map(child => {
-                          const ChildIcon = child.icon
-                          const isChildActive = p === child.path || (child.path !== '/' && p.startsWith(`${child.path}/`))
-                          return (
-                            <NavLink
-                              key={child.path}
-                              to={child.path}
-                              onClick={() => {
-                                if (isMobile) closeMobileMenu()
-                              }}
-                              className={`group relative flex items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] font-medium transition-all ${
-                                isChildActive
-                                  ? 'bg-purple-100/80 text-purple-950 font-bold shadow-2xs'
-                                  : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900'
-                              }`}
-                            >
-                              {isChildActive && (
-                                <span className="absolute -left-[11px] top-1.5 bottom-1.5 w-1 rounded-r-full bg-purple-700" />
-                              )}
-                              <span
-                                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded transition-colors ${
-                                  isChildActive
-                                    ? 'bg-purple-700 text-white shadow-2xs'
-                                    : 'text-slate-400 group-hover:text-purple-700'
-                                }`}
-                              >
-                                <ChildIcon size={12} />
-                              </span>
-                              <span className="truncate flex-1">{child.label}</span>
-                            </NavLink>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )
-              }
-
-              // Standard Item without children
-              const isDashboard = (item.path === '/dashboard' || item.path === '/') && (p === '/' || p === '/dashboard' || p === '/home')
-              const isSetup = item.path === '/module/hrms/setup' && (
-                p.startsWith('/module/hrms/setup') ||
-                p.startsWith('/module/hrms/company-setup')
-              )
-              const isItemActive = isDashboard || isSetup || (
-                item.exact
-                  ? p === item.path
-                  : p === item.path || (item.path !== '/' && p.startsWith(`${item.path}/`))
-              )
-
-              return (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => {
-                    if (isMobile) closeMobileMenu()
-                  }}
-                  title={sidebarCollapsed && !isMobile ? item.label : undefined}
-                  className={`group relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-all duration-150 ${
-                    isItemActive
-                      ? 'bg-purple-50 text-purple-950 font-bold shadow-2xs'
-                      : 'text-slate-600 hover:bg-slate-100/70 hover:text-slate-900'
-                  } ${sidebarCollapsed && !isMobile ? 'justify-center px-1.5' : ''}`}
-                >
-                  {/* Left Active Indicator Bar */}
-                  {isItemActive && (
-                    <span className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-purple-700" />
-                  )}
-
-                  <span
-                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors ${
-                      isItemActive
-                        ? 'bg-purple-700 text-white shadow-xs'
-                        : 'text-slate-500 group-hover:text-purple-700 group-hover:bg-purple-50'
-                    }`}
-                  >
-                    <Icon size={15} />
-                  </span>
-
-                  {(!sidebarCollapsed || isMobile) && (
-                    <span className="truncate flex-1">{item.label}</span>
-                  )}
-                </NavLink>
-              )
-            })}
-          </div>
-        </div>
-      ))}
-    </div>
-  )
+  const toggleSection = (sectionId) => {
+    setCollapsedSections((prev) => ({
+      ...prev,
+      [sectionId]: !prev[sectionId],
+    }));
+  };
 
   return (
     <>
-      {/* ========================================================= */}
-      {/* 1. DESKTOP SIDEBAR (FULL HEIGHT)                          */}
-      {/* ========================================================= */}
+      {/* Mobile Backdrop */}
+      {isMobileOpen && (
+        <div
+          onClick={onMobileClose}
+          className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-2xs lg:hidden"
+        />
+      )}
+
+      {/* Sidebar Container */}
       <aside
-        className={`hidden lg:flex flex-col shrink-0 border-r border-slate-200/90 bg-white transition-all duration-200 select-none ${
-          sidebarCollapsed ? 'w-[68px]' : 'w-[250px]'
+        className={`fixed top-0 bottom-0 left-0 z-40 bg-white border-r border-slate-200/80 flex flex-col transition-all duration-200 ${
+          isSidebarCompact ? "w-16" : "w-64"
+        } ${
+          isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
-        {/* Navigation scroll area */}
-        <div className="flex-1 overflow-y-auto px-2.5 py-3 scrollbar-thin">
-          {renderNavLinks(false)}
-        </div>
-
-        {/* Bottom User Profile & Logout Area */}
-        <div className="border-t border-slate-200/90 p-2.5 bg-slate-50/60 shrink-0">
-          {!sidebarCollapsed ? (
-            <div className="flex items-center justify-between gap-2">
-              <NavLink
-                to="/profile"
-                className="flex items-center gap-2.5 min-w-0 hover:opacity-80 transition"
-                title="View Profile"
-              >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-purple-100 text-purple-700 text-xs font-bold border border-purple-200">
-                  {(auth?.user?.fullName || auth?.user?.name || 'HR Manager').split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'EA'}
-                </div>
-                <div className="min-w-0">
-                  <div className="text-xs font-bold text-slate-900 truncate">
-                    {auth?.user?.fullName || auth?.user?.name || 'HR Manager'}
-                  </div>
-                  <div className="text-[10px] text-slate-500 truncate">
-                    {roleName || 'Administrator'}
-                  </div>
-                </div>
-              </NavLink>
-
-              <button
-                type="button"
-                onClick={handleLogout}
-                title="Sign out of HRMS"
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white hover:bg-rose-50 hover:border-rose-200 hover:text-rose-600 text-slate-500 transition cursor-pointer shrink-0"
-              >
-                <LogOut size={14} />
-              </button>
+        {/* Brand / Logo Header: Uabindia HRMS Enterprise */}
+        <div className="h-16 px-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
+          <div className="flex items-center gap-2.5 min-w-0">
+            {/* Uabindia Sapphire Monogram */}
+            <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white font-black text-sm shadow-2xs shadow-blue-500/30 shrink-0">
+              U
             </div>
-          ) : (
-            <button
-              type="button"
-              onClick={handleLogout}
-              title="Sign out of HRMS"
-              className="flex h-8 w-8 mx-auto items-center justify-center rounded-lg border border-slate-200 bg-white hover:bg-rose-50 hover:border-rose-200 hover:text-rose-600 text-slate-500 transition cursor-pointer"
-            >
-              <LogOut size={14} />
-            </button>
-          )}
-        </div>
-      </aside>
-
-      {/* ========================================================= */}
-      {/* 2. MOBILE SLIDE-OVER DRAWER                               */}
-      {/* ========================================================= */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"
-            onClick={closeMobileMenu}
-          />
-
-          {/* Drawer Menu */}
-          <div className="fixed inset-y-0 left-0 w-[270px] bg-white shadow-2xl flex flex-col z-50 animate-in slide-in-from-left duration-200">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 bg-white">
-              <Link to="/dashboard" onClick={closeMobileMenu} className="flex items-center">
-                <img
-                  src={logoImg}
-                  alt="Uabindia HRMS"
-                  className="h-7 w-auto object-contain"
-                />
-              </Link>
-
-              <button
-                type="button"
-                onClick={closeMobileMenu}
-                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            {/* Scrollable nav links */}
-            <div className="flex-1 overflow-y-auto px-3 py-2 scrollbar-thin">
-              {renderNavLinks(true)}
-            </div>
-
-            {/* Mobile Footer with User & Logout */}
-            <div className="border-t border-slate-200 p-3 bg-slate-50 flex items-center justify-between">
+            {!isSidebarCompact && (
               <div className="min-w-0">
-                <div className="text-xs font-bold text-slate-900 truncate">
-                  {auth?.user?.fullName || 'User'}
+                <div className="flex items-center gap-1.5">
+                  <span className="font-extrabold text-[13px] text-slate-900 tracking-tight">
+                    UABINDIA
+                  </span>
+                  <span className="px-1 py-0.2 rounded text-[9px] font-bold bg-blue-50 text-blue-700 border border-blue-200/70 uppercase">
+                    HRMS
+                  </span>
                 </div>
-                <div className="text-[10px] text-slate-500 truncate">
-                  {roleName || 'Administrator'}
+                <div className="text-[10px] text-slate-400 font-medium truncate">
+                  Enterprise Client Suite
                 </div>
               </div>
+            )}
+          </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  closeMobileMenu()
-                  handleLogout()
-                }}
-                className="flex items-center gap-1 text-xs font-semibold text-rose-600 hover:text-rose-700 py-1 px-2 rounded-lg border border-rose-200 bg-rose-50/50 cursor-pointer"
-              >
-                <LogOut size={12} />
-                <span>Logout</span>
-              </button>
+          <button
+            onClick={toggleCompact}
+            className="hidden lg:flex p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"
+            title={isSidebarCompact ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <ChevronLeft
+              className={`w-3.5 h-3.5 transition-transform ${
+                isSidebarCompact ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* Quick Search Trigger */}
+        {!isSidebarCompact && (
+          <div className="px-3 pt-2.5 pb-1">
+            <button
+              onClick={onOpenCommandPalette}
+              className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-lg border border-slate-200/70 transition-colors group"
+            >
+              <span className="flex items-center gap-2">
+                <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 transition-colors" />
+                <span className="text-slate-400 text-[11px]">Quick search...</span>
+              </span>
+              <kbd className="px-1.5 py-0.2 text-[9px] font-mono text-slate-400 bg-white border border-slate-200 rounded">
+                ⌘K
+              </kbd>
+            </button>
+          </div>
+        )}
+
+        {/* Navigation Categories & Items */}
+        <div className="flex-1 overflow-y-auto px-2.5 py-2 space-y-3 sidebar-nav-scroll">
+          {navSections.map((section) => {
+            const isCollapsed = collapsedSections[section.id];
+
+            return (
+              <div key={section.id} className="space-y-0.5">
+                {/* Category Header */}
+                {!isSidebarCompact && (
+                  <button
+                    onClick={() => toggleSection(section.id)}
+                    className="w-full flex items-center justify-between px-2 py-1 text-[9.5px] font-bold text-slate-400 uppercase tracking-wider hover:text-slate-700 transition-colors text-left group"
+                  >
+                    <span className="text-left flex-1 min-w-0 truncate">{section.title}</span>
+                    <ChevronDown
+                      className={`w-3 h-3 shrink-0 ml-1.5 transition-transform duration-200 ${
+                        isCollapsed ? "-rotate-90 text-slate-300" : "text-slate-400 group-hover:text-slate-600"
+                      }`}
+                    />
+                  </button>
+                )}
+
+                {/* Nav Links */}
+                {(!isCollapsed || isSidebarCompact) && (
+                  <div className="space-y-0.5">
+                    {section.items.map((item) => {
+                      const Icon = item.icon || Users;
+                      const isActive =
+                        location.pathname === item.path ||
+                        (item.path !== "/" && location.pathname.startsWith(`${item.path}/`));
+
+                      return (
+                        <NavLink
+                          key={item.id || item.path}
+                          to={item.path}
+                          onClick={onMobileClose}
+                          title={item.title}
+                          className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs transition-all group ${
+                            isActive
+                              ? "bg-blue-50/90 text-blue-700 font-semibold ring-1 ring-blue-500/20"
+                              : "text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium"
+                          } ${isSidebarCompact ? "justify-center px-1.5" : ""}`}
+                        >
+                          <Icon
+                            className={`w-3.5 h-3.5 shrink-0 transition-transform ${
+                              isActive
+                                ? "text-blue-600"
+                                : "text-slate-400 group-hover:text-slate-700 group-hover:scale-105"
+                            }`}
+                          />
+
+                          {!isSidebarCompact && (
+                            <span className="truncate flex-1 min-w-0 text-left">{item.title}</span>
+                          )}
+
+                          {!isSidebarCompact && item.badge && (
+                            <span
+                              className={`px-1.5 py-0.2 rounded text-[9.5px] font-semibold shrink-0 ml-auto ${
+                                item.badgeVariant === "emerald"
+                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
+                                  : item.badgeVariant === "amber"
+                                  ? "bg-amber-50 text-amber-700 border border-amber-200/60"
+                                  : "bg-slate-100 text-slate-600"
+                              }`}
+                            >
+                              {item.badge}
+                            </span>
+                          )}
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* User Card / Footer */}
+        <div className="p-2.5 border-t border-slate-100 bg-white">
+          <div
+            className={`flex items-center gap-2.5 p-2 rounded-xl bg-slate-50/80 border border-slate-200/60 ${
+              isSidebarCompact ? "justify-center p-1.5" : ""
+            }`}
+          >
+            <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-2xs">
+              {user?.fullName?.charAt(0) || "P"}
             </div>
+            {!isSidebarCompact && (
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-bold text-slate-800 truncate">
+                  {user?.fullName || "Pooja Verma"}
+                </div>
+                <div className="text-[10px] text-slate-400 truncate">
+                  {user?.department || "Human Resources"}
+                </div>
+              </div>
+            )}
+            {!isSidebarCompact && (
+              <button
+                onClick={logout}
+                title="Log out"
+                className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
-      )}
+      </aside>
     </>
-  )
-}
+  );
+};
+
+export default Sidebar;

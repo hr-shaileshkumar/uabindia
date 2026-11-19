@@ -56,6 +56,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             public string PageKey { get; set; } = string.Empty;
             public string? Title { get; set; }
             public string? ModuleKey { get; set; }
+            public string? SubModuleKey { get; set; }
             public string? NavGroup { get; set; }
             public int NavSortOrder { get; set; }
             public bool AddToNavigation { get; set; } = true;
@@ -350,6 +351,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                     p.Title,
                     p.SubTitle,
                     p.ModuleKey,
+                    p.SubModuleKey,
                     p.RoutePath,
                     p.Icon,
                     p.NavGroup,
@@ -421,6 +423,7 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                         title = p.Title,
                         subTitle = p.SubTitle,
                         moduleKey = p.ModuleKey,
+                        subModuleKey = p.SubModuleKey,
                         routePath = p.RoutePath,
                         icon = p.Icon,
                         navGroup = p.NavGroup,
@@ -531,6 +534,10 @@ namespace UabIndia.Api.Modules.Administration.Controllers
                 {
                     if (!string.IsNullOrWhiteSpace(item.Title)) page.Title = item.Title.Trim();
                     if (!string.IsNullOrWhiteSpace(item.ModuleKey)) page.ModuleKey = item.ModuleKey.Trim().ToLowerInvariant();
+                    if (item.SubModuleKey != null)
+                    {
+                        page.SubModuleKey = string.IsNullOrWhiteSpace(item.SubModuleKey) ? null : item.SubModuleKey.Trim().ToLowerInvariant();
+                    }
                     page.NavGroup = item.NavGroup?.Trim();
                     page.NavSortOrder = item.NavSortOrder;
                     page.AddToNavigation = item.AddToNavigation;
@@ -827,6 +834,64 @@ namespace UabIndia.Api.Modules.Administration.Controllers
 
             await _db.SaveChangesAsync(ct);
             return Ok(new { success = true, message = $"SubModule '{dto.Title}' linked to module '{modKey}' successfully." });
+        }
+
+        [HttpDelete("submodules/{subModuleKey}")]
+        public async Task<IActionResult> DeleteSubModule(
+            [FromRoute] string subModuleKey,
+            [FromQuery] bool force = false,
+            [FromQuery] Guid? tenantId = null,
+            CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(subModuleKey))
+            {
+                return BadRequest(new { message = "SubModuleKey is required." });
+            }
+
+            var targetTenantId = ResolveTargetTenantId(tenantId);
+            var subKey = subModuleKey.Trim().ToLowerInvariant();
+
+            var existing = await _db.SubModules.FirstOrDefaultAsync(
+                sm => sm.TenantId == targetTenantId && sm.SubModuleKey.ToLower() == subKey && !sm.IsDeleted, ct);
+
+            if (existing == null)
+            {
+                return NotFound(new { message = $"SubModule '{subModuleKey}' not found." });
+            }
+
+            var attachedPages = await _db.UiPageDefinitions
+                .Where(p => p.TenantId == targetTenantId && p.SubModuleKey != null && p.SubModuleKey.ToLower() == subKey && !p.IsDeleted)
+                .ToListAsync(ct);
+
+            if (attachedPages.Count > 0 && !force)
+            {
+                return BadRequest(new
+                {
+                    message = $"Cannot delete SubModule '{existing.Title}' because {attachedPages.Count} active page(s) are attached to it. Pass force=true to unlink pages and delete.",
+                    attachedPagesCount = attachedPages.Count,
+                    pages = attachedPages.Select(p => new { p.PageKey, p.Title }).ToList()
+                });
+            }
+
+            if (attachedPages.Count > 0 && force)
+            {
+                foreach (var page in attachedPages)
+                {
+                    page.SubModuleKey = null;
+                    page.UpdatedAt = DateTime.UtcNow;
+                }
+            }
+
+            existing.IsDeleted = true;
+            existing.IsEnabled = false;
+            existing.UpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync(ct);
+            return Ok(new
+            {
+                success = true,
+                message = $"SubModule '{existing.Title}' deleted successfully." + (attachedPages.Count > 0 ? $" Unlinked {attachedPages.Count} page(s)." : "")
+            });
         }
     }
 }

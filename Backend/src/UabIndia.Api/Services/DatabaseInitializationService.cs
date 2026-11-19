@@ -40,41 +40,61 @@ namespace UabIndia.Api.Services
         private static readonly (string Key, string Name)[] DefaultModules =
         {
             ("erp",           "ERP SaaS Platform"),
-            ("hrms",          "HRMS"),
-            ("payroll",       "Payroll"),
-            ("finance",       "Finance"),
-            ("procurement",   "Procurement"),
-            ("inventory",     "Inventory"),
-            ("sales",         "Sales"),
-            ("crm",           "CRM"),
-            ("projects",      "Projects"),
-            ("reports",       "Reports"),
-            ("compliance",   "Compliance"),
-            ("workflow",      "Workflow"),
-            ("notifications", "Notifications"),
-            ("platform",      "Platform / Core"),
+            ("hrms",          "HRMS & Workforce"),
+            ("payroll",       "Payroll & Compensation"),
+            ("finance",       "Finance & General Ledger"),
+            ("procurement",   "Procurement & Sourcing"),
+            ("inventory",     "Inventory & Warehousing"),
+            ("sales",         "Sales & Commercial"),
+            ("crm",           "CRM & Pipeline"),
+            ("manufacturing", "Manufacturing & MRP"),
+            ("assets",        "Assets & Fleet Management"),
+            ("projects",      "Projects & Delivery"),
+            ("compliance",    "Statutory Compliance"),
+            ("workflow",      "Approvals & Workflow"),
+            ("notifications", "Notifications & Alerts"),
+            ("helpdesk",      "Service Desk & Helpdesk"),
+            ("communication", "Communication & Broadcasts"),
+            ("documents",     "Document Vault"),
+            ("ai",            "AI Copilot Engine"),
+            ("platform",      "Platform & Administration"),
+            ("superadmin",    "Super Admin Platform"),
+            ("security",      "Security & Identity"),
+            ("integrations",  "API Gateway & Integrations"),
+            ("reports",       "Reports & Analytics"),
             ("licensing",     "Modules & Licensing"),
-            ("security",      "Authentication & Security"),
+            ("ess",           "Employee Self-Service"),
+            ("mss",           "Manager Self-Service"),
         };
 
         private static readonly (string Module, string Action, string Description, string[] Roles)[] DefaultPermissions =
         {
-            ("platform",  "access", "Access the Platform / Core admin area",    new[] { "SuperAdmin", "Admin" }),
-            ("licensing", "access", "Access Modules & Licensing management",     new[] { "SuperAdmin", "Admin" }),
-            ("security",  "access", "Access Security & Identity management",     new[] { "SuperAdmin", "Admin" }),
-            ("erp",       "access", "Access the ERP SaaS platform shell",     new[] { "SuperAdmin", "Admin", "HR Manager", "Manager", "Accountant", "Employee" }),
-            ("hrms",      "access", "Access HRMS module",           new[] { "SuperAdmin", "Admin", "HR Manager", "Manager", "Employee" }),
-            ("payroll",   "access", "Access Payroll module",        new[] { "SuperAdmin", "Admin", "HR Manager", "Accountant" }),
-            ("reports",   "access", "Access Reports module",        new[] { "SuperAdmin", "Admin", "HR Manager", "Manager", "Accountant" }),
-            ("crm",       "access", "Access CRM module",            new[] { "SuperAdmin", "Admin", "HR Manager", "Manager", "Accountant" }),
-            ("finance",      "access", "Access Finance module",          new[] { "SuperAdmin", "Admin", "Accountant" }),
-            ("procurement",  "access", "Access Procurement module",      new[] { "SuperAdmin", "Admin", "Accountant", "Manager" }),
-            ("inventory",    "access", "Access Inventory module",        new[] { "SuperAdmin", "Admin", "Accountant", "Manager" }),
-            ("compliance","access", "Access Compliance module",     new[] { "SuperAdmin", "Admin", "HR Manager", "Accountant" }),
-            ("workflow",  "access", "Access Workflow module",       new[] { "SuperAdmin", "Admin", "HR Manager", "Manager" }),
-            ("notifications","access", "Access Notifications module", new[] { "SuperAdmin", "Admin", "HR Manager", "Manager", "Employee" }),
-            ("sales",     "access", "Access Sales module",          new[] { "SuperAdmin", "Admin", "HR Manager", "Manager", "Accountant" }),
-            ("projects",  "access", "Access Projects module",       new[] { "SuperAdmin", "Admin", "HR Manager", "Manager", "Employee" }),
+            ("platform",      "access", "Access the Platform / Core admin area",        new[] { "SuperAdmin", "Admin" }),
+            ("superadmin",    "access", "Access the SuperAdmin global console",         new[] { "SuperAdmin" }),
+            ("licensing",     "access", "Access Modules & Licensing management",         new[] { "SuperAdmin", "Admin" }),
+            ("security",      "access", "Access Security & Identity management",         new[] { "SuperAdmin", "Admin" }),
+            ("integrations",  "access", "Access API Gateway & Integration connectors",   new[] { "SuperAdmin", "Admin" }),
+            ("erp",           "access", "Access the ERP SaaS platform shell",           new[] { "SuperAdmin", "Admin", "HR Manager", "Manager", "Accountant", "Employee" }),
+            ("hrms",          "access", "Access HRMS module",                           new[] { "SuperAdmin", "Admin", "HR Manager", "Manager", "Employee" }),
+            ("payroll",       "access", "Access Payroll module",                        new[] { "SuperAdmin", "Admin", "HR Manager", "Accountant" }),
+            ("reports",       "access", "Access Reports module",                        new[] { "SuperAdmin", "Admin", "HR Manager", "Manager", "Accountant" }),
+            ("crm",           "access", "Access CRM module",                            new[] { "SuperAdmin", "Admin", "HR Manager", "Manager", "Accountant" }),
+            ("finance",       "access", "Access Finance module",                        new[] { "SuperAdmin", "Admin", "Accountant" }),
+            ("procurement",   "access", "Access Procurement module",                    new[] { "SuperAdmin", "Admin", "Accountant", "Manager" }),
+            ("inventory",     "access", "Access Inventory module",                      new[] { "SuperAdmin", "Admin", "Accountant", "Manager" }),
+            ("manufacturing", "access", "Access Manufacturing & MRP module",             new[] { "SuperAdmin", "Admin", "Manager" }),
+            ("assets",        "access", "Access Assets & Fleet module",                 new[] { "SuperAdmin", "Admin", "HR Manager", "Manager" }),
+            ("compliance",    "access", "Access Compliance module",                     new[] { "SuperAdmin", "Admin", "HR Manager", "Accountant" }),
+            ("workflow",      "access", "Access Workflow & Approvals module",           new[] { "SuperAdmin", "Admin", "HR Manager", "Manager" }),
+            ("notifications", "access", "Access Notifications inbox module",            new[] { "SuperAdmin", "Admin", "HR Manager", "Manager", "Employee" }),
+            ("sales",         "access", "Access Sales & Commercial module",              new[] { "SuperAdmin", "Admin", "HR Manager", "Manager", "Accountant" }),
+            ("projects",      "access", "Access Projects & Delivery module",            new[] { "SuperAdmin", "Admin", "HR Manager", "Manager", "Employee" }),
+            ("helpdesk",      "access", "Access Helpdesk & Support module",             new[] { "SuperAdmin", "Admin", "HR Manager", "Manager", "Employee" }),
+            ("communication", "access", "Access Communication & Broadcasts module",     new[] { "SuperAdmin", "Admin", "HR Manager", "Manager" }),
+            ("documents",     "access", "Access Document Vault module",                 new[] { "SuperAdmin", "Admin", "HR Manager", "Manager", "Employee" }),
+            ("ai",            "access", "Access AI Copilot Engine",                     new[] { "SuperAdmin", "Admin", "HR Manager" }),
+            ("ess",           "access", "Access Employee Self-Service portal",          new[] { "SuperAdmin", "Admin", "HR Manager", "Manager", "Employee", "Accountant" }),
+            ("mss",           "access", "Access Manager Self-Service portal",           new[] { "SuperAdmin", "Admin", "HR Manager", "Manager" }),
         };
 
         public DatabaseInitializationService(
@@ -581,6 +601,10 @@ namespace UabIndia.Api.Services
             ("hrms.leaves", "hrms", "Leave Operations", "calendar", 30),
             ("hrms.recruitment", "hrms", "Recruitment & ATS", "briefcase", 40),
             ("hrms.performance", "hrms", "Performance & Growth", "award", 50),
+            ("hrms.talent", "hrms", "Talent, Staffing & Mobility", "users", 60),
+            ("hrms.learning", "hrms", "Learning & Development", "award", 70),
+            ("hrms.organization", "hrms", "Organization & Structure", "building-2", 80),
+            ("hrms.admin", "hrms", "HR Administration", "user-cog", 90),
 
             // Payroll
             ("payroll.runs", "payroll", "Salary Runs & Slips", "wallet", 10),
@@ -605,6 +629,22 @@ namespace UabIndia.Api.Services
 
             // Quality & Manufacturing
             ("manufacturing.qc", "manufacturing", "Quality Control & Challans", "factory", 10),
+
+            // Projects & Operations
+            ("projects.core", "projects", "Projects & Milestones", "kanban", 10),
+            ("projects.tasks", "projects", "Tasks & Timesheets", "clock", 20),
+
+            // Asset Management
+            ("assets.register", "assets", "Asset Register & Hardware", "cpu", 10),
+            ("assets.maintenance", "assets", "Maintenance & Depreciation", "wrench", 20),
+
+            // Helpdesk & Service
+            ("helpdesk.tickets", "helpdesk", "Tickets & Service Desk", "life-buoy", 10),
+            ("helpdesk.faq", "helpdesk", "Knowledge Base & FAQs", "book-open", 20),
+
+            // Communication Hub
+            ("communication.hub", "communication", "Broadcasts & Announcements", "message-square", 10),
+            ("communication.templates", "communication", "Notification Templates", "bell", 20),
 
             // Administration & Platform
             ("admin.hierarchy", "administration", "Organization Hierarchy", "building-2", 10),
@@ -691,6 +731,9 @@ END;
 
 IF OBJECT_ID(N'dbo.UiPageDefinitions', N'U') IS NOT NULL AND COL_LENGTH('dbo.UiPageDefinitions', 'SubModuleKey') IS NULL 
     ALTER TABLE dbo.UiPageDefinitions ADD SubModuleKey NVARCHAR(100) NULL;
+
+IF OBJECT_ID(N'dbo.UiPageDefinitions', N'U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_UiPageDefinitions_Tenant_SubModule' AND object_id = OBJECT_ID(N'dbo.UiPageDefinitions'))
+    CREATE NONCLUSTERED INDEX IX_UiPageDefinitions_Tenant_SubModule ON dbo.UiPageDefinitions (TenantId, SubModuleKey) WHERE IsDeleted = 0 AND SubModuleKey IS NOT NULL;
 ", ct);
 
                 var existingKeys = new HashSet<string>(
@@ -750,6 +793,8 @@ IF OBJECT_ID(N'dbo.UiPageDefinitions', N'U') IS NOT NULL AND COL_LENGTH('dbo.UiP
                         else if (k.StartsWith("administration.user") || k.StartsWith("administration.role") || k.Contains("permission")) p.SubModuleKey = "admin.iam";
                         else if (k.StartsWith("administration.page") || k.StartsWith("administration.module") || k.Contains("studio") || k.Contains("entity")) p.SubModuleKey = "admin.studio";
                         else if (k.StartsWith("administration.")) p.SubModuleKey = "admin.hierarchy";
+
+                        p.AddToNavigation = true;
                     }
                     await db.SaveChangesAsync(ct);
                 }

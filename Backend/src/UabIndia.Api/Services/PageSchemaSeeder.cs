@@ -137,13 +137,14 @@ namespace UabIndia.Api.Services
                     Title = seed.Title,
                     SubTitle = seed.SubTitle,
                     ModuleKey = seed.ModuleKey,
+                    SubModuleKey = ResolveSubModuleKey(seed.PageKey, seed.ModuleKey, seed.SubModuleKey),
                     ViewType = seed.ViewType,
                     RoutePath = seed.RoutePath,
                     Icon = seed.Icon,
                     Status = "Published",
                     PublishedVersion = 1,
                     DraftVersion = null,
-                    AddToNavigation = false,
+                    AddToNavigation = true,
                     RequiredPermission = seed.RequiredPermission,
                 };
                 var version = new UiPageVersion
@@ -168,7 +169,68 @@ namespace UabIndia.Api.Services
                     added, tenantId);
             }
 
+            // Backfill SubModuleKey and AddToNavigation for any existing pages in this tenant
+            try
+            {
+                var unlinkedPages = await db.UiPageDefinitions
+                    .Where(p => p.TenantId == tenantId && (string.IsNullOrEmpty(p.SubModuleKey) || !p.AddToNavigation) && !p.IsDeleted)
+                    .ToListAsync();
+
+                if (unlinkedPages.Count > 0)
+                {
+                    foreach (var unlinked in unlinkedPages)
+                    {
+                        if (string.IsNullOrEmpty(unlinked.SubModuleKey))
+                        {
+                            unlinked.SubModuleKey = ResolveSubModuleKey(unlinked.PageKey, unlinked.ModuleKey);
+                        }
+                        unlinked.AddToNavigation = true;
+                        unlinked.UpdatedAt = DateTime.UtcNow;
+                    }
+                    await db.SaveChangesAsync();
+                    logger?.LogInformation(
+                        "PageSchemaSeeder: backfilled SubModuleKey and AddToNavigation for {Count} existing pages in tenant {TenantId}",
+                        unlinkedPages.Count, tenantId);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger?.LogWarning(ex, "PageSchemaSeeder: could not backfill SubModuleKey for tenant {TenantId}", tenantId);
+            }
+
             return added;
+        }
+
+        public static string ResolveSubModuleKey(string pageKey, string moduleKey, string? explicitSubModuleKey = null)
+        {
+            if (!string.IsNullOrWhiteSpace(explicitSubModuleKey))
+                return explicitSubModuleKey.Trim().ToLowerInvariant();
+
+            var k = (pageKey ?? string.Empty).ToLowerInvariant();
+            if (k.StartsWith("hrms.attendance") || k.Contains("shift") || k.Contains("overtime") || k.Contains("biometric")) return "hrms.attendance";
+            if (k.StartsWith("hrms.leave") || k.Contains("holiday")) return "hrms.leaves";
+            if (k.StartsWith("hrms.training") || k.Contains("course") || k.Contains("curriculum")) return "hrms.learning";
+            if (k.StartsWith("hrms.setup") || k.Contains("company") || k.Contains("department") || k.Contains("designation") || k.Contains("branch")) return "hrms.organization";
+            if (k.StartsWith("hrms.talent") || k.StartsWith("hrms.staffing") || k.StartsWith("hrms.candidate") || k.StartsWith("hrms.job") || k.Contains("recruit") || k.Contains("onboarding") || k.Contains("transfer") || k.Contains("promotion")) return "hrms.talent";
+            if (k.StartsWith("hrms.performance") || k.Contains("appraisal")) return "hrms.performance";
+            if (k.StartsWith("hrms.")) return "hrms.core";
+            if (k.StartsWith("payroll.")) return "payroll.runs";
+            if (k.StartsWith("compliance.") || k.Contains("einvoice") || k.Contains("tds") || k.Contains("msme")) return "finance.statutory";
+            if (k.StartsWith("finance.disbursement") || k.Contains("bank")) return "finance.banking";
+            if (k.StartsWith("finance.")) return "finance.ledger";
+            if (k.StartsWith("inventory.")) return "inventory.wms";
+            if (k.StartsWith("procurement.")) return "procurement.vendors";
+            if (k.StartsWith("sales.") || k.StartsWith("crm.")) return "sales.crm";
+            if (k.StartsWith("manufacturing.")) return "manufacturing.qc";
+            if (k.StartsWith("projects.") || k.StartsWith("project.")) return "projects.core";
+            if (k.StartsWith("assets.") || k.StartsWith("asset.")) return "assets.register";
+            if (k.StartsWith("superadmin.")) return "admin.platform";
+            if (k.StartsWith("administration.user") || k.StartsWith("administration.role") || k.Contains("permission")) return "admin.iam";
+            if (k.StartsWith("administration.page") || k.StartsWith("administration.module") || k.Contains("studio") || k.Contains("entity")) return "admin.studio";
+            if (k.StartsWith("administration.")) return "admin.hierarchy";
+
+            var mod = string.IsNullOrWhiteSpace(moduleKey) ? "platform" : moduleKey.Trim().ToLowerInvariant();
+            return $"{mod}.general";
         }
 
         // ─── Internal DTOs ────────────────────────────────────────────────────
@@ -176,7 +238,8 @@ namespace UabIndia.Api.Services
         private sealed record PageSchemaSeed(
             string PageKey, string EntityName, string Title, string SubTitle,
             string ModuleKey, string ViewType, string RoutePath, string Icon,
-            string? RequiredPermission, DynamicPageSchemaDto Schema);
+            string? RequiredPermission, DynamicPageSchemaDto Schema,
+            string? SubModuleKey = null);
 
         private sealed class DynamicPageSchemaDto
         {

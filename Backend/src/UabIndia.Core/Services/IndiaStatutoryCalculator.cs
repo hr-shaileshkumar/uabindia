@@ -25,6 +25,10 @@ namespace UabIndia.Core.Services
         public const decimal OldRegimeRebateLimit = 500000m;
         public const decimal CessRate = 0.04m;
 
+        // Payment of Gratuity Act 1972 (Section 4(3) Statutory Maximum Limit)
+        public const decimal GratuityCeiling = 2000000m; // ₹20,00,000 (Twenty Lakhs)
+        public const double GratuityQualifyingYears = 4.5d; // 5 years rule (4 years 240 days)
+
         // Vendor TDS Thresholds & Rates (Income Tax Act)
         public const decimal Tds194CSingleInvoiceThreshold = 30000m;
         public const decimal Tds194CAggregateThreshold = 100000m;
@@ -240,6 +244,75 @@ namespace UabIndia.Core.Services
             var delta = RoundMoney(rounded - amount);
             return new InvoiceRoundOffResult(rounded, delta);
         }
+
+        /// <summary>
+        /// Calculates statutory gratuity under Section 4(2) &amp; 4(3) of Payment of Gratuity Act 1972.
+        /// Formula: (15 * Last Drawn Basic * completed years of service) / 26
+        /// Capped at the statutory maximum limit of ₹20,00,000.
+        /// </summary>
+        public static decimal CalculateGratuity(decimal lastDrawnBasic, double completedYears, decimal? ceiling = null)
+        {
+            if (completedYears < GratuityQualifyingYears || lastDrawnBasic <= 0)
+            {
+                return 0m;
+            }
+
+            var yearsRounded = (decimal)Math.Round(completedYears, 0, MidpointRounding.AwayFromZero);
+            var rawGratuity = RoundMoney(lastDrawnBasic * 15m / 26m * yearsRounded);
+            var maxCeiling = ceiling is > 0 ? ceiling.Value : GratuityCeiling;
+            return Math.Min(rawGratuity, maxCeiling);
+        }
+
+        /// <summary>
+        /// Calculates statutory Labour Welfare Fund (LWF) contributions by state and calendar month.
+        /// Adheres to State Labour Welfare Fund Acts deduction schedules.
+        /// </summary>
+        public static LwfContribution CalculateLwf(string? stateCode, decimal monthlyGross, int month)
+        {
+            var state = (stateCode ?? "KA").Trim().ToUpperInvariant();
+            if (state.Length > 2) state = state[..2];
+
+            if (monthlyGross <= 0)
+            {
+                return new LwfContribution(0m, 0m, 0m, false);
+            }
+
+            return state switch
+            {
+                "MH" => (month == 6 || month == 12)
+                    ? new LwfContribution(25m, 75m, 100m, true)
+                    : new LwfContribution(0m, 0m, 0m, false),
+
+                "KA" => (month == 12)
+                    ? new LwfContribution(20m, 40m, 60m, true)
+                    : new LwfContribution(0m, 0m, 0m, false),
+
+                "TN" => (month == 12)
+                    ? new LwfContribution(20m, 40m, 60m, true)
+                    : new LwfContribution(0m, 0m, 0m, false),
+
+                "DL" => new LwfContribution(0.75m, 2.25m, 3.00m, true),
+
+                "GJ" => (month == 6 || month == 12)
+                    ? new LwfContribution(6m, 12m, 18m, true)
+                    : new LwfContribution(0m, 0m, 0m, false),
+
+                "HR" => CalculateHaryanaLwf(monthlyGross),
+
+                "TS" or "AP" => (month == 12)
+                    ? new LwfContribution(20m, 50m, 70m, true)
+                    : new LwfContribution(0m, 0m, 0m, false),
+
+                _ => new LwfContribution(0m, 0m, 0m, false)
+            };
+        }
+
+        private static LwfContribution CalculateHaryanaLwf(decimal monthlyGross)
+        {
+            var ee = RoundMoney(Math.Min(25m, monthlyGross * 0.002m));
+            var er = RoundMoney(Math.Min(50m, ee * 2m));
+            return new LwfContribution(ee, er, ee + er, true);
+        }
     }
 
     public enum TaxRegimeKind
@@ -281,4 +354,10 @@ namespace UabIndia.Core.Services
     public readonly record struct InvoiceRoundOffResult(
         decimal RoundedTotal,
         decimal RoundOffAdjustment);
+
+    public readonly record struct LwfContribution(
+        decimal EmployeeContribution,
+        decimal EmployerContribution,
+        decimal TotalContribution,
+        bool IsDeductionMonth);
 }

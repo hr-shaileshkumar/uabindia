@@ -126,28 +126,9 @@ BEGIN TRY
             WHERE TenantId = @DemoTenantId AND Module = 'hrms'
             AND Action IN ('viewattendance', 'manageleave', 'viewpayslips');
 
-            -- Create default users for each role
-            DECLARE @SuperAdminUserId UNIQUEIDENTIFIER = NEWID();
-            DECLARE @AdminUserId UNIQUEIDENTIFIER = NEWID();
-            DECLARE @ReportingManagerUserId UNIQUEIDENTIFIER = NEWID();
-            DECLARE @EmployeeUserId UNIQUEIDENTIFIER = NEWID();
-
-            -- Insert default users
-            INSERT INTO dbo.Users (Id, TenantId, Email, PasswordHash, FullName, IsSystemAdmin, IsActive)
-            VALUES
-            (@SuperAdminUserId, @DemoTenantId, 'superadmin@erp.uabindia.com', 'AQAAAAEAACcQAAAAEBLjouNqAeR4oJqr6PfEkhlld2YOvCzHqQmUe5F5Qz1+0q7zQ==', 'Super Admin', 1, 1), -- Password: Demo123!
-            (@AdminUserId, @DemoTenantId, 'admin@erp.uabindia.com', 'AQAAAAEAACcQAAAAEBLjouNqAeR4oJqr6PfEkhlld2YOvCzHqQmUe5F5Qz1+0q7zQ==', 'Administrator', 0, 1), -- Password: Demo123!
-            (@ReportingManagerUserId, @DemoTenantId, 'manager@erp.uabindia.com', 'AQAAAAEAACcQAAAAEBLjouNqAeR4oJqr6PfEkhlld2YOvCzHqQmUe5F5Qz1+0q7zQ==', 'Reporting Manager', 0, 1), -- Password: Demo123!
-            (@EmployeeUserId, @DemoTenantId, 'employee@erp.uabindia.com', 'AQAAAAEAACcQAAAAEBLjouNqAeR4oJqr6PfEkhlld2YOvCzHqQmUe5F5Qz1+0q7zQ==', 'Employee', 0, 1); -- Password: Demo123!
-
-            -- Assign roles to users
-            INSERT INTO dbo.UserRoles (TenantId, UserId, RoleId)
-            VALUES
-            (@DemoTenantId, @SuperAdminUserId, @ErpOwnerRoleId),
-            (@DemoTenantId, @AdminUserId, @SystemAdminRoleId),
-            (@DemoTenantId, @AdminUserId, @CompanyAdminRoleId), -- Admin can have multiple roles
-            (@DemoTenantId, @ReportingManagerUserId, @ManagerRoleId),
-            (@DemoTenantId, @EmployeeUserId, @EmployeeRoleId);
+            -- Note: Default users with static password hashes have been removed for security.
+            -- User accounts and passwords must be provisioned securely via application startup seeding
+            -- using SEED_ADMIN_PASSWORD / environment variables and cryptographic password hashers.
         END
 
         INSERT INTO dbo.ModuleMigrations (ModuleKey, Version) VALUES ('auth', '0002');

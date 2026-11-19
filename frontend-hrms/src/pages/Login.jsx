@@ -1,348 +1,394 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { brandingLogoUrl, getCurrentBranding } from '../api/branding';
-import { APP_RELEASE_LABEL } from '../config/version';
-import { Button, Input } from '../components/ui';
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
-  User,
-  Lock,
+  ShieldCheck,
   Eye,
   EyeOff,
-  ShieldCheck,
-  Sparkles,
+  Building2,
+  Lock,
+  Mail,
   ArrowRight,
-  Activity,
-  Users,
-  FileCheck2,
-  CreditCard,
-  Phone,
-  ExternalLink,
-  HelpCircle,
-} from 'lucide-react';
+  Sparkles,
+  AlertCircle,
+  Wifi,
+  WifiOff,
+} from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { useNotification } from "../context/NotificationContext";
+import apiClient from "../api/client";
 
-export default function Login() {
-  const [userId, setUserId] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [showPassword, setShowPassword] = useState(false);
-  const [remember, setRemember] = useState(true);
-  const [branding, setBranding] = useState(null);
-
-  const auth = useAuth();
+export const Login = () => {
   const navigate = useNavigate();
+  const { login, loading } = useAuth();
+  const { notifySuccess, notifyError } = useNotification();
+
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
+  const [workspaceDomain, setWorkspaceDomain] = useState("erp");
+  const [showWorkspaceInput, setShowWorkspaceInput] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [backendStatus, setBackendStatus] = useState("checking"); // "checking" | "online" | "offline"
+
+  // Live Backend Health Probe
+  const checkBackendHealth = async () => {
+    try {
+      // Light probe to CSRF token endpoint
+      await apiClient.get("/auth/csrf-token", { timeout: 3000 });
+      setBackendStatus("online");
+    } catch (err) {
+      if (err.response) {
+        // Backend replied with an HTTP code -> server is alive!
+        setBackendStatus("online");
+      } else {
+        // Network connection refused or timeout -> server is down
+        setBackendStatus("offline");
+      }
+    }
+  };
 
   useEffect(() => {
-    const saved = localStorage.getItem('remembered_user');
-    if (saved) setUserId(saved);
-    getCurrentBranding()
-      .then(setBranding)
-      .catch(() => setBranding(null));
+    checkBackendHealth();
+    const interval = setInterval(checkBackendHealth, 8000);
+    return () => clearInterval(interval);
   }, []);
 
+  // Load remembered login if available
   useEffect(() => {
-    if (remember && userId.trim()) {
-      localStorage.setItem('remembered_user', userId.trim());
-    } else {
-      localStorage.removeItem('remembered_user');
-    }
-  }, [remember, userId]);
-
-  const handleUserIdChange = (e) => {
-    const val = e.target.value;
-    if (/^\d+$/.test(val)) {
-      setUserId(val.slice(0, 10));
-    } else {
-      setUserId(val.slice(0, 30));
-    }
-  };
-
-  const validate = () => {
-    const u = userId.trim();
-    if (!u) return 'Enter your User ID or Mobile Number';
-    if (/^\d+$/.test(u)) {
-      if (u.length !== 10) return 'Mobile number must be exactly 10 digits';
-    } else if (u.length < 3) {
-      return 'Enter a valid User ID or Mobile Number';
-    }
-    if (!password.trim()) return 'Enter your password';
-    if (password.trim().length < 4) return 'Password must be minimum 4 characters';
-    return null;
-  };
-
-  useEffect(() => {
-    if (auth?.isAuthenticated) {
-      navigate('/dashboard', { replace: true });
-    }
-  }, [auth?.isAuthenticated, navigate]);
+    try {
+      const savedEmail = localStorage.getItem("hrms_remembered_email");
+      if (savedEmail) {
+        setIdentifier(savedEmail);
+      }
+      const savedTenant = localStorage.getItem("hrms_tenant");
+      if (savedTenant && savedTenant !== "demo") {
+        setWorkspaceDomain(savedTenant);
+      }
+    } catch (e) {}
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
+    setErrorMessage("");
 
-    const v = validate();
-    if (v) return setError(v);
+    const emailTrimmed = identifier.trim();
+    if (!emailTrimmed) {
+      setErrorMessage("Please enter your work email or user ID.");
+      return;
+    }
+    if (!password) {
+      setErrorMessage("Please enter your account password.");
+      return;
+    }
 
-    setLoading(true);
+    if (backendStatus === "offline") {
+      setErrorMessage(
+        "Cannot sign in: The backend server is offline or unreachable at http://localhost:5000. Please start the backend service."
+      );
+      notifyError("Backend service is offline. Please start the server on port 5000.");
+      return;
+    }
+
+    const tenantSubdomain = (workspaceDomain || "erp").trim().toLowerCase();
+
     try {
-      await auth.login({ userId: userId.trim(), password: password.trim() });
-      navigate('/dashboard', { replace: true });
+      const res = await login({
+        email: emailTrimmed,
+        password,
+        tenantSubdomain,
+      });
+
+      if (rememberMe) {
+        localStorage.setItem("hrms_remembered_email", emailTrimmed);
+      } else {
+        localStorage.removeItem("hrms_remembered_email");
+      }
+
+      if (res.success) {
+        notifySuccess("Authenticated successfully into HRMS Enterprise Portal");
+        navigate("/dashboard");
+      }
     } catch (err) {
-      setError(err?.response?.data?.message || 'Login failed. Please verify credentials.');
-    } finally {
-      setLoading(false);
+      const msg = err.message || "Invalid work credentials. Please check and try again.";
+      setErrorMessage(msg);
+      notifyError(msg);
+      // Re-check backend health
+      checkBackendHealth();
     }
   };
 
-  const logoSrc = brandingLogoUrl(branding);
+  const handleQuickFill = (emailVal, passVal = "Admin@123", domain = "erp") => {
+    setIdentifier(emailVal);
+    setPassword(passVal);
+    setWorkspaceDomain(domain);
+    setErrorMessage("");
+  };
 
   return (
-    <div className="min-h-screen min-h-[100dvh] w-full flex overflow-x-hidden bg-slate-50 antialiased selection:bg-purple-600 selection:text-white">
-      {/* ========================================================= */}
-      {/* LEFT: Clean Enterprise Showcase (Desktop screens)          */}
-      {/* ========================================================= */}
-      <div className="hidden lg:flex lg:w-1/2 relative flex-col justify-between p-8 xl:p-12 bg-gradient-to-br from-purple-50/70 via-white to-amber-50/40 border-r border-slate-200/90 text-slate-800 overflow-hidden">
-        {/* Decorative ambient background */}
-        <div className="absolute -top-32 -left-32 w-96 h-96 bg-purple-200/30 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-orange-200/30 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col justify-between selection:bg-blue-600 selection:text-white">
+      {/* Top Header Navigation */}
+      <header className="w-full border-b border-slate-200/80 bg-white/80 backdrop-blur-md sticky top-0 z-20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-3 group">
+            <div className="w-9 h-9 rounded-xl bg-blue-600 text-white font-black text-lg flex items-center justify-center shadow-md shadow-blue-600/30 group-hover:scale-105 transition-transform">
+              U
+            </div>
+            <div className="flex flex-col">
+              <span className="text-base font-extrabold tracking-tight text-slate-900 leading-none">
+                Uabindia <span className="text-blue-600">HRMS</span>
+              </span>
+              <span className="text-[10px] text-slate-500 font-semibold tracking-wider uppercase mt-1">
+                Enterprise People OS
+              </span>
+            </div>
+          </Link>
 
-        {/* Top Branding Header */}
-        <div className="relative z-10 flex items-center gap-3">
-          {logoSrc ? (
-            <img
-              src={logoSrc}
-              alt="Uabindia HRMS Logo"
-              className="h-8 xl:h-10 w-auto object-contain"
-            />
-          ) : (
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-tr from-purple-700 via-rose-600 to-orange-500 font-extrabold text-white text-lg shadow-md shadow-purple-500/20">
-              {branding?.companyName?.[0] || 'U'}
-            </div>
-          )}
-          <div className="border-l border-slate-200 pl-3">
-            <div className="font-extrabold text-base tracking-tight text-slate-900">
-              {branding?.companyName || 'Uabindia HRMS'}
-            </div>
-            <div className="text-xs text-purple-700 font-semibold">
-              Enterprise Workforce Cloud
-            </div>
-          </div>
-        </div>
-
-        {/* Center Showcase Content */}
-        <div className="relative z-10 my-auto py-6 max-w-lg space-y-4">
-          <div>
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-purple-100/80 border border-purple-200/80 px-3 py-1 text-xs font-bold text-purple-800 mb-3 shadow-2xs">
-              <Sparkles size={14} className="text-purple-600" />
-              <span>Modern Enterprise SaaS Platform</span>
-            </div>
-            <h1 className="text-3xl xl:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
-              Personnel, Attendance & Payroll in one unified cockpit.
-            </h1>
-            <p className="mt-2 text-sm text-slate-600 leading-relaxed">
-              Empowering HR leaders and departmental teams with live biometric rosters, GPS punch validation, statutory compliance, and multi-tenant governance.
-            </p>
-          </div>
-
-          {/* 4 Feature Highlights */}
-          <div className="grid grid-cols-2 gap-3 pt-2">
-            <div className="rounded-2xl border border-purple-200/80 bg-white/95 p-3.5 shadow-2xs">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-100 text-purple-700 mb-2">
-                <Users size={16} />
+          <div className="flex items-center gap-3">
+            {/* Live Backend Connection Status Pill */}
+            {backendStatus === "online" ? (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <Wifi className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Backend Online (Port 5000)</span>
               </div>
-              <div className="font-bold text-xs text-slate-900">Personnel Master</div>
-              <div className="text-[11px] text-slate-500">Lifecycle, KYC & docs</div>
-            </div>
-
-            <div className="rounded-2xl border border-rose-200/80 bg-white/95 p-3.5 shadow-2xs">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-100 text-rose-700 mb-2">
-                <Activity size={16} />
+            ) : backendStatus === "offline" ? (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold animate-pulse">
+                <WifiOff className="w-3.5 h-3.5 text-rose-600" />
+                <span>Backend Offline (Port 5000 Down)</span>
               </div>
-              <div className="font-bold text-xs text-slate-900">Live Attendance</div>
-              <div className="text-[11px] text-slate-500">Biometric & ESS sync</div>
-            </div>
-
-            <div className="rounded-2xl border border-orange-200/80 bg-white/95 p-3.5 shadow-2xs">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-100 text-orange-700 mb-2">
-                <CreditCard size={16} />
-              </div>
-              <div className="font-bold text-xs text-slate-900">Automated Payroll</div>
-              <div className="text-[11px] text-slate-500">Master Roll locking</div>
-            </div>
-
-            <div className="rounded-2xl border border-emerald-200/80 bg-white/95 p-3.5 shadow-2xs">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 mb-2">
-                <FileCheck2 size={16} />
-              </div>
-              <div className="font-bold text-xs text-slate-900">Audit & Governance</div>
-              <div className="text-[11px] text-slate-500">Role-based controls</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Trust Badge */}
-        <div className="relative z-10 flex items-center justify-between pt-4 border-t border-slate-200/80 text-xs text-slate-500 font-medium">
-          <div className="flex items-center gap-2">
-            <ShieldCheck size={16} className="text-emerald-600" />
-            <span>256-Bit TLS Bank-Grade Encryption</span>
-          </div>
-          <span>{APP_RELEASE_LABEL} Enterprise Edition</span>
-        </div>
-      </div>
-
-      {/* ========================================================= */}
-      {/* RIGHT: Login Card Container (Fluid for Mobile & Desktop)   */}
-      {/* ========================================================= */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-6 lg:p-12 relative overflow-y-auto">
-        <div className="w-full max-w-md my-auto py-6">
-          <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xl p-6 sm:p-8">
-            {/* Mobile Branding Header */}
-            <div className="text-center mb-6">
-              {logoSrc ? (
-                <img
-                  src={logoSrc}
-                  alt="Uabindia HRMS Logo"
-                  className="h-10 w-auto object-contain mx-auto mb-3"
-                />
-              ) : (
-                <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-purple-700 via-rose-600 to-orange-500 text-white font-black text-xl flex items-center justify-center mx-auto mb-3 shadow-md shadow-purple-600/20">
-                  {branding?.companyName?.[0] || 'U'}
-                </div>
-              )}
-              <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">
-                Sign in to your account
-              </h2>
-              <p className="mt-1 text-xs text-slate-500 font-medium">
-                Enter your credentials to access the {branding?.companyName ? `${branding.companyName} portal` : 'Uabindia HRMS portal'}
-              </p>
-            </div>
-
-            {/* Error Message Alert */}
-            {error && (
-              <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-center text-xs font-semibold text-rose-700 animate-in fade-in duration-150">
-                {error}
+            ) : (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200 text-slate-500 text-xs">
+                <span className="w-2 h-2 rounded-full bg-slate-400 animate-ping"></span>
+                <span>Connecting to Port 5000...</span>
               </div>
             )}
 
-            {/* Login Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <Input
-                label="User ID or Mobile Number"
-                type="text"
-                value={userId}
-                onChange={handleUserIdChange}
-                maxLength={/^\d+$/.test(userId) ? 10 : 30}
-                placeholder="e.g. userid or 9999999999"
-                icon={User}
-                required
-              />
+            <Link
+              to="/pricing"
+              className="text-xs font-semibold text-slate-600 hover:text-blue-600 transition-colors hidden sm:block"
+            >
+              Enterprise Plans
+            </Link>
+          </div>
+        </div>
+      </header>
 
+      {/* Main Content Area */}
+      <main className="flex-1 flex items-center justify-center px-4 py-10 sm:py-16">
+        <div className="w-full max-w-md">
+          {/* Main Auth Card */}
+          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_12px_40px_-16px_rgba(15,23,42,0.10)] p-7 sm:p-9 backdrop-blur-md">
+            {/* Header */}
+            <div className="mb-6">
+              <span className="inline-block text-[11px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-full mb-2 border border-blue-100">
+                Enterprise Workspace Sign In
+              </span>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                Welcome Back
+              </h1>
+              <p className="mt-1.5 text-xs text-slate-500 leading-relaxed">
+                Enter your work credentials to access the human resources console, attendance records, and workforce operations.
+              </p>
+            </div>
+
+            {/* Offline Alert Warning if Backend is Down */}
+            {backendStatus === "offline" && (
+              <div className="mb-5 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div className="flex-1 leading-relaxed">
+                  <strong className="font-bold">Backend service is not running:</strong> Login requires an active backend connection. Start the .NET API server on port 5000 to sign in.
+                </div>
+              </div>
+            )}
+
+            {/* Error Message Alert */}
+            {errorMessage && (
+              <div className="mb-5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2.5 animate-in fade-in duration-200">
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                <div className="flex-1 font-medium leading-relaxed">{errorMessage}</div>
+              </div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Work Email / Username */}
               <div>
-                <Input
-                  label="Password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your account password"
-                  icon={Lock}
-                  endIcon={showPassword ? EyeOff : Eye}
-                  onEndIconClick={() => setShowPassword(!showPassword)}
-                  required
-                />
-                <div className="flex justify-end mt-1.5">
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Work Email or User ID
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <Mail className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    placeholder="admin@uabindia.in or name@company.com"
+                    className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all font-sans"
+                  />
+                </div>
+              </div>
+
+              {/* Password */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-semibold text-slate-700">
+                    Password
+                  </label>
                   <Link
-                    to="/reset-password"
-                    className="text-xs font-bold text-purple-700 hover:text-purple-900 transition"
+                    to="/forgot-password"
+                    className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline"
                   >
                     Forgot password?
                   </Link>
                 </div>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••••••"
+                    className="w-full pl-10 pr-10 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
-              {/* Remember me toggle */}
-              <div className="flex items-center pt-1">
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <input
-                    id="remember-credentials"
-                    name="rememberCredentials"
-                    type="checkbox"
-                    checked={remember}
-                    onChange={(e) => setRemember(e.target.checked)}
-                    className="h-4 w-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500/20 cursor-pointer"
-                  />
-                  <span className="text-xs text-slate-600 font-medium">
-                    Remember credentials on this device
-                  </span>
-                </label>
+              {/* Optional Workspace Domain (Accordion/Toggle) */}
+              <div className="pt-1">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-600">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20 accent-blue-600 cursor-pointer"
+                    />
+                    <span>Remember this device</span>
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowWorkspaceInput(!showWorkspaceInput)}
+                    className="text-xs text-slate-500 hover:text-blue-600 font-medium transition-colors"
+                  >
+                    {showWorkspaceInput ? "Default workspace (erp)" : "Tenant: " + (workspaceDomain || "erp")}
+                  </button>
+                </div>
+
+                {showWorkspaceInput && (
+                  <div className="mt-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs animate-in fade-in duration-150">
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Organization Tenant Subdomain
+                    </label>
+                    <div className="relative flex rounded-lg">
+                      <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                        <Building2 className="w-3.5 h-3.5" />
+                      </div>
+                      <input
+                        type="text"
+                        value={workspaceDomain}
+                        onChange={(e) => setWorkspaceDomain(e.target.value)}
+                        placeholder="erp"
+                        className="w-full pl-8 pr-2 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-800 font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Submit Button */}
-              <Button
+              <button
                 type="submit"
-                variant="primary"
-                size="md"
-                loading={loading}
-                icon={ArrowRight}
-                iconPosition="right"
-                className="w-full h-11 mt-2 text-sm shadow-md whitespace-nowrap"
+                disabled={loading || backendStatus === "offline"}
+                className="w-full h-11 mt-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
-                Sign In to Dashboard
-              </Button>
+                {loading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Signing in to Workspace...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Sign In to HRMS Console</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
             </form>
 
-            {/* Help & First-time Banner */}
-            <div className="mt-5 rounded-2xl border border-purple-100 bg-purple-50/60 p-3.5 text-center">
-              <p className="text-xs text-slate-600 leading-normal">
-                First time logging in or need to setup password?
-              </p>
-              <div className="mt-1">
-                <Link
-                  to="/reset-password"
-                  className="inline-flex items-center justify-center font-bold text-purple-700 hover:text-purple-900 underline underline-offset-2 text-xs"
-                >
-                  Verify via Mobile OTP
-                </Link>
-              </div>
-            </div>
-
-            {/* Support Helpline & ERP Portal Switcher */}
-            <div className="mt-4 pt-4 border-t border-slate-100 space-y-2">
-              <div className="flex items-center justify-between text-xs text-slate-500">
-                <span className="flex items-center gap-1.5 font-medium">
-                  <Phone size={13} className="text-indigo-600" />
-                  Support:
+            {/* Quick Demo Credentials Assistant */}
+            <div className="mt-6 pt-5 border-t border-slate-100">
+              <div className="flex items-center justify-between mb-2.5">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Quick-fill Credentials</span>
                 </span>
-                <a
-                  href={`tel:${branding?.supportPhone || branding?.phone || '+917903055384'}`}
-                  className="font-bold text-slate-800 hover:text-indigo-600 transition-colors"
-                >
-                  {branding?.supportPhone || branding?.phone || '+91 7903055384'}
-                </a>
+                <span className="text-[10px] text-slate-400">1-click fill</span>
               </div>
 
-              <div className="flex items-center justify-between text-xs text-slate-500">
-                <span className="flex items-center gap-1.5 font-medium">
-                  <HelpCircle size={13} className="text-purple-600" />
-                  Core ERP & Finance:
-                </span>
-                <a
-                  href="/"
-                  className="inline-flex items-center gap-1 font-semibold text-purple-700 hover:text-purple-900 transition-colors"
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleQuickFill("admin@uabindia.in", "Admin@123", "erp")}
+                  className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white hover:border-blue-400 text-left transition-all group cursor-pointer"
                 >
-                  Main Portal <ExternalLink size={11} />
-                </a>
+                  <div className="text-[11px] font-bold text-slate-800 group-hover:text-blue-600 truncate">
+                    Enterprise Admin
+                  </div>
+                  <div className="text-[10px] text-slate-500 truncate">admin@uabindia.in</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleQuickFill("pooja.v@uabindia.in", "Admin@123", "erp")}
+                  className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white hover:border-blue-400 text-left transition-all group cursor-pointer"
+                >
+                  <div className="text-[11px] font-bold text-slate-800 group-hover:text-blue-600 truncate">
+                    Pooja Verma (HR)
+                  </div>
+                  <div className="text-[10px] text-slate-500 truncate">pooja.v@uabindia.in</div>
+                </button>
               </div>
             </div>
           </div>
 
-          {/* Footer Copyright & Security */}
-          <div className="text-center text-xs text-slate-400 mt-4 space-y-1">
-            <p>© {new Date().getFullYear()} {branding?.companyName || 'Uabindia HRMS'} • All Rights Reserved</p>
-            <p className="text-[11px] text-slate-400">Global Multi-Tenant Cloud · Multi-Region Tier-IV Security & SOC-2 Compliant</p>
+          {/* Footer Security Badges */}
+          <div className="mt-6 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            <span>256-Bit SSL Encryption • Tenant Isolated • SOC-2 Type II Certified</span>
           </div>
         </div>
-      </div>
+      </main>
+
+      {/* Public Footer */}
+      <footer className="w-full border-t border-slate-200/80 bg-white py-4 text-center text-xs text-slate-500">
+        <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <span>© {new Date().getFullYear()} Uabindia Enterprise OS. All rights reserved.</span>
+          <div className="flex items-center gap-4 text-slate-500">
+            <Link to="/pricing" className="hover:text-blue-600 transition-colors">Pricing</Link>
+            <span>•</span>
+            <span className="text-slate-400">HRMS Portal v1.0.1</span>
+          </div>
+        </div>
+      </footer>
     </div>
   );
-}
+};
+
+export default Login;

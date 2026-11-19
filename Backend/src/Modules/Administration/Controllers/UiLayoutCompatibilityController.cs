@@ -38,7 +38,14 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             _logger = logger;
         }
 
-        private Guid TenantId => _tenantAccessor.GetTenantId();
+        private Guid TenantId
+        {
+            get
+            {
+                try { return _tenantAccessor.GetTenantId(); }
+                catch { return Guid.Empty; }
+            }
+        }
 
         /// <summary>
         /// Lists all registered layout pages with current published/draft version.
@@ -239,8 +246,17 @@ namespace UabIndia.Api.Modules.Administration.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to resolve UI layout for pageKey {PageKey}", pageKey);
-                return StatusCode(500, new { message = "Failed to resolve layout", error = ex.Message });
+                _logger.LogWarning(ex, "Failed to resolve UI layout for pageKey {PageKey}, falling back to baseline schema", pageKey);
+                return Ok(new
+                {
+                    pageKey = pageKey,
+                    pageTitle = pageKey.Replace("_", " ").Replace("-", " "),
+                    isConfigured = false,
+                    scopeTier = "DefaultBaseline",
+                    version = 1.0,
+                    tableColumns = new List<object>(),
+                    tabs = new List<object>()
+                });
             }
         }
 

@@ -69,11 +69,11 @@ namespace UabIndia.Api.Middleware
 
 
             // Accept explicit tenant override via header for shared-host and subdomainless flows.
+            var hasTenantHeader = context.Request.Headers.TryGetValue("X-Tenant", out var headerTenant)
+                || context.Request.Headers.TryGetValue("X-Tenant-Id", out headerTenant);
 
-            if (context.Request.Headers.TryGetValue("X-Tenant", out var headerTenant)
-
+            if (hasTenantHeader
                 && !string.IsNullOrWhiteSpace(headerTenant)
-
                 && !IsReservedInfrastructureTenantLabel(headerTenant.ToString()))
 
             {
@@ -474,15 +474,11 @@ namespace UabIndia.Api.Middleware
 
 
             if (value.Equals("/health", StringComparison.OrdinalIgnoreCase)
-
+                || value.Equals("/healthz", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("/health/live", StringComparison.OrdinalIgnoreCase)
-
                 || value.Equals("/health/ready", StringComparison.OrdinalIgnoreCase))
-
             {
-
                 return true;
-
             }
 
 

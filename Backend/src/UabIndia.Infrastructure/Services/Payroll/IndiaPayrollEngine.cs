@@ -49,8 +49,10 @@ namespace UabIndia.Infrastructure.Services.Payroll
                 contributions["ESIC_Employer"] = employerEsi;
             }
 
-            // Professional Tax (standard ₹200/mo)
-            decimal pt = gross > 15000m ? 200m : 0m;
+            // Professional Tax (Multi-state statutory calculation)
+            var stateCode = !string.IsNullOrWhiteSpace(request.StateCode) ? request.StateCode : "KA";
+            var currentMonth = DateTime.UtcNow.Month;
+            decimal pt = IndiaStatutoryCalculator.CalculateProfessionalTax(stateCode, gross, currentMonth);
             if (pt > 0)
             {
                 deductions["ProfessionalTax"] = pt;

@@ -185,4 +185,65 @@ namespace UabIndia.Api.Models
         public bool IsProrated { get; set; }
         public decimal? CarryForwardDays { get; set; }
     }
+
+    public class RequestCompOffAccrualDto
+    {
+        [Required]
+        public Guid EmployeeId { get; set; }
+        [Required]
+        public DateTime WorkedDate { get; set; }
+        public decimal Days { get; set; } = 1.0m;
+        public string? Reason { get; set; }
+        public int ValidityDays { get; set; } = 60;
+    }
+
+    public class CompOffRecordDto
+    {
+        public Guid Id { get; set; }
+        public Guid EmployeeId { get; set; }
+        public string? EmployeeName { get; set; }
+        public string? EmployeeCode { get; set; }
+        public DateTime WorkedDate { get; set; }
+        public decimal DaysGranted { get; set; }
+        public decimal DaysRemaining { get; set; }
+        public DateTime ExpiryDate { get; set; }
+        public string Status { get; set; } = "Pending";
+        public string? Reason { get; set; }
+        public Guid? ApprovedBy { get; set; }
+        public DateTime? ApprovedAt { get; set; }
+        public bool IsExpired => DateTime.UtcNow.Date > ExpiryDate.Date;
+    }
+
+    public class CreateLeaveEncashmentRequestDto
+    {
+        [Required]
+        public Guid EmployeeId { get; set; }
+        [Required]
+        public Guid LeavePolicyId { get; set; }
+        [Required]
+        public int Year { get; set; }
+        [Required]
+        [Range(0.5, 365, ErrorMessage = "Days must be at least 0.5")]
+        public decimal Days { get; set; }
+        public string? Reason { get; set; }
+    }
+
+    public class LeaveEncashmentRequestDto
+    {
+        public Guid Id { get; set; }
+        public Guid EmployeeId { get; set; }
+        public string? EmployeeName { get; set; }
+        public string? EmployeeCode { get; set; }
+        public Guid LeavePolicyId { get; set; }
+        public string? PolicyName { get; set; }
+        public int Year { get; set; }
+        public decimal DaysRequested { get; set; }
+        public decimal DailyRate { get; set; }
+        public decimal TotalAmount { get; set; }
+        public string Status { get; set; } = "Pending";
+        public string? Reason { get; set; }
+        public Guid? ApprovedBy { get; set; }
+        public DateTime? ApprovedAt { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
 }

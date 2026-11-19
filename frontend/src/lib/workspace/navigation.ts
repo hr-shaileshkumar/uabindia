@@ -468,7 +468,7 @@ export function buildWorkspaceModules(
 ): WorkspaceModule[] {
   const moduleMetaByKey = new Map(enabledModules.map((module) => [module.key, module]));
 
-  const workspaceModules = navigationModules
+  const rawModules = navigationModules
     .slice()
     .filter((module) => isModuleAccessible(module, accessContext))
     .sort((left, right) => left.sortOrder - right.sortOrder || left.displayName.localeCompare(right.displayName))
@@ -500,6 +500,62 @@ export function buildWorkspaceModules(
       );
     })
     .filter((module): module is WorkspaceModule => Boolean(module));
+
+  // 1. Deduplicate modules by normalized key and cleanly merge their groups
+  const moduleMap = new Map<string, WorkspaceModule>();
+
+  for (const rawMod of rawModules) {
+    const key = rawMod.key.toLowerCase().trim();
+    if (!moduleMap.has(key)) {
+      moduleMap.set(key, { ...rawMod, groups: [...rawMod.groups] });
+    } else {
+      const existing = moduleMap.get(key)!;
+      const groupMap = new Map<string, WorkspaceNavGroup>();
+
+      for (const g of existing.groups) {
+        groupMap.set(g.label.toLowerCase().trim(), { ...g, items: [...g.items] });
+      }
+
+      for (const incGrp of rawMod.groups) {
+        const grpKey = incGrp.label.toLowerCase().trim();
+        if (groupMap.has(grpKey)) {
+          const target = groupMap.get(grpKey)!;
+          const seenPaths = new Set(target.items.map((it) => it.path.toLowerCase().trim()));
+          for (const item of incGrp.items) {
+            const p = item.path.toLowerCase().trim();
+            if (!seenPaths.has(p)) {
+              seenPaths.add(p);
+              target.items.push(item);
+            }
+          }
+        } else {
+          groupMap.set(grpKey, { ...incGrp, items: [...incGrp.items] });
+        }
+      }
+
+      existing.groups = Array.from(groupMap.values());
+      existing.pageCount = existing.groups.reduce((acc, g) => acc + g.items.length, 0);
+    }
+  }
+
+  // 2. Deduplicate items across groups within each module so no page URL appears multiple times
+  for (const mod of moduleMap.values()) {
+    const seenPathsInMod = new Set<string>();
+    mod.groups = mod.groups
+      .map((group) => {
+        const uniqueItems = group.items.filter((item) => {
+          const p = item.path.toLowerCase().trim();
+          if (seenPathsInMod.has(p)) return false;
+          seenPathsInMod.add(p);
+          return true;
+        });
+        return { ...group, items: uniqueItems };
+      })
+      .filter((g) => g.items.length > 0);
+    mod.pageCount = mod.groups.reduce((count, g) => count + g.items.length, 0);
+  }
+
+  const workspaceModules = Array.from(moduleMap.values());
 
   return sortWorkspaceModules(workspaceModules)
     .filter((module) => module.pageCount > 0)

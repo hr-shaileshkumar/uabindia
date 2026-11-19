@@ -79,14 +79,19 @@ namespace UabIndia.Api.Services
 
         private static readonly List<DerivedModuleSeed> DerivedModules = new()
         {
-            new("erp", "finance", "Finance", "Finance", "Accounting, journals, transactions, billing, tax, and reconciliation workflows.", "bank", "/finance", 60, new[] { "/finance", "/chart-of-accounts", "/journal-entries", "/payments", "/invoices", "/expenses", "/tax-management", "/bank-reconciliation", "/accounting-periods", "/compliance", "/finance/budgeting", "/finance/consolidation" }),
-            new("erp", "inventory", "Inventory", "Inventory", "Items, warehouses, stock movement, adjustments, and transfer visibility.", "box", "/inventory", 80, new[] { "/inventory", "/items", "/warehouses", "/stock-movements", "/inventory-adjustments", "/inventory-transfers", "/inventory/wms", "/manufacturing/work-orders" }),
-            new("erp", "procurement", "Procurement", "Procurement", "Vendor, request, purchase order, goods receipt, and vendor bill workflows.", "shopping-cart", "/procurement", 90, new[] { "/procurement", "/vendors", "/purchase-requests", "/purchase-orders", "/grn", "/vendor-bills" }),
-            new("erp", "sales", "Sales", "Sales", "Customer, quotation, discount scheme, sales order, and returns activity.", "shopping-bag", "/sales", 100, new[] { "/sales", "/customers", "/crm/customers", "/quotations", "/discounts", "/sales-orders", "/returns", "/sales/pricing", "/portal" }),
-            new("erp", "projects", "Projects & Service", "Projects & Service", "Projects, task backlog, timesheets, field service, and fixed assets.", "folder", "/administration/projects", 110, new[] { "/projects", "/administration/projects", "/platform/projects", "/field-service", "/assets/depreciation" }),
-            new("erp", "helpdesk", "Helpdesk", "Helpdesk", "Support intake, escalations, and knowledge workflows.", "ticket", "/helpdesk", 130, new[] { "/helpdesk" }),
-            new("erp", "communication", "Communication", "Communication", "Announcements and reusable employee or customer message templates.", "megaphone", "/communication", 140, new[] { "/communication" }),
-            new("erp", "integrations", "Integrations", "Integrations", "API keys, webhooks, app connections, and diagnostics.", "plug", "/integrations", 150, new[] { "/integrations" }),
+            new("erp", "finance", "Finance", "Finance & General Ledger", "Accounting, journals, transactions, billing, tax, and reconciliation workflows.", "bank", "/finance", 60, new[] { "/finance", "/chart-of-accounts", "/journal-entries", "/payments", "/invoices", "/expenses", "/tax-management", "/bank-reconciliation", "/accounting-periods", "/finance/budgeting", "/finance/consolidation" }),
+            new("erp", "compliance", "Compliance", "Statutory Compliance", "EPFO, ESIC, GST GSTR-1/3B, TDS Form 24Q, and compliance audit calendar.", "shield-check", "/compliance", 65, new[] { "/compliance", "/compliance/einvoice", "/compliance/msme-tds" }),
+            new("erp", "inventory", "Inventory", "Inventory & Warehousing", "Items, warehouses, stock movement, adjustments, and transfer visibility.", "box", "/inventory", 80, new[] { "/inventory", "/items", "/warehouses", "/stock-movements", "/inventory-adjustments", "/inventory-transfers", "/inventory/wms" }),
+            new("erp", "manufacturing", "Manufacturing", "Manufacturing & MRP", "Work orders, quality management, bills of material, and subcontracting.", "factory", "/manufacturing", 85, new[] { "/manufacturing", "/manufacturing/work-orders", "/manufacturing/quality", "/manufacturing/subcontracting" }),
+            new("erp", "procurement", "Procurement", "Procurement & Sourcing", "Vendor, request, purchase order, goods receipt, and vendor bill workflows.", "shopping-cart", "/procurement", 90, new[] { "/procurement", "/vendors", "/purchase-requests", "/purchase-orders", "/grn", "/vendor-bills" }),
+            new("erp", "assets", "Assets & Fleet", "Assets & Fleet Management", "Fixed asset register, fleet logistics, vehicle telematics, and maintenance.", "monitor", "/assets", 95, new[] { "/assets", "/fleet", "/assets/depreciation" }),
+            new("erp", "sales", "Sales", "Sales & Commercial", "Customer, quotation, discount scheme, sales order, and returns activity.", "shopping-bag", "/sales", 100, new[] { "/sales", "/customers", "/crm/customers", "/quotations", "/discounts", "/sales-orders", "/returns", "/sales/pricing", "/portal" }),
+            new("erp", "projects", "Projects & Service", "Projects & Delivery", "Projects, task backlog, timesheets, field service, and operational milestones.", "folder", "/projects", 110, new[] { "/projects", "/administration/projects", "/platform/projects", "/field-service" }),
+            new("erp", "workflow", "Approvals", "Approvals & Workflow", "Approvals queue, delegations, and workflow rule automation.", "git-branch", "/approvals", 40, new[] { "/approvals", "/approvals/history" }),
+            new("erp", "notifications", "Notifications", "Notifications & Alerts", "Operational alerts, broadcast announcements, and notification preferences.", "bell", "/notifications", 45, new[] { "/notifications" }),
+            new("erp", "helpdesk", "Helpdesk", "Service Desk & Helpdesk", "Support intake, escalations, and knowledge workflows.", "ticket", "/helpdesk", 130, new[] { "/helpdesk" }),
+            new("erp", "communication", "Communication", "Communication & Broadcasts", "Announcements and reusable employee or customer message templates.", "megaphone", "/communication", 140, new[] { "/communication" }),
+            new("erp", "integrations", "Integrations", "API Gateway & Integrations", "API keys, webhooks, app connections, and diagnostics.", "plug", "/integrations", 150, new[] { "/integrations" }),
         };
 
         private static DerivedModuleSeed? ResolveDerivedModuleByPath(string? path)
@@ -325,8 +330,59 @@ namespace UabIndia.Api.Services
             // ── Administration: 10. Website & CMS ─────────────────────────────
             new("platform", "Website & CMS", "platform-website-pages", "Website CMS Pages", "/administration/website/pages", "globe", Perms("platform", "platform.website.pages.view")),
 
-            new("ai", "AI Copilot Engine", "ai-home", "AI HR Copilot", "/ai", "bot", Perms("platform", "platform.view")),
-            new("documents", "Document Center", "documents-home", "Document Vault", "/documents", "file-text", Perms("platform", "platform.view")),
+            // ── AI Copilot Engine ─────────────────────────────────────────────
+            new("ai", "AI Copilot", "ai-home", "AI HR Copilot Assistant", "/ai", "bot", Perms("ai", "ai.view")),
+            new("ai", "AI Copilot", "ai-agents", "Autonomous Agents & Telemetry", "/administration/ai-assistant", "sparkles", Perms("ai", "ai.view")),
+
+            // ── Document Center ───────────────────────────────────────────────
+            new("documents", "Document Vault", "documents-home", "Document Vault", "/documents", "file-text", Perms("documents", "documents.view")),
+            new("documents", "Document Vault", "documents-templates", "Document Templates & Letters", "/documents/templates", "layers", Perms("documents", "documents.view")),
+
+            // ── Workflow & Approvals Queue ────────────────────────────────────
+            new("workflow", "Approvals Queue", "workflow-approvals", "Pending Approvals", "/approvals", "check-circle", Perms("workflow", "approvals.view")),
+            new("workflow", "Approvals Queue", "workflow-history", "Approval History", "/approvals/history", "history", Perms("workflow", "approvals.view")),
+            new("workflow", "Configuration", "workflow-config", "Workflow Graph & Matrices", "/administration/workflow-config", "git-branch", Perms("workflow", "platform.settings.view")),
+
+            // ── Notifications Hub ─────────────────────────────────────────────
+            new("notifications", "Inbox", "notifications-inbox", "Notification Inbox", "/notifications", "bell", Perms("notifications", "notifications.view")),
+            new("notifications", "Broadcasting", "notifications-announcements", "Company Announcements", "/communication/announcements", "megaphone", Perms("notifications", "notifications.view")),
+            new("notifications", "Configuration", "notifications-templates", "Message Templates", "/administration/notification-templates", "mail", Perms("notifications", "notifications.view")),
+
+            // ── Statutory Compliance Hub ──────────────────────────────────────
+            new("compliance", "Overview", "compliance-home", "Compliance Calendar", "/compliance", "shield-check", Perms("compliance", "compliance.view")),
+            new("compliance", "GST & Invoicing", "compliance-einvoice", "GST E-Invoicing & E-Way Bill", "/compliance/einvoice", "qr-code", Perms("compliance", "compliance.view")),
+            new("compliance", "Tax & MSME", "compliance-msme-tds", "MSME 45-Day & TDS Center", "/compliance/msme-tds", "calculator", Perms("compliance", "compliance.view")),
+            new("compliance", "Statutory Audit", "compliance-statutory", "Statutory Filings (PF/ESI/PT)", "/payroll/statutory", "shield", Perms("compliance", "compliance.view")),
+
+            // ── Manufacturing & MRP ───────────────────────────────────────────
+            new("manufacturing", "Overview", "mfg-home", "Manufacturing Dashboard", "/manufacturing", "factory", Perms("manufacturing", "manufacturing.view")),
+            new("manufacturing", "Work Orders", "mfg-work-orders", "Production Work Orders", "/manufacturing/work-orders", "cpu", Perms("manufacturing", "manufacturing.view")),
+            new("manufacturing", "Quality Control", "mfg-quality", "Quality Assurance & CoA", "/manufacturing/quality", "check-circle", Perms("manufacturing", "manufacturing.view")),
+            new("manufacturing", "Job Work", "mfg-subcontracting", "Subcontracting & Job Work (Rule 55)", "/manufacturing/subcontracting", "truck", Perms("manufacturing", "manufacturing.view")),
+
+            // ── Assets & Fleet Management ─────────────────────────────────────
+            new("assets", "Overview", "assets-home", "Assets Dashboard", "/assets", "monitor", Perms("assets", "assets.view")),
+            new("assets", "Asset Register", "assets-register", "Fixed Asset Register", "/hrms/assets", "box", Perms("assets", "assets.view")),
+            new("assets", "Fleet Logistics", "assets-fleet", "Fleet & Vehicle Master", "/fleet", "truck", Perms("assets", "assets.view")),
+            new("assets", "Depreciation", "assets-depreciation", "Depreciation & Maintenance", "/assets/depreciation", "trending-down", Perms("assets", "assets.view")),
+
+            // ── Employee Self-Service (ESS) ───────────────────────────────────
+            new("ess", "Self-Service", "ess-home", "My Profile", "/ess", "user", Perms("ess", "employee.view")),
+            new("ess", "Self-Service", "ess-attendance", "My Attendance", "/hrms/attendance", "clock", Perms("ess", "attendance.view")),
+            new("ess", "Self-Service", "ess-leave", "My Leaves", "/hrms/leave", "calendar", Perms("ess", "leave.view")),
+            new("ess", "Self-Service", "ess-payslips", "My Payslips", "/payroll/payslips", "wallet", Perms("ess", "payroll.view")),
+            new("ess", "Self-Service", "ess-claims", "My Claims & Reimbursements", "/payroll/reimbursements", "receipt", Perms("ess", "payroll.view")),
+
+            // ── Manager Self-Service (MSS) ───────────────────────────────────
+            new("mss", "Manager Portal", "mss-home", "Team Dashboard", "/mss", "users", Perms("mss", "employee.view")),
+            new("mss", "Manager Portal", "mss-approvals", "Pending Approvals", "/approvals", "check-circle", Perms("mss", "approvals.view")),
+            new("mss", "Manager Portal", "mss-performance", "Team Appraisals & Goals", "/hrms/performance", "trending-up", Perms("mss", "performance.view")),
+
+            // ── Super Admin Hub ───────────────────────────────────────────────
+            new("superadmin", "Operator Hub", "superadmin-home", "Tenants Directory", "/superadmin/tenants", "shield", Perms("superadmin", "*")),
+            new("superadmin", "Operator Hub", "superadmin-dashboard", "Global Platform Telemetry", "/superadmin/dashboard", "activity", Perms("superadmin", "*")),
+            new("superadmin", "Licensing", "superadmin-subscriptions", "SaaS Subscriptions & Licenses", "/licensing/subscriptions", "layers", Perms("superadmin", "*")),
+
             new("helpdesk", "Support", "helpdesk-home", "Service Helpdesk", "/helpdesk", "ticket", LegacyErpPerms()),
 
             new("administration", "Workspace", "admin-dashboard", "Administration Dashboard", "/dashboard", "dashboard", LegacyErpPerms("dashboard.view")),

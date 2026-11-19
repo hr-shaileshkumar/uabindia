@@ -31,9 +31,7 @@ namespace UabIndia.Infrastructure.Services
             var years = Math.Max(0d, (exitDate.Date - join.Date).TotalDays / 365.25d);
             var yearsRounded = (decimal)Math.Round(years, 0, MidpointRounding.AwayFromZero);
             var lastBasic = employee.BasicSalary > 0 ? employee.BasicSalary : IndiaStatutoryCalculator.RoundMoney(employee.MonthlyCtc * 0.40m);
-            var gratuity = years >= 4.5d && lastBasic > 0
-                ? IndiaStatutoryCalculator.RoundMoney(lastBasic * 15m / 26m * yearsRounded)
-                : 0m;
+            var gratuity = IndiaStatutoryCalculator.CalculateGratuity(lastBasic, years);
 
             var year = exitDate.Year;
             var leaveBalance = await _db.EmployeeLeaves.AsNoTracking()

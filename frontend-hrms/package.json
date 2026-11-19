@@ -8,13 +8,10 @@
                          "jspdf":  "^4.0.0",
                          "jspdf-autotable":  "^5.0.7",
                          "lucide-react":  "^0.574.0",
-                         "playwright":  "^1.58.2",
                          "react":  "^18.2.0",
                          "react-datepicker":  "^4.21.0",
                          "react-dom":  "^18.2.0",
-                         "react-router-dom":  "^6.20.0",
-                         "sweetalert2":  "^11.10.3",
-                         "xlsx":  "^0.18.5"
+                         "react-router-dom":  "^6.20.0"
                      },
     "devDependencies":  {
                             "@types/react":  "^18.2.43",
@@ -24,6 +21,7 @@
                             "eslint":  "^8.50.0",
                             "eslint-config-prettier":  "^8.8.0",
                             "eslint-plugin-react":  "^7.32.2",
+                            "playwright":  "^1.58.2",
                             "postcss":  "^8.4.32",
                             "prettier":  "^2.8.8",
                             "tailwindcss":  "^3.3.6",
@@ -33,17 +31,9 @@
                     "dev":  "vite",
                     "build":  "vite build",
                     "preview":  "vite preview",
-                    "release:patch":  "npm version patch --no-git-tag-version",
-                    "release:minor":  "npm version minor --no-git-tag-version",
-                    "release:major":  "npm version major --no-git-tag-version",
-                    "capture-screenshots":  "node scripts/capture-screenshots.js",
-                    "axe-audit":  "node scripts/run-axe.js",
                     "lint":  "eslint . --ext .js,.jsx",
                     "lint:fix":  "eslint . --ext .js,.jsx --fix",
-                    "format":  "prettier --write .",
-                    "test:engine":  "node scripts/test-engine.mjs",
-                    "test:routes":  "node scripts/smoke-test-routes.mjs",
-                    "test":  "npm run test:engine \u0026\u0026 npm run test:routes"
+                    "format":  "prettier --write ."
                 },
     "type":  "module"
 }

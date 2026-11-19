@@ -247,6 +247,7 @@ END;
             await EnsurePerformanceIndexesAsync(db, logger, cancellationToken);
             await EnsureEnterprisePolicyTablesAsync(db, logger, cancellationToken);
             await EnsureStaffingPlansAndJobPostingsColumnsAsync(db, logger, cancellationToken);
+            await EnsureCompOffAndLeaveEncashmentTablesAsync(db, logger, cancellationToken);
             await EnsureTenantWebhooksTablesAsync(db, logger, cancellationToken);
             await EnsureUiViewDefinitionsTableAsync(db, logger, cancellationToken);
             await EnsureUiPageDefinitionsTableAsync(db, logger, cancellationToken);
@@ -441,6 +442,7 @@ END;
         await EnsureFieldServiceWmsAndBudgetingTablesAsync(db, logger, cancellationToken);
         await EnsureDocumentTemplatesAndProjectBrandingAsync(db, logger, cancellationToken);
         await EnsureStaffingPlansAndJobPostingsColumnsAsync(db, logger, cancellationToken);
+        await EnsureCompOffAndLeaveEncashmentTablesAsync(db, logger, cancellationToken);
         await MarkExtendedSchemaCurrentAsync(db, cancellationToken);
         logger?.LogInformation("Extended schema bootstrap complete ({Version}).", ExtendedSchemaVersion);
     }
@@ -1199,6 +1201,10 @@ BEGIN
 
     CREATE NONCLUSTERED INDEX IX_UiPageDefinitions_Tenant_Module
         ON [dbo].[UiPageDefinitions] ([TenantId], [ModuleKey]);
+
+    CREATE NONCLUSTERED INDEX IX_UiPageDefinitions_Tenant_SubModule
+        ON [dbo].[UiPageDefinitions] ([TenantId], [SubModuleKey])
+        WHERE [IsDeleted] = 0 AND [SubModuleKey] IS NOT NULL;
 END
 ELSE
 BEGIN
@@ -1210,6 +1216,13 @@ BEGIN
         ALTER TABLE dbo.UiPageDefinitions ADD ProjectId UNIQUEIDENTIFIER NULL;
     IF COL_LENGTH('dbo.UiPageDefinitions', 'BusinessId') IS NULL
         ALTER TABLE dbo.UiPageDefinitions ADD BusinessId NVARCHAR(100) NULL;
+
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_UiPageDefinitions_Tenant_SubModule' AND object_id = OBJECT_ID(N'dbo.UiPageDefinitions'))
+    BEGIN
+        CREATE NONCLUSTERED INDEX IX_UiPageDefinitions_Tenant_SubModule
+            ON [dbo].[UiPageDefinitions] ([TenantId], [SubModuleKey])
+            WHERE [IsDeleted] = 0 AND [SubModuleKey] IS NOT NULL;
+    END;
 END;
 
 IF OBJECT_ID(N'[dbo].[UiPageVersions]', N'U') IS NULL
@@ -2931,6 +2944,74 @@ END;";
         catch (Exception ex)
         {
             logger?.LogWarning(ex, "Failed to ensure StaffingPlans table or JobPostings columns.");
+        }
+    }
+
+    private static async Task EnsureCompOffAndLeaveEncashmentTablesAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        const string sql = @"
+IF OBJECT_ID(N'[dbo].[CompOffRecords]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[CompOffRecords] (
+        [Id] uniqueidentifier NOT NULL DEFAULT NEWSEQUENTIALID(),
+        [TenantId] uniqueidentifier NOT NULL,
+        [EmployeeId] uniqueidentifier NOT NULL,
+        [WorkedDate] datetime2 NOT NULL,
+        [DaysGranted] decimal(18,2) NOT NULL DEFAULT 1.0,
+        [DaysRemaining] decimal(18,2) NOT NULL DEFAULT 1.0,
+        [ExpiryDate] datetime2 NOT NULL,
+        [Status] int NOT NULL DEFAULT 0,
+        [Reason] nvarchar(max) NULL,
+        [ApprovedBy] uniqueidentifier NULL,
+        [ApprovedAt] datetime2 NULL,
+        [AvailedInLeaveRequestId] uniqueidentifier NULL,
+        [BusinessId] nvarchar(100) NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [CreatedAt] datetime2 NOT NULL DEFAULT GETUTCDATE(),
+        [UpdatedAt] datetime2 NULL,
+        [IsDeleted] bit NOT NULL DEFAULT 0,
+        CONSTRAINT [PK_CompOffRecords] PRIMARY KEY ([Id])
+    );
+    CREATE INDEX [IX_CompOffRecords_Tenant_Emp] ON [dbo].[CompOffRecords] ([TenantId], [EmployeeId], [IsDeleted]);
+END;
+
+IF OBJECT_ID(N'[dbo].[LeaveEncashmentRequests]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[LeaveEncashmentRequests] (
+        [Id] uniqueidentifier NOT NULL DEFAULT NEWSEQUENTIALID(),
+        [TenantId] uniqueidentifier NOT NULL,
+        [EmployeeId] uniqueidentifier NOT NULL,
+        [LeavePolicyId] uniqueidentifier NOT NULL,
+        [Year] int NOT NULL,
+        [DaysRequested] decimal(18,2) NOT NULL,
+        [DailyRate] decimal(18,2) NOT NULL,
+        [TotalAmount] decimal(18,2) NOT NULL,
+        [Status] int NOT NULL DEFAULT 0,
+        [Reason] nvarchar(max) NULL,
+        [ApprovedBy] uniqueidentifier NULL,
+        [ApprovedAt] datetime2 NULL,
+        [PayrollRunId] uniqueidentifier NULL,
+        [ProcessedAt] datetime2 NULL,
+        [BusinessId] nvarchar(100) NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [CreatedAt] datetime2 NOT NULL DEFAULT GETUTCDATE(),
+        [UpdatedAt] datetime2 NULL,
+        [IsDeleted] bit NOT NULL DEFAULT 0,
+        CONSTRAINT [PK_LeaveEncashmentRequests] PRIMARY KEY ([Id])
+    );
+    CREATE INDEX [IX_LeaveEncashmentRequests_Tenant_Emp] ON [dbo].[LeaveEncashmentRequests] ([TenantId], [EmployeeId], [IsDeleted]);
+END;";
+
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "Failed to ensure CompOffRecords or LeaveEncashmentRequests tables.");
         }
     }
 

@@ -40,15 +40,17 @@ namespace UabIndia.Api.Modules.Payroll.Controllers
 
         /// <summary>GET api/v1/payroll/runs — list runs with optional status filter</summary>
         [HttpGet]
-        public async Task<IActionResult> List([FromQuery] string? status, [FromQuery] Guid? companyId, [FromQuery] int page = 1, [FromQuery] int pageSize = 25, CancellationToken ct = default)
+        public async Task<IActionResult> List([FromQuery] string? status, [FromQuery] string? companyId, [FromQuery] int? year, [FromQuery] int page = 1, [FromQuery] int pageSize = 25, CancellationToken ct = default)
         {
             var tenantId = _tenantAccessor.GetTenantId();
             var query = _db.PayrollRuns.AsNoTracking().Where(r => r.TenantId == tenantId && !r.IsDeleted);
 
             if (!string.IsNullOrWhiteSpace(status))
                 query = query.Where(r => r.Status == status);
-            if (companyId.HasValue)
-                query = query.Where(r => r.CompanyId == companyId.Value);
+            if (!string.IsNullOrWhiteSpace(companyId) && Guid.TryParse(companyId, out var cid))
+                query = query.Where(r => r.CompanyId == cid);
+            if (year.HasValue)
+                query = query.Where(r => r.RunDate.Year == year.Value);
 
             var total = await query.CountAsync(ct);
             var items = await query
