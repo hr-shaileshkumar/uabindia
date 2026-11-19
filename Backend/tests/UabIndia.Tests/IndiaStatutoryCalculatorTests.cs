@@ -251,5 +251,56 @@ namespace UabIndia.Tests
             Assert.Equal(0.75m, dlOct.EmployeeContribution);
             Assert.Equal(2.25m, dlOct.EmployerContribution);
         }
+
+        [Fact]
+        public void CalculateStatutoryBonus_EnforcesCeilingsAndEligibility()
+        {
+            // Employee with 18,000 monthly gross (eligible <= 21k) and 365 days
+            // Calculation ceiling ₹7,000 * 12 = 84,000 annual bonus wages. 8.33% = ₹6,997.20
+            var eligible = IndiaStatutoryCalculator.CalculateStatutoryBonus(
+                monthlyBasic: 12000m,
+                monthlyGross: 18000m,
+                workingDaysInYear: 365,
+                bonusPercentage: 0.0833m);
+
+            Assert.True(eligible.IsEligible);
+            Assert.Equal(7000m, eligible.BonusWagesPerMonth);
+            Assert.Equal(84000m, eligible.AnnualBonusWages);
+            Assert.Equal(6997.20m, eligible.BonusAmount);
+
+            // Employee with 25,000 monthly gross (disqualified > 21k)
+            var overCeiling = IndiaStatutoryCalculator.CalculateStatutoryBonus(
+                monthlyBasic: 15000m,
+                monthlyGross: 25000m,
+                workingDaysInYear: 365);
+
+            Assert.False(overCeiling.IsEligible);
+            Assert.Equal(0m, overCeiling.BonusAmount);
+            Assert.Contains("exceeds statutory eligibility ceiling", overCeiling.DisqualificationReason);
+
+            // Employee with < 30 working days in accounting year (disqualified)
+            var underDays = IndiaStatutoryCalculator.CalculateStatutoryBonus(
+                monthlyBasic: 10000m,
+                monthlyGross: 15000m,
+                workingDaysInYear: 20);
+
+            Assert.False(underDays.IsEligible);
+            Assert.Contains("less than statutory threshold", underDays.DisqualificationReason);
+        }
+
+        [Fact]
+        public void ValidateMinimumWage_ChecksStateSkillThresholds()
+        {
+            // Karnataka Skilled: threshold is 18,000. Basic 20,000 is compliant
+            var kaCompliant = IndiaStatutoryCalculator.ValidateMinimumWage("KA", "Skilled", 20000m, 25000m);
+            Assert.True(kaCompliant.IsCompliant);
+            Assert.Equal(0m, kaCompliant.Shortfall);
+
+            // Delhi Skilled: threshold is 21,917. Basic 15,000 has shortfall of 6,917
+            var dlShortfall = IndiaStatutoryCalculator.ValidateMinimumWage("DL", "Skilled", 15000m, 17000m);
+            Assert.False(dlShortfall.IsCompliant);
+            Assert.Equal(21917m, dlShortfall.StatutoryMinimumWage);
+            Assert.Equal(6917m, dlShortfall.Shortfall);
+        }
     }
 }

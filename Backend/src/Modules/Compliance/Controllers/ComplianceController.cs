@@ -255,6 +255,290 @@ namespace UabIndia.Api.Modules.Compliance.Controllers
             });
         }
 
+        /// <summary>
+        /// Validates an employee's current wage against state statutory minimum wage thresholds.
+        /// </summary>
+        [HttpGet("minimum-wages/validate/{employeeId:guid}")]
+        [Authorize(Roles = "SuperAdmin,Admin,HR Manager,HR")]
+        public async Task<IActionResult> ValidateEmployeeMinimumWage(Guid employeeId, [FromQuery] string? skillCategory = null)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var emp = await _db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.Id == employeeId && e.TenantId == tenantId && !e.IsDeleted);
+            if (emp == null) return NotFound(new { message = "Employee not found." });
+
+            var state = emp.State ?? "KA";
+            var skill = skillCategory ?? "Skilled";
+            var result = IndiaStatutoryCalculator.ValidateMinimumWage(state, skill, emp.BasicSalary, emp.MonthlyCtc);
+
+            return Ok(new
+            {
+                employeeId = emp.Id,
+                employeeName = emp.FullName,
+                employeeCode = emp.EmployeeCode,
+                state,
+                skillCategory = skill,
+                isCompliant = result.IsCompliant,
+                statutoryMinimumWage = result.StatutoryMinimumWage,
+                actualWage = result.ActualWage,
+                shortfall = result.Shortfall,
+                message = result.Message
+            });
+        }
+
+        /// <summary>
+        /// Scans all active employees in the active company/tenant for Minimum Wages Act statutory compliance.
+        /// </summary>
+        [HttpGet("minimum-wages/audit")]
+        [Authorize(Roles = "SuperAdmin,Admin,HR Manager,HR")]
+        public async Task<IActionResult> AuditCompanyMinimumWages([FromQuery] Guid? companyId = null)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var query = _db.Employees.AsNoTracking().Where(e => e.TenantId == tenantId && !e.IsDeleted && e.Status == "Active");
+            if (companyId.HasValue) query = query.Where(e => e.CompanyId == companyId.Value);
+
+            var employees = await query.ToListAsync();
+            var nonCompliant = new List<object>();
+            int compliantCount = 0;
+
+            foreach (var emp in employees)
+            {
+                var state = emp.State ?? "KA";
+                var result = IndiaStatutoryCalculator.ValidateMinimumWage(state, "Skilled", emp.BasicSalary, emp.MonthlyCtc);
+                if (result.IsCompliant)
+                {
+                    compliantCount++;
+                }
+                else
+                {
+                    nonCompliant.Add(new
+                    {
+                        employeeId = emp.Id,
+                        employeeName = emp.FullName,
+                        employeeCode = emp.EmployeeCode,
+                        state,
+                        statutoryMinimumWage = result.StatutoryMinimumWage,
+                        actualWage = result.ActualWage,
+                        shortfall = result.Shortfall,
+                        message = result.Message
+                    });
+                }
+            }
+
+            var total = employees.Count;
+            var complianceRate = total > 0 ? Math.Round((decimal)compliantCount / total * 100m, 1) : 100m;
+
+            return Ok(new
+            {
+                totalEvaluated = total,
+                compliantEmployees = compliantCount,
+                nonCompliantEmployees = nonCompliant.Count,
+                complianceRatePercent = complianceRate,
+                flaggedRecords = nonCompliant
+            });
+        }
+
+        /// <summary>
+        /// Calculates statutory annual bonus under the Payment of Bonus Act, 1965.
+        /// </summary>
+        [HttpPost("bonus/calculate")]
+        [Authorize(Roles = "SuperAdmin,Admin,HR Manager,HR")]
+        public async Task<IActionResult> CalculateBonus([FromBody] JsonElement payload)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            Guid? empId = null;
+            if (payload.TryGetProperty("employeeId", out var empProp) && Guid.TryParse(empProp.GetString(), out var parsedEmp))
+            {
+                empId = parsedEmp;
+            }
+
+            int workingDays = 365;
+            if (payload.TryGetProperty("workingDaysInYear", out var daysProp) && daysProp.TryGetInt32(out var parsedDays))
+            {
+                workingDays = parsedDays;
+            }
+
+            decimal rate = 0.0833m;
+            if (payload.TryGetProperty("bonusPercentage", out var rateProp) && rateProp.TryGetDecimal(out var parsedRate))
+            {
+                rate = parsedRate > 1 ? (parsedRate / 100m) : parsedRate;
+            }
+
+            if (empId.HasValue)
+            {
+                var emp = await _db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.Id == empId.Value && e.TenantId == tenantId && !e.IsDeleted);
+                if (emp == null) return NotFound(new { message = "Employee not found." });
+
+                var result = IndiaStatutoryCalculator.CalculateStatutoryBonus(emp.BasicSalary, emp.MonthlyCtc, workingDays, rate);
+                return Ok(new
+                {
+                    employeeId = emp.Id,
+                    employeeName = emp.FullName,
+                    employeeCode = emp.EmployeeCode,
+                    result.IsEligible,
+                    result.BonusWagesPerMonth,
+                    result.AnnualBonusWages,
+                    bonusPercentage = Math.Round(result.BonusPercentage * 100m, 2),
+                    result.BonusAmount,
+                    result.DisqualificationReason
+                });
+            }
+
+            var employees = await _db.Employees.AsNoTracking().Where(e => e.TenantId == tenantId && !e.IsDeleted && e.Status == "Active").ToListAsync();
+            var list = new List<object>();
+            decimal totalBonus = 0m;
+            int eligibleCount = 0;
+
+            foreach (var emp in employees)
+            {
+                var res = IndiaStatutoryCalculator.CalculateStatutoryBonus(emp.BasicSalary, emp.MonthlyCtc, workingDays, rate);
+                if (res.IsEligible)
+                {
+                    totalBonus += res.BonusAmount;
+                    eligibleCount++;
+                }
+                list.Add(new
+                {
+                    employeeId = emp.Id,
+                    employeeName = emp.FullName,
+                    employeeCode = emp.EmployeeCode,
+                    res.IsEligible,
+                    res.BonusAmount,
+                    res.DisqualificationReason
+                });
+            }
+
+            return Ok(new
+            {
+                totalEmployees = employees.Count,
+                eligibleEmployees = eligibleCount,
+                totalStatutoryBonusPayable = totalBonus,
+                records = list
+            });
+        }
+
+        /// <summary>
+        /// Computes and generates Form 16 Part B (Certificate under Section 203 of the Income Tax Act, 1961)
+        /// salary income and tax computation summary for an employee.
+        /// </summary>
+        [HttpGet("form16/summary/{employeeId:guid}")]
+        [Authorize(Roles = "SuperAdmin,Admin,HR Manager,HR,Employee")]
+        public async Task<IActionResult> GetForm16Summary(Guid employeeId, [FromQuery] int? financialYear = null)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var emp = await _db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.Id == employeeId && e.TenantId == tenantId && !e.IsDeleted);
+            if (emp == null) return NotFound(new { message = "Employee not found." });
+
+            var fy = financialYear ?? DateTime.UtcNow.Year;
+            var payslips = await _db.Payslips.AsNoTracking()
+                .Where(p => p.EmployeeId == employeeId && p.Year == fy && p.TenantId == tenantId && !p.IsDeleted)
+                .ToListAsync();
+
+            decimal totalGross = payslips.Sum(p => p.Gross);
+            decimal totalBasic = payslips.Sum(p => p.Basic);
+            decimal totalTdsDeducted = payslips.Sum(p => p.Tds);
+            decimal totalPf = payslips.Sum(p => p.PfEmployee);
+            decimal totalPt = payslips.Sum(p => p.ProfessionalTax);
+
+            var decl = await _db.TaxDeclarations.AsNoTracking()
+                .FirstOrDefaultAsync(d => d.EmployeeId == employeeId && d.FinancialYear == fy && d.TenantId == tenantId && !d.IsDeleted);
+
+            decimal sec80C = Math.Min(150000m, totalPf + (decl?.Section80C_Total ?? 0m));
+            decimal sec80D = Math.Min(25000m, decl?.Section80D_Total ?? 0m);
+            decimal otherDeductions = sec80C + sec80D + totalPt;
+
+            var taxResult = IndiaStatutoryCalculator.CalculateMonthlyTds(totalGross, TaxRegimeKind.New, otherDeductions, remainingMonths: 1);
+
+            return Ok(new
+            {
+                certificateType = "Form 16 Part B (Section 203)",
+                financialYear = $"{fy - 1}-{fy}",
+                assessmentYear = $"{fy}-{fy + 1}",
+                employee = new
+                {
+                    id = emp.Id,
+                    name = emp.FullName,
+                    pan = emp.Pan ?? "PAN_NOT_PROVIDED",
+                    code = emp.EmployeeCode,
+                    dateOfJoining = emp.DateOfJoining?.ToString("yyyy-MM-dd")
+                },
+                salaryIncome = new
+                {
+                    grossSalary = totalGross,
+                    basicSalary = totalBasic,
+                    allowancesExempt = 0m,
+                    standardDeduction = taxResult.StandardDeduction,
+                    netSalary = Math.Max(0m, totalGross - taxResult.StandardDeduction)
+                },
+                deductionsChapterVIA = new
+                {
+                    section80C = sec80C,
+                    section80D = sec80D,
+                    professionalTax = totalPt,
+                    totalDeductions = otherDeductions
+                },
+                taxComputation = new
+                {
+                    totalTaxableIncome = taxResult.TaxableIncome,
+                    taxOnTotalIncome = taxResult.AnnualTax,
+                    rebateUnder87A = taxResult.Rebate,
+                    healthAndEducationCess = Math.Round(taxResult.AnnualTax * IndiaStatutoryCalculator.CessRate, 2),
+                    totalTaxPayable = taxResult.AnnualTax,
+                    taxDeductedAtSource = totalTdsDeducted,
+                    netTaxPayableOrRefund = Math.Round(taxResult.AnnualTax - totalTdsDeducted, 2)
+                }
+            });
+        }
+
+        /// <summary>
+        /// Generates the official Form 24Q Quarterly TDS Return text export for NSDL / TRACES e-filing.
+        /// </summary>
+        [HttpGet("form24q/export")]
+        [Authorize(Roles = "SuperAdmin,Admin,HR Manager,HR")]
+        public async Task<IActionResult> ExportForm24Q([FromQuery] int quarter, [FromQuery] int? financialYear = null)
+        {
+            if (quarter < 1 || quarter > 4) return BadRequest(new { message = "Quarter must be between 1 and 4." });
+            var tenantId = _tenantAccessor.GetTenantId();
+            var fy = financialYear ?? DateTime.UtcNow.Year;
+
+            int[] months = quarter switch
+            {
+                1 => new[] { 4, 5, 6 },
+                2 => new[] { 7, 8, 9 },
+                3 => new[] { 10, 11, 12 },
+                _ => new[] { 1, 2, 3 }
+            };
+
+            var payslips = await _db.Payslips.AsNoTracking()
+                .Where(p => p.TenantId == tenantId && !p.IsDeleted && p.Year == fy && months.Contains(p.Month))
+                .ToListAsync();
+
+            var empIds = payslips.Select(p => p.EmployeeId).Distinct().ToList();
+            var employees = await _db.Employees.AsNoTracking()
+                .Where(e => empIds.Contains(e.Id) && e.TenantId == tenantId)
+                .ToDictionaryAsync(e => e.Id);
+
+            var sb = new StringBuilder();
+            sb.AppendLine($"FH^NSDL-24Q^1.0^1^{DateTime.UtcNow:yyyyMMdd}^UABINDIA^UABINDIA_ERP");
+            sb.AppendLine($"BH^1^1^24Q^{fy - 1}-{fy}^Q{quarter}^TAN_APPLIED_FOR^PAN_APPLIED_FOR^UABINDIA_ENTERPRISE");
+
+            int recordNo = 1;
+            foreach (var p in payslips)
+            {
+                employees.TryGetValue(p.EmployeeId, out var emp);
+                var pan = !string.IsNullOrWhiteSpace(emp?.Pan) ? emp.Pan.Trim().ToUpperInvariant() : "PANNOTAVBL";
+                var name = (emp?.FullName ?? "EMPLOYEE").Trim().ToUpperInvariant().Replace("^", " ");
+                var gross = (long)Math.Round(p.Gross, 0, MidpointRounding.AwayFromZero);
+                var tds = (long)Math.Round(p.Tds, 0, MidpointRounding.AwayFromZero);
+
+                sb.AppendLine($"DD^{recordNo}^{pan}^{name}^92B^{p.Year}{p.Month:D2}01^{gross}^{tds}^{tds}");
+                recordNo++;
+            }
+
+            var fileBytes = Encoding.UTF8.GetBytes(sb.ToString());
+            var fileName = $"FORM24Q_FY{fy - 1}_{fy}_Q{quarter}.txt";
+            return File(fileBytes, "text/plain", fileName);
+        }
+
         [HttpPost("filings")]
         [Authorize(Roles = "Admin,HR,Manager,SuperAdmin")]
         public IActionResult RecordFiling([FromBody] JsonElement payload)

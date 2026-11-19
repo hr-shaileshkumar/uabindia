@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using Hangfire;
 using UabIndia.Application.Interfaces;
 using UabIndia.Core.Entities;
 using UabIndia.Infrastructure.Data;
@@ -122,6 +123,32 @@ namespace UabIndia.Api.Modules.Payroll.Controllers
                     ? NotFound(new { message = ex.Message })
                     : BadRequest(new { message = ex.Message });
             }
+        }
+
+        /// <summary>POST api/v1/payroll/runs/{id}/queue-batch — offload large payroll run to background Hangfire worker</summary>
+        [HttpPost("{id:guid}/queue-batch")]
+        public async Task<IActionResult> QueueBatch(Guid id, [FromServices] IBackgroundJobClient backgroundJobs, CancellationToken ct)
+        {
+            var tenantId = _tenantAccessor.GetTenantId();
+            var run = await _db.PayrollRuns.FirstOrDefaultAsync(r => r.Id == id && r.TenantId == tenantId && !r.IsDeleted, ct);
+            if (run == null) return NotFound(new { message = "Payroll run not found." });
+            if (run.Status == "Completed") return BadRequest(new { message = "Payroll run is already completed." });
+            if (run.Status == "Processing") return BadRequest(new { message = "Payroll run is already being processed in the background." });
+
+            run.Status = "Processing";
+            run.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync(ct);
+
+            var jobId = backgroundJobs.Enqueue<IPayrollEngine>(engine => engine.CompleteRunAsync(id, CancellationToken.None));
+
+            return Accepted(new
+            {
+                message = "Payroll run queued for high-capacity asynchronous batch processing.",
+                runId = id,
+                jobId,
+                status = "Processing",
+                queue = "payroll"
+            });
         }
 
         /// <summary>POST api/v1/payroll/runs/{id}/revert — revert a completed run back to draft</summary>

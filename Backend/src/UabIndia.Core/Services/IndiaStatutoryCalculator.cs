@@ -29,6 +29,13 @@ namespace UabIndia.Core.Services
         public const decimal GratuityCeiling = 2000000m; // ₹20,00,000 (Twenty Lakhs)
         public const double GratuityQualifyingYears = 4.5d; // 5 years rule (4 years 240 days)
 
+        // Payment of Bonus Act, 1965 (Section 2(13) & Section 12)
+        public const decimal BonusEligibilityWageCeiling = 21000m; // ₹21,000 per month eligibility cap
+        public const decimal BonusStatutoryCalculationCeiling = 7000m; // ₹7,000 per month calculation ceiling
+        public const decimal BonusMinimumRate = 0.0833m; // 8.33% minimum statutory bonus
+        public const decimal BonusMaximumRate = 0.20m;   // 20.00% maximum statutory bonus
+        public const int BonusMinQualifyingWorkingDays = 30; // 30 days minimum service in accounting year
+
         // Vendor TDS Thresholds & Rates (Income Tax Act)
         public const decimal Tds194CSingleInvoiceThreshold = 30000m;
         public const decimal Tds194CAggregateThreshold = 100000m;
@@ -313,6 +320,128 @@ namespace UabIndia.Core.Services
             var er = RoundMoney(Math.Min(50m, ee * 2m));
             return new LwfContribution(ee, er, ee + er, true);
         }
+
+        /// <summary>
+        /// Calculates statutory annual bonus under the Payment of Bonus Act, 1965.
+        /// Eligibility: Monthly gross <= ₹21,000 and worked >= 30 days in accounting year.
+        /// Calculation ceiling: ₹7,000/month or state minimum wage, whichever is higher.
+        /// Statutory percentage: 8.33% (minimum) to 20.00% (maximum).
+        /// </summary>
+        public static BonusCalculationResult CalculateStatutoryBonus(
+            decimal monthlyBasic,
+            decimal monthlyGross,
+            int workingDaysInYear,
+            decimal bonusPercentage = 0.0833m,
+            decimal? stateMinimumWage = null)
+        {
+            var isEligibleBySalary = monthlyGross <= BonusEligibilityWageCeiling;
+            var isEligibleByDays = workingDaysInYear >= BonusMinQualifyingWorkingDays;
+            var isEligible = isEligibleBySalary && isEligibleByDays;
+
+            if (!isEligible)
+            {
+                return new BonusCalculationResult(
+                    IsEligible: false,
+                    BonusWagesPerMonth: 0m,
+                    AnnualBonusWages: 0m,
+                    BonusPercentage: bonusPercentage,
+                    BonusAmount: 0m,
+                    DisqualificationReason: !isEligibleBySalary
+                        ? $"Monthly gross (₹{monthlyGross:N2}) exceeds statutory eligibility ceiling of ₹{BonusEligibilityWageCeiling:N2}."
+                        : $"Working days ({workingDaysInYear}) are less than statutory threshold of {BonusMinQualifyingWorkingDays} days.");
+            }
+
+            var calculationCeiling = Math.Max(BonusStatutoryCalculationCeiling, stateMinimumWage ?? 0m);
+            var monthlyBonusWage = Math.Min(monthlyBasic > 0 ? monthlyBasic : monthlyGross, calculationCeiling);
+
+            var annualBonusWages = RoundMoney(monthlyBonusWage * 12m * (Math.Min(workingDaysInYear, 365) / 365m));
+            var effectiveRate = Math.Clamp(bonusPercentage, BonusMinimumRate, BonusMaximumRate);
+            var computedBonus = RoundMoney(annualBonusWages * effectiveRate);
+            var finalBonus = Math.Max(100m, computedBonus);
+
+            return new BonusCalculationResult(
+                IsEligible: true,
+                BonusWagesPerMonth: monthlyBonusWage,
+                AnnualBonusWages: annualBonusWages,
+                BonusPercentage: effectiveRate,
+                BonusAmount: finalBonus,
+                DisqualificationReason: null);
+        }
+
+        /// <summary>
+        /// Audits employee wage against state-notified Minimum Wages Act thresholds by skill classification.
+        /// Flags potential statutory non-compliance warnings if actual basic + DA falls below threshold.
+        /// </summary>
+        public static MinimumWageComplianceResult ValidateMinimumWage(
+            string? stateCode,
+            string? skillCategory,
+            decimal monthlyBasic,
+            decimal monthlyGross)
+        {
+            var state = (stateCode ?? "KA").Trim().ToUpperInvariant();
+            if (state.Length > 2) state = state[..2];
+
+            var skill = (skillCategory ?? "Skilled").Trim().ToLowerInvariant();
+            var minWage = GetStatutoryMinimumWage(state, skill);
+            var wage = monthlyBasic > 0 ? monthlyBasic : monthlyGross;
+
+            if (wage >= minWage)
+            {
+                return new MinimumWageComplianceResult(
+                    IsCompliant: true,
+                    StatutoryMinimumWage: minWage,
+                    ActualWage: wage,
+                    Shortfall: 0m,
+                    Message: "Compliant with State Minimum Wages Act notification.");
+            }
+
+            var shortfall = RoundMoney(minWage - wage);
+            return new MinimumWageComplianceResult(
+                IsCompliant: false,
+                StatutoryMinimumWage: minWage,
+                ActualWage: wage,
+                Shortfall: shortfall,
+                Message: $"Non-compliant: Wage (₹{wage:N2}) is below notified minimum wage (₹{minWage:N2}) for {state} [{skillCategory}]. Shortfall: ₹{shortfall:N2}.");
+        }
+
+        public static decimal GetStatutoryMinimumWage(string state, string skill)
+        {
+            return (state, skill) switch
+            {
+                ("KA", "unskilled") => 15400m,
+                ("KA", "semi-skilled") => 16600m,
+                ("KA", "skilled") => 18000m,
+                ("KA", "highly skilled") => 19800m,
+
+                ("MH", "unskilled") => 13800m,
+                ("MH", "semi-skilled") => 15200m,
+                ("MH", "skilled") => 16800m,
+                ("MH", "highly skilled") => 18500m,
+
+                ("DL", "unskilled") => 18066m,
+                ("DL", "semi-skilled") => 19929m,
+                ("DL", "skilled") => 21917m,
+                ("DL", "highly skilled") => 23500m,
+
+                ("TN", "unskilled") => 12500m,
+                ("TN", "semi-skilled") => 13800m,
+                ("TN", "skilled") => 15200m,
+                ("TN", "highly skilled") => 16800m,
+
+                ("WB", "unskilled") => 10200m,
+                ("WB", "semi-skilled") => 11300m,
+                ("WB", "skilled") => 12400m,
+                ("WB", "highly skilled") => 13800m,
+
+                _ => skill switch
+                {
+                    "unskilled" => 10000m,
+                    "semi-skilled" => 11500m,
+                    "highly skilled" => 15000m,
+                    _ => 13000m
+                }
+            };
+        }
     }
 
     public enum TaxRegimeKind
@@ -360,4 +489,19 @@ namespace UabIndia.Core.Services
         decimal EmployerContribution,
         decimal TotalContribution,
         bool IsDeductionMonth);
+
+    public readonly record struct BonusCalculationResult(
+        bool IsEligible,
+        decimal BonusWagesPerMonth,
+        decimal AnnualBonusWages,
+        decimal BonusPercentage,
+        decimal BonusAmount,
+        string? DisqualificationReason);
+
+    public readonly record struct MinimumWageComplianceResult(
+        bool IsCompliant,
+        decimal StatutoryMinimumWage,
+        decimal ActualWage,
+        decimal Shortfall,
+        string Message);
 }
