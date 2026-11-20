@@ -4,7 +4,6 @@ import {
   isLocalhostHostname,
   getTenantSubdomainFromHost,
   hasTenantScopedHost,
-  getActiveSystemBaseDomain,
   resolveTenantDisplayDomain,
 } from "@/lib/tenant-host";
 import {

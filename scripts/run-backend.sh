@@ -31,4 +31,7 @@ echo "  - http://localhost:5000"
 echo "  - https://localhost:5001"
 echo
 
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
+
 dotnet watch run --project Backend/src/UabIndia.Api/UabIndia.Api.csproj

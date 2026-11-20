@@ -3,6 +3,9 @@
 # Deploys Backend, Frontend, Redis, SQL Server, and Nginx without code changes.
 # ==============================================================================
 
+$repoRoot = Split-Path -Parent $PSScriptRoot
+if ($repoRoot) { Set-Location $repoRoot }
+
 Write-Host "======================================================================" -ForegroundColor Cyan
 Write-Host "🚀 UabIndia SaaS ERP - Universal Production Deployment" -ForegroundColor Cyan
 Write-Host "======================================================================" -ForegroundColor Cyan

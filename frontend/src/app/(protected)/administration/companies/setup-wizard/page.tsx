@@ -1,41 +1,24 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Building2,
-  FolderKanban,
-  SlidersHorizontal,
-  Layers,
   ArrowRight,
   ArrowLeft,
   ShieldCheck,
   ExternalLink,
-  Plus,
-  Calendar,
-  Briefcase,
-  CheckCircle2,
   Save,
   Clock,
-  Award,
   Globe,
-  MapPin,
-  Compass,
-  Landmark,
   Network,
-  Users,
   Check,
   Sparkles,
-  AlertCircle,
   Hash,
-  ChevronRight,
-  RefreshCw,
-  FileText,
 } from "lucide-react";
 import apiClient from "@/services/apiClient";
-import { useOrgContext } from "@/context/OrgContext";
-import { notifySuccess, notifyError } from "@/lib/notifications";
+import { notifySuccess } from "@/lib/notifications";
 
 export const MASTER_PREFIXES: Record<string, string> = {
   Country: "CTRY",
@@ -81,9 +64,7 @@ const STEPS = [
 
 export default function CompanySetupWizardPage() {
   const router = useRouter();
-  const { companyId } = useOrgContext();
   const [activeStep, setActiveStep] = useState(1);
-  const [loading, setLoading] = useState(false);
   const [companies, setCompanies] = useState<CompanyOption[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
 

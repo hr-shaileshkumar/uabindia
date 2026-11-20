@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { ArrowRight, ExternalLink, Eye, EyeOff, Loader2, LockKeyhole, Mail, Phone, User, Users } from "lucide-react";
+import { ArrowRight, ExternalLink, Eye, EyeOff, Loader2, LockKeyhole, Phone, User, Users } from "lucide-react";
 import PublicAudiencePageFrame from "@/components/public/PublicAudiencePageFrame";
 import PublicAuthAlert from "@/components/public/PublicAuthAlert";
 import PublicAuthCard, { PublicAuthFooterLink } from "@/components/public/PublicAuthCard";

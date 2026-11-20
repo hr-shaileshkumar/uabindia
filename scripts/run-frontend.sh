@@ -16,7 +16,8 @@ echo "npm version: $(npm --version)"
 
 echo
 echo "Entering frontend directory..."
-cd frontend
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT/frontend"
 
 if [ ! -d "node_modules" ]; then
     echo "Installing dependencies..."

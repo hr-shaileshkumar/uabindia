@@ -5,7 +5,6 @@ import {
   AUTH_PATH_PREFIXES,
   BUSINESS_PATH_PREFIXES,
   OWNER_PATH_PREFIXES,
-  PUBLIC_PATH_PREFIXES,
   matchesAnyPrefix,
 } from "@/lib/workspace/route-config";
 import { isPlatformOnlyPath, TENANT_PUBLIC_HOME } from "@/lib/workspace/public-routing";

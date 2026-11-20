@@ -215,7 +215,7 @@ const shouldAttachOrgScopeHeaders = (url?: string): boolean => {
   return !bypassPrefixes.some((prefix) => normalized.startsWith(prefix));
 };
 
-const isAuthEndpoint = (url?: string): boolean => {
+const _isAuthEndpoint = (url?: string): boolean => {
   if (!url) return false;
   let normalized = url.toLowerCase().replace(/^\/+/, "");
   if (normalized.startsWith("api/v1/")) normalized = normalized.slice(7);
@@ -367,7 +367,7 @@ apiClient.interceptors.request.use(
 
     const method = (config.method || "get").toLowerCase();
     const isStateChanging = ["post", "put", "patch", "delete"].includes(method);
-    const isCsrfEndpoint = typeof config.url === "string" && config.url.includes("/auth/csrf-token");
+    const _isCsrfEndpoint = typeof config.url === "string" && config.url.includes("/auth/csrf-token");
 
     // Standard correlation ID for distributed enterprise request tracing
     config.headers = config.headers || {};

@@ -9,7 +9,6 @@ import {
   Check,
   CheckCircle2,
   Copy,
-  ExternalLink,
   Globe,
   Loader2,
   Lock,
@@ -20,7 +19,6 @@ import {
   ShieldCheck,
   Sparkles,
   User,
-  Zap,
 } from "lucide-react";
 import apiClient, { setClientAuthToken } from "@/services/apiClient";
 import { notifyError, notifySuccess } from "@/lib/notifications";
@@ -51,7 +49,6 @@ const trialFeatures = [
 
 export default function RegisterPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const audience = "platform";
   const shell = usePublicPageData("register", audience);
 
@@ -215,6 +212,7 @@ export default function RegisterPage() {
         window.location.href = targetUrl.toString();
       }
     } catch {
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.href = `${successData.fullWorkspaceUrl}/dashboard`;
     }
   };

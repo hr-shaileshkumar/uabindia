@@ -34,7 +34,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
 
 echo.
 echo Entering frontend directory...
-cd frontend
+cd "%~dp0..\frontend"
 
 if not exist node_modules (
     echo Installing dependencies...
