@@ -140,5 +140,55 @@ namespace UabIndia.Tests
             // Assert: Standard UTC offset for IST is +05:30
             Assert.Equal(TimeSpan.FromHours(5.5), tz.BaseUtcOffset);
         }
+
+        [Fact]
+        public async Task HangfireJobService_SynthesizeDailyMissingPunches_DetectsSinglePunchAndQueuesRegularization()
+        {
+            // Arrange
+            var tenantId = Guid.NewGuid();
+            var employeeId = Guid.NewGuid();
+            var yesterday = DateTime.UtcNow.Date.AddDays(-1);
+
+            // Single IN punch without an OUT punch
+            var singlePunch = new AttendanceRecord
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                EmployeeId = employeeId,
+                PunchType = "IN",
+                Timestamp = yesterday.AddHours(9).AddMinutes(30),
+                IsDeleted = false
+            };
+
+            _db.AttendanceRecords.Add(singlePunch);
+            await _db.SaveChangesAsync();
+
+            // Background job context with tenant accessor empty
+            _tenantAccessor.SetTenantId(Guid.Empty);
+            var logger = NullLogger<HangfireJobService>.Instance;
+            var service = new HangfireJobService(logger, _db);
+
+            // Act
+            await service.SynthesizeDailyMissingPunchesAsync(yesterday);
+
+            // Assert: Regularization request created across tenant boundary
+            var regularization = await _db.AttendanceRegularizationRequests
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(r => r.TenantId == tenantId && r.EmployeeId == employeeId && r.AttendanceDate == yesterday);
+
+            Assert.NotNull(regularization);
+            Assert.Equal("MissingPunch", regularization.RequestType);
+            Assert.Equal("Pending", regularization.Status);
+            Assert.Contains("Incomplete biometric punch cycle detected", regularization.Reason);
+
+            // Assert: InApp notification dispatched
+            var notification = await _db.NotificationMessages
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(n => n.TenantId == tenantId && n.RecipientUserId == employeeId);
+
+            Assert.NotNull(notification);
+            Assert.Equal("AttendanceAnomaly", notification.Type);
+            Assert.Contains("Missing Punch Detected", notification.Title);
+        }
     }
 }

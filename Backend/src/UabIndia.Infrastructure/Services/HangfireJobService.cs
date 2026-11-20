@@ -495,5 +495,108 @@ namespace UabIndia.Infrastructure.Services
                 throw;
             }
         }
+
+        /// <summary>
+        /// Daily Automated Missing Punch Reconciliation Job.
+        /// Identifies employees with single punches (only IN or only OUT) for the target day (defaults to yesterday)
+        /// across all tenants and synthesizes AttendanceRegularizationRequests + notifications.
+        /// Runs daily at 00:30 AM.
+        /// </summary>
+        public async Task SynthesizeDailyMissingPunchesAsync(DateTime? targetDate = null)
+        {
+            try
+            {
+                var evalDate = (targetDate ?? DateTime.UtcNow.AddDays(-1)).Date;
+                var dayStart = evalDate;
+                var dayEnd = evalDate.AddDays(1).AddTicks(-1);
+
+                _logger.LogInformation("=== [START] Daily Missing Punch Reconciliation for {Date:yyyy-MM-dd} ===", evalDate);
+
+                // Find all punches for target date across all tenants
+                var punches = await _db.AttendanceRecords
+                    .IgnoreQueryFilters()
+                    .Where(a => !a.IsDeleted && a.Timestamp >= dayStart && a.Timestamp <= dayEnd)
+                    .Select(a => new { a.TenantId, a.EmployeeId, a.PunchType, a.Timestamp })
+                    .ToListAsync();
+
+                var grouped = punches
+                    .GroupBy(p => new { p.TenantId, p.EmployeeId })
+                    .ToList();
+
+                var anomaliesDetected = 0;
+                var regularizationsCreated = 0;
+
+                foreach (var group in grouped)
+                {
+                    var punchList = group.ToList();
+                    var hasIn = punchList.Any(p => string.Equals(p.PunchType, "IN", StringComparison.OrdinalIgnoreCase));
+                    var hasOut = punchList.Any(p => string.Equals(p.PunchType, "OUT", StringComparison.OrdinalIgnoreCase));
+                    var count = punchList.Count;
+
+                    // Single punch or missing pair anomaly
+                    if ((hasIn && !hasOut) || (hasOut && !hasIn) || count % 2 != 0)
+                    {
+                        anomaliesDetected++;
+
+                        // Check if regularization request already exists for this employee and date
+                        var exists = await _db.AttendanceRegularizationRequests
+                            .IgnoreQueryFilters()
+                            .AnyAsync(r => r.TenantId == group.Key.TenantId &&
+                                           r.EmployeeId == group.Key.EmployeeId &&
+                                           r.AttendanceDate.Date == evalDate &&
+                                           r.RequestType == "MissingPunch" &&
+                                           !r.IsDeleted);
+
+                        if (!exists)
+                        {
+                            var reg = new AttendanceRegularizationRequest
+                            {
+                                Id = Guid.NewGuid(),
+                                TenantId = group.Key.TenantId,
+                                EmployeeId = group.Key.EmployeeId,
+                                AttendanceDate = evalDate,
+                                RequestType = "MissingPunch",
+                                Reason = $"Automated system audit: Incomplete biometric punch cycle detected ({count} punch/es: {(hasIn ? "IN present" : "No IN")}, {(hasOut ? "OUT present" : "No OUT")}).",
+                                Status = "Pending",
+                                CreatedAt = DateTime.UtcNow,
+                                IsDeleted = false
+                            };
+
+                            _db.AttendanceRegularizationRequests.Add(reg);
+                            regularizationsCreated++;
+
+                            _db.NotificationMessages.Add(new NotificationMessage
+                            {
+                                Id = Guid.NewGuid(),
+                                TenantId = group.Key.TenantId,
+                                RecipientUserId = group.Key.EmployeeId,
+                                Channel = "InApp",
+                                Type = "AttendanceAnomaly",
+                                Title = $"⚠️ Missing Punch Detected ({evalDate:dd MMM yyyy})",
+                                Message = $"A missing punch anomaly was detected for {evalDate:dd MMM yyyy}. An automated regularization request #{reg.Id.ToString()[..8]} has been opened for employee/manager submission.",
+                                Status = "Sent",
+                                IsRead = false,
+                                SentAt = DateTime.UtcNow,
+                                CreatedAt = DateTime.UtcNow
+                            });
+                        }
+                    }
+                }
+
+                if (regularizationsCreated > 0)
+                {
+                    await _db.SaveChangesAsync();
+                }
+
+                _logger.LogInformation(
+                    "=== [COMPLETED] Daily Missing Punch Reconciliation: Evaluated {Groups} employee-days, found {Anomalies} anomalies, queued {Created} regularizations ===",
+                    grouped.Count, anomaliesDetected, regularizationsCreated);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during daily missing punch reconciliation");
+                throw;
+            }
+        }
     }
 }

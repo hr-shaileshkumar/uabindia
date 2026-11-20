@@ -248,6 +248,7 @@ END;
             await EnsureEnterprisePolicyTablesAsync(db, logger, cancellationToken);
             await EnsureStaffingPlansAndJobPostingsColumnsAsync(db, logger, cancellationToken);
             await EnsureCompOffAndLeaveEncashmentTablesAsync(db, logger, cancellationToken);
+            await EnsureDisciplinaryAndIndexOptimizationsAsync(db, logger, cancellationToken);
             await EnsureTenantWebhooksTablesAsync(db, logger, cancellationToken);
             await EnsureUiViewDefinitionsTableAsync(db, logger, cancellationToken);
             await EnsureUiPageDefinitionsTableAsync(db, logger, cancellationToken);
@@ -443,6 +444,7 @@ END;
         await EnsureDocumentTemplatesAndProjectBrandingAsync(db, logger, cancellationToken);
         await EnsureStaffingPlansAndJobPostingsColumnsAsync(db, logger, cancellationToken);
         await EnsureCompOffAndLeaveEncashmentTablesAsync(db, logger, cancellationToken);
+        await EnsureDisciplinaryAndIndexOptimizationsAsync(db, logger, cancellationToken);
         await MarkExtendedSchemaCurrentAsync(db, cancellationToken);
         logger?.LogInformation("Extended schema bootstrap complete ({Version}).", ExtendedSchemaVersion);
     }
@@ -3012,6 +3014,133 @@ END;";
         catch (Exception ex)
         {
             logger?.LogWarning(ex, "Failed to ensure CompOffRecords or LeaveEncashmentRequests tables.");
+        }
+    }
+
+    private static async Task EnsureDisciplinaryAndIndexOptimizationsAsync(
+        ApplicationDbContext db,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        const string sql = @"
+IF OBJECT_ID(N'[dbo].[DisciplinaryCases]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[DisciplinaryCases] (
+        [Id] uniqueidentifier NOT NULL DEFAULT NEWSEQUENTIALID(),
+        [TenantId] uniqueidentifier NOT NULL,
+        [EmployeeId] uniqueidentifier NOT NULL,
+        [CaseNumber] nvarchar(50) NOT NULL,
+        [Title] nvarchar(200) NOT NULL,
+        [Description] nvarchar(max) NOT NULL,
+        [IncidentDate] datetime2 NOT NULL,
+        [Severity] int NOT NULL DEFAULT 1,
+        [Status] int NOT NULL DEFAULT 0,
+        [ReportedBy] uniqueidentifier NULL,
+        [ReportedByName] nvarchar(200) NULL,
+        [CommitteeChairpersonId] uniqueidentifier NULL,
+        [CommitteeFindings] nvarchar(max) NULL,
+        [ClosedAt] datetime2 NULL,
+        [ClosedBy] uniqueidentifier NULL,
+        [BusinessId] nvarchar(100) NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [CreatedAt] datetime2 NOT NULL DEFAULT GETUTCDATE(),
+        [UpdatedAt] datetime2 NULL,
+        [IsDeleted] bit NOT NULL DEFAULT 0,
+        CONSTRAINT [PK_DisciplinaryCases] PRIMARY KEY ([Id])
+    );
+    CREATE INDEX [IX_DisciplinaryCases_Tenant_Emp] ON [dbo].[DisciplinaryCases] ([TenantId], [EmployeeId], [IsDeleted]);
+    CREATE INDEX [IX_DisciplinaryCases_Tenant_CaseNumber] ON [dbo].[DisciplinaryCases] ([TenantId], [CaseNumber]);
+END;
+
+IF OBJECT_ID(N'[dbo].[ShowCauseNotices]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[ShowCauseNotices] (
+        [Id] uniqueidentifier NOT NULL DEFAULT NEWSEQUENTIALID(),
+        [TenantId] uniqueidentifier NOT NULL,
+        [DisciplinaryCaseId] uniqueidentifier NOT NULL,
+        [NoticeNumber] nvarchar(200) NOT NULL,
+        [NoticeDate] datetime2 NOT NULL DEFAULT GETUTCDATE(),
+        [Subject] nvarchar(300) NOT NULL,
+        [Allegations] nvarchar(max) NOT NULL,
+        [ExplanationDueDate] datetime2 NOT NULL,
+        [EmployeeExplanation] nvarchar(max) NULL,
+        [ExplanationSubmittedAt] datetime2 NULL,
+        [IssuedBy] uniqueidentifier NULL,
+        [IssuedByName] nvarchar(200) NULL,
+        [BusinessId] nvarchar(100) NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [CreatedAt] datetime2 NOT NULL DEFAULT GETUTCDATE(),
+        [UpdatedAt] datetime2 NULL,
+        [IsDeleted] bit NOT NULL DEFAULT 0,
+        CONSTRAINT [PK_ShowCauseNotices] PRIMARY KEY ([Id])
+    );
+    CREATE INDEX [IX_ShowCauseNotices_Tenant_Case] ON [dbo].[ShowCauseNotices] ([TenantId], [DisciplinaryCaseId], [IsDeleted]);
+END;
+
+IF OBJECT_ID(N'[dbo].[DisciplinaryActions]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[DisciplinaryActions] (
+        [Id] uniqueidentifier NOT NULL DEFAULT NEWSEQUENTIALID(),
+        [TenantId] uniqueidentifier NOT NULL,
+        [DisciplinaryCaseId] uniqueidentifier NOT NULL,
+        [EmployeeId] uniqueidentifier NOT NULL,
+        [OrderNumber] nvarchar(50) NOT NULL,
+        [ActionType] int NOT NULL DEFAULT 1,
+        [OrderDate] datetime2 NOT NULL DEFAULT GETUTCDATE(),
+        [EffectiveDate] datetime2 NOT NULL,
+        [EndDate] datetime2 NULL,
+        [PenaltyDetails] nvarchar(max) NOT NULL,
+        [MonetaryFine] decimal(18,2) NULL,
+        [SuspensionDays] int NULL,
+        [DecidedBy] uniqueidentifier NULL,
+        [DecidedByName] nvarchar(200) NULL,
+        [BusinessId] nvarchar(100) NULL,
+        [CreatedBy] uniqueidentifier NULL,
+        [CreatedAt] datetime2 NOT NULL DEFAULT GETUTCDATE(),
+        [UpdatedAt] datetime2 NULL,
+        [IsDeleted] bit NOT NULL DEFAULT 0,
+        CONSTRAINT [PK_DisciplinaryActions] PRIMARY KEY ([Id])
+    );
+    CREATE INDEX [IX_DisciplinaryActions_Tenant_Case] ON [dbo].[DisciplinaryActions] ([TenantId], [DisciplinaryCaseId], [IsDeleted]);
+END;
+
+IF OBJECT_ID(N'[dbo].[AttendanceRecords]', N'U') IS NOT NULL
+   AND NOT EXISTS (
+       SELECT 1 FROM sys.default_constraints dc
+       JOIN sys.columns c ON dc.parent_object_id = c.object_id AND dc.parent_column_id = c.column_id
+       WHERE dc.parent_object_id = OBJECT_ID(N'[dbo].[AttendanceRecords]') AND c.name = 'Id'
+   )
+BEGIN
+    ALTER TABLE [dbo].[AttendanceRecords] ADD CONSTRAINT [DF_AttendanceRecords_Id] DEFAULT NEWSEQUENTIALID() FOR [Id];
+END;
+
+IF OBJECT_ID(N'[dbo].[AuditLogs]', N'U') IS NOT NULL
+   AND NOT EXISTS (
+       SELECT 1 FROM sys.default_constraints dc
+       JOIN sys.columns c ON dc.parent_object_id = c.object_id AND dc.parent_column_id = c.column_id
+       WHERE dc.parent_object_id = OBJECT_ID(N'[dbo].[AuditLogs]') AND c.name = 'Id'
+   )
+BEGIN
+    ALTER TABLE [dbo].[AuditLogs] ADD CONSTRAINT [DF_AuditLogs_Id] DEFAULT NEWSEQUENTIALID() FOR [Id];
+END;
+
+IF OBJECT_ID(N'[dbo].[StockMovements]', N'U') IS NOT NULL
+   AND NOT EXISTS (
+       SELECT 1 FROM sys.default_constraints dc
+       JOIN sys.columns c ON dc.parent_object_id = c.object_id AND dc.parent_column_id = c.column_id
+       WHERE dc.parent_object_id = OBJECT_ID(N'[dbo].[StockMovements]') AND c.name = 'Id'
+   )
+BEGIN
+    ALTER TABLE [dbo].[StockMovements] ADD CONSTRAINT [DF_StockMovements_Id] DEFAULT NEWSEQUENTIALID() FOR [Id];
+END;";
+
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "Failed to ensure Disciplinary tables or Sequential GUID constraints.");
         }
     }
 

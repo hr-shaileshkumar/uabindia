@@ -193,6 +193,11 @@ namespace UabIndia.Api.Services
                     service => service.EvaluateStatutoryComplianceDaily(),
                     Cron.Daily(0, 0),
                     new RecurringJobOptions { TimeZone = jobTimeZone });
+                RecurringJob.AddOrUpdate<HangfireJobService>(
+                    "daily-missing-punch-reconciliation",
+                    service => service.SynthesizeDailyMissingPunchesAsync(null),
+                    "30 0 * * *",
+                    new RecurringJobOptions { TimeZone = jobTimeZone });
             }
             catch (Exception ex)
             {

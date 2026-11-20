@@ -242,6 +242,11 @@ namespace UabIndia.Infrastructure.Data
         public DbSet<TrainingCertificate> TrainingCertificates { get; set; }
         public DbSet<TrainingRequest> TrainingRequests { get; set; }
 
+        // Disciplinary & Industrial Standing Orders Module
+        public DbSet<DisciplinaryCase> DisciplinaryCases { get; set; }
+        public DbSet<ShowCauseNotice> ShowCauseNotices { get; set; }
+        public DbSet<DisciplinaryAction> DisciplinaryActions { get; set; }
+
         // Shift Management Module
         public DbSet<Shift> Shifts { get; set; }
         public DbSet<ShiftAssignment> ShiftAssignments { get; set; }
@@ -390,6 +395,9 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<LeaveAllocation>().ToTable("LeaveAllocations");
             modelBuilder.Entity<CompOffRecord>().ToTable("CompOffRecords");
             modelBuilder.Entity<LeaveEncashmentRequest>().ToTable("LeaveEncashmentRequests");
+            modelBuilder.Entity<DisciplinaryCase>().ToTable("DisciplinaryCases");
+            modelBuilder.Entity<ShowCauseNotice>().ToTable("ShowCauseNotices");
+            modelBuilder.Entity<DisciplinaryAction>().ToTable("DisciplinaryActions");
             modelBuilder.Entity<Holiday>().ToTable("Holidays");
             modelBuilder.Entity<PayrollStructure>().ToTable("PayrollStructures");
             modelBuilder.Entity<PayrollComponent>().ToTable("PayrollComponents");
@@ -768,6 +776,9 @@ namespace UabIndia.Infrastructure.Data
             modelBuilder.Entity<LeaveAllocation>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<CompOffRecord>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<LeaveEncashmentRequest>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<DisciplinaryCase>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<ShowCauseNotice>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
+            modelBuilder.Entity<DisciplinaryAction>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<Holiday>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<PayrollStructure>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
             modelBuilder.Entity<PayrollComponent>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == _tenantAccessor.GetTenantId());
