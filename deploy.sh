@@ -77,7 +77,7 @@ echo -e "${BLUE}================================================================
 echo -e "${GREEN}🎉 UabIndia ERP deployed successfully without any code modifications!${NC}"
 echo -e "${BLUE}======================================================================${NC}"
 echo -e "Web Portal:        http://localhost"
-echo -e "HRMS Portal:       http://localhost/hrms/"
+echo -e "HRMS & Payroll:    http://localhost/hrms/"
 echo -e "REST API Docs:     http://localhost/swagger"
 echo -e "Health Endpoint:   http://localhost/health"
 echo -e ""

@@ -37,21 +37,13 @@ jobs:
           cache: 'npm'
 
       - name: Install frontend dependencies
-        run: |
-          npm --prefix frontend install
-          npm --prefix frontend-hrms install
+        run: npm --prefix frontend install
 
       - name: Lint frontend
-        run: |
-          npm --prefix frontend run lint
-          npm --prefix frontend-hrms run lint
+        run: npm --prefix frontend run lint
 
       - name: Typecheck frontend
-        run: |
-          npm --prefix frontend run typecheck
-          npm --prefix frontend-hrms run typecheck
+        run: npm --prefix frontend run typecheck
 
       - name: Build frontend
-        run: |
-          npm --prefix frontend run build
-          npm --prefix frontend-hrms run build
+        run: npm --prefix frontend run build

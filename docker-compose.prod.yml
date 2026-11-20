@@ -153,26 +153,6 @@ services:
       - uabindia_internal
 
   # ==============================================================================
-  # HRMS Specialized Web Portal (Vite React + Nginx)
-  # ==============================================================================
-  hrms:
-    build:
-      context: ./frontend-hrms
-      dockerfile: Dockerfile
-    container_name: uabindia_hrms
-    restart: always
-    mem_limit: 256m
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    depends_on:
-      - backend
-    networks:
-      - uabindia_internal
-
-  # ==============================================================================
   # Nginx Reverse Proxy & Load Balancer
   # ==============================================================================
   nginx:
@@ -188,7 +168,6 @@ services:
     depends_on:
       - backend
       - frontend
-      - hrms
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./certbot/conf:/etc/letsencrypt:ro

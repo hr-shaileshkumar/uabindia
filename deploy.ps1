@@ -53,7 +53,7 @@ Write-Host "====================================================================
 Write-Host "🎉 UabIndia ERP deployed successfully without any code modifications!" -ForegroundColor Green
 Write-Host "======================================================================" -ForegroundColor Green
 Write-Host "Web Portal:        http://localhost" -ForegroundColor Cyan
-Write-Host "HRMS Portal:       http://localhost/hrms/" -ForegroundColor Cyan
+Write-Host "HRMS & Payroll:    http://localhost/hrms/" -ForegroundColor Cyan
 Write-Host "REST API Docs:     http://localhost/swagger" -ForegroundColor Cyan
 Write-Host "Health Endpoint:   http://localhost/health" -ForegroundColor Cyan
 Write-Host ""
