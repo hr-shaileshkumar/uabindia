@@ -1,9 +1,18 @@
-# Enterprise Modular Platform Quick Start Script
+﻿# Enterprise Modular Platform Quick Start Script
 # Launches ASP.NET Core API (Port 5000) and Next.js Enterprise ERP Portal (Port 3000)
 
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host "🚀 Launching Enterprise Modular Platform (UabIndia)" -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Cyan
+
+# 0. Clean stale background listeners
+$stalePorts = @(5000, 3000)
+foreach ($port in $stalePorts) {
+    $proc = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique
+    if ($proc) {
+        Stop-Process -Id $proc -Force -ErrorAction SilentlyContinue
+    }
+}
 
 # 1. Start Backend API
 Write-Host "--> Starting ASP.NET Core API Backend (http://localhost:5000)..." -ForegroundColor Yellow
