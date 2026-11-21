@@ -24,20 +24,20 @@ export const publicGlassPanelClassName =
   "rounded-2xl border border-slate-200/80 bg-white/80 p-6 shadow-sm backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-900/80";
 
 export const publicSectionClassName =
-  "relative mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8";
+  "relative mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 xl:px-12";
 
-export const publicPageSectionClassName = "relative py-8 md:py-10 lg:py-12";
-export const publicSectionSpacingClassName = "relative py-8 md:py-10 lg:py-12";
-export const publicSectionContentGapClassName = "mt-6 sm:mt-8";
+export const publicPageSectionClassName = "relative py-10 md:py-14 lg:py-16";
+export const publicSectionSpacingClassName = "relative py-10 md:py-14 lg:py-16";
+export const publicSectionContentGapClassName = "mt-8 sm:mt-10";
 
 export const publicEyebrowClassName =
   "inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.16em] text-blue-600 dark:text-cyan-400";
 
 export const publicTitleClassName =
-  "text-balance text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl lg:text-[2.6rem] lg:leading-[1.15] dark:text-white";
+  "text-balance text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl lg:text-[2.85rem] xl:text-[3.25rem] lg:leading-[1.14] dark:text-white";
 
 export const publicSubtitleClassName =
-  "text-pretty max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg dark:text-slate-400";
+  "text-pretty max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg lg:text-xl dark:text-slate-400";
 
 export const publicGradientTextClassName =
   "bg-gradient-to-r from-blue-700 via-indigo-700 to-cyan-600 dark:from-blue-400 dark:via-indigo-300 dark:to-cyan-300 bg-clip-text text-transparent font-extrabold";

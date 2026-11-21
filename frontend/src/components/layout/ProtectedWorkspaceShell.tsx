@@ -440,7 +440,7 @@ export function ProtectedWorkspaceShell({ children }: { children: ReactNode }) {
   const workspaceScopeKey = `${companyId ?? ""}|${projectId ?? ""}|${financialYearKey ?? ""}`;
 
   return (
-    <div className={cn("fixed inset-0 flex flex-col overflow-hidden bg-background text-foreground", portal.shellClassName)}>
+    <div className={cn("erp-workspace-root fixed inset-0 flex flex-col overflow-hidden bg-background text-foreground", portal.shellClassName)}>
       <Header onMenuClick={handleShellMenuClick} />
       <div className="flex flex-1 min-h-0 overflow-hidden bg-slate-50/60 dark:bg-slate-950">
         <Sidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />

@@ -1,6 +1,7 @@
 "use client";
 
 import { type ReactNode } from "react";
+import Link from "next/link";
 import { Check, ShieldCheck } from "lucide-react";
 import type { PublicAudience } from "@/lib/public-audience";
 import PublicProductPreview from "@/components/public/PublicProductPreview";
@@ -93,23 +94,23 @@ export default function PublicAuthShell({
       />
 
       {/* Main Form Content */}
-      <main className="relative z-10 flex flex-1 items-center justify-center pt-4 pb-8 sm:pt-6 sm:pb-10 lg:pt-8 lg:pb-12">
-        <div className={cn(publicSectionClassName, "grid items-center gap-10 lg:grid-cols-2 lg:gap-14 xl:gap-20")}>
+      <main className="relative z-10 flex flex-1 items-center justify-center py-8 sm:py-12 lg:py-16">
+        <div className={cn(publicSectionClassName, "grid items-center gap-10 lg:grid-cols-[1.08fr_0.92fr] lg:gap-14 xl:gap-20")}>
           {/* Left Column / Marketing & Feature Card */}
           <aside className="hidden lg:flex lg:flex-col lg:justify-center">
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-blue-600 dark:text-cyan-400">
+            <p className="text-[11.5px] font-bold uppercase tracking-[0.16em] text-blue-600 dark:text-cyan-400">
               {panel.eyebrow}
             </p>
-            <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl dark:text-white">
+            <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl lg:text-[2.75rem] lg:leading-[1.16] dark:text-white">
               {panel.title}
             </h1>
-            <p className="mt-3 text-sm sm:text-base leading-relaxed text-slate-600 dark:text-slate-300">
+            <p className="mt-3.5 text-base leading-relaxed text-slate-600 sm:text-lg dark:text-slate-300">
               {panel.subtitle}
             </p>
 
             <ul className="mt-6 space-y-3">
               {panel.points.map((point) => (
-                <li key={point} className="flex items-center gap-2.5 text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
+                <li key={point} className="flex items-center gap-2.5 text-sm font-medium text-slate-700 dark:text-slate-300">
                   <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
                     <Check className="h-2.5 w-2.5 stroke-[3]" />
                   </span>
@@ -119,7 +120,7 @@ export default function PublicAuthShell({
             </ul>
 
             {/* Clean Abstract Dashboard Preview Card */}
-            <div className="mt-8 max-w-md">
+            <div className="mt-8 max-w-lg">
               <PublicProductPreview compact className="shadow-lg shadow-slate-900/5 dark:shadow-blue-950/20" />
             </div>
 
@@ -131,11 +132,33 @@ export default function PublicAuthShell({
           </aside>
 
           {/* Right Column / Auth Form Card */}
-          <div className="mx-auto w-full max-w-[420px] lg:mx-0 lg:max-w-none">
+          <div className="mx-auto w-full max-w-[460px] lg:mx-0 lg:max-w-none">
             {children}
           </div>
         </div>
       </main>
+
+      {/* Dedicated Enterprise Public Auth Footer */}
+      <footer className="relative z-10 border-t border-slate-200/80 bg-white/70 backdrop-blur-xs py-3.5 text-xs text-slate-500 dark:border-slate-800/80 dark:bg-slate-900/70 dark:text-slate-400">
+        <div className={cn(publicSectionClassName, "flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left")}>
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-[11.5px]">
+            <span className="font-semibold text-slate-700 dark:text-slate-300">UabIndia ERP Enterprise</span>
+            <span>•</span>
+            <span>Multi-Region Cloud Tier-IV</span>
+            <span>•</span>
+            <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              All Systems Operational
+            </span>
+          </div>
+          <div className="flex items-center gap-4 text-slate-500 dark:text-slate-400 text-[11.5px]">
+            <Link href="/privacy" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Terms of Service</Link>
+            <Link href="/helpdesk" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Support</Link>
+            <span>&copy; {new Date().getFullYear()} UabIndia Corp.</span>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

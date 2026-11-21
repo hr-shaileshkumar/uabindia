@@ -76,18 +76,18 @@ export function MarketingHero({
       <div
         className={cn(
           publicSectionClassName,
-          "relative grid items-center gap-10 pt-8 pb-14 sm:pt-12 sm:pb-16 md:pt-14 md:pb-20 lg:pt-14 lg:pb-20 lg:gap-14 xl:gap-18",
+          "relative grid items-center gap-10 pt-10 pb-16 sm:pt-14 sm:pb-20 md:pt-16 md:pb-24 lg:pt-16 lg:pb-24 lg:gap-14 xl:gap-20",
           showPreview ? "lg:grid-cols-[0.92fr_1.08fr] xl:grid-cols-[0.88fr_1.12fr]" : "",
         )}
       >
         <MotionReveal className={cn("flex flex-col justify-center", !showPreview && "mx-auto max-w-4xl text-center items-center")}>
           <p className={cn(publicEyebrowClassName, !showPreview && "justify-center")}>{eyebrow}</p>
-          <h1 className="mt-3.5 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl lg:text-[2.65rem] xl:text-[3.15rem] lg:leading-[1.16] dark:text-white">
+          <h1 className="mt-3.5 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl md:text-5xl lg:text-[3rem] xl:text-[3.5rem] lg:leading-[1.14] dark:text-white">
             {title}
           </h1>
           <p
             className={cn(
-              "mt-4 max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg dark:text-slate-300",
+              "mt-4 max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg lg:text-xl dark:text-slate-300",
               !showPreview && "mx-auto",
             )}
           >
