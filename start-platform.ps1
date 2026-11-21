@@ -1,4 +1,4 @@
-﻿# Enterprise Modular Platform Quick Start Script
+# Enterprise Modular Platform Quick Start Script
 # Launches ASP.NET Core API (Port 5000) and Next.js Enterprise ERP Portal (Port 3000)
 
 Write-Host "==========================================================" -ForegroundColor Cyan

@@ -73,7 +73,7 @@ export const hrmsSchemas: Record<string, PageSchema> = {
           key: "personal",
           label: "Personal Information",
           fields: [
-            { key: "fullName", label: "Full Name", type: "text", required: true, span: 2 },
+            { key: "fullName", label: "Full Name", type: "text", required: true, span: 1 },
             { key: "employeeCode", label: "Employee Code", type: "text", readOnly: true, required: false, placeholder: "⚡ Auto-generated on save", span: 1 },
             {
               key: "status",
@@ -144,6 +144,17 @@ export const hrmsSchemas: Record<string, PageSchema> = {
             { key: "bankName", label: "Bank Name", type: "text", span: 1 },
             { key: "bankAccountNumber", label: "Account Number", type: "text", span: 1 },
             { key: "bankIfsc", label: "IFSC Code", type: "text", span: 1 },
+            {
+              key: "paymentMode",
+              label: "Payment Mode",
+              type: "select",
+              options: [
+                { value: "BankTransfer", label: "Bank Transfer (NEFT/RTGS/IMPS)" },
+                { value: "Cheque", label: "Cheque" },
+                { value: "Cash", label: "Cash" },
+              ],
+              span: 1,
+            },
             { key: "basicSalary", label: "Basic Salary", type: "currency", span: 1 },
             { key: "monthlyCtc", label: "Monthly CTC (INR)", type: "currency", span: 1 },
           ],

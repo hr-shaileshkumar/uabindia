@@ -44,6 +44,25 @@ export type ApprovalRequestDto = {
   title?: string;
 };
 
+export function formatApprovalDate(dateVal?: string, includeTime = false): string {
+  if (!dateVal) return "—";
+  const trimmed = dateVal.trim();
+  if (!trimmed) return "—";
+  if (/^(today|yesterday|just now)/i.test(trimmed)) {
+    return trimmed;
+  }
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) {
+    return trimmed;
+  }
+  return parsed.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    ...(includeTime ? { hour: "2-digit", minute: "2-digit" } : {}),
+  });
+}
+
 export const CATEGORIES = [
   { id: "ALL", label: "All Requests", icon: Layers },
   { id: "Leave", label: "Leaves & Time", icon: Calendar },
@@ -425,7 +444,7 @@ export function ApprovalsWorkflowManager() {
                         {row.amount ? `₹${row.amount.toLocaleString("en-IN")}` : "—"}
                       </td>
                       <td className="px-4 py-3 font-mono text-[11px] text-slate-500 dark:text-slate-400">
-                        {row.requestedAt ? new Date(row.requestedAt).toLocaleDateString("en-IN") : "—"}
+                        {formatApprovalDate(row.requestedAt)}
                       </td>
                       <td className="px-4 py-3">
                         <StatusBadge

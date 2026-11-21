@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { ArrowRight, ExternalLink, Eye, EyeOff, Loader2, LockKeyhole, Phone, User, Users } from "lucide-react";
+import { ArrowRight, CheckCircle2, Eye, EyeOff, Loader2, LockKeyhole, Phone, User, Users } from "lucide-react";
 import PublicAudiencePageFrame from "@/components/public/PublicAudiencePageFrame";
 import PublicAuthAlert from "@/components/public/PublicAuthAlert";
 import PublicAuthCard, { PublicAuthFooterLink } from "@/components/public/PublicAuthCard";
@@ -332,15 +332,12 @@ export default function LoginPage() {
 
               <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
                 <span className="flex items-center gap-1.5 font-medium">
-                  <Users className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+                  <Users className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
                   HRMS & Workforce:
                 </span>
-                <a
-                  href={process.env.NEXT_PUBLIC_HRMS_URL || "http://localhost:3001"}
-                  className="inline-flex items-center gap-1 font-semibold text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 transition-colors"
-                >
-                  HRMS Portal <ExternalLink className="h-3 w-3" />
-                </a>
+                <span className="inline-flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Unified in ERP
+                </span>
               </div>
             </div>
           </form>

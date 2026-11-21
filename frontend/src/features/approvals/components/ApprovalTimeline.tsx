@@ -3,6 +3,7 @@
 import React from "react";
 import { CheckCircle2, Clock, Lock, User, AlertCircle, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatApprovalDate } from "./ApprovalsWorkflowManager";
 
 export interface WorkflowStepItem {
   stepNumber: number;
@@ -161,7 +162,7 @@ export function ApprovalTimeline({
                   </span>
                   {s.approverName && <span>• {s.approverName}</span>}
                   {s.actionDate && (
-                    <span>• {new Date(s.actionDate).toLocaleDateString("en-IN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                    <span>• {formatApprovalDate(s.actionDate, true)}</span>
                   )}
                 </div>
 
