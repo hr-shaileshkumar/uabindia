@@ -23,10 +23,12 @@ npm --version
 echo.
 echo Checking for an existing frontend process on port 3000...
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$pidOn3000 = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -First 1; " ^
-  "if ($pidOn3000) { " ^
-  "  Write-Host 'Stopping existing process on port 3000 (PID '$pidOn3000')...' -ForegroundColor Yellow; " ^
-  "  Stop-Process -Id $pidOn3000 -Force; " ^
+  "$pids = Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique; " ^
+  "if ($pids) { " ^
+  "  foreach ($pidVal in $pids) { " ^
+  "    Write-Host 'Stopping existing process on port 3000 (PID '$pidVal')...' -ForegroundColor Yellow; " ^
+  "    Stop-Process -Id $pidVal -Force -ErrorAction SilentlyContinue; " ^
+  "  } " ^
   "  Start-Sleep -Seconds 2; " ^
   "} else { " ^
   "  Write-Host 'No existing frontend process found on port 3000.'; " ^
@@ -39,6 +41,13 @@ cd "%~dp0..\frontend"
 if not exist node_modules (
     echo Installing dependencies...
     npm ci --legacy-peer-deps
+)
+
+if exist .next\BUILD_ID (
+    echo.
+    echo Detected production build cache in .next directory.
+    echo Cleaning .next cache for development mode to ensure 100%% fresh CSS and chunk assets...
+    powershell -NoProfile -Command "Remove-Item -Path .next -Recurse -Force -ErrorAction SilentlyContinue"
 )
 
 echo.
