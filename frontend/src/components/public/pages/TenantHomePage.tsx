@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { CircleCheckBig, LifeBuoy, UsersRound, WalletCards, ShieldCheck, ArrowRight, BellRing } from "lucide-react";
-import { MarketingHero } from "@/components/public/PublicMarketingBlocks";
+import { FaqAccordion, MarketingHero, TestimonialGrid } from "@/components/public/PublicMarketingBlocks";
 import PublicAudiencePageFrame from "@/components/public/PublicAudiencePageFrame";
 import { PublicPageLoading } from "@/components/public/PublicPageLoading";
 import {
@@ -38,6 +38,9 @@ export type HomeContent = {
   }>;
   showHighlights?: boolean;
   highlights?: string[];
+  faqs?: Array<{ question: string; answer: string; category?: string }>;
+  testimonials?: Array<{ name: string; role: string; company: string; quote: string; rating?: number; avatarUrl?: string }>;
+  b2bStorefront?: { enabled: boolean; mode?: "rfq" | "direct" };
 };
 
 export default function TenantHomePage() {
@@ -264,6 +267,25 @@ export default function TenantHomePage() {
             </div>
           </div>
         </section>
+      ) : null}
+      {/* Testimonials Block */}
+      {content.testimonials && content.testimonials.length > 0 ? (
+        <TestimonialGrid
+          testimonials={content.testimonials}
+          title="What Our Clients Say"
+          eyebrow="CLIENT EXPERIENCES"
+          subtitle={`Discover why industry leaders partner with ${companyDisplayName}.`}
+        />
+      ) : null}
+
+      {/* Frequently Asked Questions */}
+      {content.faqs && content.faqs.length > 0 ? (
+        <FaqAccordion
+          items={content.faqs}
+          title="Frequently Asked Questions"
+          eyebrow="PORTAL HELP & POLICIES"
+          subtitle={`Common answers about ${companyDisplayName} workspaces, HR policies, and employee services.`}
+        />
       ) : null}
     </PublicAudiencePageFrame>
   );

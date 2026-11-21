@@ -21,12 +21,20 @@ import {
   LifeBuoy,
   ShieldCheck,
   ArrowRight,
+  HelpCircle,
+  MessageSquareQuote,
+  Layers,
+  ShoppingCart,
+  Plus,
+  Trash2,
+  Star,
 } from "lucide-react";
 import apiClient from "@/services/apiClient";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
+import MediaUploadDropzone from "@/components/ui/MediaUploadDropzone";
 
-type CustomizerTab = "hero" | "branding" | "announcement" | "quickAccess" | "highlights";
+type CustomizerTab = "hero" | "branding" | "blocks" | "storefront" | "announcement" | "quickAccess" | "highlights";
 
 const COLOR_PRESETS = [
   { name: "Sapphire Blue", primary: "#2563eb", accent: "#3b82f6" },
@@ -82,6 +90,27 @@ export default function WebsiteCustomizer({ defaultTab = "hero" }: { defaultTab?
   const [highlight2, setHighlight2] = useState("Apply for leaves, track approvals, and review shift schedules");
   const [highlight3, setHighlight3] = useState("Read real-time organizational circulars and announcements");
   const [highlight4, setHighlight4] = useState("Submit helpdesk queries and IT service tickets securely");
+
+  // Enterprise Blocks State
+  const [faqs, setFaqs] = useState<{ question: string; answer: string; category?: string }[]>([
+    { question: "How does multi-tenant data sovereignty work in UabIndia ERP?", answer: "Each tenant workspace runs isolated schema partitioning with dedicated encryption keys and ISO-27001 audit logging.", category: "Security" },
+    { question: "Can we integrate biometric attendance hardware directly?", answer: "Yes, our attendance engine connects with Essl, ZKTeco, and biometric push APIs with real-time punch synchronization.", category: "HRMS" },
+    { question: "Are Indian statutory PF, ESIC, and TDS tax rules pre-configured?", answer: "Yes, all current EPFO wage ceilings (₹15,000), ESIC gross ceilings (₹21,000), and Form 16 / TDS regimes are built-in.", category: "Payroll" },
+  ]);
+  const [newFaqQ, setNewFaqQ] = useState("");
+  const [newFaqA, setNewFaqA] = useState("");
+
+  const [testimonials, setTestimonials] = useState<{ name: string; role: string; company: string; quote: string; rating: number }[]>([
+    { name: "Rajesh Malhotra", role: "Chief Operating Officer", company: "Apex Logistics India", quote: "Migrating our multi-location branches to UabIndia ERP cut our month-end payroll and dispatch cycle from 4 days to 45 minutes.", rating: 5 },
+    { name: "Pooja Sundaram", role: "VP of Human Capital", company: "NextGen Mobility Corp", quote: "The employee self-service portal and biometric punch sync reduced attendance disputes by over 90%.", rating: 5 },
+  ]);
+  const [newTestimonialName, setNewTestimonialName] = useState("");
+  const [newTestimonialRole, setNewTestimonialRole] = useState("");
+  const [newTestimonialCompany, setNewTestimonialCompany] = useState("");
+  const [newTestimonialQuote, setNewTestimonialQuote] = useState("");
+
+  const [b2bStorefrontEnabled, setB2bStorefrontEnabled] = useState(true);
+  const [storefrontMode, setStorefrontMode] = useState<"rfq" | "direct">("rfq");
 
   // Load existing data
   useEffect(() => {
@@ -151,6 +180,13 @@ export default function WebsiteCustomizer({ defaultTab = "hero" }: { defaultTab?
                 if (c.highlights[2]) setHighlight3(c.highlights[2]);
                 if (c.highlights[3]) setHighlight4(c.highlights[3]);
               }
+
+              if (Array.isArray(c.faqs) && c.faqs.length > 0) setFaqs(c.faqs);
+              if (Array.isArray(c.testimonials) && c.testimonials.length > 0) setTestimonials(c.testimonials);
+              if (c.b2bStorefront) {
+                if (c.b2bStorefront.enabled !== undefined) setB2bStorefrontEnabled(Boolean(c.b2bStorefront.enabled));
+                if (c.b2bStorefront.mode) setStorefrontMode(c.b2bStorefront.mode);
+              }
             } catch {
               // fallback
             }
@@ -202,6 +238,12 @@ export default function WebsiteCustomizer({ defaultTab = "hero" }: { defaultTab?
         ],
         showHighlights,
         highlights: [highlight1, highlight2, highlight3, highlight4].filter(Boolean),
+        faqs,
+        testimonials,
+        b2bStorefront: {
+          enabled: b2bStorefrontEnabled,
+          mode: storefrontMode,
+        },
       };
 
       // 1. Save Website Page with auto-publish
@@ -304,10 +346,12 @@ export default function WebsiteCustomizer({ defaultTab = "hero" }: { defaultTab?
         {/* Controls Column */}
         <div className="lg:col-span-6 space-y-5">
           {/* Tabs */}
-          <div className="flex rounded-xl bg-slate-100 p-1 dark:bg-slate-850">
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-850">
             {[
               { id: "hero", label: "Hero & Copy", icon: Layout },
-              { id: "branding", label: "Theme & Logo", icon: Palette },
+              { id: "branding", label: "Branding", icon: Palette },
+              { id: "blocks", label: "Blocks (FAQ/Reviews)", icon: Layers },
+              { id: "storefront", label: "B2B Catalog", icon: ShoppingCart },
               { id: "announcement", label: "Notice Bar", icon: BellRing },
               { id: "quickAccess", label: "Services", icon: Sparkles },
             ].map((tab) => (
@@ -316,14 +360,14 @@ export default function WebsiteCustomizer({ defaultTab = "hero" }: { defaultTab?
                 type="button"
                 onClick={() => setActiveTab(tab.id as CustomizerTab)}
                 className={cn(
-                  "flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-xs font-semibold transition-all",
+                  "flex items-center justify-center gap-1.5 rounded-lg py-2 px-1 text-center text-[11px] font-semibold transition-all truncate",
                   activeTab === tab.id
                     ? "bg-white text-slate-900 shadow-xs dark:bg-slate-800 dark:text-white font-bold"
                     : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                 )}
               >
-                <tab.icon className="h-3.5 w-3.5" />
-                <span>{tab.label}</span>
+                <tab.icon className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{tab.label}</span>
               </button>
             ))}
           </div>
@@ -464,23 +508,13 @@ export default function WebsiteCustomizer({ defaultTab = "hero" }: { defaultTab?
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Logo Image URL
-                </label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="text"
-                    value={logoUrl}
-                    onChange={(e) => setLogoUrl(e.target.value)}
-                    placeholder="https://.../logo.png"
-                    className="flex-1 rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-blue-600 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                  />
-                  {logoUrl ? (
-                    <div className="flex h-10 w-16 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 p-1">
-                      <img src={logoUrl} alt="Preview" className="max-h-full max-w-full object-contain" />
-                    </div>
-                  ) : null}
-                </div>
+                <MediaUploadDropzone
+                  label="Corporate Brand Logo"
+                  value={logoUrl}
+                  onChange={setLogoUrl}
+                  aspectRatio="square"
+                  helperText="Upload PNG, SVG, or WebP logo (up to 5MB) or pick an enterprise preset"
+                />
               </div>
 
               {/* Color Presets */}
@@ -589,6 +623,282 @@ export default function WebsiteCustomizer({ defaultTab = "hero" }: { defaultTab?
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Tab: Enterprise Blocks (FAQ & Testimonials) */}
+          {activeTab === "blocks" && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-6 dark:border-slate-800 dark:bg-slate-900">
+              <div>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                    <HelpCircle className="h-4 w-4 text-blue-600 dark:text-cyan-400" />
+                    <span>Frequently Asked Questions (FAQ)</span>
+                  </h2>
+                  <span className="text-xs text-slate-500 font-medium">{faqs.length} Questions</span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Pre-built accordion blocks that resolve visitor concerns and boost conversion.
+                </p>
+
+                {/* FAQ List */}
+                <div className="mt-4 space-y-2.5">
+                  {faqs.map((faq, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3 text-xs dark:border-slate-800 dark:bg-slate-800/50"
+                    >
+                      <div className="flex-1 space-y-1">
+                        <p className="font-bold text-slate-900 dark:text-slate-100">{faq.question}</p>
+                        <p className="text-slate-600 dark:text-slate-400 leading-relaxed">{faq.answer}</p>
+                        {faq.category && (
+                          <span className="inline-block rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                            {faq.category}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setFaqs(faqs.filter((_, i) => i !== idx))}
+                        className="rounded-lg p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/60 transition-colors"
+                        title="Delete FAQ"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Add New FAQ Form */}
+                <div className="mt-4 rounded-xl border border-dashed border-slate-300 p-3 dark:border-slate-700 bg-white dark:bg-slate-900 space-y-2.5">
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Add New FAQ</span>
+                  <input
+                    type="text"
+                    value={newFaqQ}
+                    onChange={(e) => setNewFaqQ(e.target.value)}
+                    placeholder="Enter question (e.g. Is biometric attendance hardware supported?)"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  />
+                  <textarea
+                    rows={2}
+                    value={newFaqA}
+                    onChange={(e) => setNewFaqA(e.target.value)}
+                    placeholder="Enter clear, concise answer..."
+                    className="w-full rounded-lg border border-slate-200 p-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white resize-none"
+                  />
+                  <button
+                    type="button"
+                    disabled={!newFaqQ.trim() || !newFaqA.trim()}
+                    onClick={() => {
+                      if (!newFaqQ.trim() || !newFaqA.trim()) return;
+                      setFaqs([...faqs, { question: newFaqQ.trim(), answer: newFaqA.trim(), category: "General" }]);
+                      setNewFaqQ("");
+                      setNewFaqA("");
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-blue-700 disabled:opacity-40 transition-all"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>Add Question</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Testimonials Section */}
+              <div className="border-t border-slate-100 pt-5 dark:border-slate-800">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                    <MessageSquareQuote className="h-4 w-4 text-amber-500" />
+                    <span>Client Testimonials & Social Proof</span>
+                  </h2>
+                  <span className="text-xs text-slate-500 font-medium">{testimonials.length} Reviews</span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Verified enterprise customer stories with 5-star ratings displayed in modern grid cards.
+                </p>
+
+                {/* Testimonials List */}
+                <div className="mt-4 space-y-2.5">
+                  {testimonials.map((t, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3 text-xs dark:border-slate-800 dark:bg-slate-800/50"
+                    >
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center gap-1 text-amber-500">
+                          {Array.from({ length: t.rating ?? 5 }).map((_, i) => (
+                            <Star key={i} className="h-3 w-3 fill-amber-400 stroke-amber-500" />
+                          ))}
+                        </div>
+                        <p className="italic text-slate-700 dark:text-slate-300">&ldquo;{t.quote}&rdquo;</p>
+                        <p className="font-semibold text-slate-900 dark:text-slate-100">
+                          {t.name} · <span className="text-slate-500">{t.role}, {t.company}</span>
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setTestimonials(testimonials.filter((_, i) => i !== idx))}
+                        className="rounded-lg p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/60 transition-colors"
+                        title="Delete Testimonial"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Add Testimonial Form */}
+                <div className="mt-4 rounded-xl border border-dashed border-slate-300 p-3 dark:border-slate-700 bg-white dark:bg-slate-900 space-y-2.5">
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Add Testimonial</span>
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    <input
+                      type="text"
+                      value={newTestimonialName}
+                      onChange={(e) => setNewTestimonialName(e.target.value)}
+                      placeholder="Client Name (e.g. Ramesh Gupta)"
+                      className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                    />
+                    <input
+                      type="text"
+                      value={newTestimonialRole}
+                      onChange={(e) => setNewTestimonialRole(e.target.value)}
+                      placeholder="Role (e.g. Operations Director)"
+                      className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                    />
+                    <input
+                      type="text"
+                      value={newTestimonialCompany}
+                      onChange={(e) => setNewTestimonialCompany(e.target.value)}
+                      placeholder="Company (e.g. Tata Projects)"
+                      className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                    />
+                  </div>
+                  <textarea
+                    rows={2}
+                    value={newTestimonialQuote}
+                    onChange={(e) => setNewTestimonialQuote(e.target.value)}
+                    placeholder="Testimonial quote text..."
+                    className="w-full rounded-lg border border-slate-200 p-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white resize-none"
+                  />
+                  <button
+                    type="button"
+                    disabled={!newTestimonialName.trim() || !newTestimonialQuote.trim()}
+                    onClick={() => {
+                      if (!newTestimonialName.trim() || !newTestimonialQuote.trim()) return;
+                      setTestimonials([
+                        ...testimonials,
+                        {
+                          name: newTestimonialName.trim(),
+                          role: newTestimonialRole.trim() || "Executive",
+                          company: newTestimonialCompany.trim() || "Enterprise Partner",
+                          quote: newTestimonialQuote.trim(),
+                          rating: 5,
+                        },
+                      ]);
+                      setNewTestimonialName("");
+                      setNewTestimonialRole("");
+                      setNewTestimonialCompany("");
+                      setNewTestimonialQuote("");
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-blue-700 disabled:opacity-40 transition-all"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>Add Testimonial</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tab: B2B Storefront & Catalog */}
+          {activeTab === "storefront" && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-5 dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                    <ShoppingCart className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>Public B2B Storefront & RFQ Catalog</span>
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Enable public visitors and registered B2B clients to browse your products and request bulk quotations.
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={b2bStorefrontEnabled}
+                    onChange={(e) => setB2bStorefrontEnabled(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+
+              {b2bStorefrontEnabled && (
+                <div className="space-y-4 pt-2">
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/20">
+                    <h3 className="text-xs font-bold text-emerald-900 dark:text-emerald-200">
+                      Storefront Catalog Endpoint Active
+                    </h3>
+                    <p className="mt-1 text-xs text-emerald-800/80 dark:text-emerald-300/80">
+                      Your public catalog is live at <span className="font-mono font-semibold">/products</span> with live category filters, stock indicators, and instant RFQ submission.
+                    </p>
+                    <div className="mt-3">
+                      <a
+                        href="/products"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-emerald-700 transition-all"
+                      >
+                        <span>Open Live Catalog (/products)</span>
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                      Storefront Ordering Mode
+                    </label>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div
+                        onClick={() => setStorefrontMode("rfq")}
+                        className={cn(
+                          "cursor-pointer rounded-xl border p-3 transition-all",
+                          storefrontMode === "rfq"
+                            ? "border-blue-600 bg-blue-50/50 dark:border-blue-500 dark:bg-blue-950/40"
+                            : "border-slate-200 dark:border-slate-800"
+                        )}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-900 dark:text-white">Request for Quote (RFQ)</span>
+                          {storefrontMode === "rfq" && <Check className="h-4 w-4 text-blue-600" />}
+                        </div>
+                        <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                          Clients add items to an RFQ Drawer and submit bulk quotation requests directly into your ERP CRM. Recommended for B2B.
+                        </p>
+                      </div>
+
+                      <div
+                        onClick={() => setStorefrontMode("direct")}
+                        className={cn(
+                          "cursor-pointer rounded-xl border p-3 transition-all",
+                          storefrontMode === "direct"
+                            ? "border-blue-600 bg-blue-50/50 dark:border-blue-500 dark:bg-blue-950/40"
+                            : "border-slate-200 dark:border-slate-800"
+                        )}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-900 dark:text-white">Direct PO Checkout</span>
+                          {storefrontMode === "direct" && <Check className="h-4 w-4 text-blue-600" />}
+                        </div>
+                        <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                          Clients generate instant Purchase Orders (PO) linked to standard unit prices and dispatch terms.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -891,6 +1201,38 @@ export default function WebsiteCustomizer({ defaultTab = "hero" }: { defaultTab?
                       <p className="text-[9px] text-slate-500 line-clamp-2 mt-0.5">{quickTile4Desc}</p>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* Mock Storefront Strip */}
+              {b2bStorefrontEnabled && (
+                <div className="border-t border-slate-100 bg-emerald-50/70 p-2.5 px-3 dark:border-slate-800 dark:bg-emerald-950/30">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="font-bold text-emerald-900 dark:text-emerald-300 flex items-center gap-1.5">
+                      <ShoppingCart className="h-3 w-3" />
+                      <span>Live B2B Storefront & RFQ</span>
+                    </span>
+                    <span className="font-semibold text-emerald-700 dark:text-emerald-400">/products →</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Mock Testimonial preview */}
+              {testimonials.length > 0 && (
+                <div className="border-t border-slate-100 p-2.5 px-3 bg-slate-50/40 dark:border-slate-800 dark:bg-slate-900/30">
+                  <div className="flex items-center gap-1 text-amber-500">
+                    <Star className="h-2.5 w-2.5 fill-amber-400 stroke-amber-500" />
+                    <Star className="h-2.5 w-2.5 fill-amber-400 stroke-amber-500" />
+                    <Star className="h-2.5 w-2.5 fill-amber-400 stroke-amber-500" />
+                    <Star className="h-2.5 w-2.5 fill-amber-400 stroke-amber-500" />
+                    <Star className="h-2.5 w-2.5 fill-amber-400 stroke-amber-500" />
+                    <span className="text-[9px] font-bold text-slate-700 dark:text-slate-300 ml-1">
+                      {testimonials[0].company}
+                    </span>
+                  </div>
+                  <p className="text-[9px] text-slate-500 italic mt-0.5 line-clamp-1">
+                    &ldquo;{testimonials[0].quote}&rdquo;
+                  </p>
                 </div>
               )}
 

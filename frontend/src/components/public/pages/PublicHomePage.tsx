@@ -5,8 +5,10 @@ import Link from "next/link";
 import { ArrowRight, Check } from "lucide-react";
 import {
   CtaPanel,
+  FaqAccordion,
   MarketingHero,
   ModuleGrid,
+  TestimonialGrid,
   TrustRibbon,
 } from "@/components/public/PublicMarketingBlocks";
 import PublicStructuredData from "@/components/public/PublicStructuredData";
@@ -236,6 +238,57 @@ export default function PlatformHomePage() {
         modules={displayedModules}
         title="Modules that work alone — and better together"
         subtitle="Launch with the functions you need today. Add more when your team is ready."
+      />
+
+      <TestimonialGrid
+        testimonials={[
+          {
+            name: "Rajesh Malhotra",
+            role: "Chief Operating Officer",
+            company: "Apex Logistics India",
+            quote: "Migrating our multi-location branches to UabIndia ERP cut our month-end payroll and dispatch cycle from 4 days to 45 minutes.",
+            rating: 5,
+          },
+          {
+            name: "Pooja Sundaram",
+            role: "VP of Human Capital",
+            company: "NextGen Mobility Corp",
+            quote: "The employee self-service portal and biometric punch sync reduced attendance disputes by over 90%. Our HR team saved 20+ hours every week.",
+            rating: 5,
+          },
+          {
+            name: "Vikram Singhal",
+            role: "Chief Financial Officer",
+            company: "Bharat Infra Engineering",
+            quote: "Having automated GST e-invoicing, TDS deductions, and vendor PO matching in one unified database eliminated all audit reconciliation headaches.",
+            rating: 5,
+          },
+        ]}
+      />
+
+      <FaqAccordion
+        items={[
+          {
+            question: "How does multi-tenant data sovereignty work in UabIndia ERP?",
+            answer: "Each tenant workspace runs isolated schema partitioning with dedicated encryption keys and ISO-27001 audit logging. Your enterprise data is sovereign and strictly separated.",
+            category: "Security",
+          },
+          {
+            question: "Can we integrate biometric attendance hardware directly?",
+            answer: "Yes, our attendance engine connects with Essl, ZKTeco, and biometric push APIs with real-time punch synchronization across multiple branch offices and plants.",
+            category: "HRMS",
+          },
+          {
+            question: "Are Indian statutory PF, ESIC, and TDS tax rules pre-configured?",
+            answer: "Yes, all current EPFO wage ceilings (₹15,000), ESIC gross ceilings (₹21,000), Professional Tax by state, and Form 16 / TDS regimes are built-in and auto-updated.",
+            category: "Payroll",
+          },
+          {
+            question: "Can we publish a public B2B product catalog with Request for Quotation (RFQ)?",
+            answer: "Yes, every tenant can enable a live B2B product storefront with real-time stock levels, category filters, and an interactive RFQ Drawer that drops quotation leads directly into the ERP CRM pipeline.",
+            category: "Commerce",
+          },
+        ]}
       />
 
       <CtaPanel

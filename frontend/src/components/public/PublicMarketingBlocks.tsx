@@ -2,7 +2,7 @@
 
 import React, { useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, Boxes, Check, CheckCircle2, Globe, Receipt, Server, ShieldCheck, Sparkles, Users, Zap } from "lucide-react";
+import { ArrowRight, Boxes, Check, CheckCircle2, ChevronDown, ChevronUp, Globe, HelpCircle, MessageSquareQuote, Receipt, Server, ShieldCheck, Sparkles, Star, Users, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MotionReveal } from "@/components/public/PublicMotion";
 import PublicProductPreview from "@/components/public/PublicProductPreview";
@@ -593,6 +593,143 @@ export function CtaPanel({
               </Link>
             ) : null}
           </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export interface FaqItem {
+  question: string;
+  answer: string;
+  category?: string;
+}
+
+export function FaqAccordion({
+  items,
+  title = "Frequently Asked Questions",
+  eyebrow = "CLEAR ANSWERS",
+  subtitle = "Everything you need to know about rollout, compliance, and enterprise deployment.",
+}: {
+  items: FaqItem[];
+  title?: string;
+  eyebrow?: string;
+  subtitle?: string;
+}) {
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
+
+  const toggleItem = (idx: number) => {
+    setOpenIndex((prev) => (prev === idx ? null : idx));
+  };
+
+  return (
+    <section className={publicSectionSpacingClassName}>
+      <div className={publicSectionClassName}>
+        <SectionIntro eyebrow={eyebrow} title={title} subtitle={subtitle} align="center" />
+        <div className="mx-auto mt-8 sm:mt-10 max-w-3xl space-y-3">
+          {items.map((item, idx) => {
+            const isOpen = openIndex === idx;
+            return (
+              <div
+                key={idx}
+                className={cn(
+                  "overflow-hidden rounded-2xl border transition-all duration-200",
+                  isOpen
+                    ? "border-blue-300 bg-white shadow-xs dark:border-blue-900/60 dark:bg-slate-900"
+                    : "border-slate-200 bg-white/70 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/40"
+                )}
+              >
+                <button
+                  type="button"
+                  onClick={() => toggleItem(idx)}
+                  className="flex w-full items-center justify-between p-4 sm:p-5 text-left text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100"
+                >
+                  <span className="flex items-center gap-2.5">
+                    <HelpCircle className="h-4 w-4 shrink-0 text-blue-600 dark:text-cyan-400" />
+                    <span>{item.question}</span>
+                  </span>
+                  <span className="ml-4 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                    {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </span>
+                </button>
+                {isOpen && (
+                  <div className="border-t border-slate-100 dark:border-slate-800/80 px-4 pb-5 pt-3 sm:px-5 sm:pb-6 text-xs sm:text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                    <p>{item.answer}</p>
+                    {item.category && (
+                      <span className="mt-3 inline-block rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+                        {item.category}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export interface TestimonialItem {
+  name: string;
+  role: string;
+  company: string;
+  quote: string;
+  rating?: number;
+  avatarUrl?: string;
+}
+
+export function TestimonialGrid({
+  testimonials,
+  title = "Trusted by Enterprise Leaders",
+  eyebrow = "CUSTOMER SUCCESS",
+  subtitle = "Discover how growing organizations and multi-location businesses streamline operations with UabIndia ERP.",
+}: {
+  testimonials: TestimonialItem[];
+  title?: string;
+  eyebrow?: string;
+  subtitle?: string;
+}) {
+  return (
+    <section className={publicSectionSpacingClassName}>
+      <div className={publicSectionClassName}>
+        <SectionIntro eyebrow={eyebrow} title={title} subtitle={subtitle} align="center" />
+        <div className="mt-8 sm:mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {testimonials.map((t, idx) => (
+            <div
+              key={idx}
+              className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-xs hover:border-blue-300 transition-all dark:border-slate-800 dark:bg-slate-900"
+            >
+              <div>
+                <div className="flex items-center gap-1 text-amber-500">
+                  {Array.from({ length: t.rating ?? 5 }).map((_, i) => (
+                    <Star key={i} className="h-4 w-4 fill-amber-400 stroke-amber-500" />
+                  ))}
+                </div>
+                <p className="mt-4 text-xs sm:text-sm leading-relaxed text-slate-700 dark:text-slate-300 italic">
+                  &ldquo;{t.quote}&rdquo;
+                </p>
+              </div>
+
+              <div className="mt-6 flex items-center gap-3 border-t border-slate-100 dark:border-slate-800 pt-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-xs font-bold text-white shadow-xs">
+                  {t.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={t.avatarUrl} alt={t.name} className="h-full w-full rounded-full object-cover" />
+                  ) : (
+                    t.name.slice(0, 2).toUpperCase()
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">{t.name}</h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    {t.role} · <span className="font-semibold text-blue-600 dark:text-cyan-400">{t.company}</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </section>
