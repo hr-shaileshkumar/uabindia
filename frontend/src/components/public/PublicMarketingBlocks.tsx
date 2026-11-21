@@ -76,7 +76,7 @@ export function MarketingHero({
       <div
         className={cn(
           publicSectionClassName,
-          "relative grid items-center gap-10 pt-10 pb-16 sm:pt-14 sm:pb-20 md:pt-16 md:pb-24 lg:pt-16 lg:pb-24 lg:gap-14 xl:gap-20",
+          "relative grid items-center gap-6 pt-6 pb-8 sm:pt-8 sm:pb-12 md:pt-10 md:pb-14 lg:pt-10 lg:pb-14 lg:gap-10 xl:gap-14",
           showPreview ? "lg:grid-cols-[0.92fr_1.08fr] xl:grid-cols-[0.88fr_1.12fr]" : "",
         )}
       >
@@ -564,7 +564,7 @@ export function CtaPanel({
   return (
     <section className={publicSectionSpacingClassName}>
       <div className={publicSectionClassName}>
-        <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 px-6 py-12 text-center text-white sm:px-12 sm:py-16 shadow-2xl">
+        <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 px-6 py-8 text-center text-white sm:px-10 sm:py-10 shadow-2xl">
           <div
             aria-hidden
             className="pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full bg-blue-500/15 blur-3xl"
@@ -626,7 +626,7 @@ export function FaqAccordion({
     <section className={publicSectionSpacingClassName}>
       <div className={publicSectionClassName}>
         <SectionIntro eyebrow={eyebrow} title={title} subtitle={subtitle} align="center" />
-        <div className="mx-auto mt-8 sm:mt-10 max-w-3xl space-y-3">
+        <div className="mx-auto mt-5 sm:mt-6 max-w-3xl space-y-2.5">
           {items.map((item, idx) => {
             const isOpen = openIndex === idx;
             return (
@@ -695,11 +695,11 @@ export function TestimonialGrid({
     <section className={publicSectionSpacingClassName}>
       <div className={publicSectionClassName}>
         <SectionIntro eyebrow={eyebrow} title={title} subtitle={subtitle} align="center" />
-        <div className="mt-8 sm:mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 sm:mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {testimonials.map((t, idx) => (
             <div
               key={idx}
-              className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-xs hover:border-blue-300 transition-all dark:border-slate-800 dark:bg-slate-900"
+              className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs hover:border-blue-300 transition-all dark:border-slate-800 dark:bg-slate-900"
             >
               <div>
                 <div className="flex items-center gap-1 text-amber-500">

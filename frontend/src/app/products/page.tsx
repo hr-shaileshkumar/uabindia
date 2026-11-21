@@ -182,9 +182,9 @@ export default function ProductsStorefrontPage() {
       allowedPaths={allowedPaths}
       footerVariant="full"
     >
-      <div className="bg-[#f8fafc] dark:bg-slate-950 min-h-screen pb-16">
+      <div className="bg-[#f8fafc] dark:bg-slate-950 min-h-screen pb-10">
         {/* Hero Header */}
-        <div className="border-b border-slate-200/90 bg-white dark:border-slate-800 dark:bg-slate-900/60 py-12 sm:py-16">
+        <div className="border-b border-slate-200/90 bg-white dark:border-slate-800 dark:bg-slate-900/60 py-6 sm:py-8">
           <div className={publicSectionClassName}>
             <div className="max-w-3xl">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800">

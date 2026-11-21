@@ -88,7 +88,7 @@ export default function PublicFooter({
 
   return (
     <footer className="border-t border-slate-200 bg-white transition-colors dark:border-slate-800 dark:bg-slate-950">
-      <div className={cn(publicSectionClassName, "py-12 sm:py-16")}>
+      <div className={cn(publicSectionClassName, "py-8 sm:py-10")}>
         <div className="grid gap-10 grid-cols-1 md:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr]">
           {/* Column 1: Brand & Contact Info */}
           <div>

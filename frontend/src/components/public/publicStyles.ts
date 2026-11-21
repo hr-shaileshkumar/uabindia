@@ -12,23 +12,23 @@ export const publicButtonClassName = {
 };
 
 export const publicPanelClassName =
-  "rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs transition-colors dark:border-slate-800/80 dark:bg-slate-900 dark:text-slate-100";
+  "rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs transition-colors dark:border-slate-800/80 dark:bg-slate-900 dark:text-slate-100";
 
 export const publicPanelHoverClassName =
-  "rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs transition-all duration-200 hover:border-blue-400 hover:shadow-md hover:-translate-y-0.5 dark:border-slate-800/80 dark:bg-slate-900 dark:hover:border-blue-500/50 dark:hover:shadow-blue-950/20";
+  "rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs transition-all duration-200 hover:border-blue-400 hover:shadow-md hover:-translate-y-0.5 dark:border-slate-800/80 dark:bg-slate-900 dark:hover:border-blue-500/50 dark:hover:shadow-blue-950/20";
 
 export const publicMutedPanelClassName =
-  "rounded-2xl border border-slate-200/80 bg-slate-50/90 p-6 dark:border-slate-800 dark:bg-slate-900/60";
+  "rounded-2xl border border-slate-200/80 bg-slate-50/90 p-5 sm:p-6 dark:border-slate-800 dark:bg-slate-900/60";
 
 export const publicGlassPanelClassName =
-  "rounded-2xl border border-slate-200/80 bg-white/80 p-6 shadow-sm backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-900/80";
+  "rounded-2xl border border-slate-200/80 bg-white/80 p-5 sm:p-6 shadow-sm backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-900/80";
 
 export const publicSectionClassName =
   "relative mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 xl:px-12";
 
-export const publicPageSectionClassName = "relative py-10 md:py-14 lg:py-16";
-export const publicSectionSpacingClassName = "relative py-10 md:py-14 lg:py-16";
-export const publicSectionContentGapClassName = "mt-8 sm:mt-10";
+export const publicPageSectionClassName = "relative py-6 md:py-8 lg:py-10";
+export const publicSectionSpacingClassName = "relative py-6 md:py-8 lg:py-10";
+export const publicSectionContentGapClassName = "mt-5 sm:mt-6";
 
 export const publicEyebrowClassName =
   "inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.16em] text-blue-600 dark:text-cyan-400";
