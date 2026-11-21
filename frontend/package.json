@@ -6,7 +6,7 @@
     "node": ">=24.21.0"
   },
   "scripts": {
-    "dev": "next dev -H 0.0.0.0 -p 3000",
+    "dev": "powershell -NoProfile -Command \"$p = Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique; if ($p) { Stop-Process -Id $p -Force -ErrorAction SilentlyContinue }\"; next dev -H 0.0.0.0 -p 3000",
     "dev:turbo": "next dev --turbo -H 0.0.0.0 -p 3000",
     "dev:webpack": "next dev -H 0.0.0.0 -p 3000",
     "dev:clean": "npm run clean && next dev -H 0.0.0.0 -p 3000",
