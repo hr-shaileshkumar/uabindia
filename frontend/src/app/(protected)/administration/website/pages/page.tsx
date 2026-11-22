@@ -1,7 +1,7 @@
 "use client";
 
-import WebsiteCustomizer from "@/features/administration/website/WebsiteCustomizer";
+import WebsitePagesManager from "@/features/administration/website/WebsitePagesManager";
 
 export default function WebsiteCMSPagesPage() {
-  return <WebsiteCustomizer defaultTab="hero" />;
+  return <WebsitePagesManager />;
 }

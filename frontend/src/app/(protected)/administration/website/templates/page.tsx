@@ -1,7 +1,7 @@
 ﻿"use client";
 
-import { DynamicPage } from "@/components/dynamic/DynamicPage";
+import IndustryTemplatesGallery from "@/features/administration/website/IndustryTemplatesGallery";
 
 export default function WebsiteTemplatesPage() {
-  return <DynamicPage pageKey="administration.website.templates" />;
+  return <IndustryTemplatesGallery />;
 }

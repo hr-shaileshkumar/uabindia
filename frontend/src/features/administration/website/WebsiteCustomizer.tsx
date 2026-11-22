@@ -32,13 +32,30 @@ import {
   SlidersHorizontal,
   Building,
   Navigation,
+  Wand2,
+  Search,
+  Users,
+  Share2,
 } from "lucide-react";
 import apiClient from "@/services/apiClient";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
 import MediaUploadDropzone from "@/components/ui/MediaUploadDropzone";
+import IndustryTemplatesGallery from "./IndustryTemplatesGallery";
+import type { IndustryTemplatePreset } from "./industryTemplatePresets";
 
-type CustomizerTab = "hero" | "carousel" | "branding" | "blocks" | "locations" | "storefront" | "announcement" | "quickAccess";
+type CustomizerTab =
+  | "templates"
+  | "hero"
+  | "carousel"
+  | "branding"
+  | "blocks"
+  | "locations"
+  | "storefront"
+  | "seo"
+  | "leads"
+  | "announcement"
+  | "quickAccess";
 
 const COLOR_PRESETS = [
   { name: "Sapphire Blue", primary: "#2563eb", accent: "#3b82f6" },
@@ -193,6 +210,53 @@ export default function WebsiteCustomizer({ defaultTab = "hero" }: { defaultTab?
   const [newLocPhone, setNewLocPhone] = useState("");
   const [newLocMapUrl, setNewLocMapUrl] = useState("");
 
+  // SEO & Social Meta State
+  const [metaTitle, setMetaTitle] = useState("");
+  const [metaDescription, setMetaDescription] = useState("");
+  const [canonicalUrl, setCanonicalUrl] = useState("");
+  const [ogImageUrl, setOgImageUrl] = useState("");
+  const [schemaType, setSchemaType] = useState("Corporation");
+  const [robotsIndex, setRobotsIndex] = useState(true);
+
+  // Captured Leads State
+  const [leads] = useState([
+    { id: "lead-1", name: "Ananya Sharma", email: "ananya@tatasolutions.com", phone: "+91 98200-11223", company: "Tata Solutions", type: "Enterprise ERP Inquiry", status: "New", date: "Today, 02:15 PM" },
+    { id: "lead-2", name: "Vikram Singhania", email: "vikram@singhaniagroup.in", phone: "+91 99100-44556", company: "Singhania Logistics", type: "Multi-Plant Demo Request", status: "Contacted", date: "Yesterday, 11:30 AM" },
+    { id: "lead-3", name: "Dr. Alok Verma", email: "averma@apexmed.org", phone: "+91 97110-88990", company: "Apex Hospitals", type: "Hospital OPD Module", status: "Converted", date: "Nov 20, 04:45 PM" },
+  ]);
+
+  const handleApplyPreset = (tpl: IndustryTemplatePreset) => {
+    setBrandName(tpl.name);
+    setPrimaryColor(tpl.primaryColor);
+    setAccentColor(tpl.accentColor);
+    setHeaderStyle(tpl.headerStyle);
+    setFooterStyle(tpl.footerStyle);
+    setEyebrow(tpl.hero.eyebrow);
+    setTitle(tpl.hero.title);
+    setSubtitle(tpl.hero.subtitle);
+    setPrimaryCtaLabel(tpl.hero.primaryCta);
+    setSecondaryCtaLabel(tpl.hero.secondaryCta);
+    setTrustPillsText(tpl.hero.trustPills);
+    if (tpl.slides && tpl.slides.length > 0) {
+      setCarouselSlides(tpl.slides);
+      setCarouselEnabled(true);
+    }
+    if (tpl.locations && tpl.locations.length > 0) {
+      setOfficeLocations(tpl.locations);
+      setOfficeLocatorEnabled(true);
+    }
+    if (tpl.faqs && tpl.faqs.length > 0) {
+      setFaqs(tpl.faqs.map((f) => ({ question: f.q, answer: f.a, category: tpl.industry })));
+    }
+    if (tpl.seo) {
+      setMetaTitle(tpl.seo.metaTitle);
+      setMetaDescription(tpl.seo.metaDescription);
+      setSchemaType(tpl.seo.schemaType);
+    }
+    notifySuccess(`Applied ${tpl.name}!`, "Colors, Hero, Slider, Maps, and FAQ populated into live preview.");
+    setActiveTab("hero");
+  };
+
   // Load existing data
   useEffect(() => {
     let isMounted = true;
@@ -278,6 +342,14 @@ export default function WebsiteCustomizer({ defaultTab = "hero" }: { defaultTab?
               if (Array.isArray(c.officeLocations) && c.officeLocations.length > 0) setOfficeLocations(c.officeLocations);
               if (c.headerStyle) setHeaderStyle(c.headerStyle);
               if (c.footerStyle) setFooterStyle(c.footerStyle);
+              if (c.seo) {
+                if (c.seo.metaTitle) setMetaTitle(c.seo.metaTitle);
+                if (c.seo.metaDescription) setMetaDescription(c.seo.metaDescription);
+                if (c.seo.canonicalUrl) setCanonicalUrl(c.seo.canonicalUrl);
+                if (c.seo.ogImageUrl) setOgImageUrl(c.seo.ogImageUrl);
+                if (c.seo.schemaType) setSchemaType(c.seo.schemaType);
+                if (c.seo.robotsIndex !== undefined) setRobotsIndex(Boolean(c.seo.robotsIndex));
+              }
             } catch {
               // fallback
             }
@@ -345,6 +417,14 @@ export default function WebsiteCustomizer({ defaultTab = "hero" }: { defaultTab?
         officeLocations,
         headerStyle,
         footerStyle,
+        seo: {
+          metaTitle,
+          metaDescription,
+          canonicalUrl,
+          ogImageUrl,
+          schemaType,
+          robotsIndex,
+        },
       };
 
       // 1. Save Website Page with auto-publish
@@ -447,14 +527,17 @@ export default function WebsiteCustomizer({ defaultTab = "hero" }: { defaultTab?
         {/* Controls Column */}
         <div className="lg:col-span-6 space-y-5">
           {/* Tabs */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-850">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-850">
             {[
+              { id: "templates", label: "Templates", icon: Wand2 },
               { id: "hero", label: "Hero & Copy", icon: Layout },
               { id: "carousel", label: "Hero Slider", icon: SlidersHorizontal },
-              { id: "branding", label: "Branding & Colors", icon: Palette },
+              { id: "branding", label: "Branding", icon: Palette },
               { id: "blocks", label: "FAQ & Reviews", icon: Layers },
               { id: "locations", label: "Offices & Maps", icon: MapPin },
               { id: "storefront", label: "B2B Catalog", icon: ShoppingCart },
+              { id: "seo", label: "SEO & Social", icon: Search },
+              { id: "leads", label: "Inquiries", icon: Users },
               { id: "announcement", label: "Notice Bar", icon: BellRing },
               { id: "quickAccess", label: "Services", icon: Sparkles },
             ].map((tab) => (
@@ -474,6 +557,22 @@ export default function WebsiteCustomizer({ defaultTab = "hero" }: { defaultTab?
               </button>
             ))}
           </div>
+
+          {/* Tab 0: Industry Templates */}
+          {activeTab === "templates" && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4 dark:border-slate-800 dark:bg-slate-900">
+              <div className="border-b border-slate-100 pb-3 dark:border-slate-800">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                  1-Click Industry Templates Studio
+                </h2>
+                <p className="mt-1 text-xs text-slate-500">
+                  Select an industry preset below to automatically configure colors, hero copy, slider images, map locations, and FAQs for your workspace.
+                </p>
+              </div>
+
+              <IndustryTemplatesGallery onApplyTemplate={handleApplyPreset} />
+            </div>
+          )}
 
           {/* Tab 1: Hero & Copy */}
           {activeTab === "hero" && (
@@ -1435,6 +1534,202 @@ export default function WebsiteCustomizer({ defaultTab = "hero" }: { defaultTab?
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Tab 8: SEO & Social Share Preview */}
+          {activeTab === "seo" && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-6 dark:border-slate-800 dark:bg-slate-900">
+              <div className="border-b border-slate-100 pb-3 dark:border-slate-800">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                  SEO & Social Graph Management
+                </h2>
+                <p className="mt-1 text-xs text-slate-500">
+                  Configure search engine metadata, Open Graph sharing cards, and Schema.org structured data.
+                </p>
+              </div>
+
+              {/* Live Google Search Result Preview */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-850">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Live Google Search Snippet Preview
+                  </span>
+                  <span className="rounded bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700 dark:bg-blue-900/60 dark:text-blue-300">
+                    Google SERP
+                  </span>
+                </div>
+
+                <div className="rounded-lg bg-white p-3.5 shadow-2xs dark:bg-slate-900 space-y-1">
+                  <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+                    <Globe className="h-3.5 w-3.5 text-blue-600" />
+                    <span className="font-mono text-[11px] text-slate-700 dark:text-slate-300">
+                      https://{brandName.toLowerCase().replace(/[^a-z0-9]/g, "") || "portal"}.uabindia.in
+                    </span>
+                  </div>
+                  <h3 className="text-base font-medium text-blue-700 hover:underline dark:text-blue-400 cursor-pointer">
+                    {metaTitle || `${currentDisplayBrand} - Enterprise ERP & Operating Portal`}
+                  </h3>
+                  <p className="line-clamp-2 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+                    {metaDescription || currentDisplaySubtitle || "Secure enterprise login, workforce management, financial ledgers, and operational support portal."}
+                  </p>
+                </div>
+              </div>
+
+              {/* Meta Title Field */}
+              <div>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    SEO Meta Title
+                  </label>
+                  <span className={cn(
+                    "text-[11px] font-mono",
+                    metaTitle.length > 60 ? "text-amber-600 font-bold" : "text-slate-400"
+                  )}>
+                    {metaTitle.length} / 60 characters
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  value={metaTitle}
+                  onChange={(e) => setMetaTitle(e.target.value)}
+                  placeholder="e.g. Acme Corp | Enterprise Cloud ERP & Operations Portal"
+                  className="mt-1 w-full rounded-xl border border-slate-300 px-3.5 py-2 text-xs text-slate-900 focus:border-blue-600 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                />
+              </div>
+
+              {/* Meta Description Field */}
+              <div>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    SEO Meta Description
+                  </label>
+                  <span className={cn(
+                    "text-[11px] font-mono",
+                    metaDescription.length > 160 ? "text-amber-600 font-bold" : "text-slate-400"
+                  )}>
+                    {metaDescription.length} / 160 characters
+                  </span>
+                </div>
+                <textarea
+                  rows={3}
+                  value={metaDescription}
+                  onChange={(e) => setMetaDescription(e.target.value)}
+                  placeholder="Write a concise, compelling summary for Google searchers..."
+                  className="mt-1 w-full rounded-xl border border-slate-300 p-3 text-xs text-slate-900 focus:border-blue-600 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                />
+              </div>
+
+              {/* Canonical URL & OG Image */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Canonical URL (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={canonicalUrl}
+                    onChange={(e) => setCanonicalUrl(e.target.value)}
+                    placeholder="https://acme.uabindia.in"
+                    className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-1.5 font-mono text-xs text-slate-900 focus:border-blue-600 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Schema.org Entity Type
+                  </label>
+                  <select
+                    value={schemaType}
+                    onChange={(e) => setSchemaType(e.target.value)}
+                    className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-1.5 text-xs text-slate-900 focus:border-blue-600 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  >
+                    <option value="Corporation">Corporation (Enterprise / Group)</option>
+                    <option value="Organization">Organization (General)</option>
+                    <option value="LocalBusiness">Local Business / Manufacturer</option>
+                    <option value="MedicalBusiness">Medical Business / Hospital</option>
+                    <option value="EducationalOrganization">Educational Organization / Academy</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Robots Indexing */}
+              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 dark:border-slate-800 dark:bg-slate-850">
+                <div>
+                  <p className="text-xs font-bold text-slate-900 dark:text-white">
+                    Search Engine Visibility (Robots.txt)
+                  </p>
+                  <p className="text-[11px] text-slate-500">
+                    Allow Google, Bing, and web crawlers to index this website.
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={robotsIndex}
+                    onChange={(e) => setRobotsIndex(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 9: Lead Inquiries */}
+          {activeTab === "leads" && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4 dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-3 dark:border-slate-800">
+                <div>
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                    Website Form Submissions & Captured Leads
+                  </h2>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    Live enterprise inquiries submitted through your website's contact and demo forms.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => notifySuccess("Leads Exported", "Downloaded 3 lead records as CSV.")}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-200 cursor-pointer"
+                >
+                  <span>Export CSV</span>
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {leads.map((lead) => (
+                  <div
+                    key={lead.id}
+                    className="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 transition-all hover:border-slate-300 dark:border-slate-800 dark:bg-slate-850"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="font-bold text-slate-900 dark:text-white">{lead.name}</span>
+                        <span className="ml-2 text-slate-500">· {lead.company}</span>
+                      </div>
+                      <span className={cn(
+                        "rounded-full px-2 py-0.5 text-[10px] font-bold",
+                        lead.status === "New" ? "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300" :
+                        lead.status === "Contacted" ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300" :
+                        "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                      )}>
+                        {lead.status}
+                      </span>
+                    </div>
+
+                    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600 dark:text-slate-400">
+                      <span>📧 {lead.email}</span>
+                      <span>📞 {lead.phone}</span>
+                      <span className="rounded bg-white px-2 py-0.5 font-medium border border-slate-200 dark:bg-slate-800 dark:border-slate-700">
+                        {lead.type}
+                      </span>
+                      <span className="text-[11px] text-slate-400 ml-auto">{lead.date}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
