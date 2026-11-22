@@ -395,13 +395,13 @@ function SidebarNavGroupItem({
                 : "py-0.5"
             )}
           >
-            {group.items.map((item: WorkspaceNavItem) => {
+            {group.items.map((item: WorkspaceNavItem, itemIdx: number) => {
               const isItemActive = isPathActive(pathname, item.path);
               const isPinned = favorites.some((f) => f.id === item.key || f.href === item.path);
               const ItemLucideIcon = resolveItemLucideIcon(item, group.label);
 
               return (
-                <li key={item.key} className="group/item relative flex items-center">
+                <li key={item.key || item.path || `${group.label}-${item.name}-${itemIdx}`} className="group/item relative flex items-center">
                   <Link
                     href={item.path}
                     prefetch={false}
@@ -568,9 +568,9 @@ function SidebarNavItem({
             transition={{ duration: 0.18, ease: "easeInOut" }}
             className="overflow-hidden"
           >
-            {mod.groups.map((group) => (
+            {mod.groups.map((group, gIdx) => (
               <SidebarNavGroupItem
-                key={group.label}
+                key={`${mod.key}-${group.label}-${gIdx}`}
                 group={group}
                 modHasMultipleGroups={mod.groups.length > 1}
                 pathname={pathname}
@@ -767,13 +767,13 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
               {/* Submodules & Leaf Destination Pages */}
               {focusModule.groups.map((group, gIdx) => (
-                <React.Fragment key={group.label}>
+                <React.Fragment key={`${focusModule.key}-${group.label}-${gIdx}`}>
                   {gIdx > 0 && <div className="mx-3 my-1 border-t border-slate-100 dark:border-slate-800/60" />}
-                  {group.items.map((item) => {
+                  {group.items.map((item, itemIdx) => {
                     const isItemActive = isPathActive(pathname, item.path);
                     const ItemLucideIcon = resolveItemLucideIcon(item, group.label);
                     return (
-                      <li key={item.key || item.path} className="list-none">
+                      <li key={item.key || item.path || `${group.label}-${item.name}-${itemIdx}`} className="list-none">
                         <Link
                           href={item.path}
                           prefetch={false}
@@ -849,10 +849,10 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                 <li className="list-none">
                   <SectionLabel label="Pinned Shortcuts" collapsed={collapsed} />
                   <ul className="space-y-0.5 py-0.5">
-                    {favorites.map((fav) => {
+                    {favorites.map((fav, favIdx) => {
                       const isFavActive = isPathActive(pathname, fav.href);
                       return (
-                        <li key={fav.id} className="group/fav relative flex items-center">
+                        <li key={fav.id || fav.href || `fav-${favIdx}`} className="group/fav relative flex items-center">
                           <Link
                             href={fav.href}
                             prefetch={false}
@@ -920,8 +920,8 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
                   <SectionLabel label="Submodules & Registers" collapsed={collapsed} />
                   <ul className="space-y-1.5">
-                    {activeModule.groups.map((group) => (
-                      <li key={group.label} className="list-none">
+                    {activeModule.groups.map((group, gIdx) => (
+                      <li key={`${activeModule.key}-${group.label}-${gIdx}`} className="list-none">
                         <SidebarNavGroupItem
                           group={group}
                           modHasMultipleGroups={true}

@@ -538,10 +538,31 @@ export function buildWorkspaceModules(
     }
   }
 
-  // 2. Deduplicate items across groups within each module so no page URL appears multiple times
+  // 2. Deduplicate items and merge duplicate group labels within each module so no page URL appears multiple times
   for (const mod of moduleMap.values()) {
+    // 2a. Merge groups with identical labels (case-insensitive) within this module
+    const groupMap = new Map<string, WorkspaceNavGroup>();
+    for (const g of mod.groups) {
+      const gKey = (g.label || "General").toLowerCase().trim();
+      if (!groupMap.has(gKey)) {
+        groupMap.set(gKey, { ...g, items: [...g.items] });
+      } else {
+        const existing = groupMap.get(gKey)!;
+        const seen = new Set(existing.items.map((it) => it.path.toLowerCase().trim()));
+        for (const item of g.items) {
+          const p = item.path.toLowerCase().trim();
+          if (!seen.has(p)) {
+            seen.add(p);
+            existing.items.push(item);
+          }
+        }
+      }
+    }
+    const mergedGroups = Array.from(groupMap.values());
+
+    // 2b. Deduplicate items across groups within the module
     const seenPathsInMod = new Set<string>();
-    mod.groups = mod.groups
+    mod.groups = mergedGroups
       .map((group) => {
         const uniqueItems = group.items.filter((item) => {
           const p = item.path.toLowerCase().trim();
