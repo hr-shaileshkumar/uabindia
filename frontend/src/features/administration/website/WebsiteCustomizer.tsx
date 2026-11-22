@@ -28,13 +28,17 @@ import {
   Plus,
   Trash2,
   Star,
+  MapPin,
+  SlidersHorizontal,
+  Building,
+  Navigation,
 } from "lucide-react";
 import apiClient from "@/services/apiClient";
 import { notifyError, notifySuccess } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
 import MediaUploadDropzone from "@/components/ui/MediaUploadDropzone";
 
-type CustomizerTab = "hero" | "branding" | "blocks" | "storefront" | "announcement" | "quickAccess" | "highlights";
+type CustomizerTab = "hero" | "carousel" | "branding" | "blocks" | "locations" | "storefront" | "announcement" | "quickAccess";
 
 const COLOR_PRESETS = [
   { name: "Sapphire Blue", primary: "#2563eb", accent: "#3b82f6" },
@@ -112,6 +116,83 @@ export default function WebsiteCustomizer({ defaultTab = "hero" }: { defaultTab?
   const [b2bStorefrontEnabled, setB2bStorefrontEnabled] = useState(true);
   const [storefrontMode, setStorefrontMode] = useState<"rfq" | "direct">("rfq");
 
+  // Header & Footer Custom Appearance
+  const [headerStyle, setHeaderStyle] = useState<"clean" | "dark" | "brand" | "glass">("clean");
+  const [footerStyle, setFooterStyle] = useState<"dark" | "light" | "brand">("dark");
+
+  // Hero Carousel State
+  const [carouselEnabled, setCarouselEnabled] = useState(false);
+  const [carouselSlides, setCarouselSlides] = useState<Array<{
+    id: string;
+    eyebrow?: string;
+    title: string;
+    subtitle: string;
+    badge?: string;
+    primaryCtaLabel?: string;
+    primaryCtaHref?: string;
+    secondaryCtaLabel?: string;
+    secondaryCtaHref?: string;
+    imageUrl?: string;
+  }>>([
+    {
+      id: "slide-1",
+      eyebrow: "NEXT-GEN CLOUD ERP",
+      title: "Run HR, payroll, finance, and global operations in one unified system",
+      subtitle: "Multi-tenant isolation, role-based workflows, and cross-border statutory compliance.",
+      badge: "ENTERPRISE READY",
+      primaryCtaLabel: "Sign in",
+      primaryCtaHref: "/login",
+      imageUrl: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&auto=format&fit=crop&q=80",
+    },
+    {
+      id: "slide-2",
+      eyebrow: "B2B COMMERCE & CATALOG",
+      title: "Instant Bulk RFQ & Warehouse Inventory Dispatch",
+      subtitle: "Browse real-time stock levels, volume discounts, and submit formal quotations.",
+      badge: "B2B CATALOG",
+      primaryCtaLabel: "Browse Products",
+      primaryCtaHref: "/products",
+      imageUrl: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&auto=format&fit=crop&q=80",
+    },
+  ]);
+  const [newSlideTitle, setNewSlideTitle] = useState("");
+  const [newSlideSubtitle, setNewSlideSubtitle] = useState("");
+  const [newSlideEyebrow, setNewSlideEyebrow] = useState("");
+  const [newSlideImage, setNewSlideImage] = useState("");
+
+  // Operating Locations State
+  const [officeLocatorEnabled, setOfficeLocatorEnabled] = useState(true);
+  const [officeLocations, setOfficeLocations] = useState<Array<{
+    id: string;
+    name: string;
+    type: "Headquarters" | "Branch Office" | "Manufacturing Plant" | "Regional Warehouse";
+    city: string;
+    address: string;
+    phone: string;
+    email: string;
+    workingHours: string;
+    mapEmbedUrl: string;
+    directionsUrl?: string;
+  }>>([
+    {
+      id: "loc-1",
+      name: "Corporate Headquarters",
+      type: "Headquarters",
+      city: "Mumbai, Maharashtra",
+      address: "Level 14, Tower 2, One World Center, Lower Parel, Mumbai 400013",
+      phone: "+91 7903055384",
+      email: "support@uabindia.in",
+      workingHours: "Mon - Sat: 09:30 AM – 06:30 PM",
+      mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3771.954203175114!2d72.82772597597148!3d19.00632598218442!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3be7ce886851f50b%3A0xe54fb725efbc6f40!2sOne%20World%20Center!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin",
+      directionsUrl: "https://maps.google.com/?q=One+World+Center+Lower+Parel+Mumbai",
+    },
+  ]);
+  const [newLocName, setNewLocName] = useState("");
+  const [newLocCity, setNewLocCity] = useState("");
+  const [newLocAddress, setNewLocAddress] = useState("");
+  const [newLocPhone, setNewLocPhone] = useState("");
+  const [newLocMapUrl, setNewLocMapUrl] = useState("");
+
   // Load existing data
   useEffect(() => {
     let isMounted = true;
@@ -187,6 +268,16 @@ export default function WebsiteCustomizer({ defaultTab = "hero" }: { defaultTab?
                 if (c.b2bStorefront.enabled !== undefined) setB2bStorefrontEnabled(Boolean(c.b2bStorefront.enabled));
                 if (c.b2bStorefront.mode) setStorefrontMode(c.b2bStorefront.mode);
               }
+              if (c.carousel) {
+                if (c.carousel.enabled !== undefined) setCarouselEnabled(Boolean(c.carousel.enabled));
+                if (Array.isArray(c.carousel.slides) && c.carousel.slides.length > 0) setCarouselSlides(c.carousel.slides);
+              }
+              if (c.officeLocator) {
+                if (c.officeLocator.enabled !== undefined) setOfficeLocatorEnabled(Boolean(c.officeLocator.enabled));
+              }
+              if (Array.isArray(c.officeLocations) && c.officeLocations.length > 0) setOfficeLocations(c.officeLocations);
+              if (c.headerStyle) setHeaderStyle(c.headerStyle);
+              if (c.footerStyle) setFooterStyle(c.footerStyle);
             } catch {
               // fallback
             }
@@ -244,6 +335,16 @@ export default function WebsiteCustomizer({ defaultTab = "hero" }: { defaultTab?
           enabled: b2bStorefrontEnabled,
           mode: storefrontMode,
         },
+        carousel: {
+          enabled: carouselEnabled,
+          slides: carouselSlides,
+        },
+        officeLocator: {
+          enabled: officeLocatorEnabled,
+        },
+        officeLocations,
+        headerStyle,
+        footerStyle,
       };
 
       // 1. Save Website Page with auto-publish
@@ -346,11 +447,13 @@ export default function WebsiteCustomizer({ defaultTab = "hero" }: { defaultTab?
         {/* Controls Column */}
         <div className="lg:col-span-6 space-y-5">
           {/* Tabs */}
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-850">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-850">
             {[
               { id: "hero", label: "Hero & Copy", icon: Layout },
-              { id: "branding", label: "Branding", icon: Palette },
-              { id: "blocks", label: "Blocks (FAQ/Reviews)", icon: Layers },
+              { id: "carousel", label: "Hero Slider", icon: SlidersHorizontal },
+              { id: "branding", label: "Branding & Colors", icon: Palette },
+              { id: "blocks", label: "FAQ & Reviews", icon: Layers },
+              { id: "locations", label: "Offices & Maps", icon: MapPin },
               { id: "storefront", label: "B2B Catalog", icon: ShoppingCart },
               { id: "announcement", label: "Notice Bar", icon: BellRing },
               { id: "quickAccess", label: "Services", icon: Sparkles },
@@ -487,6 +590,131 @@ export default function WebsiteCustomizer({ defaultTab = "hero" }: { defaultTab?
             </div>
           )}
 
+          {/* Tab: Hero Carousel / Slider */}
+          {activeTab === "carousel" && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-5 dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                    <SlidersHorizontal className="h-4 w-4 text-blue-600 dark:text-cyan-400" />
+                    <span>Hero Image Carousel & Slides</span>
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Display an interactive multi-banner sliding hero with automated rotation.
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={carouselEnabled}
+                    onChange={(e) => setCarouselEnabled(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+
+              {carouselEnabled && (
+                <div className="space-y-4 pt-2">
+                  <div className="space-y-3">
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Active Carousel Slides ({carouselSlides.length})
+                    </span>
+                    {carouselSlides.map((slide, idx) => (
+                      <div
+                        key={slide.id || idx}
+                        className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3 text-xs dark:border-slate-800 dark:bg-slate-800/50"
+                      >
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="rounded bg-blue-100 px-1.5 py-0.2 text-[10px] font-bold text-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                              Slide {idx + 1}
+                            </span>
+                            <span className="font-bold text-slate-900 dark:text-white truncate max-w-xs">{slide.title}</span>
+                          </div>
+                          <p className="text-slate-600 dark:text-slate-400 line-clamp-2">{slide.subtitle}</p>
+                          {slide.imageUrl && (
+                            <p className="text-[10px] text-blue-600 truncate max-w-xs">Image: {slide.imageUrl}</p>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setCarouselSlides(carouselSlides.filter((_, i) => i !== idx))}
+                          className="rounded-lg p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/60 transition-colors"
+                          title="Delete Slide"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Add Slide Form */}
+                  <div className="rounded-xl border border-dashed border-slate-300 p-3.5 dark:border-slate-700 bg-white dark:bg-slate-900 space-y-2.5">
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Add New Carousel Slide</span>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <input
+                        type="text"
+                        value={newSlideEyebrow}
+                        onChange={(e) => setNewSlideEyebrow(e.target.value)}
+                        placeholder="Eyebrow badge (e.g. EXCLUSIVE PROMO)"
+                        className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                      />
+                      <input
+                        type="text"
+                        value={newSlideImage}
+                        onChange={(e) => setNewSlideImage(e.target.value)}
+                        placeholder="Slide Image URL (https://...)"
+                        className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                      />
+                    </div>
+                    <input
+                      type="text"
+                      value={newSlideTitle}
+                      onChange={(e) => setNewSlideTitle(e.target.value)}
+                      placeholder="Slide Headline Title"
+                      className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-bold text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                    />
+                    <textarea
+                      rows={2}
+                      value={newSlideSubtitle}
+                      onChange={(e) => setNewSlideSubtitle(e.target.value)}
+                      placeholder="Slide Description Subtitle..."
+                      className="w-full rounded-lg border border-slate-200 p-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white resize-none"
+                    />
+                    <button
+                      type="button"
+                      disabled={!newSlideTitle.trim()}
+                      onClick={() => {
+                        if (!newSlideTitle.trim()) return;
+                        setCarouselSlides([
+                          ...carouselSlides,
+                          {
+                            id: `slide-${Date.now()}`,
+                            eyebrow: newSlideEyebrow.trim() || "ENTERPRISE",
+                            title: newSlideTitle.trim(),
+                            subtitle: newSlideSubtitle.trim() || "Empowering business scalability.",
+                            imageUrl: newSlideImage.trim() || undefined,
+                            primaryCtaLabel: "Learn more",
+                            primaryCtaHref: "/login",
+                          },
+                        ]);
+                        setNewSlideTitle("");
+                        setNewSlideSubtitle("");
+                        setNewSlideEyebrow("");
+                        setNewSlideImage("");
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-blue-700 disabled:opacity-40 transition-all"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>Add Slide</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Tab 2: Theme & Logo */}
           {activeTab === "branding" && (
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4 dark:border-slate-800 dark:bg-slate-900">
@@ -620,6 +848,44 @@ export default function WebsiteCustomizer({ defaultTab = "hero" }: { defaultTab?
                       className="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-blue-600 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                     />
                     <p className="mt-1 text-[11px] text-slate-400">Default: support@uabindia.in</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Header & Footer Appearance */}
+              <div className="border-t border-slate-100 pt-3 dark:border-slate-800">
+                <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-2">
+                  Header & Footer Appearance
+                </h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Header Background Style
+                    </label>
+                    <select
+                      value={headerStyle}
+                      onChange={(e) => setHeaderStyle(e.target.value as any)}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                    >
+                      <option value="clean">Clean White / Translucent</option>
+                      <option value="dark">Deep Midnight Slate (Dark)</option>
+                      <option value="brand">Brand Colored Theme</option>
+                      <option value="glass">Glass Frost Blur</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Footer Background Style
+                    </label>
+                    <select
+                      value={footerStyle}
+                      onChange={(e) => setFooterStyle(e.target.value as any)}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                    >
+                      <option value="dark">Dark Slate / Midnight Navy</option>
+                      <option value="light">Clean Light Gray</option>
+                      <option value="brand">Brand Primary Color</option>
+                    </select>
                   </div>
                 </div>
               </div>
@@ -806,6 +1072,143 @@ export default function WebsiteCustomizer({ defaultTab = "hero" }: { defaultTab?
                   </button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Tab: Operating Locations & Google Maps */}
+          {activeTab === "locations" && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-5 dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-rose-500" />
+                    <span>Office & Branch Locations (Google Maps)</span>
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Display your corporate headquarters, plant locations, and branch offices with live Google Maps.
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={officeLocatorEnabled}
+                    onChange={(e) => setOfficeLocatorEnabled(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+
+              {officeLocatorEnabled && (
+                <div className="space-y-4 pt-2">
+                  <div className="space-y-3">
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Configured Operating Hubs ({officeLocations.length})
+                    </span>
+                    {officeLocations.map((loc, idx) => (
+                      <div
+                        key={loc.id || idx}
+                        className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3 text-xs dark:border-slate-800 dark:bg-slate-800/50"
+                      >
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="rounded bg-rose-100 px-1.5 py-0.2 text-[10px] font-bold text-rose-800 dark:bg-rose-950 dark:text-rose-300">
+                              {loc.type}
+                            </span>
+                            <span className="font-bold text-slate-900 dark:text-white truncate">{loc.name}</span>
+                            <span className="text-slate-500 text-[11px]">({loc.city})</span>
+                          </div>
+                          <p className="text-slate-600 dark:text-slate-400 line-clamp-1">{loc.address}</p>
+                          <p className="text-[11px] text-slate-500">Phone: {loc.phone} · Hours: {loc.workingHours}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setOfficeLocations(officeLocations.filter((_, i) => i !== idx))}
+                          className="rounded-lg p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/60 transition-colors"
+                          title="Delete Location"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Add Location Form */}
+                  <div className="rounded-xl border border-dashed border-slate-300 p-3.5 dark:border-slate-700 bg-white dark:bg-slate-900 space-y-2.5">
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Add Operating Location</span>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <input
+                        type="text"
+                        value={newLocName}
+                        onChange={(e) => setNewLocName(e.target.value)}
+                        placeholder="Hub Name (e.g. Northern Branch)"
+                        className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                      />
+                      <input
+                        type="text"
+                        value={newLocCity}
+                        onChange={(e) => setNewLocCity(e.target.value)}
+                        placeholder="City, State (e.g. New Delhi, NCR)"
+                        className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                      />
+                    </div>
+                    <input
+                      type="text"
+                      value={newLocAddress}
+                      onChange={(e) => setNewLocAddress(e.target.value)}
+                      placeholder="Complete Postal Address"
+                      className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                    />
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <input
+                        type="text"
+                        value={newLocPhone}
+                        onChange={(e) => setNewLocPhone(e.target.value)}
+                        placeholder="Contact Phone (e.g. +91 11 4982 3400)"
+                        className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                      />
+                      <input
+                        type="text"
+                        value={newLocMapUrl}
+                        onChange={(e) => setNewLocMapUrl(e.target.value)}
+                        placeholder="Google Maps Embed URL (iframe src)"
+                        className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      disabled={!newLocName.trim() || !newLocAddress.trim()}
+                      onClick={() => {
+                        if (!newLocName.trim() || !newLocAddress.trim()) return;
+                        setOfficeLocations([
+                          ...officeLocations,
+                          {
+                            id: `loc-${Date.now()}`,
+                            name: newLocName.trim(),
+                            type: "Branch Office",
+                            city: newLocCity.trim() || "India",
+                            address: newLocAddress.trim(),
+                            phone: newLocPhone.trim() || "+91 7903055384",
+                            email: "support@uabindia.in",
+                            workingHours: "Mon - Sat: 09:30 AM – 06:30 PM",
+                            mapEmbedUrl: newLocMapUrl.trim() || "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3771.954203175114!2d72.82772597597148!3d19.00632598218442!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3be7ce886851f50b%3A0xe54fb725efbc6f40!2sOne%20World%20Center!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin",
+                            directionsUrl: `https://maps.google.com/?q=${encodeURIComponent(newLocAddress.trim())}`,
+                          },
+                        ]);
+                        setNewLocName("");
+                        setNewLocCity("");
+                        setNewLocAddress("");
+                        setNewLocPhone("");
+                        setNewLocMapUrl("");
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-blue-700 disabled:opacity-40 transition-all"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>Add Office Hub</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -1233,6 +1636,32 @@ export default function WebsiteCustomizer({ defaultTab = "hero" }: { defaultTab?
                   <p className="text-[9px] text-slate-500 italic mt-0.5 line-clamp-1">
                     &ldquo;{testimonials[0].quote}&rdquo;
                   </p>
+                </div>
+              )}
+
+              {/* Mock Carousel Banner Preview */}
+              {carouselEnabled && (
+                <div className="border-t border-slate-100 bg-blue-50/70 p-2.5 px-3 dark:border-slate-800 dark:bg-blue-950/30">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="font-bold text-blue-900 dark:text-blue-300 flex items-center gap-1.5">
+                      <SlidersHorizontal className="h-3 w-3" />
+                      <span>Hero Slider Active ({carouselSlides.length} Slides)</span>
+                    </span>
+                    <span className="font-semibold text-blue-700 dark:text-blue-400">Auto-Rotate 6s</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Mock Office Locator Strip */}
+              {officeLocatorEnabled && (
+                <div className="border-t border-slate-100 bg-rose-50/70 p-2.5 px-3 dark:border-slate-800 dark:bg-rose-950/30">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="font-bold text-rose-900 dark:text-rose-300 flex items-center gap-1.5">
+                      <MapPin className="h-3 w-3" />
+                      <span>Office Locations & Google Maps ({officeLocations.length} Hubs)</span>
+                    </span>
+                    <span className="font-semibold text-rose-700 dark:text-rose-400">{officeLocations[0]?.city || "India"}</span>
+                  </div>
                 </div>
               )}
 

@@ -1,8 +1,34 @@
 "use client";
 
-import React, { useState, type ReactNode } from "react";
+import React, { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, Boxes, Check, CheckCircle2, ChevronDown, ChevronUp, Globe, HelpCircle, MessageSquareQuote, Receipt, Server, ShieldCheck, Sparkles, Star, Users, Zap } from "lucide-react";
+import {
+  ArrowRight,
+  Boxes,
+  Building,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Clock,
+  ExternalLink,
+  Globe,
+  HelpCircle,
+  Mail,
+  MapPin,
+  MessageSquareQuote,
+  Navigation,
+  Phone,
+  Receipt,
+  Server,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  Users,
+  Zap,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MotionReveal } from "@/components/public/PublicMotion";
 import PublicProductPreview from "@/components/public/PublicProductPreview";
@@ -76,7 +102,7 @@ export function MarketingHero({
       <div
         className={cn(
           publicSectionClassName,
-          "relative grid items-center gap-6 pt-6 pb-8 sm:pt-8 sm:pb-12 md:pt-10 md:pb-14 lg:pt-10 lg:pb-14 lg:gap-10 xl:gap-14",
+          "relative grid items-center gap-6 pt-4 pb-6 sm:pt-5 sm:pb-8 md:pt-6 md:pb-10 lg:pt-6 lg:pb-10 lg:gap-8 xl:gap-12",
           showPreview ? "lg:grid-cols-[0.92fr_1.08fr] xl:grid-cols-[0.88fr_1.12fr]" : "",
         )}
       >
@@ -119,7 +145,7 @@ export function MarketingHero({
 export function TrustRibbon({ items }: { items: TrustedOrganization[] }) {
   if (!items.length) return null;
   return (
-    <section className="border-b border-slate-200/80 bg-slate-50/70 py-8 dark:border-slate-800/80 dark:bg-slate-900/40 transition-colors">
+    <section className="border-b border-slate-200/80 bg-slate-50/70 py-4 sm:py-5 dark:border-slate-800/80 dark:bg-slate-900/40 transition-colors">
       <div className={publicSectionClassName}>
         <p className="mb-5 text-center text-xs font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
           Trusted by high-growth global enterprises & multi-region organizations
@@ -730,6 +756,309 @@ export function TestimonialGrid({
               </div>
             </div>
           ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export interface CarouselSlide {
+  id: string;
+  eyebrow?: string;
+  title: string;
+  subtitle: string;
+  badge?: string;
+  primaryCtaLabel?: string;
+  primaryCtaHref?: string;
+  secondaryCtaLabel?: string;
+  secondaryCtaHref?: string;
+  imageUrl?: string;
+  tagline?: string;
+}
+
+export function HeroCarousel({
+  slides,
+  autoPlayInterval = 6000,
+}: {
+  slides: CarouselSlide[];
+  autoPlayInterval?: number;
+}) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+
+  useEffect(() => {
+    if (!slides || slides.length <= 1 || isPaused) return;
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % slides.length);
+    }, autoPlayInterval);
+    return () => clearInterval(timer);
+  }, [slides, isPaused, autoPlayInterval]);
+
+  if (!slides || slides.length === 0) return null;
+
+  const current = slides[currentIndex] || slides[0];
+
+  return (
+    <section
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      className="relative overflow-hidden border-b border-slate-200/90 bg-[#f8fafc] dark:border-slate-800/80 dark:bg-slate-950 transition-colors"
+    >
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_10%_-10%,rgba(37,99,235,0.12),transparent_55%),radial-gradient(ellipse_60%_50%_at_90%_20%,rgba(15,23,42,0.06),transparent_50%)] dark:bg-[radial-gradient(ellipse_80%_60%_at_10%_-10%,rgba(37,99,235,0.2),transparent_55%),radial-gradient(ellipse_60%_50%_at_90%_20%,rgba(6,182,212,0.1),transparent_50%)]"
+      />
+
+      <div className={cn(publicSectionClassName, "relative pt-4 pb-8 sm:pt-5 sm:pb-10 lg:pt-6 lg:pb-10")}>
+        <div className="grid items-center gap-8 lg:grid-cols-12">
+          {/* Text Content */}
+          <div className="lg:col-span-7 flex flex-col justify-center">
+            {current.eyebrow ? (
+              <span className={publicEyebrowClassName}>
+                <Sparkles className="h-3.5 w-3.5" />
+                <span>{current.eyebrow}</span>
+              </span>
+            ) : null}
+
+            <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl md:text-4xl lg:text-[2.75rem] lg:leading-[1.15] dark:text-white">
+              {current.title}
+            </h1>
+
+            <p className="mt-3.5 max-w-xl text-sm leading-relaxed text-slate-600 sm:text-base lg:text-lg dark:text-slate-300">
+              {current.subtitle}
+            </p>
+
+            {/* Actions */}
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              {current.primaryCtaLabel ? (
+                <Link
+                  href={current.primaryCtaHref || "/login"}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-xs sm:text-sm font-semibold text-white shadow-xs hover:bg-blue-700 active:scale-[0.98] transition-all"
+                >
+                  <span>{current.primaryCtaLabel}</span>
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              ) : null}
+
+              {current.secondaryCtaLabel ? (
+                <Link
+                  href={current.secondaryCtaHref || "/contact"}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-xs sm:text-sm font-semibold text-slate-800 shadow-2xs hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800/80 transition-all"
+                >
+                  <span>{current.secondaryCtaLabel}</span>
+                </Link>
+              ) : null}
+            </div>
+          </div>
+
+          {/* Visual Showcase / Slide Image or Banner Card */}
+          <div className="lg:col-span-5 relative flex items-center justify-center">
+            <div className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white p-2.5 shadow-md dark:border-slate-800 dark:bg-slate-900">
+              {current.imageUrl ? (
+                <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={current.imageUrl}
+                    alt={current.title}
+                    className="h-full w-full object-cover transition-all duration-300"
+                  />
+                  {current.badge ? (
+                    <span className="absolute top-3 left-3 rounded-full bg-slate-900/80 backdrop-blur-md px-3 py-1 text-[11px] font-bold text-white shadow-sm">
+                      {current.badge}
+                    </span>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="relative flex aspect-video w-full flex-col justify-between rounded-xl bg-gradient-to-br from-blue-900 via-indigo-900 to-slate-950 p-6 text-white shadow-inner">
+                  <div className="flex items-center justify-between">
+                    <span className="rounded-full bg-white/10 backdrop-blur-md px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-cyan-300">
+                      {current.badge || "ENTERPRISE READY"}
+                    </span>
+                    <Sparkles className="h-5 w-5 text-amber-300" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold">{current.title}</p>
+                    <p className="mt-1 text-xs text-slate-300 line-clamp-2">{current.tagline || current.subtitle}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Carousel Navigation Bar (Dots + Arrows) */}
+        {slides.length > 1 && (
+          <div className="mt-8 flex items-center justify-between border-t border-slate-200/80 pt-4 dark:border-slate-800/80">
+            {/* Dots */}
+            <div className="flex items-center gap-2">
+              {slides.map((s, idx) => (
+                <button
+                  key={s.id || idx}
+                  type="button"
+                  onClick={() => setCurrentIndex(idx)}
+                  className={cn(
+                    "h-2.5 rounded-full transition-all duration-300",
+                    currentIndex === idx
+                      ? "w-8 bg-blue-600 dark:bg-cyan-400"
+                      : "w-2.5 bg-slate-300 hover:bg-slate-400 dark:bg-slate-700 dark:hover:bg-slate-600"
+                  )}
+                  aria-label={`Slide ${idx + 1}`}
+                />
+              ))}
+            </div>
+
+            {/* Arrows */}
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setCurrentIndex((prev) => (prev === 0 ? slides.length - 1 : prev - 1))}
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                aria-label="Previous Slide"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurrentIndex((prev) => (prev + 1) % slides.length)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                aria-label="Next Slide"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+export interface OfficeLocation {
+  id: string;
+  name: string;
+  type: "Headquarters" | "Branch Office" | "Manufacturing Plant" | "Regional Warehouse";
+  city: string;
+  address: string;
+  phone: string;
+  email: string;
+  workingHours: string;
+  mapEmbedUrl: string;
+  directionsUrl?: string;
+}
+
+export function OfficeLocatorBlock({
+  locations,
+  title = "Our Office & Operating Locations",
+  eyebrow = "NATIONWIDE PRESENCE",
+  subtitle = "Visit our corporate headquarters, regional hubs, or distribution facilities across India.",
+}: {
+  locations: OfficeLocation[];
+  title?: string;
+  eyebrow?: string;
+  subtitle?: string;
+}) {
+  const [selectedId, setSelectedId] = useState<string>(locations[0]?.id || "");
+  const activeOffice = locations.find((l) => l.id === selectedId) || locations[0];
+
+  if (!locations || locations.length === 0) return null;
+
+  return (
+    <section className={publicSectionSpacingClassName}>
+      <div className={publicSectionClassName}>
+        <SectionIntro eyebrow={eyebrow} title={title} subtitle={subtitle} align="center" />
+
+        <div className="mt-6 sm:mt-8 grid gap-6 lg:grid-cols-12 items-stretch">
+          {/* Left Column: Office Selector Tabs */}
+          <div className="lg:col-span-5 flex flex-col gap-3">
+            {locations.map((loc) => {
+              const isSelected = (loc.id || loc.name) === (activeOffice?.id || activeOffice?.name);
+              return (
+                <div
+                  key={loc.id || loc.name}
+                  onClick={() => setSelectedId(loc.id)}
+                  className={cn(
+                    "cursor-pointer rounded-2xl border p-4 sm:p-5 transition-all text-left shadow-xs",
+                    isSelected
+                      ? "border-blue-500 bg-blue-50/70 shadow-sm dark:border-blue-500/70 dark:bg-blue-950/40"
+                      : "border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900"
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 dark:text-cyan-400">
+                      <Building className="h-3.5 w-3.5" />
+                      <span>{loc.type}</span>
+                    </span>
+                    <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                      {loc.city}
+                    </span>
+                  </div>
+
+                  <h3 className="mt-2 text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                    {loc.name}
+                  </h3>
+
+                  <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 line-clamp-2">
+                    {loc.address}
+                  </p>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500 dark:text-slate-400">
+                    <span className="flex items-center gap-1">
+                      <Phone className="h-3 w-3 text-slate-400" />
+                      <span>{loc.phone}</span>
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3 text-slate-400" />
+                      <span>{loc.workingHours}</span>
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Right Column: Google Maps Live Embed & Direct Directions */}
+          <div className="lg:col-span-7 flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
+            <div className="relative min-h-[300px] sm:min-h-[360px] w-full flex-1 bg-slate-100 dark:bg-slate-800">
+              {activeOffice?.mapEmbedUrl ? (
+                <iframe
+                  title={`Map of ${activeOffice.name}`}
+                  src={activeOffice.mapEmbedUrl}
+                  className="h-full w-full border-0 absolute inset-0"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center p-6 text-center text-slate-400">
+                  <MapPin className="h-8 w-8 text-blue-500" />
+                  <p className="ml-2 text-xs">Interactive Google Map view for {activeOffice?.city}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom Info Bar with Get Directions */}
+            <div className="border-t border-slate-100 bg-slate-50/70 p-4 sm:px-5 dark:border-slate-800 dark:bg-slate-950/60 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5 text-rose-500" />
+                  <span>{activeOffice?.name}</span>
+                </p>
+                <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">{activeOffice?.address}</p>
+              </div>
+
+              {activeOffice?.directionsUrl ? (
+                <a
+                  href={activeOffice.directionsUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-blue-700 transition-all"
+                >
+                  <Navigation className="h-3.5 w-3.5" />
+                  <span>Get Directions</span>
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              ) : null}
+            </div>
+          </div>
         </div>
       </div>
     </section>

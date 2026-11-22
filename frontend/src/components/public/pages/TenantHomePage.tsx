@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { CircleCheckBig, LifeBuoy, UsersRound, WalletCards, ShieldCheck, ArrowRight, BellRing } from "lucide-react";
-import { FaqAccordion, MarketingHero, TestimonialGrid } from "@/components/public/PublicMarketingBlocks";
+import { FaqAccordion, HeroCarousel, MarketingHero, OfficeLocatorBlock, TestimonialGrid } from "@/components/public/PublicMarketingBlocks";
 import PublicAudiencePageFrame from "@/components/public/PublicAudiencePageFrame";
 import { PublicPageLoading } from "@/components/public/PublicPageLoading";
 import {
@@ -41,6 +41,33 @@ export type HomeContent = {
   faqs?: Array<{ question: string; answer: string; category?: string }>;
   testimonials?: Array<{ name: string; role: string; company: string; quote: string; rating?: number; avatarUrl?: string }>;
   b2bStorefront?: { enabled: boolean; mode?: "rfq" | "direct" };
+  carousel?: {
+    enabled: boolean;
+    slides: Array<{
+      id: string;
+      eyebrow?: string;
+      title: string;
+      subtitle: string;
+      badge?: string;
+      primaryCtaLabel?: string;
+      primaryCtaHref?: string;
+      secondaryCtaLabel?: string;
+      secondaryCtaHref?: string;
+      imageUrl?: string;
+    }>;
+  };
+  officeLocations?: Array<{
+    id: string;
+    name: string;
+    type: "Headquarters" | "Branch Office" | "Manufacturing Plant" | "Regional Warehouse";
+    city: string;
+    address: string;
+    phone: string;
+    email: string;
+    workingHours: string;
+    mapEmbedUrl: string;
+    directionsUrl?: string;
+  }>;
 };
 
 export default function TenantHomePage() {
@@ -168,32 +195,36 @@ export default function TenantHomePage() {
         </div>
       ) : null}
 
-      {/* Clean Marketing & Workspace Hero */}
-      <MarketingHero
-        eyebrow={content.eyebrow}
-        title={content.title}
-        subtitle={content.subtitle}
-        badges={content.trustPills}
-        showPreview={false}
-        trustSignals={["Enterprise SSO Access", "Role-Based Security", "Instant Self-Service"]}
-        actions={
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              href={withPublicAudience(content.primaryCtaHref || "/login", "tenant")}
-              className={publicButtonClassName.primary}
-            >
-              {content.primaryCtaLabel || "Sign in"}
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              href={withPublicAudience(content.secondaryCtaHref || "/contact", "tenant")}
-              className={publicButtonClassName.secondary}
-            >
-              {content.secondaryCtaLabel || "Contact support"}
-            </Link>
-          </div>
-        }
-      />
+      {/* Clean Marketing & Workspace Hero (Or Interactive Slider if Enabled) */}
+      {content.carousel?.enabled && (content.carousel.slides || []).length > 0 ? (
+        <HeroCarousel slides={content.carousel.slides} />
+      ) : (
+        <MarketingHero
+          eyebrow={content.eyebrow}
+          title={content.title}
+          subtitle={content.subtitle}
+          badges={content.trustPills}
+          showPreview={false}
+          trustSignals={["Enterprise SSO Access", "Role-Based Security", "Instant Self-Service"]}
+          actions={
+            <div className="flex flex-wrap items-center gap-3">
+              <Link
+                href={withPublicAudience(content.primaryCtaHref || "/login", "tenant")}
+                className={publicButtonClassName.primary}
+              >
+                {content.primaryCtaLabel || "Sign in"}
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href={withPublicAudience(content.secondaryCtaHref || "/contact", "tenant")}
+                className={publicButtonClassName.secondary}
+              >
+                {content.secondaryCtaLabel || "Contact support"}
+              </Link>
+            </div>
+          }
+        />
+      )}
 
       {/* Quick-Access Services & Tiles */}
       {content.showQuickAccess !== false ? (
@@ -285,6 +316,16 @@ export default function TenantHomePage() {
           title="Frequently Asked Questions"
           eyebrow="PORTAL HELP & POLICIES"
           subtitle={`Common answers about ${companyDisplayName} workspaces, HR policies, and employee services.`}
+        />
+      ) : null}
+
+      {/* Office & Operating Locations */}
+      {content.officeLocations && content.officeLocations.length > 0 ? (
+        <OfficeLocatorBlock
+          locations={content.officeLocations}
+          title={`${companyDisplayName} Operating Locations`}
+          eyebrow="OUR PRESENCE"
+          subtitle={`Reach out to our corporate desks, regional centers, and facilities.`}
         />
       ) : null}
     </PublicAudiencePageFrame>

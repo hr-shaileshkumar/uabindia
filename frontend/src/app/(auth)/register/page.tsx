@@ -236,7 +236,7 @@ export default function RegisterPage() {
     >
       <PublicStructuredData data={structuredData} />
 
-      <section className={cn(publicPageSectionClassName, "pb-20 pt-8 sm:pb-28 sm:pt-12")}>
+      <section className={cn(publicPageSectionClassName, "pb-10 pt-3 sm:pb-14 sm:pt-5")}>
         <div className={`${publicSectionClassName} grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start`}>
           {/* Left Column: Public Value Prop & Trust */}
           <div className="space-y-6">

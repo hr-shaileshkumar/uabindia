@@ -8,6 +8,7 @@ import {
   FaqAccordion,
   MarketingHero,
   ModuleGrid,
+  OfficeLocatorBlock,
   TestimonialGrid,
   TrustRibbon,
 } from "@/components/public/PublicMarketingBlocks";
@@ -287,6 +288,50 @@ export default function PlatformHomePage() {
             question: "Can we publish a public B2B product catalog with Request for Quotation (RFQ)?",
             answer: "Yes, every tenant can enable a live B2B product storefront with real-time stock levels, category filters, and an interactive RFQ Drawer that drops quotation leads directly into the ERP CRM pipeline.",
             category: "Commerce",
+          },
+        ]}
+      />
+
+      <OfficeLocatorBlock
+        title="Our Operating Hubs & Branch Presence"
+        eyebrow="NATIONWIDE ACCESSIBILITY"
+        subtitle="Visit our corporate headquarters, cloud engineering centers, or state-level implementation offices."
+        locations={[
+          {
+            id: "loc-mumbai",
+            name: "Corporate Headquarters (HQ Mumbai)",
+            type: "Headquarters",
+            city: "Mumbai, Maharashtra",
+            address: "Level 14, Tower 2, One World Center, Lower Parel, Mumbai, Maharashtra 400013",
+            phone: "+91 7903055384",
+            email: "hq@uabindia.in",
+            workingHours: "Mon - Sat: 09:30 AM – 06:30 PM IST",
+            mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3771.954203175114!2d72.82772597597148!3d19.00632598218442!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3be7ce886851f50b%3A0xe54fb725efbc6f40!2sOne%20World%20Center!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin",
+            directionsUrl: "https://maps.google.com/?q=One+World+Center+Lower+Parel+Mumbai",
+          },
+          {
+            id: "loc-delhi",
+            name: "Northern Region Implementation Center",
+            type: "Branch Office",
+            city: "New Delhi, NCR",
+            address: "Statesman House, Barakhamba Road, Connaught Place, New Delhi, Delhi 110001",
+            phone: "+91 11 4982 3400",
+            email: "delhi@uabindia.in",
+            workingHours: "Mon - Fri: 09:30 AM – 06:00 PM IST",
+            mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3501.9967733475716!2d77.22359417627442!3d28.630048375665384!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x390cfd369c0d1645%3A0xb3e1c6b1a37c9f5!2sStatesman%20House!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin",
+            directionsUrl: "https://maps.google.com/?q=Statesman+House+Connaught+Place+New+Delhi",
+          },
+          {
+            id: "loc-bengaluru",
+            name: "Cloud Engineering & AI R&D Center",
+            type: "Branch Office",
+            city: "Bengaluru, Karnataka",
+            address: "Prestige Tech Park, Marathahalli - Sarjapur Outer Ring Rd, Kadubeesanahalli, Bengaluru 560103",
+            phone: "+91 80 6120 7800",
+            email: "tech@uabindia.in",
+            workingHours: "Mon - Fri: 10:00 AM – 07:00 PM IST",
+            mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3888.7562846939943!2d77.6923483758364!3d12.923388787387442!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae13a43fa4e1b7%3A0xb17332f195dfb824!2sPrestige%20Tech%20Park!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin",
+            directionsUrl: "https://maps.google.com/?q=Prestige+Tech+Park+Bengaluru",
           },
         ]}
       />

@@ -26,9 +26,9 @@ export const publicGlassPanelClassName =
 export const publicSectionClassName =
   "relative mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 xl:px-12";
 
-export const publicPageSectionClassName = "relative py-6 md:py-8 lg:py-10";
-export const publicSectionSpacingClassName = "relative py-6 md:py-8 lg:py-10";
-export const publicSectionContentGapClassName = "mt-5 sm:mt-6";
+export const publicPageSectionClassName = "relative py-4 md:py-6 lg:py-8";
+export const publicSectionSpacingClassName = "relative py-4 md:py-6 lg:py-8";
+export const publicSectionContentGapClassName = "mt-4 sm:mt-5";
 
 export const publicEyebrowClassName =
   "inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.16em] text-blue-600 dark:text-cyan-400";
