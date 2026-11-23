@@ -124,35 +124,23 @@ export default function PublicHeader({
 
             {audience === "platform" ? (
               <>
-                <Link
-                  href={withPublicAudience("/login", audience)}
-                  className={cn(
-                    "inline-flex h-8.5 items-center justify-center rounded-lg px-3 text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 transition-colors",
-                    isActive("/login") && "bg-slate-100 text-slate-900 font-bold dark:bg-slate-800 dark:text-white",
-                  )}
-                >
-                  Sign In
-                </Link>
+                {!isActive("/login") && (
+                  <Link
+                    href={withPublicAudience("/login", audience)}
+                    className="inline-flex h-8.5 items-center justify-center rounded-lg px-3 text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    Sign In
+                  </Link>
+                )}
 
-                <Link
-                  href={withPublicAudience("/contact?type=demo", audience)}
-                  className={cn(
-                    "inline-flex h-8.5 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 transition-colors",
-                    isActive("/contact") && "ring-1 ring-blue-500",
-                  )}
-                >
-                  Request a Demo
-                </Link>
-
-                <Link
-                  href={withPublicAudience("/register", audience)}
-                  className={cn(
-                    "inline-flex h-8.5 items-center justify-center rounded-xl bg-[var(--uab-primary,#1d4ed8)] px-3.5 text-xs font-bold text-white shadow-xs transition-all hover:brightness-110 active:scale-[0.98]",
-                    isActive("/register") && "ring-2 ring-blue-500 ring-offset-2",
-                  )}
-                >
-                  Create Workspace
-                </Link>
+                {!isActive("/register") && (
+                  <Link
+                    href={withPublicAudience("/register", audience)}
+                    className="inline-flex h-8.5 items-center justify-center rounded-xl bg-[var(--uab-primary,#1d4ed8)] px-3.5 text-xs font-bold text-white shadow-xs transition-all hover:brightness-110 active:scale-[0.98]"
+                  >
+                    Create Workspace
+                  </Link>
+                )}
               </>
             ) : (
               <Link
@@ -213,27 +201,24 @@ export default function PublicHeader({
             <div className="border-t border-slate-100 pt-3 space-y-2 dark:border-slate-800">
               {audience === "platform" ? (
                 <>
-                  <Link
-                    href={withPublicAudience("/register", audience)}
-                    className="flex h-10 w-full items-center justify-center rounded-xl bg-[var(--uab-primary,#1d4ed8)] px-4 text-sm font-bold text-white shadow-xs"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    Create Workspace
-                  </Link>
-                  <Link
-                    href={withPublicAudience("/contact?type=demo", audience)}
-                    className="flex h-10 w-full items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 px-4 text-sm font-semibold hover:bg-slate-50"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    Request a Demo
-                  </Link>
-                  <Link
-                    href={withPublicAudience("/login", audience)}
-                    className="flex h-10 w-full items-center justify-center rounded-xl border border-slate-200 text-slate-700 dark:border-slate-800 dark:text-slate-200 px-4 text-sm font-semibold hover:bg-slate-50"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    Sign In
-                  </Link>
+                  {!isActive("/register") && (
+                    <Link
+                      href={withPublicAudience("/register", audience)}
+                      className="flex h-10 w-full items-center justify-center rounded-xl bg-[var(--uab-primary,#1d4ed8)] px-4 text-sm font-bold text-white shadow-xs"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Create Workspace
+                    </Link>
+                  )}
+                  {!isActive("/login") && (
+                    <Link
+                      href={withPublicAudience("/login", audience)}
+                      className="flex h-10 w-full items-center justify-center rounded-xl border border-slate-200 text-slate-700 dark:border-slate-800 dark:text-slate-200 px-4 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Sign In
+                    </Link>
+                  )}
                 </>
               ) : (
                 <Link
