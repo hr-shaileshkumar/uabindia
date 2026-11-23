@@ -259,72 +259,78 @@ export default function ClientCareersPage() {
       />
 
       <div className={cn(publicSectionClassName, "pt-4 pb-12 sm:pt-6 sm:pb-16")}>
-        {/* Header Breadcrumb & Title */}
-        <div className="border-b border-slate-200/80 pb-6 dark:border-slate-800">
-          <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-cyan-400">
-            <BriefcaseBusiness className="h-4 w-4" />
-            <span className="uppercase tracking-wider">{content.eyebrow}</span>
-          </div>
-          <h1 className="mt-2 text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 dark:text-white">
-            {content.title}
-          </h1>
-          <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-3xl leading-relaxed">
-            {content.subtitle}
-          </p>
-
-          <div className="mt-5 flex flex-wrap gap-3">
-            <a href="#openings" className={publicButtonClassName.primary}>
-              View Open Roles
-            </a>
-            <a href="#track" className={publicButtonClassName.secondary}>
-              Track Application Status
-            </a>
-          </div>
-        </div>
-
-        {/* Application Tracker Widget */}
-        <div id="track" className="mt-8 rounded-2xl border border-slate-200/90 bg-slate-50/70 p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900/60 max-w-2xl">
-          <div className="flex items-center gap-2">
-            <Search className="h-5 w-5 text-blue-600 dark:text-cyan-400" />
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">Application Status Tracker</h3>
-          </div>
-          <p className="mt-1 text-xs text-slate-500">
-            Check real-time status of your profile using your Reference ID (e.g., APP-2026-84920) or Email.
-          </p>
-
-          <form onSubmit={handleTrackSearch} className="mt-4 flex gap-2">
-            <input
-              type="text"
-              required
-              value={trackQuery}
-              onChange={(e) => setTrackQuery(e.target.value)}
-              placeholder="Enter Application Ref No. or Email"
-              className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs text-slate-900 focus:border-blue-600 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-            />
-            <button
-              type="submit"
-              disabled={trackingLoading}
-              className={cn(publicButtonClassName.primary, "shrink-0 py-2 text-xs")}
-            >
-              {trackingLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Check Status"}
-            </button>
-          </form>
-
-          {trackResult && (
-            <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 space-y-2 dark:border-slate-700 dark:bg-slate-800">
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">{trackResult.refId}</span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                  <Clock className="h-3 w-3" /> {trackResult.status}
-                </span>
+        {/* Header Hero & Right-Aligned Application Tracker */}
+        <div className="border-b border-slate-200/80 pb-8 dark:border-slate-800">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            {/* Left Column: Careers Info & Call to Action */}
+            <div className="lg:col-span-7">
+              <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-cyan-400">
+                <BriefcaseBusiness className="h-4 w-4" />
+                <span className="uppercase tracking-wider">{content.eyebrow}</span>
               </div>
-              <p className="text-xs text-slate-700 font-medium dark:text-slate-300">{trackResult.role}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{trackResult.notes}</p>
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-700 text-[10px] text-slate-400">
-                Applied on: {trackResult.submittedDate}
+              <h1 className="mt-2 text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 dark:text-white">
+                {content.title}
+              </h1>
+              <p className="mt-3 text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed">
+                {content.subtitle}
+              </p>
+
+              <div className="mt-6 flex items-center gap-3">
+                <a href="#openings" className={publicButtonClassName.primary}>
+                  View Open Roles
+                </a>
               </div>
             </div>
-          )}
+
+            {/* Right Column: Application Status Tracker Card */}
+            <div className="lg:col-span-5">
+              <div className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-cyan-400">
+                    <Search className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">Application Status Tracker</h3>
+                    <p className="text-[11px] text-slate-500">Track real-time candidate review status</p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleTrackSearch} className="mt-4 flex gap-2">
+                  <input
+                    type="text"
+                    required
+                    value={trackQuery}
+                    onChange={(e) => setTrackQuery(e.target.value)}
+                    placeholder="Ref ID (e.g. APP-2026-XXXX) or Email"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs text-slate-900 focus:border-blue-600 focus:bg-white focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  />
+                  <button
+                    type="submit"
+                    disabled={trackingLoading}
+                    className={cn(publicButtonClassName.primary, "shrink-0 h-9 px-4 text-xs")}
+                  >
+                    {trackingLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Check"}
+                  </button>
+                </form>
+
+                {trackResult && (
+                  <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3.5 space-y-2 dark:border-slate-700 dark:bg-slate-800/80">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">{trackResult.refId}</span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                        <Clock className="h-3 w-3" /> {trackResult.status}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-700 font-medium dark:text-slate-300">{trackResult.role}</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">{trackResult.notes}</p>
+                    <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700 text-[10px] text-slate-400">
+                      Applied on: {trackResult.submittedDate}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
 
 
