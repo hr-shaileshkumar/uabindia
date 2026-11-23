@@ -8,8 +8,7 @@ Structure:
 - src/UabIndia.Application: Application interfaces
 - src/UabIndia.Infrastructure: EF Core DbContext and infrastructure services
 - src/UabIndia.Identity: JWT & Refresh token services
-- src/UabIndia.Infrastructure/Data/Migrations: canonical EF Core schema (applied on API startup)
-- migrations_scripts/master_setup.sql: optional manual SQL provisioning
+- src/UabIndia.Infrastructure/Data/Migrations: canonical EF Core Code-First schema (applied automatically on API startup)
 
 Key capabilities:
 - Multi-tenant isolation with tenant-scoped queries
