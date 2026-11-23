@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import {
   CtaPanel,
-  ProcessTimeline,
   SectionIntro,
 } from "@/components/public/PublicMarketingBlocks";
 import PublicAudiencePageFrame from "@/components/public/PublicAudiencePageFrame";
@@ -67,12 +66,7 @@ const formatJobType = (jobType?: string) => {
   return jobType.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/\s+/g, " ").trim();
 };
 
-const hiringFlow = [
-  { step: "01", title: "Online Application", description: "Submit your details, CV/resume, and work history directly." },
-  { step: "02", title: "Profile Screening", description: "Our hiring team reviews your skills and operational fit." },
-  { step: "03", title: "Interview & Discussion", description: "Practical interaction with department heads and team leaders." },
-  { step: "04", title: "Offer & Onboarding", description: "Selected candidates receive a formal offer letter and induction plan." },
-];
+
 
 export default function ClientCareersPage() {
   const {
@@ -333,15 +327,7 @@ export default function ClientCareersPage() {
           )}
         </div>
 
-        {/* Hiring Timeline */}
-        <div className="mt-10">
-          <ProcessTimeline
-            items={hiringFlow}
-            eyebrow={content.processTitle}
-            title="How We Hire"
-            subtitle={content.processBody}
-          />
-        </div>
+
 
         {/* Job Openings Section */}
         <div id="openings" className="mt-12">

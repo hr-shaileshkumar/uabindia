@@ -22,7 +22,6 @@ import {
 } from "lucide-react";
 import {
   CtaPanel,
-  ProcessTimeline,
   SectionIntro,
 } from "@/components/public/PublicMarketingBlocks";
 import { PlatformPublicPageShell, usePlatformPublicPage } from "@/components/public/pages/PublicPageShell";
@@ -58,12 +57,7 @@ const formatJobType = (jobType?: string) => {
   return jobType.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/\s+/g, " ").trim();
 };
 
-const hiringFlow = [
-  { step: "01", title: "Technical Application", description: "Submit your engineering portfolio, GitHub / CV, and core systems background." },
-  { step: "02", title: "System Architecture Call", description: "Deep dive into real-world scaling, high-concurrency ledgers, or cloud infrastructure." },
-  { step: "03", title: "Hands-on Challenge", description: "Solve an actual production scenario with our core platform engineering team." },
-  { step: "04", title: "Executive Fit & Offer", description: "Direct leadership alignment on product roadmap, compensation, and equity grants." },
-];
+
 
 const PLATFORM_PERKS = [
   {
@@ -339,15 +333,7 @@ export default function PlatformCareersPage() {
           )}
         </div>
 
-        {/* Engineering Hiring Roadmap */}
-        <div className="mt-12">
-          <ProcessTimeline
-            items={hiringFlow}
-            eyebrow="Hiring Pipeline"
-            title="Our Engineering Hiring Process"
-            subtitle="Pragmatic, transparent, and focused on real engineering capabilities."
-          />
-        </div>
+
 
         {/* Job Openings Section */}
         <div id="openings" className="mt-12">
