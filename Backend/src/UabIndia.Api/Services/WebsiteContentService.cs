@@ -54,7 +54,7 @@ namespace UabIndia.Api.Services
             new("products", "Products", "/products", "products", true, "primary", "footer"),
             new("pricing", "Pricing", "/pricing", "pricing", true, "primary", "footer"),
             new("contact", "Contact", "/contact", "contact", true, "primary", "footer"),
-            new("career", "Careers", "/careers", "career", false, "footer"),
+            new("career", "Careers", "/careers", "career", true, "primary", "footer"),
             new("support", "Support", "/help-support", "support", false, "footer"),
             new("privacy", "Privacy", "/privacy", "privacy", true, "footer"),
             new("terms", "Terms", "/terms", "terms", true, "footer"),
@@ -67,10 +67,10 @@ namespace UabIndia.Api.Services
         private static readonly PublicRouteDefinition[] TenantRoutes =
         {
             new("tenant-home", "Home", "/", "home", true, "primary", "footer"),
-            new("about", "About", "/about", "about", false, "primary", "footer"),
-            new("products", "Products", "/products", "products", false, "primary", "footer"),
-            new("contact", "Contact", "/contact", "contact", false, "primary", "footer"),
-            new("career", "Careers", "/careers", "career", false, "footer"),
+            new("about", "About", "/about", "about", true, "primary", "footer"),
+            new("products", "Products", "/products", "products", true, "primary", "footer"),
+            new("contact", "Contact", "/contact", "contact", true, "primary", "footer"),
+            new("career", "Careers", "/careers", "career", true, "primary", "footer"),
             new("support", "Support", "/help-support", "support", false, "footer"),
             new("privacy", "Privacy", "/privacy", "privacy", true, "footer"),
             new("terms", "Terms", "/terms", "terms", true, "footer"),

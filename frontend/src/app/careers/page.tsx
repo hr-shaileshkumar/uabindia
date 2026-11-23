@@ -1,6 +1,15 @@
+import type { Metadata } from "next";
 import { headers } from "next/headers";
-import CareersPageClient from "./CareersPageClient";
+import ClientCareersPage from "@/components/public/client/ClientCareersPage";
+import PlatformCareersPage from "@/components/public/platform/PlatformCareersPage";
+import { buildPublicMetadata } from "@/lib/public-metadata";
 import { resolvePublicAudienceFromRequest } from "@/lib/public-audience";
+
+export const metadata: Metadata = buildPublicMetadata({
+  title: "Careers & Open Positions",
+  description: "Explore open job roles, submit candidate profiles, and track hiring applications.",
+  path: "/careers",
+});
 
 export default async function CareersPage({
   searchParams,
@@ -16,5 +25,5 @@ export default async function CareersPage({
     tenant: params?.tenant,
   });
 
-  return <CareersPageClient audience={audience} />;
+  return audience === "tenant" ? <ClientCareersPage /> : <PlatformCareersPage />;
 }

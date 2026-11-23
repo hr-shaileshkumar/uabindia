@@ -66,6 +66,13 @@ const PUBLIC_ROUTE_DEFINITIONS: PublicRouteDefinition[] = [
     placements: ["primary", "footer"],
   },
   {
+    key: "careers",
+    label: "Careers",
+    href: "/careers",
+    audiences: ["platform", "tenant"],
+    placements: ["primary", "footer"],
+  },
+  {
     key: "help-support",
     label: "Help & Support",
     href: "/help-support",
