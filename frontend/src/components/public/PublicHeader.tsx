@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Menu, Moon, Sun, X } from "lucide-react";
+import { LogIn, Menu, Moon, Sun, X } from "lucide-react";
 import type { ClientProfile } from "@/lib/publicProfile";
 import type { PublicAudience } from "@/lib/public-audience";
 import type { PublicHeaderContent } from "@/lib/publicSiteContent";
@@ -148,22 +148,15 @@ export default function PublicHeader({
                 {!isActive("/login") && (
                   <Link
                     href={withPublicAudience("/login", audience)}
-                    className="inline-flex h-8.5 items-center justify-center rounded-lg px-3 text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 transition-colors"
-                  >
-                    Sign In
-                  </Link>
-                )}
-
-                {!isActive("/register") && (
-                  <Link
-                    href={withPublicAudience("/register", audience)}
                     style={{
-                      background: "var(--uab-brand-bg, var(--uab-primary, #1d4ed8))",
+                      background: "var(--uab-brand-gradient, linear-gradient(135deg, #2563eb 0%, #1d4ed8 50%, #4338ca 100%))",
                       color: "var(--uab-brand-text, #ffffff)",
+                      boxShadow: "0 2px 12px -1px var(--uab-brand-glow, rgba(37,99,235,0.4))",
                     }}
-                    className="inline-flex h-8.5 items-center justify-center rounded-xl px-3.5 text-xs font-bold shadow-xs transition-all hover:brightness-110 active:scale-[0.98]"
+                    className="group inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-white/20 px-4.5 text-xs font-bold text-white shadow-xs transition-all duration-200 hover:brightness-110 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.97]"
                   >
-                    Create Workspace
+                    <LogIn className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />
+                    Sign In
                   </Link>
                 )}
               </>
@@ -171,15 +164,16 @@ export default function PublicHeader({
               <Link
                 href={withPublicAudience(headerContent.primaryCtaHref || "/login", audience)}
                 style={{
-                  background: "var(--uab-brand-bg, var(--uab-primary, #1d4ed8))",
+                  background: "var(--uab-brand-gradient, linear-gradient(135deg, #2563eb 0%, #1d4ed8 50%, #4338ca 100%))",
                   color: "var(--uab-brand-text, #ffffff)",
-                  boxShadow: "0 4px 14px var(--uab-brand-glow, rgba(29,78,216,0.3))",
+                  boxShadow: "0 2px 12px -1px var(--uab-brand-glow, rgba(37,99,235,0.4))",
                 }}
                 className={cn(
-                  "inline-flex h-8.5 items-center justify-center rounded-xl px-4 text-xs font-bold shadow-xs transition-all hover:brightness-110 active:scale-[0.98]",
+                  "group inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-white/20 px-4.5 text-xs font-bold text-white shadow-xs transition-all duration-200 hover:brightness-110 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.97]",
                 )}
               >
-                {headerContent.primaryCtaLabel || "Employee Login"}
+                <LogIn className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />
+                {headerContent.primaryCtaLabel || "Sign In"}
               </Link>
             )}
           </div>
@@ -239,25 +233,18 @@ export default function PublicHeader({
             <div className="border-t border-slate-100 pt-3 space-y-2 dark:border-slate-800">
               {audience === "platform" ? (
                 <>
-                  {!isActive("/register") && (
-                    <Link
-                      href={withPublicAudience("/register", audience)}
-                      style={{
-                        background: "var(--uab-brand-bg, var(--uab-primary, #1d4ed8))",
-                        color: "var(--uab-brand-text, #ffffff)",
-                      }}
-                      className="flex h-10 w-full items-center justify-center rounded-xl px-4 text-sm font-bold shadow-xs"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      Create Workspace
-                    </Link>
-                  )}
                   {!isActive("/login") && (
                     <Link
                       href={withPublicAudience("/login", audience)}
-                      className="flex h-10 w-full items-center justify-center rounded-xl border border-slate-200 text-slate-700 dark:border-slate-800 dark:text-slate-200 px-4 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800"
+                      style={{
+                        background: "var(--uab-brand-gradient, linear-gradient(135deg, #2563eb 0%, #1d4ed8 50%, #4338ca 100%))",
+                        color: "var(--uab-brand-text, #ffffff)",
+                        boxShadow: "0 2px 12px -1px var(--uab-brand-glow, rgba(37,99,235,0.4))",
+                      }}
+                      className="flex h-10 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold text-white shadow-xs transition-all duration-200 hover:brightness-110 active:scale-[0.98]"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
+                      <LogIn className="h-4 w-4" />
                       Sign In
                     </Link>
                   )}
@@ -266,14 +253,15 @@ export default function PublicHeader({
                 <Link
                   href={withPublicAudience(headerContent.primaryCtaHref || "/login", audience)}
                   style={{
-                    background: "var(--uab-brand-bg, var(--uab-primary, #1d4ed8))",
+                    background: "var(--uab-brand-gradient, linear-gradient(135deg, #2563eb 0%, #1d4ed8 50%, #4338ca 100%))",
                     color: "var(--uab-brand-text, #ffffff)",
-                    boxShadow: "0 4px 14px var(--uab-brand-glow, rgba(29,78,216,0.3))",
+                    boxShadow: "0 2px 12px -1px var(--uab-brand-glow, rgba(37,99,235,0.4))",
                   }}
-                  className="flex h-10 w-full items-center justify-center rounded-xl px-4 text-sm font-bold shadow-xs"
+                  className="flex h-10 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold text-white shadow-xs transition-all duration-200 hover:brightness-110 active:scale-[0.98]"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  {headerContent.primaryCtaLabel || "Employee Login"}
+                  <LogIn className="h-4 w-4" />
+                  {headerContent.primaryCtaLabel || "Sign In"}
                 </Link>
               )}
             </div>

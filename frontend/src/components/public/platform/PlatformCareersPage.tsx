@@ -16,9 +16,6 @@ import {
   X,
   Sparkles,
   Cpu,
-  Globe2,
-  ShieldCheck,
-  Zap,
 } from "lucide-react";
 import {
   CtaPanel,
@@ -59,28 +56,7 @@ const formatJobType = (jobType?: string) => {
 
 
 
-const PLATFORM_PERKS = [
-  {
-    icon: Sparkles,
-    title: "High-Impact Mission",
-    description: "Build software that powers workforce management, payroll, accounting, and global supply chain operations.",
-  },
-  {
-    icon: Globe2,
-    title: "Global Scale & Reach",
-    description: "Join a fast-growing cloud enterprise operating across multi-country entities, banking networks, and compliance frameworks.",
-  },
-  {
-    icon: Zap,
-    title: "Growth & Ownership",
-    description: "Fast-paced environment with high autonomy, collaborative teams, mentorship, and rapid career advancement.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Competitive Compensation",
-    description: "Top-tier compensation packages, health insurance, performance bonuses, and long-term ESOP equity participation.",
-  },
-];
+
 
 export default function PlatformCareersPage() {
   const { profile, headerContent, footerContent, allowedPaths, pageVisible } =
@@ -326,18 +302,7 @@ export default function PlatformCareersPage() {
           </div>
         </div>
 
-        {/* Platform Culture & Perks Grid */}
-        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {PLATFORM_PERKS.map((p, idx) => (
-            <div key={idx} className={cn(publicPanelHoverClassName, "group relative overflow-hidden transition-all duration-300")}>
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/80 dark:text-cyan-400 mb-3.5 border border-blue-100 dark:border-blue-900/50 shadow-2xs group-hover:scale-105 transition-transform">
-                <p.icon className="h-5 w-5" />
-              </div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">{p.title}</h3>
-              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-normal">{p.description}</p>
-            </div>
-          ))}
-        </div>
+
 
 
 

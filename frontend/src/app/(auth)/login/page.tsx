@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { ArrowRight, CheckCircle2, Eye, EyeOff, Loader2, LockKeyhole, Phone, User, Users } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Loader2, LockKeyhole, User } from "lucide-react";
 import PublicAudiencePageFrame from "@/components/public/PublicAudiencePageFrame";
 import PublicAuthAlert from "@/components/public/auth/PublicAuthAlert";
 import PublicAuthCard, { PublicAuthFooterLink } from "@/components/public/auth/PublicAuthCard";
@@ -300,7 +300,11 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={busy}
-              className={cn(publicButtonClassName.primary, "mt-1.5 w-full")}
+              style={{
+                background: "var(--uab-brand-gradient, linear-gradient(135deg, #2563eb 0%, #1d4ed8 50%, #4338ca 100%))",
+                boxShadow: "0 4px 18px -2px var(--uab-brand-glow, rgba(37,99,235,0.45)), 0 2px 6px -1px rgba(0,0,0,0.1)",
+              }}
+              className="group mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/20 text-sm font-bold text-white shadow-md transition-all duration-200 hover:brightness-110 hover:shadow-[0_6px_22px_-2px_var(--uab-brand-glow,rgba(37,99,235,0.55))] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-50"
             >
               {isSubmitting ? (
                 <>
@@ -309,37 +313,11 @@ export default function LoginPage() {
                 </>
               ) : (
                 <>
-                  {content.loginButtonLabel}
-                  <ArrowRight className="h-4 w-4" />
+                  <span>{content.loginButtonLabel}</span>
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </>
               )}
             </button>
-
-            {/* Enterprise Support & HRMS Portal Switcher */}
-            <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
-              <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
-                <span className="flex items-center gap-1.5 font-medium">
-                  <Phone className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                  Enterprise Support:
-                </span>
-                <a
-                  href="tel:+917903055384"
-                  className="font-semibold text-slate-800 hover:text-blue-600 dark:text-slate-200 dark:hover:text-blue-400 transition-colors"
-                >
-                  +91 7903055384
-                </a>
-              </div>
-
-              <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
-                <span className="flex items-center gap-1.5 font-medium">
-                  <Users className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-                  HRMS & Workforce:
-                </span>
-                <span className="inline-flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400">
-                  <CheckCircle2 className="h-3.5 w-3.5" /> Unified in ERP
-                </span>
-              </div>
-            </div>
           </form>
         </PublicAuthCard>
       </PublicAuthShell>
