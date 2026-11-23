@@ -363,6 +363,13 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  background-color: #f8fafc;
+  color-scheme: light;
+}
+
+html.dark {
+  background-color: #020617;
+  color-scheme: dark;
 }
 
 body {
@@ -382,6 +389,13 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+}
+
+html.dark body,
+.dark body {
+  background-color: #020617 !important;
+  background-image: none !important;
+  color: #f8fafc !important;
 }
 
 /* ── BIG TECH HIGH-DENSITY ENTERPRISE SCALING FOR ERP WORKSPACE (Linear / Stripe ERP standard) ── */

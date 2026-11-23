@@ -141,7 +141,7 @@ export function GlobalLoading({
     return (
       <div
         className={cn(
-          "fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-[#f8fcff]/95 via-[#f0f8fd]/95 to-[#f4faff]/95 p-6 backdrop-blur-xl dark:from-[#030712]/95 dark:via-[#071526]/95 dark:to-[#030914]/95",
+          "fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-[#f8fafc]/95 dark:bg-slate-950/95 p-6 backdrop-blur-xl text-slate-900 dark:text-slate-100",
           className,
         )}
         role="status"
@@ -149,7 +149,7 @@ export function GlobalLoading({
       >
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_60%_at_50%_-10%,rgba(56,189,248,0.14),transparent_65%),radial-gradient(ellipse_70%_50%_at_85%_65%,rgba(6,182,212,0.08),transparent_60%),radial-gradient(ellipse_65%_55%_at_15%_45%,rgba(14,165,233,0.08),transparent_60%)] dark:bg-[radial-gradient(ellipse_90%_60%_at_50%_-10%,rgba(14,165,233,0.12),transparent_65%),radial-gradient(ellipse_70%_50%_at_85%_65%,rgba(6,182,212,0.06),transparent_60%)]"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(37,99,235,0.06),transparent_60%)] dark:bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(37,99,235,0.18),transparent_60%)]"
         />
         <div className="relative z-10 flex flex-col items-center justify-center text-center">
           <RoundArcSpinner size={effectiveSize} className="mx-auto" />
@@ -157,7 +157,7 @@ export function GlobalLoading({
             {label}
           </p>
           {sublabel ? (
-            <p className="mt-1.5 text-xs sm:text-sm text-slate-500 dark:text-slate-400 select-none">
+            <p className="mt-1.5 text-xs sm:text-sm text-slate-600 dark:text-slate-300 select-none">
               {sublabel}
             </p>
           ) : null}

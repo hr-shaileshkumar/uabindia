@@ -39,7 +39,7 @@ export default function PublicSiteFrame({
   } as CSSProperties;
 
   return (
-    <div className="relative flex min-h-screen flex-col bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors" style={brandingStyle}>
+    <div className="relative flex min-h-screen flex-col bg-[#f8fafc] text-slate-900 dark:bg-slate-950 dark:text-slate-100" style={brandingStyle}>
       {showHeader ? (
         <PublicHeader
           audience={audience}
