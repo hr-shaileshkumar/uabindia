@@ -161,24 +161,17 @@ export function GlobalLoading({
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_50%,rgba(37,99,235,0.06),transparent_65%)] dark:bg-[radial-gradient(ellipse_70%_50%_at_50%_50%,rgba(37,99,235,0.14),transparent_65%)]"
         />
 
-        {/* Center Diagonal Rounded Pill */}
-        <div className="relative z-10 flex items-center gap-4 rounded-tl-[26px] rounded-br-[26px] rounded-tr-[10px] rounded-bl-[10px] border border-slate-200/90 bg-white/95 px-5 py-3.5 shadow-[0_12px_36px_-10px_rgba(15,23,42,0.12)] backdrop-blur-xl dark:border-slate-800/90 dark:bg-slate-900/90 dark:shadow-[0_12px_36px_-10px_rgba(0,0,0,0.6)]">
-          {/* 4 Rotating Diagonal Rectangles with Dynamic Colors */}
+        {/* Center Diagonal Rounded Card (Vertical: Top Icon, Down Loading...) */}
+        <div className="relative z-10 flex flex-col items-center justify-center gap-3 rounded-tl-[24px] rounded-br-[24px] rounded-tr-[10px] rounded-bl-[10px] border border-slate-200/90 bg-white/95 px-7 py-5 shadow-[0_12px_36px_-10px_rgba(15,23,42,0.12)] backdrop-blur-xl dark:border-slate-800/90 dark:bg-slate-900/90 dark:shadow-[0_12px_36px_-10px_rgba(0,0,0,0.6)]">
+          {/* Top: 4 Rotating Diagonal Rectangles with Dynamic Colors */}
           <DiagonalQuadLoader size="md" />
 
-          <div className="h-5 w-[1px] bg-slate-200 dark:bg-slate-800" />
+          {/* Down: Loading... text only */}
+          <span className="text-xs font-semibold tracking-wide text-slate-800 dark:text-slate-200 select-none">
+            {label}
+          </span>
 
-          <div className="flex flex-col text-left pr-1">
-            <span className="text-xs font-bold tracking-tight text-slate-900 dark:text-white">
-              {label}
-            </span>
-            <span className="flex items-center gap-1.5 text-[10.5px] font-medium text-slate-500 dark:text-slate-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>{sublabel || "Enterprise Cloud"}</span>
-            </span>
-          </div>
-
-          <div className="absolute -bottom-[1px] left-5 right-5 h-[1.5px] rounded-full bg-gradient-to-r from-blue-600/0 via-cyan-400/80 to-purple-600/0" />
+          <div className="absolute -bottom-[1px] left-4 right-4 h-[1.5px] rounded-full bg-gradient-to-r from-blue-600/0 via-cyan-400/80 to-purple-600/0" />
         </div>
       </div>
     );
@@ -186,18 +179,11 @@ export function GlobalLoading({
 
   return (
     <div className={cn("flex min-h-[30vh] w-full flex-col items-center justify-center p-6 text-center select-none", className)}>
-      <div className="relative flex flex-col items-center gap-3.5 rounded-tl-[24px] rounded-br-[24px] rounded-tr-[10px] rounded-bl-[10px] border border-slate-200/90 bg-white/95 p-6 shadow-xl backdrop-blur-xl dark:border-slate-800/90 dark:bg-slate-900/90">
+      <div className="relative flex flex-col items-center justify-center gap-3 rounded-tl-[24px] rounded-br-[24px] rounded-tr-[10px] rounded-bl-[10px] border border-slate-200/90 bg-white/95 px-7 py-5 shadow-xl backdrop-blur-xl dark:border-slate-800/90 dark:bg-slate-900/90">
         <DiagonalQuadLoader size="lg" className="mx-auto" />
-        <div className="flex flex-col items-center">
-          <p className="text-sm font-bold tracking-tight text-slate-900 dark:text-slate-100">
-            {label}
-          </p>
-          {sublabel ? (
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              {sublabel}
-            </p>
-          ) : null}
-        </div>
+        <span className="text-xs font-semibold tracking-wide text-slate-800 dark:text-slate-200">
+          {label}
+        </span>
       </div>
     </div>
   );
