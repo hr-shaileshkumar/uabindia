@@ -84,7 +84,7 @@ export default function ClientContactPage() {
           <h1 className="mt-2 text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 dark:text-white">
             {content.title}
           </h1>
-          <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-3xl leading-relaxed">
+          <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-300 max-w-3xl leading-relaxed">
             {content.subtitle}
           </p>
         </div>
@@ -94,42 +94,50 @@ export default function ClientContactPage() {
           {/* Left Column: Direct Info Cards */}
           <div className="lg:col-span-5 space-y-4">
             <div className={publicPanelClassName}>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-4">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-cyan-400 mb-4">
                 Office & Operations Desk
               </h3>
-              <div className="space-y-4 text-xs">
+              <div className="space-y-4 text-sm">
                 {profile.headquarters && (
                   <div className="flex items-start gap-3">
-                    <MapPin className="h-4 w-4 shrink-0 text-blue-600 dark:text-cyan-400 mt-0.5" />
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/80 dark:text-cyan-400 border border-blue-100 dark:border-blue-900/60 shadow-2xs">
+                      <MapPin className="h-4 w-4" />
+                    </div>
                     <div>
-                      <span className="font-semibold text-slate-700 dark:text-slate-300">Headquarters:</span>
-                      <p className="text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">{profile.headquarters}</p>
+                      <span className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Headquarters</span>
+                      <p className="text-slate-800 dark:text-slate-100 font-semibold mt-0.5 leading-relaxed">{profile.headquarters}</p>
                     </div>
                   </div>
                 )}
                 {profile.supportPhone && (
                   <div className="flex items-center gap-3">
-                    <Phone className="h-4 w-4 shrink-0 text-blue-600 dark:text-cyan-400" />
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/80 dark:text-cyan-400 border border-blue-100 dark:border-blue-900/60 shadow-2xs">
+                      <Phone className="h-4 w-4" />
+                    </div>
                     <div>
-                      <span className="font-semibold text-slate-700 dark:text-slate-300">Phone:</span>
-                      <p className="text-slate-500 dark:text-slate-400 mt-0.5">{profile.supportPhone}</p>
+                      <span className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Phone</span>
+                      <p className="text-slate-800 dark:text-slate-100 font-semibold mt-0.5">{profile.supportPhone}</p>
                     </div>
                   </div>
                 )}
                 {profile.supportEmail && (
                   <div className="flex items-center gap-3">
-                    <Mail className="h-4 w-4 shrink-0 text-blue-600 dark:text-cyan-400" />
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/80 dark:text-cyan-400 border border-blue-100 dark:border-blue-900/60 shadow-2xs">
+                      <Mail className="h-4 w-4" />
+                    </div>
                     <div>
-                      <span className="font-semibold text-slate-700 dark:text-slate-300">Email:</span>
-                      <p className="text-slate-500 dark:text-slate-400 mt-0.5">{profile.supportEmail}</p>
+                      <span className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Email</span>
+                      <p className="text-slate-800 dark:text-slate-100 font-semibold mt-0.5">{profile.supportEmail}</p>
                     </div>
                   </div>
                 )}
                 <div className="flex items-center gap-3">
-                  <Clock className="h-4 w-4 shrink-0 text-blue-600 dark:text-cyan-400" />
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/80 dark:text-cyan-400 border border-blue-100 dark:border-blue-900/60 shadow-2xs">
+                    <Clock className="h-4 w-4" />
+                  </div>
                   <div>
-                    <span className="font-semibold text-slate-700 dark:text-slate-300">Business Hours:</span>
-                    <p className="text-slate-500 dark:text-slate-400 mt-0.5">Mon – Sat: 9:00 AM – 6:30 PM IST</p>
+                    <span className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Business Hours</span>
+                    <p className="text-slate-800 dark:text-slate-100 font-semibold mt-0.5">Mon – Sat: 9:00 AM – 6:30 PM IST</p>
                   </div>
                 </div>
               </div>
@@ -139,12 +147,12 @@ export default function ClientContactPage() {
               <h4 className="text-xs font-bold uppercase tracking-wider text-blue-800 dark:text-blue-300">
                 Staff & Employee Self-Service
               </h4>
-              <p className="mt-1 text-xs text-blue-900/80 dark:text-blue-200 leading-relaxed">
+              <p className="mt-1 text-sm text-blue-900/90 dark:text-blue-200 leading-relaxed">
                 Employees seeking payslip downloads, attendance corrections, or leave approvals should log in directly to the employee portal.
               </p>
               <Link
                 href="/login"
-                className="mt-3 inline-flex items-center text-xs font-bold text-[var(--uab-primary,#1d4ed8)] hover:underline"
+                className="mt-3 inline-flex items-center text-sm font-bold text-[var(--uab-primary,#1d4ed8)] hover:underline"
               >
                 Go to Employee Login &rarr;
               </Link>
@@ -154,8 +162,8 @@ export default function ClientContactPage() {
           {/* Right Column: Ticket / Message Form */}
           <div className="lg:col-span-7">
             <div className={publicPanelClassName}>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-1">Send a Direct Message</h2>
-              <p className="text-xs text-slate-500 mb-6">Our department coordinators respond within 24 business hours.</p>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-1">Send a Direct Message</h2>
+              <p className="text-sm text-slate-600 dark:text-slate-300 mb-6">Our department coordinators respond within 24 business hours.</p>
 
               {submitted ? (
                 <div className="py-10 text-center">

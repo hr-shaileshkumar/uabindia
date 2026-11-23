@@ -456,10 +456,10 @@ export function PricingGrid({ plans }: { plans: PricingPlan[] }) {
             <article
               key={plan.name}
               className={cn(
-                "flex flex-col relative rounded-2xl border p-6 sm:p-7 transition-all duration-200 dark:bg-slate-900",
+                "flex flex-col relative rounded-2xl border p-6 sm:p-7 transition-all duration-200 dark:bg-slate-900/90 dark:backdrop-blur-xs",
                 plan.featured
-                  ? "border-blue-600 bg-white ring-2 ring-blue-600 shadow-xl dark:border-blue-500 dark:ring-blue-500"
-                  : "border-slate-200/90 bg-white shadow-xs hover:border-slate-300 hover:shadow-md dark:border-slate-800 dark:hover:border-slate-700"
+                  ? "border-blue-600 bg-white ring-2 ring-blue-600 shadow-xl dark:border-blue-500 dark:ring-blue-500/80 dark:shadow-[0_0_35px_rgba(59,130,246,0.18)]"
+                  : "border-slate-200/90 bg-white shadow-xs hover:border-slate-300 hover:shadow-md dark:border-slate-800/90 dark:hover:border-slate-700 dark:shadow-[0_4px_24px_rgba(0,0,0,0.3)]"
               )}
             >
               {plan.featured ? (
@@ -472,16 +472,16 @@ export function PricingGrid({ plans }: { plans: PricingPlan[] }) {
               
               <div className="mt-4 pb-4 border-b border-slate-100 dark:border-slate-800">
                 <p className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white font-mono">{displayPrice}</p>
-                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 font-medium">{plan.implementation}</p>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 font-medium">{plan.implementation}</p>
               </div>
 
-              <p className="mt-4 text-xs leading-relaxed text-slate-600 dark:text-slate-400 min-h-[36px]">{plan.summary}</p>
+              <p className="mt-4 text-sm leading-relaxed text-slate-600 dark:text-slate-300 min-h-[40px]">{plan.summary}</p>
               
               <ul className="mt-5 flex-1 space-y-3">
                 {plan.points.map((point) => (
-                  <li key={point} className="flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-300">
-                    <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400 mt-0.5">
-                      <Check className="h-2.5 w-2.5 stroke-[3]" />
+                  <li key={point} className="flex items-start gap-2.5 text-sm text-slate-700 dark:text-slate-200">
+                    <span className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400 mt-0.5">
+                      <Check className="h-3 w-3 stroke-[3]" />
                     </span>
                     <span>{point}</span>
                   </li>
@@ -496,7 +496,7 @@ export function PricingGrid({ plans }: { plans: PricingPlan[] }) {
                 }
                 className={cn(
                   plan.featured ? publicButtonClassName.primary : publicButtonClassName.secondary,
-                  "mt-8 w-full text-center py-2.5 text-xs font-bold rounded-xl"
+                  "mt-8 w-full text-center py-2.5 text-sm font-semibold rounded-xl h-11"
                 )}
               >
                 {plan.name.includes("Enterprise") ? "Schedule Architecture Consultation" : "Start 14-Day Free Trial"}
@@ -507,8 +507,8 @@ export function PricingGrid({ plans }: { plans: PricingPlan[] }) {
       </div>
 
       {/* Enterprise Guarantees Ribbon */}
-      <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs dark:border-slate-800/90 dark:bg-slate-900/90 dark:shadow-[0_0_25px_rgba(59,130,246,0.06)]">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { icon: Server, title: "99.99% Uptime SLA", desc: "Multi-region Tier-IV sovereign cloud datacenters with 99.99% high availability" },
             { icon: ShieldCheck, title: "Statutory Compliance", desc: "Guaranteed day-zero updates for global VAT, regional GST & local statutory laws" },
@@ -518,12 +518,12 @@ export function PricingGrid({ plans }: { plans: PricingPlan[] }) {
             const Icon = item.icon;
             return (
               <div key={item.title} className="flex items-start gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-700 to-indigo-800 text-white shadow-2xs">
-                  <Icon className="h-4 w-4 text-cyan-300" />
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-700 to-indigo-800 text-white shadow-2xs">
+                  <Icon className="h-5 w-5 text-cyan-300" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-slate-900 dark:text-white">{item.title}</p>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug mt-0.5">{item.desc}</p>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">{item.title}</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mt-0.5">{item.desc}</p>
                 </div>
               </div>
             );
@@ -556,11 +556,11 @@ export function SupportLaneGrid({
   items: Array<{ title: string; detail: string }>;
 }) {
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="grid gap-5 md:grid-cols-3">
       {items.map((item) => (
         <article key={item.title} className={publicPanelClassName}>
           <h3 className="text-base font-bold text-slate-900 dark:text-white">{item.title}</h3>
-          <p className="mt-2 text-xs sm:text-sm leading-relaxed text-slate-600 dark:text-slate-400">{item.detail}</p>
+          <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{item.detail}</p>
         </article>
       ))}
     </div>

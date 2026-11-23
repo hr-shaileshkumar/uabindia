@@ -70,7 +70,7 @@ export default function PlatformAboutPage() {
           <h1 className="mt-2 text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 dark:text-white">
             Pioneering the Sovereign <span className={publicGradientTextClassName}>Enterprise Cloud</span>
           </h1>
-          <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-3xl leading-relaxed">
+          <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-300 max-w-3xl leading-relaxed">
             UabIndia was architected from the ground up to replace fragmented legacy ERPs with a unified, high-performance operating system for finance, global payroll, tax, supply chain, and workforce orchestration.
           </p>
         </div>
@@ -79,17 +79,17 @@ export default function PlatformAboutPage() {
         <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-6">
           {pillars.map((p, idx) => (
             <div key={idx} className={cn(publicPanelClassName, "p-6")}>
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-cyan-400 mb-4">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/80 dark:text-cyan-400 mb-4 border border-blue-100 dark:border-blue-900/50 shadow-2xs">
                 <p.icon className="h-5 w-5" />
               </div>
               <h2 className="text-base font-bold text-slate-900 dark:text-white">{p.title}</h2>
-              <p className="mt-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{p.description}</p>
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{p.description}</p>
             </div>
           ))}
         </div>
 
         {/* Platform Milestones & Trust Banner */}
-        <div className="mt-12 rounded-3xl bg-slate-900 text-white p-8 dark:bg-slate-900/90 border border-slate-800">
+        <div className="mt-12 rounded-3xl bg-slate-900 text-white p-8 dark:bg-gradient-to-br dark:from-slate-900/95 dark:to-slate-950/95 border border-slate-800 dark:shadow-[0_0_35px_rgba(59,130,246,0.08)]">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
             <div>
               <p className="text-3xl sm:text-4xl font-black text-blue-400">99.99%</p>
@@ -111,10 +111,10 @@ export default function PlatformAboutPage() {
         </div>
 
         {/* CTA */}
-        <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+        <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs dark:border-slate-800/90 dark:bg-slate-900/90 dark:shadow-[0_0_25px_rgba(59,130,246,0.06)]">
           <div>
             <h3 className="text-base font-bold text-slate-900 dark:text-white">Ready to modernize your enterprise stack?</h3>
-            <p className="text-xs text-slate-500">Consult with our enterprise architects on migration and private deployments.</p>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Consult with our enterprise architects on migration and private deployments.</p>
           </div>
           <div className="flex items-center gap-3">
             <Link href={withPublicAudience("/pricing", "platform")} className={publicButtonClassName.secondary}>

@@ -124,8 +124,8 @@ export default function PublicAuthShell({
             </div>
 
             {/* Bottom Security Footer */}
-            <div className="mt-6 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-              <ShieldCheck className="h-4 w-4 text-blue-500" />
+            <div className="mt-6 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 font-medium">
+              <ShieldCheck className="h-4 w-4 text-blue-500 dark:text-cyan-400" />
               <span>Encrypted sessions · ISO-standard access · Audit-ready</span>
             </div>
           </aside>

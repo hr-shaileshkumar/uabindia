@@ -195,8 +195,10 @@ export function ContactDemoForm({ audience = "platform", variant = "erp" }: Cont
     if (isPublic) {
       return (
         <div>
-          <h3 className="text-lg font-semibold text-slate-900">Contact support</h3>
-          <p className="mt-1 text-sm text-slate-600">Share your issue and the support desk will route it to the right team.</p>
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white">Contact Support</h3>
+          <p className="mt-1 text-sm font-medium text-slate-600 dark:text-slate-300">
+            Share your issue and the support desk will route it to the right team.
+          </p>
           <div className="mt-5">{formBody}</div>
         </div>
       );
@@ -280,8 +282,10 @@ export function ContactDemoForm({ audience = "platform", variant = "erp" }: Cont
   if (isPublic) {
     return (
       <div>
-        <h3 className="text-lg font-semibold text-slate-900">Request a walkthrough</h3>
-        <p className="mt-1 text-sm text-slate-600">Share your rollout scope and we will prepare your enquiry for the sales team.</p>
+        <h3 className="text-xl font-bold text-slate-900 dark:text-white">Request a Walkthrough</h3>
+        <p className="mt-1 text-sm font-medium text-slate-600 dark:text-slate-300">
+          Share your rollout scope and we will prepare your enquiry for the sales team.
+        </p>
         <div className="mt-5">{formBody}</div>
       </div>
     );

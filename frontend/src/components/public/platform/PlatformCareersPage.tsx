@@ -264,7 +264,7 @@ export default function PlatformCareersPage() {
               <h1 className="mt-2 text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 dark:text-white">
                 Build the Future of <span className={publicGradientTextClassName}>Enterprise Software</span>
               </h1>
-              <p className="mt-3 text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed">
+              <p className="mt-3 text-sm sm:text-base text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed">
                 Join our cross-functional teams across Engineering, Product, Sales, Marketing, Finance, HR, and Operations to shape next-gen enterprise cloud solutions.
               </p>
 
@@ -277,14 +277,14 @@ export default function PlatformCareersPage() {
 
             {/* Right Column: Application Status Tracker Card */}
             <div className="lg:col-span-5">
-              <div className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-cyan-400">
-                    <Search className="h-4 w-4" />
+              <div className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-sm dark:border-slate-800/90 dark:bg-slate-900/90 dark:shadow-[0_0_25px_rgba(59,130,246,0.08)]">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/80 dark:text-cyan-400 border border-blue-100 dark:border-blue-900/60 shadow-2xs">
+                    <Search className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">Application Status Tracker</h3>
-                    <p className="text-[11px] text-slate-500">Track real-time candidate review status</p>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">Application Status Tracker</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Track real-time candidate review status</p>
                   </div>
                 </div>
 
@@ -295,12 +295,12 @@ export default function PlatformCareersPage() {
                     value={trackQuery}
                     onChange={(e) => setTrackQuery(e.target.value)}
                     placeholder="Ref ID (e.g. UAB-2026-XXXX) or Email"
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs text-slate-900 focus:border-blue-600 focus:bg-white focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                    className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700/80 dark:bg-slate-950/70 dark:text-white dark:placeholder:text-slate-400 dark:focus:border-blue-400"
                   />
                   <button
                     type="submit"
                     disabled={trackingLoading}
-                    className={cn(publicButtonClassName.primary, "shrink-0 h-9 px-4 text-xs")}
+                    className={cn(publicButtonClassName.primary, "shrink-0 h-10 px-5 text-sm font-semibold")}
                   >
                     {trackingLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Check"}
                   </button>
@@ -329,12 +329,12 @@ export default function PlatformCareersPage() {
         {/* Platform Culture & Perks Grid */}
         <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {PLATFORM_PERKS.map((p, idx) => (
-            <div key={idx} className={publicPanelClassName}>
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-cyan-400 mb-3">
+            <div key={idx} className={cn(publicPanelHoverClassName, "group relative overflow-hidden transition-all duration-300")}>
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/80 dark:text-cyan-400 mb-3.5 border border-blue-100 dark:border-blue-900/50 shadow-2xs group-hover:scale-105 transition-transform">
                 <p.icon className="h-5 w-5" />
               </div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">{p.title}</h3>
-              <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{p.description}</p>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">{p.title}</h3>
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-normal">{p.description}</p>
             </div>
           ))}
         </div>
@@ -410,27 +410,31 @@ export default function PlatformCareersPage() {
                 ))}
               </div>
             ) : (
-              <div className={`${publicPanelClassName} text-center py-12`}>
-                <Users className="mx-auto h-8 w-8 text-slate-400" />
-                <h2 className="mt-3 text-base font-bold text-slate-900 dark:text-white">General Career Application</h2>
-                <p className="mt-1 text-xs text-slate-500">
-                  Don&apos;t see an exact match? We are always looking for exceptional talent across Engineering, Sales, Product, Marketing, and Operations. Submit your profile below.
+              <div className={cn(publicPanelClassName, "text-center py-12 px-6 border-slate-200/90 dark:border-slate-800 dark:bg-gradient-to-b dark:from-slate-900/90 dark:to-slate-950/90 dark:shadow-[0_0_30px_rgba(59,130,246,0.06)]")}>
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950/80 dark:text-cyan-400 border border-blue-100 dark:border-blue-900/50 shadow-xs mb-4">
+                  <Users className="h-7 w-7" />
+                </div>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white">General Career Application</h2>
+                <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-200 max-w-xl mx-auto leading-relaxed">
+                  Don&apos;t see an exact match? We are always looking for exceptional talent across Engineering, Sales, Product, Marketing, Finance, and Operations. Submit your profile directly to our talent team.
                 </p>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setApplyingJob({
-                      id: "platform-general",
-                      role: "General Talent Application",
-                      company: "UabIndia Cloud Platform",
-                      location: "Bengaluru / Gurugram / Remote",
-                      type: "Full-Time",
-                    })
-                  }
-                  className={cn(publicButtonClassName.secondary, "mt-4 text-xs h-9")}
-                >
-                  Submit General Profile
-                </button>
+                <div className="mt-6">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setApplyingJob({
+                        id: "platform-general",
+                        role: "General Talent Application",
+                        company: "UabIndia Cloud Platform",
+                        location: "Bengaluru / Gurugram / Remote",
+                        type: "Full-Time",
+                      })
+                    }
+                    className={cn(publicButtonClassName.primary, "px-6 py-2.5 text-sm font-semibold shadow-md")}
+                  >
+                    Submit General Profile
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -460,117 +464,117 @@ export default function PlatformCareersPage() {
               {appSuccessRef ? (
                 <div className="py-8 text-center">
                   <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-500" />
-                  <h4 className="mt-3 text-base font-bold text-slate-900 dark:text-white">Profile Submitted!</h4>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Your reference number is <strong className="text-blue-600">{appSuccessRef}</strong>. Our talent acquisition team will review your application.
+                  <h4 className="mt-3 text-lg font-bold text-slate-900 dark:text-white">Profile Submitted!</h4>
+                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                    Your reference number is <strong className="text-blue-600 dark:text-cyan-400 font-mono font-bold">{appSuccessRef}</strong>. Our talent acquisition team will review your application.
                   </p>
                   <button
                     type="button"
                     onClick={closeApplyModal}
-                    className={cn(publicButtonClassName.primary, "mt-5 text-xs h-9")}
+                    className={cn(publicButtonClassName.primary, "mt-6 text-sm h-10 px-6 font-semibold")}
                   >
                     Done
                   </button>
                 </div>
               ) : (
-                <form onSubmit={handleApplySubmit} className="mt-4 space-y-3">
+                <form onSubmit={handleApplySubmit} className="mt-5 space-y-4">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300">First Name *</label>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1">First Name *</label>
                       <input
                         type="text"
                         required
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
                         placeholder="John"
-                        className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                        className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none dark:border-slate-700/90 dark:bg-slate-950/70 dark:text-white dark:placeholder:text-slate-400 dark:focus:border-blue-400"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Last Name *</label>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1">Last Name *</label>
                       <input
                         type="text"
                         required
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
                         placeholder="Doe"
-                        className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                        className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none dark:border-slate-700/90 dark:bg-slate-950/70 dark:text-white dark:placeholder:text-slate-400 dark:focus:border-blue-400"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Email Address *</label>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1">Email Address *</label>
                       <input
                         type="email"
                         required
                         value={applicantEmail}
                         onChange={(e) => setApplicantEmail(e.target.value)}
                         placeholder="john@example.com"
-                        className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                        className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none dark:border-slate-700/90 dark:bg-slate-950/70 dark:text-white dark:placeholder:text-slate-400 dark:focus:border-blue-400"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Phone Number</label>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1">Phone Number</label>
                       <input
                         type="tel"
                         value={applicantPhone}
                         onChange={(e) => setApplicantPhone(e.target.value)}
                         placeholder="+91 98765 43210"
-                        className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                        className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none dark:border-slate-700/90 dark:bg-slate-950/70 dark:text-white dark:placeholder:text-slate-400 dark:focus:border-blue-400"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300">GitHub / Portfolio URL</label>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1">GitHub / Portfolio URL</label>
                       <input
                         type="url"
                         value={portfolioUrl}
                         onChange={(e) => setPortfolioUrl(e.target.value)}
                         placeholder="https://github.com/username"
-                        className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                        className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none dark:border-slate-700/90 dark:bg-slate-950/70 dark:text-white dark:placeholder:text-slate-400 dark:focus:border-blue-400"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Years of Experience</label>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1">Years of Experience</label>
                       <input
                         type="number"
                         min={0}
                         value={yearsOfExperience}
                         onChange={(e) => setYearsOfExperience(Number(e.target.value))}
-                        className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                        className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none dark:border-slate-700/90 dark:bg-slate-950/70 dark:text-white dark:placeholder:text-slate-400 dark:focus:border-blue-400"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Resume / CV Document (PDF, DOCX)</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1">Resume / CV Document (PDF, DOCX)</label>
                     <input
                       type="file"
                       accept=".pdf,.doc,.docx"
                       onChange={(e) => setResumeFile(e.target.files?.[0] || null)}
-                      className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 dark:border-slate-700/90 dark:bg-slate-950/70 dark:text-white"
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Why are you a good fit / Professional Summary</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1">Professional Pitch & Summary</label>
                     <textarea
                       rows={3}
                       value={coverNote}
                       onChange={(e) => setCoverNote(e.target.value)}
                       placeholder="Share a brief overview of your skills, achievements, or domain expertise..."
-                      className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                      className="w-full rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none dark:border-slate-700/90 dark:bg-slate-950/70 dark:text-white dark:placeholder:text-slate-400 dark:focus:border-blue-400 resize-none"
                     />
                   </div>
 
                   <button
                     type="submit"
                     disabled={submittingApp}
-                    className={cn(publicButtonClassName.primary, "mt-4 w-full")}
+                    className={cn(publicButtonClassName.primary, "mt-4 w-full h-11 text-sm font-semibold")}
                   >
                     {submittingApp ? "Submitting Application..." : "Submit Application"}
                   </button>

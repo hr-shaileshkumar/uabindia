@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Sparkles, PhoneCall, Mail, MapPinned, Clock3, ShieldCheck } from "lucide-react";
+import { Sparkles, PhoneCall, Mail, MapPinned, Clock3, ShieldCheck, Building2 } from "lucide-react";
 import { DemoAgendaPanel, SupportLaneGrid } from "@/components/public/PublicMarketingBlocks";
 import { PlatformPublicPageShell, usePlatformPublicPage } from "./PlatformPageShell";
 import PublicStructuredData from "@/components/public/PublicStructuredData";
@@ -62,7 +62,7 @@ export default function PlatformContactPage() {
               <span>Connect with <span className={publicGradientTextClassName}>Enterprise Architects</span></span>
             )}
           </h1>
-          <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-3xl leading-relaxed">
+          <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-300 max-w-3xl leading-relaxed">
             {subtitle}
           </p>
         </div>
@@ -75,47 +75,56 @@ export default function PlatformContactPage() {
             ) : (
               <div className="space-y-4">
                 <div className={publicPanelClassName}>
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
-                    Corporate Headquarters
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-cyan-400 mb-4 flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    <span>Corporate Headquarters</span>
                   </h3>
-                  <div className="space-y-3 text-xs">
-                    <div className="flex items-start gap-2.5">
-                      <MapPinned className="h-4 w-4 shrink-0 text-blue-600 dark:text-cyan-400 mt-0.5" />
+                  <div className="space-y-4 text-sm">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/80 dark:text-cyan-400 border border-blue-100 dark:border-blue-900/60 shadow-2xs">
+                        <MapPinned className="h-4 w-4" />
+                      </div>
                       <div>
-                        <span className="font-semibold text-slate-700 dark:text-slate-300">Global HQ:</span>
-                        <p className="text-slate-500 dark:text-slate-400">Cyber City, Gurugram, NCR Delhi, India</p>
+                        <span className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Global HQ</span>
+                        <p className="mt-0.5 font-semibold text-slate-800 dark:text-slate-100">Cyber City, Gurugram, NCR Delhi, India</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2.5">
-                      <PhoneCall className="h-4 w-4 shrink-0 text-blue-600 dark:text-cyan-400" />
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/80 dark:text-cyan-400 border border-blue-100 dark:border-blue-900/60 shadow-2xs">
+                        <PhoneCall className="h-4 w-4" />
+                      </div>
                       <div>
-                        <span className="font-semibold text-slate-700 dark:text-slate-300">Enterprise Hotline:</span>
-                        <p className="text-slate-500 dark:text-slate-400">+91 (124) 490-8800</p>
+                        <span className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Enterprise Hotline</span>
+                        <p className="mt-0.5 font-semibold text-slate-800 dark:text-slate-100">+91 (124) 490-8800</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2.5">
-                      <Mail className="h-4 w-4 shrink-0 text-blue-600 dark:text-cyan-400" />
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/80 dark:text-cyan-400 border border-blue-100 dark:border-blue-900/60 shadow-2xs">
+                        <Mail className="h-4 w-4" />
+                      </div>
                       <div>
-                        <span className="font-semibold text-slate-700 dark:text-slate-300">Sales Advisory:</span>
-                        <p className="text-slate-500 dark:text-slate-400">enterprise@uabindia.in</p>
+                        <span className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Sales Advisory</span>
+                        <p className="mt-0.5 font-semibold text-slate-800 dark:text-slate-100">enterprise@uabindia.in</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2.5">
-                      <Clock3 className="h-4 w-4 shrink-0 text-blue-600 dark:text-cyan-400" />
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/80 dark:text-cyan-400 border border-blue-100 dark:border-blue-900/60 shadow-2xs">
+                        <Clock3 className="h-4 w-4" />
+                      </div>
                       <div>
-                        <span className="font-semibold text-slate-700 dark:text-slate-300">Response SLA:</span>
-                        <p className="text-slate-500 dark:text-slate-400">Guaranteed within 4 business hours</p>
+                        <span className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Response SLA</span>
+                        <p className="mt-0.5 font-semibold text-slate-800 dark:text-slate-100">Guaranteed within 4 business hours</p>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/70 p-5 dark:border-emerald-900/60 dark:bg-emerald-950/40">
+                <div className="rounded-2xl border border-emerald-300/80 bg-emerald-50/80 p-5 dark:border-emerald-800/80 dark:bg-emerald-950/50 shadow-xs">
                   <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 text-xs font-bold uppercase tracking-wider">
-                    <ShieldCheck className="h-4 w-4" />
+                    <ShieldCheck className="h-4.5 w-4.5" />
                     <span>NDA & Security Assurance</span>
                   </div>
-                  <p className="mt-1 text-xs text-emerald-900/80 dark:text-emerald-200 leading-relaxed">
+                  <p className="mt-2 text-sm text-emerald-950 dark:text-emerald-200 leading-relaxed font-normal">
                     All architectural inquiries, data volume discussions, and current system assessments are covered under mutual enterprise non-disclosure.
                   </p>
                 </div>

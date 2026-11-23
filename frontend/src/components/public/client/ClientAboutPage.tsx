@@ -91,7 +91,7 @@ export default function ClientAboutPage() {
           <h1 className="mt-2 text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 dark:text-white">
             {content.title}
           </h1>
-          <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-3xl leading-relaxed">
+          <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-300 max-w-3xl leading-relaxed">
             {content.subtitle}
           </p>
         </div>
@@ -126,11 +126,11 @@ export default function ClientAboutPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
               {content.values.map((v, i) => (
                 <div key={i} className={publicPanelClassName}>
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-300 mb-3">
-                    <Award className="h-4 w-4" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/80 dark:text-cyan-400 mb-3 border border-blue-100 dark:border-blue-900/50 shadow-2xs">
+                    <Award className="h-5 w-5" />
                   </div>
-                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">{v.title}</h4>
-                  <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{v.description}</p>
+                  <h4 className="text-base font-bold text-slate-900 dark:text-white">{v.title}</h4>
+                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-normal">{v.description}</p>
                 </div>
               ))}
             </div>

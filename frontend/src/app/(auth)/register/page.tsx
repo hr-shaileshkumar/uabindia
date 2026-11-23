@@ -464,8 +464,8 @@ export default function RegisterPage() {
                       {step === 1 && (
                         <div className="space-y-4">
                           <div>
-                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200">Company / Organization Name *</label>
-                            <div className="mt-1.5 flex items-center gap-3 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/80 dark:focus-within:bg-slate-800">
+                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1">Company / Organization Name *</label>
+                            <div className="flex items-center gap-3 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700/90 dark:bg-slate-950/70 dark:focus-within:border-blue-400 dark:focus-within:bg-slate-950/90">
                               <Building2 className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-400" />
                               <input
                                 type="text"
@@ -479,8 +479,8 @@ export default function RegisterPage() {
                           </div>
 
                           <div>
-                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200">Choose Workspace Subdomain *</label>
-                            <div className="mt-1.5 flex items-center rounded-xl border border-slate-300 bg-slate-50/50 transition overflow-hidden focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/80 dark:focus-within:bg-slate-800">
+                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1">Choose Workspace Subdomain *</label>
+                            <div className="flex items-center rounded-xl border border-slate-300 bg-slate-50/50 transition overflow-hidden focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700/90 dark:bg-slate-950/70 dark:focus-within:border-blue-400 dark:focus-within:bg-slate-950/90">
                               <div className="flex items-center gap-2 pl-3.5 pr-1 text-slate-400 dark:text-slate-400">
                                 <Globe className="h-4 w-4 shrink-0" />
                               </div>
@@ -512,11 +512,11 @@ export default function RegisterPage() {
                           </div>
 
                           <div>
-                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200">Industry / Sector</label>
+                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1">Industry / Sector</label>
                             <select
                               value={industry}
                               onChange={(e) => setIndustry(e.target.value)}
-                              className="w-full mt-1.5 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-900 transition focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/90 dark:text-white"
+                              className="w-full rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-900 transition focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700/90 dark:bg-slate-950/70 dark:text-white"
                             >
                               <option value="Technology & Services">Technology, IT & Services</option>
                               <option value="Manufacturing">Manufacturing & Engineering</option>
@@ -545,8 +545,8 @@ export default function RegisterPage() {
                       {step === 2 && (
                         <div className="space-y-4">
                           <div>
-                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200">Full Name *</label>
-                            <div className="mt-1.5 flex items-center gap-3 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/80 dark:focus-within:bg-slate-800">
+                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1">Full Name *</label>
+                            <div className="flex items-center gap-3 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700/90 dark:bg-slate-950/70 dark:focus-within:bg-slate-950/90 dark:focus-within:border-blue-400">
                               <User className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-400" />
                               <input
                                 type="text"
@@ -560,8 +560,8 @@ export default function RegisterPage() {
                           </div>
 
                           <div>
-                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200">Work Email Address *</label>
-                            <div className="mt-1.5 flex items-center gap-3 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/80 dark:focus-within:bg-slate-800">
+                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1">Work Email Address *</label>
+                            <div className="flex items-center gap-3 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700/90 dark:bg-slate-950/70 dark:focus-within:bg-slate-950/90 dark:focus-within:border-blue-400">
                               <Mail className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-400" />
                               <input
                                 type="email"
@@ -575,8 +575,8 @@ export default function RegisterPage() {
                           </div>
 
                           <div>
-                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200">Mobile / Contact Number</label>
-                            <div className="mt-1.5 flex items-center gap-3 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/80 dark:focus-within:bg-slate-800">
+                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1">Mobile / Contact Number</label>
+                            <div className="flex items-center gap-3 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700/90 dark:bg-slate-950/70 dark:focus-within:bg-slate-950/90 dark:focus-within:border-blue-400">
                               <Phone className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-400" />
                               <input
                                 type="tel"
@@ -590,8 +590,8 @@ export default function RegisterPage() {
 
                           <div className="grid grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200">Password *</label>
-                              <div className="mt-1.5 flex items-center gap-2.5 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/80 dark:focus-within:bg-slate-800">
+                              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1">Password *</label>
+                              <div className="flex items-center gap-2.5 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700/90 dark:bg-slate-950/70 dark:focus-within:bg-slate-950/90 dark:focus-within:border-blue-400">
                                 <Lock className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-400" />
                                 <input
                                   type="password"
@@ -605,8 +605,8 @@ export default function RegisterPage() {
                             </div>
 
                             <div>
-                              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200">Confirm Password *</label>
-                              <div className="mt-1.5 flex items-center gap-2.5 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/80 dark:focus-within:bg-slate-800">
+                              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1">Confirm Password *</label>
+                              <div className="flex items-center gap-2.5 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700/90 dark:bg-slate-950/70 dark:focus-within:bg-slate-950/90 dark:focus-within:border-blue-400">
                                 <Lock className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-400" />
                                 <input
                                   type="password"
