@@ -25,7 +25,11 @@ export default function PublicFooter({
   allowedPaths: _allowedPaths,
   variant = "full",
 }: PublicFooterProps) {
-  const brandName = profile.brandName || profile.companyName || "UabIndia Enterprise";
+  const isTenantAudience = audience === "tenant";
+  const brandName =
+    isTenantAudience && profile.companyName && profile.companyName !== "UabIndia"
+      ? profile.companyName
+      : profile.brandName || profile.companyName || "UabIndia Enterprise";
   const currentYear = new Date().getFullYear();
   const platformMode = audience === "platform";
 
@@ -103,22 +107,31 @@ export default function PublicFooter({
             <div className="mt-5 space-y-2.5">
               <a
                 href={`mailto:${effectiveSupportEmail}`}
-                className="flex items-center gap-2.5 text-xs text-slate-600 transition-colors hover:text-blue-600 dark:text-slate-300 dark:hover:text-cyan-400"
+                className="flex items-center gap-2.5 text-xs text-slate-600 transition-colors hover:text-[var(--uab-brand-primary,#2563eb)] dark:text-slate-300"
               >
-                <Mail className="h-4 w-4 shrink-0 text-blue-500 dark:text-cyan-400" />
+                <Mail
+                  style={{ color: "var(--uab-brand-primary, #3b82f6)" }}
+                  className="h-4 w-4 shrink-0"
+                />
                 <span className="font-medium">{effectiveSupportEmail}</span>
               </a>
 
               <a
                 href={`tel:${effectiveSupportPhone.replace(/\s+/g, "")}`}
-                className="flex items-center gap-2.5 text-xs text-slate-600 transition-colors hover:text-blue-600 dark:text-slate-300 dark:hover:text-cyan-400"
+                className="flex items-center gap-2.5 text-xs text-slate-600 transition-colors hover:text-[var(--uab-brand-primary,#2563eb)] dark:text-slate-300"
               >
-                <Phone className="h-4 w-4 shrink-0 text-indigo-500 dark:text-indigo-400" />
+                <Phone
+                  style={{ color: "var(--uab-brand-secondary, var(--uab-brand-primary, #6366f1))" }}
+                  className="h-4 w-4 shrink-0"
+                />
                 <span className="font-medium">{effectiveSupportPhone}</span>
               </a>
             </div>
 
-            <div className="mt-6 flex items-center gap-2 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+            <div
+              style={{ color: "var(--uab-brand-primary, #059669)" }}
+              className="mt-6 flex items-center gap-2 text-[11px] font-semibold"
+            >
               <ShieldCheck className="h-4 w-4 shrink-0" />
               <span>Multi-Tenant Isolated · Global Sovereign Cloud & Multi-Region Tier-IV Security</span>
             </div>

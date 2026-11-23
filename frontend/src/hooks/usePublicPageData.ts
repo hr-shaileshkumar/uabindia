@@ -48,6 +48,33 @@ type PublicCacheData = {
 
 const publicDataCache = new Map<string, PublicCacheData>();
 
+const applyUrlThemeOverrides = (profileData: ClientProfile): ClientProfile => {
+  if (typeof window === "undefined") return profileData;
+  try {
+    const sp = new URLSearchParams(window.location.search);
+    const paramColor = sp.get("brandColor") || sp.get("primaryColor");
+    const paramSecondary = sp.get("secondaryColor") || sp.get("brandSecondary");
+    const paramGradient = sp.get("brandGradient") || sp.get("gradient");
+    const paramPreset = sp.get("brandPreset") || sp.get("themePreset");
+    const paramMode = sp.get("colorMode");
+
+    if (paramColor || paramSecondary || paramGradient || paramPreset || paramMode) {
+      return {
+        ...profileData,
+        theme: {
+          ...(profileData.theme || {}),
+          ...(paramColor ? { primaryColor: paramColor } : {}),
+          ...(paramSecondary ? { secondaryColor: paramSecondary } : {}),
+          ...(paramGradient ? { gradient: paramGradient } : {}),
+          ...(paramPreset ? { preset: paramPreset } : {}),
+          ...(paramMode ? { colorMode: paramMode as any } : {}),
+        },
+      };
+    }
+  } catch {}
+  return profileData;
+};
+
 export const usePublicPageData = (
   pageType: string,
   audience: PublicAudience = "tenant"
@@ -56,7 +83,9 @@ export const usePublicPageData = (
   const cacheKey = `${audience}:${pageType}`;
   const cached = publicDataCache.get(cacheKey);
 
-  const [profile, setProfile] = useState<ClientProfile>(cached?.profile ?? getBaseClientProfile());
+  const [profile, setProfile] = useState<ClientProfile>(() =>
+    applyUrlThemeOverrides(cached?.profile ?? getBaseClientProfile())
+  );
   const [pageRecord, setPageRecord] = useState<PublicPageRecord | null>(cached?.pageRecord ?? null);
   const [manifest, setManifest] = useState<PublicSiteManifestResponse | null>(cached?.manifest ?? null);
   const [siteData, setSiteData] = useState<PublicSiteDataResponse | null>(cached?.siteData ?? null);
@@ -125,7 +154,8 @@ export const usePublicPageData = (
         ]);
 
         if (!isActive) return;
-        setProfile(nextProfile);
+        const overriddenProfile = applyUrlThemeOverrides(nextProfile);
+        setProfile(overriddenProfile);
         setSiteData(siteDataResponse?.data ?? null);
         setLoading(false);
         return;
@@ -140,7 +170,8 @@ export const usePublicPageData = (
       ]);
 
       if (!isActive) return;
-      setProfile(nextProfile);
+      const overriddenProfile = applyUrlThemeOverrides(nextProfile);
+      setProfile(overriddenProfile);
       setSiteData(siteDataResponse?.data ?? null);
       setPageRecord(pageResponse?.data ?? null);
       setHeaderRecord(headerResponse?.data ?? null);

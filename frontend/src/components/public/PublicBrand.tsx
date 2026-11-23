@@ -23,10 +23,6 @@ export default function PublicBrand({
     logoUrl.endsWith("/logo.png") ||
     logoUrl === "logo.png";
 
-  // Check if brandName starts with "uabindia" or "uab india"
-  // e.g. "UabIndia ERP" -> suffix: "ERP"
-  // e.g. "UabIndia Enterprise Platform" -> suffix: "Enterprise"
-  // e.g. "UabIndia" -> suffix: ""
   const normalized = brandName.trim();
   const uabMatch = normalized.match(/^uab\s*india(?:\s+(.*))?$/i);
   const isUabBrand = Boolean(uabMatch);
@@ -41,7 +37,7 @@ export default function PublicBrand({
 
   if (isDefaultLogo) {
     return (
-      <div className={cn("flex shrink-0 items-center gap-2", className)}>
+      <div className={cn("flex shrink-0 items-center gap-2.5", className)}>
         {/* Wordmark logo which already contains 'uabindia' */}
         <img
           src="/logo.png"
@@ -55,13 +51,33 @@ export default function PublicBrand({
 
         {/* If brand has an edition suffix (like 'ERP' or 'Enterprise'), render clean badge */}
         {suffix ? (
-          <span className="hidden sm:inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wider text-blue-700 ring-1 ring-inset ring-blue-700/15 dark:bg-blue-900/70 dark:text-cyan-300 dark:ring-blue-400/30">
+          <span
+            style={{
+              backgroundColor: "var(--uab-brand-accent-soft, rgba(37,99,235,0.1))",
+              color: "var(--uab-brand-primary, #1d4ed8)",
+            }}
+            className="hidden sm:inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wider ring-1 ring-inset ring-current/15"
+          >
             {suffix}
           </span>
         ) : !isUabBrand && normalized && normalized !== "Enterprise Platform" ? (
-          <span className="hidden sm:inline-flex items-center border-l border-slate-300 pl-2.5 text-sm font-bold tracking-tight text-slate-800 dark:border-slate-700 dark:text-slate-100">
-            {normalized}
-          </span>
+          <div className="flex items-center gap-2 border-l border-slate-300 pl-2.5 dark:border-slate-700">
+            <span
+              style={{ color: "var(--uab-brand-primary, inherit)" }}
+              className="text-xs sm:text-sm font-bold tracking-tight text-slate-800 dark:text-slate-100"
+            >
+              {normalized}
+            </span>
+            <span
+              style={{
+                backgroundColor: "var(--uab-brand-accent-soft, rgba(37,99,235,0.1))",
+                color: "var(--uab-brand-primary, #1d4ed8)",
+              }}
+              className="hidden md:inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+            >
+              Workspace
+            </span>
+          </div>
         ) : null}
       </div>
     );
@@ -80,7 +96,10 @@ export default function PublicBrand({
         )}
       />
       {brandName ? (
-        <span className="hidden sm:inline-block font-extrabold text-sm sm:text-base tracking-tight text-slate-900 dark:text-white">
+        <span
+          style={{ color: "var(--uab-brand-primary, inherit)" }}
+          className="font-extrabold text-sm sm:text-base tracking-tight text-slate-900 dark:text-white"
+        >
           {brandName}
         </span>
       ) : null}

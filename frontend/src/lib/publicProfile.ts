@@ -65,6 +65,10 @@ export const buildClientProfile = (
 
   const safeBrandName = !isGenericBrandName(branding.brandName)
     ? branding.brandName
+    : !isGenericBrandName(company?.name)
+    ? company?.name
+    : !isGenericBrandName(tenant?.name)
+    ? tenant?.name
     : baseProfile.brandName;
 
   return {

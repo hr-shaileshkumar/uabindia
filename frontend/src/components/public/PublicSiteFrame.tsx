@@ -33,9 +33,6 @@ export default function PublicSiteFrame({
 }: PublicSiteFrameProps) {
   const brandingStyle: CSSProperties = {
     ...brandingThemeToCssVars(profile.theme || {}),
-    "--uab-primary": profile.theme?.primaryColor || "#1d4ed8",
-    "--uab-primary-hover": profile.theme?.primaryHoverColor || profile.theme?.primaryColor || "#1e40af",
-    "--uab-accent": profile.theme?.accentColor || "#3b82f6",
   } as CSSProperties;
 
   return (
