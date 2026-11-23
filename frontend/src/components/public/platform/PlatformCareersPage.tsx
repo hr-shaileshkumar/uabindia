@@ -61,19 +61,19 @@ const formatJobType = (jobType?: string) => {
 
 const PLATFORM_PERKS = [
   {
-    icon: Cpu,
-    title: "Mission-Critical Systems",
-    description: "Write code that processes millions in payroll, real-time banking APIs, and high-frequency double-entry ledgers.",
+    icon: Sparkles,
+    title: "High-Impact Mission",
+    description: "Build software that powers workforce management, payroll, accounting, and global supply chain operations.",
   },
   {
     icon: Globe2,
-    title: "Global Multi-Region Cloud",
-    description: "Architect systems across distributed Tier-IV data centers with automated failover and sovereign data residency.",
+    title: "Global Scale & Reach",
+    description: "Join a fast-growing cloud enterprise operating across multi-country entities, banking networks, and compliance frameworks.",
   },
   {
     icon: Zap,
-    title: "High-Velocity Autonomy",
-    description: "No bureaucracy. Small, elite engineering teams shipping daily to production with comprehensive automated tests.",
+    title: "Growth & Ownership",
+    description: "Fast-paced environment with high autonomy, collaborative teams, mentorship, and rapid career advancement.",
   },
   {
     icon: ShieldCheck,
@@ -158,10 +158,10 @@ export default function PlatformCareersPage() {
 
     setSubmittingApp(true);
     try {
-      const generatedRef = `UAB-ENG-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
+      const generatedRef = `UAB-APP-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
       const resumeInfo = resumeFile
         ? `Uploaded Document: ${resumeFile.name} (${(resumeFile.size / 1024).toFixed(1)} KB)`
-        : (resumeUrl || "Shared via GitHub / LinkedIn");
+        : (resumeUrl || "Shared via Resume Attachment / URL");
 
       if (applyingJob?.id && applyingJob.id.length > 20) {
         await publicApi.applyForJob({
@@ -173,7 +173,7 @@ export default function PlatformCareersPage() {
           currentCompany: currentCompanyOrCollege.trim() || undefined,
           currentDesignation: currentDesignationOrDegree.trim() || undefined,
           yearsOfExperience: Number(yearsOfExperience) || 0,
-          coverLetter: `${coverNote}\n\nResume: ${resumeInfo}\nPortfolio/GitHub: ${portfolioUrl}`.trim(),
+          coverLetter: `${coverNote}\n\nResume: ${resumeInfo}\nPortfolio/Profile: ${portfolioUrl}`.trim(),
           sourceOfRecruit: sourceOfRecruit || "Platform Careers",
         });
       } else {
@@ -183,8 +183,8 @@ export default function PlatformCareersPage() {
             email: applicantEmail.trim(),
             phoneNumber: applicantPhone.trim(),
             companyName: currentCompanyOrCollege.trim() || `Candidate (${yearsOfExperience} yrs exp) | ${generatedRef}`,
-            subject: `Platform Engineering Application: ${applyingJob?.role || "General Platform"} (${generatedRef})`,
-            message: `Candidate: ${firstName.trim()} ${lastName.trim()}\nPosition: ${applyingJob?.role || "Platform Engineering"}\nDesignation: ${currentDesignationOrDegree.trim() || "N/A"}\nOrg/College: ${currentCompanyOrCollege.trim() || "Independent"}\nExperience: ${yearsOfExperience} years\nResume: ${resumeInfo}\nGitHub / Portfolio: ${portfolioUrl || "N/A"}\nPitch:\n${coverNote}`,
+            subject: `Job Application: ${applyingJob?.role || "General Application"} (${generatedRef})`,
+            message: `Candidate: ${firstName.trim()} ${lastName.trim()}\nPosition: ${applyingJob?.role || "General Application"}\nDesignation: ${currentDesignationOrDegree.trim() || "N/A"}\nOrg/College: ${currentCompanyOrCollege.trim() || "Independent"}\nExperience: ${yearsOfExperience} years\nResume: ${resumeInfo}\nPortfolio / Profile: ${portfolioUrl || "N/A"}\nPitch:\n${coverNote}`,
           },
           "platform",
           "contact"
@@ -193,7 +193,7 @@ export default function PlatformCareersPage() {
 
       setAppSuccessRef(generatedRef);
     } catch {
-      setAppSuccessRef(`UAB-ENG-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`);
+      setAppSuccessRef(`UAB-APP-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`);
     } finally {
       setSubmittingApp(false);
     }
@@ -207,11 +207,11 @@ export default function PlatformCareersPage() {
     setTimeout(() => {
       setTrackingLoading(false);
       setTrackResult({
-        refId: trackQuery.trim().toUpperCase().startsWith("UAB-") ? trackQuery.trim().toUpperCase() : `UAB-ENG-2026-${Math.floor(10000 + Math.random() * 90000)}`,
-        role: "Cloud Systems / Engineering Specialist",
-        status: "Technical Profile Screening",
+        refId: trackQuery.trim().toUpperCase().startsWith("UAB-") ? trackQuery.trim().toUpperCase() : `UAB-2026-${Math.floor(10000 + Math.random() * 90000)}`,
+        role: "Candidate Job Application",
+        status: "Profile Under Review",
         submittedDate: new Date().toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" }),
-        notes: "Your technical application is currently being evaluated by our engineering leads. Shortlisted candidates are invited for architecture discussions.",
+        notes: "Your application has been received and is currently being evaluated by our talent acquisition team. Shortlisted candidates will be contacted directly.",
       });
     }, 600);
   };
@@ -255,22 +255,22 @@ export default function PlatformCareersPage() {
         {/* Header Hero & Right-Aligned Application Tracker */}
         <div className="border-b border-slate-200/80 pb-8 dark:border-slate-800">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            {/* Left Column: Platform Engineering Info & Action */}
+            {/* Left Column: Platform Careers Info & Action */}
             <div className="lg:col-span-7">
               <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-cyan-400">
-                <Sparkles className="h-4 w-4" />
-                <span className="uppercase tracking-wider">ENGINEERING & ENTERPRISE ROLES</span>
+                <BriefcaseBusiness className="h-4 w-4" />
+                <span className="uppercase tracking-wider">CAREERS & OPPORTUNITIES</span>
               </div>
               <h1 className="mt-2 text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 dark:text-white">
                 Build the Future of <span className={publicGradientTextClassName}>Enterprise Software</span>
               </h1>
               <p className="mt-3 text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed">
-                Join the core team engineering mission-critical ERP platforms, distributed ledgers, multi-jurisdiction tax engines, and AI automation.
+                Join our cross-functional teams across Engineering, Product, Sales, Marketing, Finance, HR, and Operations to shape next-gen enterprise cloud solutions.
               </p>
 
               <div className="mt-6 flex items-center gap-3">
                 <a href="#openings" className={publicButtonClassName.primary}>
-                  View Engineering Roles
+                  View Open Roles
                 </a>
               </div>
             </div>
@@ -283,7 +283,7 @@ export default function PlatformCareersPage() {
                     <Search className="h-4 w-4" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">Candidate Application Tracker</h3>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">Application Status Tracker</h3>
                     <p className="text-[11px] text-slate-500">Track real-time candidate review status</p>
                   </div>
                 </div>
@@ -294,7 +294,7 @@ export default function PlatformCareersPage() {
                     required
                     value={trackQuery}
                     onChange={(e) => setTrackQuery(e.target.value)}
-                    placeholder="Ref ID (e.g. UAB-ENG-XXXX) or Email"
+                    placeholder="Ref ID (e.g. UAB-2026-XXXX) or Email"
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs text-slate-900 focus:border-blue-600 focus:bg-white focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                   />
                   <button
@@ -344,9 +344,9 @@ export default function PlatformCareersPage() {
         {/* Job Openings Section */}
         <div id="openings" className="mt-12">
           <SectionIntro
-            eyebrow="Open Roles"
-            title="Platform Engineering & Operations Opportunities"
-            subtitle="Explore active openings across backend, distributed systems, fullstack, and cloud architecture."
+            eyebrow="Open Positions"
+            title="Current Openings & Opportunities"
+            subtitle="Explore active career openings across Engineering, Product, Sales, Finance, HR, and Operations."
           />
 
           <div className="mt-6">
@@ -412,16 +412,16 @@ export default function PlatformCareersPage() {
             ) : (
               <div className={`${publicPanelClassName} text-center py-12`}>
                 <Users className="mx-auto h-8 w-8 text-slate-400" />
-                <h2 className="mt-3 text-base font-bold text-slate-900 dark:text-white">General Platform Engineering Application</h2>
+                <h2 className="mt-3 text-base font-bold text-slate-900 dark:text-white">General Career Application</h2>
                 <p className="mt-1 text-xs text-slate-500">
-                  Don&apos;t see an exact match? We are always looking for exceptional software engineers, database specialists, and systems architects.
+                  Don&apos;t see an exact match? We are always looking for exceptional talent across Engineering, Sales, Product, Marketing, and Operations. Submit your profile below.
                 </p>
                 <button
                   type="button"
                   onClick={() =>
                     setApplyingJob({
                       id: "platform-general",
-                      role: "General Software & Systems Engineering",
+                      role: "General Talent Application",
                       company: "UabIndia Cloud Platform",
                       location: "Bengaluru / Gurugram / Remote",
                       type: "Full-Time",
@@ -429,7 +429,7 @@ export default function PlatformCareersPage() {
                   }
                   className={cn(publicButtonClassName.secondary, "mt-4 text-xs h-9")}
                 >
-                  Submit General Engineering Profile
+                  Submit General Profile
                 </button>
               </div>
             )}
@@ -462,7 +462,7 @@ export default function PlatformCareersPage() {
                   <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-500" />
                   <h4 className="mt-3 text-base font-bold text-slate-900 dark:text-white">Profile Submitted!</h4>
                   <p className="mt-1 text-xs text-slate-500">
-                    Your reference number is <strong className="text-blue-600">{appSuccessRef}</strong>. Our engineering leads will review your portfolio.
+                    Your reference number is <strong className="text-blue-600">{appSuccessRef}</strong>. Our talent acquisition team will review your application.
                   </p>
                   <button
                     type="button"
@@ -557,12 +557,12 @@ export default function PlatformCareersPage() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Technical Highlights & Systems Built</label>
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Why are you a good fit / Professional Summary</label>
                     <textarea
                       rows={3}
                       value={coverNote}
                       onChange={(e) => setCoverNote(e.target.value)}
-                      placeholder="Share key technical projects, database scale, or architecture designs you've built..."
+                      placeholder="Share a brief overview of your skills, achievements, or domain expertise..."
                       className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                     />
                   </div>
@@ -572,7 +572,7 @@ export default function PlatformCareersPage() {
                     disabled={submittingApp}
                     className={cn(publicButtonClassName.primary, "mt-4 w-full")}
                   >
-                    {submittingApp ? "Submitting Application..." : "Submit Platform Profile"}
+                    {submittingApp ? "Submitting Application..." : "Submit Application"}
                   </button>
                 </form>
               )}
