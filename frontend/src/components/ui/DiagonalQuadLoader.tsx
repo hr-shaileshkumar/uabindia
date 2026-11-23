@@ -10,28 +10,27 @@ export interface DiagonalQuadLoaderProps {
 /**
  * DiagonalQuadLoader:
  * 4 dynamic small rectangles arranged in an orbiting quadrant.
- * Each rectangle features aerodynamic diagonal rounded corners.
- * As the cluster continuously rotates around the center, each container independently cycles
- * through electric blue, vivid violet, hot pink, bright cyan, emerald green, and amber gold.
+ * Symmetrically aligned with exact equidistant horizontal and vertical gaps
+ * to ensure 100% precision centering without wobble.
  */
 export function DiagonalQuadLoader({
   size = "md",
   className,
 }: DiagonalQuadLoaderProps) {
-  // Container bounding box (square to ensure perfectly centered wobble-free 360° spin)
+  // Container bounding box (square with origin-center for wobble-free spin)
   const containerSize =
-    size === "sm" ? "h-7 w-7" : size === "lg" ? "h-12 w-12" : "h-9 w-9";
+    size === "sm" ? "h-7 w-7" : size === "lg" ? "h-11 w-11" : "h-9 w-9";
 
-  // Individual rectangle proportions (width > height creates distinct rectangular tiles)
+  // Symmetrical tile proportions with equal X & Y crosshair spacing
   const rectSize =
     size === "sm"
-      ? "h-[8px] w-[11px]"
+      ? "h-[10px] w-[10px]"
       : size === "lg"
-      ? "h-[13px] w-[18px]"
-      : "h-[10px] w-[14px]";
+      ? "h-[16px] w-[16px]"
+      : "h-[13px] w-[13px]";
 
-  // Offset placement to maintain an elegant center crosshair gap
-  const offset = size === "sm" ? "1px" : size === "lg" ? "3px" : "2px";
+  // Offset placement to maintain an exact center crosshair gap
+  const offset = size === "sm" ? "2px" : size === "lg" ? "3px" : "3px";
 
   // Diagonal rounded corners: opposite diagonal corners rounded, adjacent corners micro
   const tlRadius =
@@ -65,10 +64,11 @@ export function DiagonalQuadLoader({
   return (
     <div
       className={cn(
-        "relative flex shrink-0 items-center justify-center animate-quad-spin select-none",
+        "relative flex shrink-0 items-center justify-center animate-quad-spin origin-center select-none",
         containerSize,
         className,
       )}
+      style={{ transformOrigin: "center center" }}
       aria-hidden="true"
     >
       {/* ── Top-Left Rectangle (Container 1) ── */}

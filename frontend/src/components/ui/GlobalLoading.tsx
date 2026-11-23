@@ -144,9 +144,19 @@ export function GlobalLoading({
     return (
       <div
         className={cn(
-          "fixed inset-0 z-[9999] h-screen w-screen flex flex-col items-center justify-center overflow-hidden bg-[#f8fafc] dark:bg-slate-950 p-6 text-slate-900 dark:text-slate-100 select-none",
+          "fixed inset-0 z-[9999] m-0 p-0 h-full w-full min-h-screen flex flex-col items-center justify-center overflow-hidden bg-[#f8fafc] text-slate-900 select-none dark:bg-slate-950 dark:text-slate-100",
           className,
         )}
+        style={{
+          position: "fixed",
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          minHeight: "100dvh",
+        }}
         role="status"
         aria-live="polite"
       >
@@ -162,16 +172,20 @@ export function GlobalLoading({
         />
 
         {/* Center Diagonal Rounded Card (Vertical: Top Icon, Down Loading...) */}
-        <div className="relative z-10 flex flex-col items-center justify-center gap-3 rounded-tl-[24px] rounded-br-[24px] rounded-tr-[10px] rounded-bl-[10px] border border-slate-200/90 bg-white/95 px-7 py-5 shadow-[0_12px_36px_-10px_rgba(15,23,42,0.12)] backdrop-blur-xl dark:border-slate-800/90 dark:bg-slate-900/90 dark:shadow-[0_12px_36px_-10px_rgba(0,0,0,0.6)]">
-          {/* Top: 4 Rotating Diagonal Rectangles with Dynamic Colors */}
-          <DiagonalQuadLoader size="md" />
+        <div className="relative z-10 flex flex-col items-center justify-center">
+          <div className="group relative flex flex-col items-center justify-center gap-3.5 rounded-tl-[24px] rounded-br-[24px] rounded-tr-[10px] rounded-bl-[10px] border border-slate-200/90 bg-white/95 px-8 py-6 shadow-[0_12px_40px_-10px_rgba(15,23,42,0.12)] backdrop-blur-xl dark:border-slate-800/90 dark:bg-slate-900/90 dark:shadow-[0_12px_40px_-10px_rgba(0,0,0,0.6)]">
+            {/* Top: 4 Rotating Diagonal Rectangles with Dynamic Colors */}
+            <div className="flex items-center justify-center">
+              <DiagonalQuadLoader size="md" />
+            </div>
 
-          {/* Down: Loading... text only */}
-          <span className="text-xs font-semibold tracking-wide text-slate-800 dark:text-slate-200 select-none">
-            {label}
-          </span>
+            {/* Down: Loading... text only */}
+            <span className="text-xs font-semibold tracking-wide text-slate-800 dark:text-slate-200 select-none text-center">
+              {label}
+            </span>
 
-          <div className="absolute -bottom-[1px] left-4 right-4 h-[1.5px] rounded-full bg-gradient-to-r from-blue-600/0 via-cyan-400/80 to-purple-600/0" />
+            <div className="absolute -bottom-[1px] left-4 right-4 h-[1.5px] rounded-full bg-gradient-to-r from-blue-600/0 via-cyan-400/80 to-purple-600/0" />
+          </div>
         </div>
       </div>
     );
