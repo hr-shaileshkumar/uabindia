@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { LegalPublicPage } from "@/components/public/pages/PublicMarketingPages";
+import { LegalPublicPage } from "@/components/public/shared/PublicLegalPage";
 import { buildPublicMetadata } from "@/lib/public-metadata";
 import { resolveAudienceForPath, type PublicSearchParams } from "@/lib/public-page-request";
 

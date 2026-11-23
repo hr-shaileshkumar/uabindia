@@ -5,7 +5,7 @@ import { publicAuthInputIconClassName, publicAuthInputWithIconClassName, publicF
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-type PublicAuthFormFieldProps = {
+export type PublicAuthFormFieldProps = {
   id: string;
   label: ReactNode;
   error?: string;
@@ -43,7 +43,7 @@ export function PublicAuthFormField({
   );
 }
 
-type PublicAuthInputProps = React.ComponentProps<typeof Input> & {
+export type PublicAuthInputProps = React.ComponentProps<typeof Input> & {
   icon?: ReactNode;
   trailing?: ReactNode;
 };

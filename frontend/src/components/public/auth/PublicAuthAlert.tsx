@@ -3,7 +3,7 @@
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type PublicAuthAlertProps = {
+export type PublicAuthAlertProps = {
   tone: "error" | "success" | "info";
   children: React.ReactNode;
 };

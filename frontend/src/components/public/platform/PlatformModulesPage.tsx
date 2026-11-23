@@ -16,7 +16,7 @@ import {
   Sparkles,
   CheckCircle2,
 } from "lucide-react";
-import { PlatformPublicPageShell, usePlatformPublicPage } from "@/components/public/pages/PublicPageShell";
+import { PlatformPublicPageShell, usePlatformPublicPage } from "./PlatformPageShell";
 import {
   publicButtonClassName,
   publicGradientTextClassName,

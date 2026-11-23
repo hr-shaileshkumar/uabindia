@@ -1,4 +1,4 @@
-import { HelpSupportLandingPage } from "@/components/public/pages/PublicMarketingPages";
+import { HelpSupportLandingPage } from "@/components/public/shared/PublicHelpSupportPage";
 import { resolveAudienceForPath, type PublicSearchParams } from "@/lib/public-page-request";
 
 export default async function HelpSupportPage({

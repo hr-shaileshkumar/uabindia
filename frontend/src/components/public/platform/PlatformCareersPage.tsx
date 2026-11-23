@@ -24,7 +24,7 @@ import {
   CtaPanel,
   SectionIntro,
 } from "@/components/public/PublicMarketingBlocks";
-import { PlatformPublicPageShell, usePlatformPublicPage } from "@/components/public/pages/PublicPageShell";
+import { PlatformPublicPageShell, usePlatformPublicPage } from "./PlatformPageShell";
 import PublicStructuredData from "@/components/public/PublicStructuredData";
 import {
   publicButtonClassName,

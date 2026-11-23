@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Sparkles, PhoneCall, Mail, MapPinned, Clock3, ShieldCheck } from "lucide-react";
 import { DemoAgendaPanel, SupportLaneGrid } from "@/components/public/PublicMarketingBlocks";
-import { PlatformPublicPageShell, usePlatformPublicPage } from "@/components/public/pages/PublicPageShell";
+import { PlatformPublicPageShell, usePlatformPublicPage } from "./PlatformPageShell";
 import PublicStructuredData from "@/components/public/PublicStructuredData";
 import {
   publicEyebrowClassName,

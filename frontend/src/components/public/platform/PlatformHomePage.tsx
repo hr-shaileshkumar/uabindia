@@ -14,7 +14,7 @@ import {
 } from "@/components/public/PublicMarketingBlocks";
 import PublicStructuredData from "@/components/public/PublicStructuredData";
 import { MotionReveal } from "@/components/public/PublicMotion";
-import { PlatformPublicPageShell, usePlatformPublicPage } from "@/components/public/pages/PublicPageShell";
+import { PlatformPublicPageShell, usePlatformPublicPage } from "./PlatformPageShell";
 import {
   publicButtonClassName,
   publicPanelClassName,

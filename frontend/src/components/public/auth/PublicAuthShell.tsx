@@ -47,7 +47,7 @@ const defaultPanelCopy: Record<PublicAuthShellVariant, PanelCopy> = {
   },
 };
 
-type PublicAuthShellProps = {
+export type PublicAuthShellProps = {
   children: ReactNode;
   brandName?: string;
   homeHref?: string;
@@ -61,7 +61,6 @@ type PublicAuthShellProps = {
 export default function PublicAuthShell({
   children,
   brandName = "UabIndia ERP",
-  homeHref = "/",
   audience = "tenant",
   variant = "login",
   profile,

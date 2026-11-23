@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Globe2, ShieldCheck, Server, Award, Sparkles, Building2, CheckCircle2 } from "lucide-react";
-import { PlatformPublicPageShell, usePlatformPublicPage } from "@/components/public/pages/PublicPageShell";
+import { PlatformPublicPageShell, usePlatformPublicPage } from "./PlatformPageShell";
 import PublicStructuredData from "@/components/public/PublicStructuredData";
 import {
   publicButtonClassName,

@@ -2,7 +2,6 @@
 
 import type { ReactNode } from "react";
 import PublicAudiencePageFrame from "@/components/public/PublicAudiencePageFrame";
-import { PublicPageLoading } from "@/components/public/PublicPageLoading";
 import { usePublicPageData } from "@/hooks/usePublicPageData";
 import type { ClientProfile } from "@/lib/publicProfile";
 import type {
@@ -11,7 +10,7 @@ import type {
 } from "@/lib/publicSiteContent";
 import type { PublicSiteDataResponse } from "@/services/publicApi";
 
-type PlatformPublicPageState = {
+export type PlatformPublicPageState = {
   profile: ClientProfile;
   headerContent: PublicHeaderContent;
   footerContent: PublicFooterContent;
@@ -22,7 +21,7 @@ type PlatformPublicPageState = {
   parseContent: <TContent extends Record<string, unknown>>(fallback: TContent) => TContent;
 };
 
-export function usePublicPage(
+export function usePlatformPublicPage(
   pageType: string
 ): PlatformPublicPageState {
   const {
@@ -48,10 +47,10 @@ export function usePublicPage(
   };
 }
 
-export { usePublicPage as usePlatformPublicPage };
+export { usePlatformPublicPage as usePublicPage };
 
-type PlatformPublicPageShellProps = {
-  loading: boolean;
+export type PlatformPublicPageShellProps = {
+  loading?: boolean;
   profile: ClientProfile;
   headerContent: PublicHeaderContent;
   footerContent: PublicFooterContent;
@@ -60,8 +59,7 @@ type PlatformPublicPageShellProps = {
   children: ReactNode;
 };
 
-export function PublicPageShell({
-  loading: _loading,
+export function PlatformPublicPageShell({
   profile,
   headerContent,
   footerContent,
@@ -83,5 +81,5 @@ export function PublicPageShell({
   );
 }
 
-export { PublicPageShell as PlatformPublicPageShell };
-
+export { PlatformPublicPageShell as PublicPageShell };
+export default PlatformPublicPageShell;

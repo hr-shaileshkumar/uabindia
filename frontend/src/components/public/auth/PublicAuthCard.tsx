@@ -5,7 +5,7 @@ import Link from "next/link";
 import { publicAuthLinkClassName, publicEyebrowClassName } from "@/components/public/publicStyles";
 import { cn } from "@/lib/utils";
 
-type PublicAuthCardProps = {
+export type PublicAuthCardProps = {
   title: string;
   subtitle: string;
   eyebrow?: string;

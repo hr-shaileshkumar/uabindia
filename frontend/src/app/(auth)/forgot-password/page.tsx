@@ -3,10 +3,10 @@
 import { useState, type FormEvent } from "react";
 import { ArrowRight, Loader2, Mail } from "lucide-react";
 import PublicAudiencePageFrame from "@/components/public/PublicAudiencePageFrame";
-import PublicAuthAlert from "@/components/public/PublicAuthAlert";
-import PublicAuthCard, { PublicAuthFooterLink } from "@/components/public/PublicAuthCard";
-import { PublicAuthFormField, PublicAuthInput } from "@/components/public/PublicAuthFormField";
-import PublicAuthShell from "@/components/public/PublicAuthShell";
+import PublicAuthAlert from "@/components/public/auth/PublicAuthAlert";
+import PublicAuthCard, { PublicAuthFooterLink } from "@/components/public/auth/PublicAuthCard";
+import { PublicAuthFormField, PublicAuthInput } from "@/components/public/auth/PublicAuthFormField";
+import PublicAuthShell from "@/components/public/auth/PublicAuthShell";
 import { publicButtonClassName } from "@/components/public/publicStyles";
 import { usePublicPageData } from "@/hooks/usePublicPageData";
 import { useResolvedPublicAudience } from "@/hooks/useResolvedPublicAudience";
