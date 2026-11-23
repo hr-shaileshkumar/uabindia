@@ -37,7 +37,7 @@ export const publicTitleClassName =
   "text-balance text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl lg:text-[2.85rem] xl:text-[3.25rem] lg:leading-[1.14] dark:text-white";
 
 export const publicSubtitleClassName =
-  "text-pretty max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg lg:text-xl dark:text-slate-400";
+  "text-pretty max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg lg:text-xl dark:text-slate-300";
 
 export const publicGradientTextClassName =
   "bg-gradient-to-r from-blue-700 via-indigo-700 to-cyan-600 dark:from-blue-400 dark:via-indigo-300 dark:to-cyan-300 bg-clip-text text-transparent font-extrabold";

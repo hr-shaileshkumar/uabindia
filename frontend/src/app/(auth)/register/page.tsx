@@ -243,10 +243,10 @@ export default function RegisterPage() {
             <MotionReveal>
               <div>
                 <p className={publicEyebrowClassName}>Self-Service Onboarding</p>
-                <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+                <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl dark:text-white">
                   Launch your company ERP workspace in 60 seconds
                 </h1>
-                <p className="mt-4 text-base leading-relaxed text-slate-600">
+                <p className="mt-4 text-base leading-relaxed text-slate-600 dark:text-slate-300">
                   Experience modern enterprise management tailored for Indian businesses. Start your 14-day free trial with full access to all core modules.
                 </p>
               </div>
@@ -254,24 +254,24 @@ export default function RegisterPage() {
 
             <MotionReveal delay={0.04}>
               <div className={publicPanelClassName}>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   Included in your 14-day trial
                 </p>
                 <ul className="mt-4 space-y-3">
                   {trialFeatures.map((feature) => (
-                    <li key={feature} className="flex items-start gap-2.5 text-sm text-slate-700">
-                      <div className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-                        <Check className="h-3 w-3" />
+                    <li key={feature} className="flex items-start gap-2.5 text-sm font-medium text-slate-700 dark:text-slate-200">
+                      <div className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
+                        <Check className="h-3 w-3 stroke-[3]" />
                       </div>
                       <span>{feature}</span>
                     </li>
                   ))}
                 </ul>
 
-                <div className="mt-6 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3.5">
-                  <ShieldCheck className="h-6 w-6 shrink-0 text-emerald-600" />
-                  <div className="text-xs text-slate-600">
-                    <span className="font-semibold text-slate-900">Enterprise Security:</span> 256-bit encryption, SOC-2 compliant tenant isolation, and DPDP Indian Data Residency.
+                <div className="mt-6 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3.5 dark:border-slate-800 dark:bg-slate-950/80">
+                  <ShieldCheck className="h-6 w-6 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                  <div className="text-xs text-slate-600 dark:text-slate-300">
+                    <span className="font-semibold text-slate-900 dark:text-white">Enterprise Security:</span> 256-bit encryption, SOC-2 compliant tenant isolation, and DPDP Indian Data Residency.
                   </div>
                 </div>
               </div>
@@ -280,7 +280,7 @@ export default function RegisterPage() {
 
           {/* Right Column: Interactive 2-Step Form */}
           <MotionReveal delay={0.06}>
-            <div className={cn(publicPanelClassName, "border-slate-300 shadow-xl bg-white p-6 sm:p-8")}>
+            <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xl dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-100 backdrop-blur-md">
               {successData ? (
                 <div className="space-y-6 text-center animate-in fade-in zoom-in-95 duration-300">
                   {/* Celebratory Icon */}
@@ -408,14 +408,14 @@ export default function RegisterPage() {
               ) : (
                 <>
                   {/* Guided Demo Alternative Banner */}
-                  <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+                  <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-xs text-slate-700 dark:border-slate-800 dark:bg-slate-950/80 dark:text-slate-300">
                     <div>
                       <p className="font-bold text-slate-900 dark:text-white">Prefer a guided tour before setting up?</p>
-                      <p className="text-slate-600 dark:text-slate-400">Our solution team can walk your leadership through live enterprise workflows.</p>
+                      <p className="text-slate-600 dark:text-slate-300">Our solution team can walk your leadership through live enterprise workflows.</p>
                     </div>
                     <Link
                       href="/contact?type=demo"
-                      className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 font-semibold text-slate-800 hover:bg-slate-50 transition-colors dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                      className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 font-semibold text-slate-800 hover:bg-slate-50 transition-colors dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700"
                     >
                       Schedule Demo
                       <ArrowRight className="h-3 w-3" />
@@ -423,12 +423,12 @@ export default function RegisterPage() {
                   </div>
 
                   {/* Step Bar */}
-                  <div className="mb-6 flex items-center justify-between border-b border-slate-100 pb-4">
+                  <div className="mb-6 flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
                     <div>
-                      <h2 className="text-lg font-semibold text-slate-900">
+                      <h2 className="text-lg font-bold text-slate-900 dark:text-white">
                         {step === 1 ? "Step 1: Workspace & Company" : "Step 2: Administrator Account"}
                       </h2>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
                         {step === 1 ? "Choose your company name and custom subdomain" : "Create your master admin credentials"}
                       </p>
                     </div>
@@ -436,16 +436,16 @@ export default function RegisterPage() {
                       <span
                         className={cn(
                           "flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold",
-                          step === 1 ? "bg-slate-900 text-white" : "bg-emerald-100 text-emerald-700"
+                          step === 1 ? "bg-blue-600 text-white" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400"
                         )}
                       >
                         1
                       </span>
-                      <span className="h-0.5 w-4 bg-slate-200" />
+                      <span className="h-0.5 w-4 bg-slate-200 dark:bg-slate-700" />
                       <span
                         className={cn(
                           "flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold",
-                          step === 2 ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-400"
+                          step === 2 ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-400"
                         )}
                       >
                         2
@@ -464,24 +464,24 @@ export default function RegisterPage() {
                       {step === 1 && (
                         <div className="space-y-4">
                           <div>
-                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Company / Organization Name *</label>
-                            <div className="mt-1.5 flex items-center gap-3 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/60 dark:focus-within:bg-slate-800">
-                              <Building2 className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500" />
+                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200">Company / Organization Name *</label>
+                            <div className="mt-1.5 flex items-center gap-3 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/80 dark:focus-within:bg-slate-800">
+                              <Building2 className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-400" />
                               <input
                                 type="text"
                                 required
                                 value={companyName}
                                 onChange={(e) => handleCompanyNameChange(e.target.value)}
                                 placeholder="e.g. Acme Enterprises Ltd"
-                                className="w-full border-none bg-transparent p-0 text-sm text-slate-900 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500"
+                                className="w-full border-none bg-transparent p-0 text-sm text-slate-900 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-400"
                               />
                             </div>
                           </div>
 
                           <div>
-                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Choose Workspace Subdomain *</label>
-                            <div className="mt-1.5 flex items-center rounded-xl border border-slate-300 bg-slate-50/50 transition overflow-hidden focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/60 dark:focus-within:bg-slate-800">
-                              <div className="flex items-center gap-2 pl-3.5 pr-1 text-slate-400 dark:text-slate-500">
+                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200">Choose Workspace Subdomain *</label>
+                            <div className="mt-1.5 flex items-center rounded-xl border border-slate-300 bg-slate-50/50 transition overflow-hidden focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/80 dark:focus-within:bg-slate-800">
+                              <div className="flex items-center gap-2 pl-3.5 pr-1 text-slate-400 dark:text-slate-400">
                                 <Globe className="h-4 w-4 shrink-0" />
                               </div>
                               <input
@@ -490,9 +490,9 @@ export default function RegisterPage() {
                                 value={subdomain}
                                 onChange={(e) => setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
                                 placeholder="acme"
-                                className="w-full border-none bg-transparent py-2.5 pl-2 pr-2 text-sm font-mono text-slate-900 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500"
+                                className="w-full border-none bg-transparent py-2.5 pl-2 pr-2 text-sm font-mono text-slate-900 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-400"
                               />
-                              <span className="flex items-center px-3.5 py-2.5 text-xs font-semibold text-slate-500 bg-slate-100 border-l border-slate-200 select-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
+                              <span className="flex items-center px-3.5 py-2.5 text-xs font-semibold text-slate-600 bg-slate-100 border-l border-slate-200 select-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
                                 .{getPublicBaseDomain()}
                               </span>
                             </div>
@@ -500,7 +500,7 @@ export default function RegisterPage() {
                             {/* Subdomain status */}
                             <div className="mt-1.5 min-h-[18px]">
                               {checkingSubdomain ? (
-                                <span className="text-[11px] text-slate-400">Checking availability…</span>
+                                <span className="text-[11px] text-slate-400 dark:text-slate-400">Checking availability…</span>
                               ) : subdomainAvailable === true ? (
                                 <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
                                   <CheckCircle2 className="h-3.5 w-3.5" /> {subdomainMessage}
@@ -512,11 +512,11 @@ export default function RegisterPage() {
                           </div>
 
                           <div>
-                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Industry / Sector</label>
+                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200">Industry / Sector</label>
                             <select
                               value={industry}
                               onChange={(e) => setIndustry(e.target.value)}
-                              className="w-full mt-1.5 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-900 transition focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/80 dark:text-white"
+                              className="w-full mt-1.5 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-900 transition focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/90 dark:text-white"
                             >
                               <option value="Technology & Services">Technology, IT & Services</option>
                               <option value="Manufacturing">Manufacturing & Engineering</option>
@@ -545,76 +545,76 @@ export default function RegisterPage() {
                       {step === 2 && (
                         <div className="space-y-4">
                           <div>
-                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Full Name *</label>
-                            <div className="mt-1.5 flex items-center gap-3 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/60 dark:focus-within:bg-slate-800">
-                              <User className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500" />
+                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200">Full Name *</label>
+                            <div className="mt-1.5 flex items-center gap-3 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/80 dark:focus-within:bg-slate-800">
+                              <User className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-400" />
                               <input
                                 type="text"
                                 required
                                 value={adminName}
                                 onChange={(e) => setAdminName(e.target.value)}
                                 placeholder="e.g. Rahul Sharma"
-                                className="w-full border-none bg-transparent p-0 text-sm text-slate-900 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500"
+                                className="w-full border-none bg-transparent p-0 text-sm text-slate-900 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-400"
                               />
                             </div>
                           </div>
 
                           <div>
-                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Work Email Address *</label>
-                            <div className="mt-1.5 flex items-center gap-3 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/60 dark:focus-within:bg-slate-800">
-                              <Mail className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500" />
+                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200">Work Email Address *</label>
+                            <div className="mt-1.5 flex items-center gap-3 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/80 dark:focus-within:bg-slate-800">
+                              <Mail className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-400" />
                               <input
                                 type="email"
                                 required
                                 value={adminEmail}
                                 onChange={(e) => setAdminEmail(e.target.value)}
                                 placeholder="rahul@acme.com"
-                                className="w-full border-none bg-transparent p-0 text-sm text-slate-900 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500"
+                                className="w-full border-none bg-transparent p-0 text-sm text-slate-900 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-400"
                               />
                             </div>
                           </div>
 
                           <div>
-                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Mobile / Contact Number</label>
-                            <div className="mt-1.5 flex items-center gap-3 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/60 dark:focus-within:bg-slate-800">
-                              <Phone className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500" />
+                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200">Mobile / Contact Number</label>
+                            <div className="mt-1.5 flex items-center gap-3 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/80 dark:focus-within:bg-slate-800">
+                              <Phone className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-400" />
                               <input
                                 type="tel"
                                 value={phoneNumber}
                                 onChange={(e) => setPhoneNumber(e.target.value)}
                                 placeholder="+91 98765 43210"
-                                className="w-full border-none bg-transparent p-0 text-sm text-slate-900 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500"
+                                className="w-full border-none bg-transparent p-0 text-sm text-slate-900 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-400"
                               />
                             </div>
                           </div>
 
                           <div className="grid grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Password *</label>
-                              <div className="mt-1.5 flex items-center gap-2.5 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/60 dark:focus-within:bg-slate-800">
-                                <Lock className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500" />
+                              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200">Password *</label>
+                              <div className="mt-1.5 flex items-center gap-2.5 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/80 dark:focus-within:bg-slate-800">
+                                <Lock className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-400" />
                                 <input
                                   type="password"
                                   required
                                   value={password}
                                   onChange={(e) => setPassword(e.target.value)}
                                   placeholder="••••••••"
-                                  className="w-full border-none bg-transparent p-0 text-sm text-slate-900 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500"
+                                  className="w-full border-none bg-transparent p-0 text-sm text-slate-900 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-400"
                                 />
                               </div>
                             </div>
 
                             <div>
-                              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Confirm Password *</label>
-                              <div className="mt-1.5 flex items-center gap-2.5 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/60 dark:focus-within:bg-slate-800">
-                                <Lock className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500" />
+                              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200">Confirm Password *</label>
+                              <div className="mt-1.5 flex items-center gap-2.5 rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/80 dark:focus-within:bg-slate-800">
+                                <Lock className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-400" />
                                 <input
                                   type="password"
                                   required
                                   value={confirmPassword}
                                   onChange={(e) => setConfirmPassword(e.target.value)}
                                   placeholder="••••••••"
-                                  className="w-full border-none bg-transparent p-0 text-sm text-slate-900 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500"
+                                  className="w-full border-none bg-transparent p-0 text-sm text-slate-900 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-400"
                                 />
                               </div>
                             </div>

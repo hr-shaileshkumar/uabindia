@@ -157,15 +157,15 @@ export default function PlatformHomePage() {
       {trustMarks.length > 0 ? <TrustRibbon items={trustMarks} /> : null}
 
       {liveStats.length > 0 ? (
-        <section className="border-b border-slate-200 bg-white py-8">
+        <section className="border-b border-slate-200 bg-white py-8 dark:border-slate-800 dark:bg-slate-950 transition-colors">
           <div className={cn(publicSectionClassName, "grid gap-4 sm:grid-cols-2 lg:grid-cols-4")}>
             {liveStats.map((stat: { label: string; value: number; suffix?: string }) => (
               <div key={stat.label} className={publicPanelClassName}>
-                <p className="text-2xl font-semibold text-slate-900">
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">
                   {stat.value.toLocaleString("en-IN")}
                   {stat.suffix}
                 </p>
-                <p className="mt-1 text-sm text-slate-600">{stat.label}</p>
+                <p className="mt-1 text-sm font-medium text-slate-600 dark:text-slate-300">{stat.label}</p>
               </div>
             ))}
           </div>
@@ -190,19 +190,19 @@ export default function PlatformHomePage() {
           ].map((item, index) => (
             <MotionReveal key={item.title} delay={index * 0.04}>
               <article className={cn(publicPanelClassName, "h-full")}>
-                <h2 className="text-base font-semibold text-slate-900">{item.title}</h2>
-                <p className="mt-2 text-sm leading-relaxed text-slate-600">{item.body}</p>
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">{item.title}</h2>
+                <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{item.body}</p>
               </article>
             </MotionReveal>
           ))}
         </div>
       </section>
 
-      <section className={cn(publicSectionSpacingClassName, "bg-slate-50")}>
+      <section className={cn(publicSectionSpacingClassName, "bg-slate-50/70 dark:bg-slate-900/40 transition-colors")}>
         <div className={cn(publicSectionClassName, "grid gap-6 lg:grid-cols-2")}>
           <article className={publicPanelClassName}>
-            <h2 className="text-xl font-semibold text-slate-900">Built for connected operations</h2>
-            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Built for connected operations</h2>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
               UabIndia ERP keeps people, money, and inventory on one data core — with shared approvals and reporting.
             </p>
             <ul className="mt-5 space-y-2">
@@ -211,16 +211,16 @@ export default function PlatformHomePage() {
                 "Module-by-module rollout",
                 "Shared reporting across functions",
               ].map((item) => (
-                <li key={item} className="flex items-start gap-2 text-sm text-slate-700">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                <li key={item} className="flex items-start gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
                   {item}
                 </li>
               ))}
             </ul>
           </article>
           <article className={publicPanelClassName}>
-            <h2 className="text-xl font-semibold text-slate-900">Ready when you are</h2>
-            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Ready when you are</h2>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
               Evaluate with a focused demo, then roll out with clear ownership and training that matches your team size.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">

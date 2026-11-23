@@ -101,8 +101,8 @@ export default function PublicHeader({
                 className={cn(
                   "rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150",
                   isActive(item.href)
-                    ? "bg-blue-50 text-blue-700 shadow-2xs font-bold dark:bg-blue-950/60 dark:text-blue-400"
-                    : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-white",
+                    ? "bg-blue-50 text-blue-700 shadow-2xs font-bold dark:bg-blue-950/80 dark:text-cyan-300"
+                    : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-800/80 dark:hover:text-white font-medium",
                 )}
               >
                 {item.label}

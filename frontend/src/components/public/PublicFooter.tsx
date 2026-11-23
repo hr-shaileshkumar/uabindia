@@ -93,7 +93,7 @@ export default function PublicFooter({
           {/* Column 1: Brand & Contact Info */}
           <div>
             <PublicBrand logoUrl={profile.logoUrl} brandName={brandName} size="md" />
-            <p className="mt-4 max-w-sm text-xs sm:text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+            <p className="mt-4 max-w-sm text-xs sm:text-sm leading-relaxed text-slate-600 dark:text-slate-300">
               {footerContent.summary ||
                 (platformMode
                   ? "Next-generation cloud platform for HR, payroll, finance, procurement, inventory, and enterprise operations."
@@ -103,17 +103,17 @@ export default function PublicFooter({
             <div className="mt-5 space-y-2.5">
               <a
                 href={`mailto:${effectiveSupportEmail}`}
-                className="flex items-center gap-2.5 text-xs text-slate-600 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400"
+                className="flex items-center gap-2.5 text-xs text-slate-600 transition-colors hover:text-blue-600 dark:text-slate-300 dark:hover:text-cyan-400"
               >
-                <Mail className="h-4 w-4 shrink-0 text-blue-500" />
+                <Mail className="h-4 w-4 shrink-0 text-blue-500 dark:text-cyan-400" />
                 <span className="font-medium">{effectiveSupportEmail}</span>
               </a>
 
               <a
                 href={`tel:${effectiveSupportPhone.replace(/\s+/g, "")}`}
-                className="flex items-center gap-2.5 text-xs text-slate-600 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400"
+                className="flex items-center gap-2.5 text-xs text-slate-600 transition-colors hover:text-blue-600 dark:text-slate-300 dark:hover:text-cyan-400"
               >
-                <Phone className="h-4 w-4 shrink-0 text-indigo-500" />
+                <Phone className="h-4 w-4 shrink-0 text-indigo-500 dark:text-indigo-400" />
                 <span className="font-medium">{effectiveSupportPhone}</span>
               </a>
             </div>
@@ -134,7 +134,7 @@ export default function PublicFooter({
                 <li key={link.href}>
                   <Link
                     href={withPublicAudience(link.href, audience)}
-                    className="text-xs sm:text-sm text-slate-600 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400"
+                    className="text-xs sm:text-sm text-slate-600 transition-colors hover:text-blue-600 dark:text-slate-300 dark:hover:text-white font-medium"
                   >
                     {link.label}
                   </Link>
@@ -153,7 +153,7 @@ export default function PublicFooter({
                 <li key={link.href}>
                   <Link
                     href={withPublicAudience(link.href, audience)}
-                    className="text-xs sm:text-sm text-slate-600 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400"
+                    className="text-xs sm:text-sm text-slate-600 transition-colors hover:text-blue-600 dark:text-slate-300 dark:hover:text-white font-medium"
                   >
                     {link.label}
                   </Link>

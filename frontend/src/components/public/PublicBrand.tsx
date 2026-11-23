@@ -48,18 +48,18 @@ export default function PublicBrand({
           alt={brandName || "UabIndia"}
           className={cn(
             heightClass,
-            "w-auto object-contain transition-transform group-hover:scale-105",
+            "w-auto object-contain transition-transform group-hover:scale-105 dark:brightness-0 dark:invert",
             imageClassName,
           )}
         />
 
         {/* If brand has an edition suffix (like 'ERP' or 'Enterprise'), render clean badge */}
         {suffix ? (
-          <span className="hidden sm:inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wider text-blue-700 ring-1 ring-inset ring-blue-700/15 dark:bg-blue-950/70 dark:text-cyan-300 dark:ring-blue-400/20">
+          <span className="hidden sm:inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wider text-blue-700 ring-1 ring-inset ring-blue-700/15 dark:bg-blue-900/70 dark:text-cyan-300 dark:ring-blue-400/30">
             {suffix}
           </span>
         ) : !isUabBrand && normalized && normalized !== "Enterprise Platform" ? (
-          <span className="hidden sm:inline-flex items-center border-l border-slate-300 pl-2.5 text-sm font-bold tracking-tight text-slate-800 dark:border-slate-700 dark:text-slate-200">
+          <span className="hidden sm:inline-flex items-center border-l border-slate-300 pl-2.5 text-sm font-bold tracking-tight text-slate-800 dark:border-slate-700 dark:text-slate-100">
             {normalized}
           </span>
         ) : null}

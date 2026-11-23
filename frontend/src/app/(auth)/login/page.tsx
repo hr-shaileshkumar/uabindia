@@ -217,7 +217,7 @@ export default function LoginPage() {
                   Request workspace
                 </PublicAuthFooterLink>
               </p>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 256-Bit TLS Encryption · SOC-2 Compliant · Multi-Tenant Isolation
               </p>
             </div>
@@ -287,9 +287,9 @@ export default function LoginPage() {
                 {...register("remember")}
                 className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800"
               />
-              <span className="text-sm leading-snug text-slate-600 dark:text-slate-400">
-                <span className="font-medium text-slate-800 dark:text-slate-200">Remember credentials</span>
-                <span className="block text-xs text-slate-500 dark:text-slate-400">
+              <span className="text-sm leading-snug text-slate-600 dark:text-slate-300">
+                <span className="font-medium text-slate-800 dark:text-slate-100">Remember credentials</span>
+                <span className="block text-xs text-slate-500 dark:text-slate-300">
                   Saves your login identifier securely on this device.
                 </span>
               </span>
@@ -317,7 +317,7 @@ export default function LoginPage() {
 
             {/* Enterprise Support & HRMS Portal Switcher */}
             <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
-              <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+              <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
                 <span className="flex items-center gap-1.5 font-medium">
                   <Phone className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                   Enterprise Support:
@@ -330,7 +330,7 @@ export default function LoginPage() {
                 </a>
               </div>
 
-              <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+              <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
                 <span className="flex items-center gap-1.5 font-medium">
                   <Users className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
                   HRMS & Workforce:
