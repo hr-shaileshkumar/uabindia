@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PricingLandingPage } from "@/components/public/pages/PublicMarketingPages";
+import PlatformPricingPage from "@/components/public/platform/PlatformPricingPage";
 import { buildPublicMetadata } from "@/lib/public-metadata";
 import { resolveAudienceForPath, type PublicSearchParams } from "@/lib/public-page-request";
 
@@ -16,5 +16,5 @@ export default async function PricingPage({
   searchParams?: PublicSearchParams;
 }) {
   const audience = await resolveAudienceForPath("/pricing", searchParams);
-  return <PricingLandingPage audience={audience} />;
+  return <PlatformPricingPage audience={audience} />;
 }

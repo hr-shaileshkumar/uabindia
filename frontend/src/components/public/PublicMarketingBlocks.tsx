@@ -102,7 +102,7 @@ export function MarketingHero({
       <div
         className={cn(
           publicSectionClassName,
-          "relative grid items-center gap-6 pt-4 pb-6 sm:pt-5 sm:pb-8 md:pt-6 md:pb-10 lg:pt-6 lg:pb-10 lg:gap-8 xl:gap-12",
+          "relative grid items-center gap-5 pt-3 pb-5 sm:pt-4 sm:pb-6 md:pt-4 md:pb-8 lg:pt-5 lg:pb-8 lg:gap-8 xl:gap-12",
           showPreview ? "lg:grid-cols-[0.92fr_1.08fr] xl:grid-cols-[0.88fr_1.12fr]" : "",
         )}
       >

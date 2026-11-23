@@ -1,6 +1,15 @@
+import type { Metadata } from "next";
 import { headers } from "next/headers";
-import AboutPageClient from "./AboutPageClient";
+import ClientAboutPage from "@/components/public/client/ClientAboutPage";
+import PlatformAboutPage from "@/components/public/platform/PlatformAboutPage";
+import { buildPublicMetadata } from "@/lib/public-metadata";
 import { resolvePublicAudienceFromRequest } from "@/lib/public-audience";
+
+export const metadata: Metadata = buildPublicMetadata({
+  title: "About Us",
+  description: "Enterprise software built for operational clarity, governance, and transparent business management.",
+  path: "/about",
+});
 
 export default async function AboutPage({
   searchParams,
@@ -16,5 +25,5 @@ export default async function AboutPage({
     tenant: params?.tenant,
   });
 
-  return <AboutPageClient audience={audience} />;
+  return audience === "tenant" ? <ClientAboutPage /> : <PlatformAboutPage />;
 }

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import IndustryTemplatesGallery from "@/features/administration/website/IndustryTemplatesGallery";
 

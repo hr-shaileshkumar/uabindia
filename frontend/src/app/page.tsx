@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import PublicHomePage from "@/components/public/pages/PublicHomePage";
-import TenantHomePage from "@/components/public/pages/TenantHomePage";
+import ClientHomePage from "@/components/public/client/ClientHomePage";
+import PlatformHomePage from "@/components/public/platform/PlatformHomePage";
 import { buildPublicMetadata } from "@/lib/public-metadata";
 import { resolvePublicAudienceFromRequest } from "@/lib/public-audience";
 
@@ -28,5 +28,5 @@ export default async function HomePage({
     tenant: params?.tenant,
   });
 
-  return audience === "tenant" ? <TenantHomePage /> : <PublicHomePage />;
+  return audience === "tenant" ? <ClientHomePage /> : <PlatformHomePage />;
 }
