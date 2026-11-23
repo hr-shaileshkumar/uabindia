@@ -193,7 +193,19 @@ export default function WebsitePagesManager() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href="/administration/website/builder"
+              style={{
+                background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
+                boxShadow: "0 2px 10px rgba(124,58,237,0.3)",
+              }}
+              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl px-4 text-xs font-bold text-white shadow-xs hover:brightness-110 cursor-pointer transition-all active:scale-95"
+            >
+              <Sparkles className="h-4 w-4" />
+              <span>No-Code Page Builder</span>
+            </Link>
+
             <Link
               href="/administration/website"
               className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white px-4 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
@@ -325,6 +337,15 @@ export default function WebsitePagesManager() {
                         title="Open Live URL"
                       >
                         <ExternalLink className="h-3.5 w-3.5" />
+                      </Link>
+
+                      <Link
+                        href="/administration/website/builder"
+                        className="inline-flex h-8 items-center gap-1 rounded-lg border border-purple-200 bg-purple-50 px-2.5 text-xs font-bold text-purple-700 hover:bg-purple-100 dark:border-purple-900 dark:bg-purple-950 dark:text-purple-300"
+                        title="Open Visual Drag-and-Drop Builder"
+                      >
+                        <Sparkles className="h-3 w-3" />
+                        <span>Builder</span>
                       </Link>
 
                       <Link

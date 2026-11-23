@@ -1,10 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CircleCheckBig, LifeBuoy, UsersRound, WalletCards, ShieldCheck, ArrowRight, BellRing } from "lucide-react";
 import { FaqAccordion, HeroCarousel, MarketingHero, OfficeLocatorBlock, TestimonialGrid } from "@/components/public/PublicMarketingBlocks";
 import PublicAudiencePageFrame from "@/components/public/PublicAudiencePageFrame";
 import { PublicPageLoading } from "@/components/public/PublicPageLoading";
+import { PublicBlockRenderer } from "@/components/public/builder/PublicBlockRenderer";
+import type { WebsiteBlock } from "@/lib/website-builder/types";
 import {
   publicButtonClassName,
   publicPanelClassName,
@@ -173,6 +176,22 @@ export default function ClientHomePage() {
         }))
       : defaultTiles;
 
+  const [customBlocks, setCustomBlocks] = useState<WebsiteBlock[] | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("uab_custom_page_/");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.blocks && Array.isArray(parsed.blocks) && parsed.blocks.length > 0) {
+          setCustomBlocks(parsed.blocks);
+        }
+      }
+    } catch {
+      // fallback
+    }
+  }, []);
+
   return (
     <PublicAudiencePageFrame
       audience="tenant"
@@ -182,18 +201,22 @@ export default function ClientHomePage() {
       allowedPaths={allowedPaths}
       pageVisible={pageVisible}
     >
-      {/* Dynamic Announcement Banner */}
-      {content.announcement?.enabled && content.announcement?.text ? (
-        <div className="border-b border-blue-200/70 bg-blue-50/90 px-4 py-2.5 text-center text-xs sm:text-sm font-medium text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/70 dark:text-blue-200">
-          <div className="mx-auto flex max-w-7xl items-center justify-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--uab-primary,#1d4ed8)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
-              <BellRing className="h-3 w-3" />
-              Notice
-            </span>
-            <span>{content.announcement.text}</span>
-          </div>
-        </div>
-      ) : null}
+      {customBlocks && customBlocks.length > 0 ? (
+        <PublicBlockRenderer blocks={customBlocks} />
+      ) : (
+        <>
+          {/* Dynamic Announcement Banner */}
+          {content.announcement?.enabled && content.announcement?.text ? (
+            <div className="border-b border-blue-200/70 bg-blue-50/90 px-4 py-2.5 text-center text-xs sm:text-sm font-medium text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/70 dark:text-blue-200">
+              <div className="mx-auto flex max-w-7xl items-center justify-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--uab-primary,#1d4ed8)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+                  <BellRing className="h-3 w-3" />
+                  Notice
+                </span>
+                <span>{content.announcement.text}</span>
+              </div>
+            </div>
+          ) : null}
 
       {/* Clean Marketing & Workspace Hero (Or Interactive Slider if Enabled) */}
       {content.carousel?.enabled && (content.carousel.slides || []).length > 0 ? (
@@ -328,6 +351,8 @@ export default function ClientHomePage() {
           subtitle={`Reach out to our corporate desks, regional centers, and facilities.`}
         />
       ) : null}
+        </>
+      )}
     </PublicAudiencePageFrame>
   );
 }

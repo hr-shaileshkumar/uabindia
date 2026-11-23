@@ -2,6 +2,7 @@
 # Build outputs
 bin/
 obj/
+publish/
 # Visual Studio
 .vs/
 *.user
