@@ -4,15 +4,13 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0-preview AS build
 WORKDIR /src
 
-# Copy solution and project definitions for caching restore layer
-COPY ["UabIndia.sln", "./"]
+# Copy project definitions for caching restore layer
 COPY ["src/UabIndia.Core/UabIndia.Core.csproj", "src/UabIndia.Core/"]
 COPY ["src/UabIndia.Application/UabIndia.Application.csproj", "src/UabIndia.Application/"]
 COPY ["src/UabIndia.Infrastructure/UabIndia.Infrastructure.csproj", "src/UabIndia.Infrastructure/"]
 COPY ["src/UabIndia.Identity/UabIndia.Identity.csproj", "src/UabIndia.Identity/"]
 COPY ["src/UabIndia.Billing/UabIndia.Billing.csproj", "src/UabIndia.Billing/"]
 COPY ["src/UabIndia.Api/UabIndia.Api.csproj", "src/UabIndia.Api/"]
-COPY ["tests/UabIndia.Tests/UabIndia.Tests.csproj", "tests/UabIndia.Tests/"]
 
 # Restore NuGet packages
 RUN dotnet restore "src/UabIndia.Api/UabIndia.Api.csproj"
