@@ -1,5 +1,6 @@
 "use client";
 
+import { DiagonalQuadLoader } from "@/components/ui/DiagonalQuadLoader";
 import { cn } from "@/lib/utils";
 
 type PublicPageLoadingProps = {
@@ -42,18 +43,14 @@ export function PublicPageLoading({
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_50%,rgba(37,99,235,0.06),transparent_65%)] dark:bg-[radial-gradient(ellipse_70%_50%_at_50%_50%,rgba(37,99,235,0.14),transparent_65%)]" />
       </div>
 
-      {/* ── Compact Floating Enterprise Loader Pill ── */}
+      {/* ── Center Floating Container with Diagonal Rounded Corners ── */}
       <div className="relative z-10 flex flex-col items-center">
-        <div className="group relative flex items-center gap-3.5 rounded-2xl border border-slate-200/90 bg-white/95 px-5 py-3 shadow-[0_12px_36px_-10px_rgba(15,23,42,0.12)] backdrop-blur-xl dark:border-slate-800/90 dark:bg-slate-900/90 dark:shadow-[0_12px_36px_-10px_rgba(0,0,0,0.6)]">
-          {/* Subtle Glowing Orbit Ring Loader (Compact 24px x 24px) */}
-          <div className="relative flex h-6 w-6 shrink-0 items-center justify-center">
-            <span className="absolute inset-0 rounded-full border-[2px] border-slate-200 dark:border-slate-800" />
-            <span className="absolute inset-0 rounded-full border-[2px] border-transparent border-t-blue-600 border-r-cyan-400 dark:border-t-cyan-400 dark:border-r-blue-500 animate-spin [animation-duration:0.9s]" />
-            <span className="h-1.5 w-1.5 rounded-full bg-blue-600 dark:bg-cyan-400 shadow-[0_0_6px_rgba(56,189,248,0.8)]" />
-          </div>
+        <div className="group relative flex items-center gap-4 rounded-tl-[26px] rounded-br-[26px] rounded-tr-[10px] rounded-bl-[10px] border border-slate-200/90 bg-white/95 px-5 py-3.5 shadow-[0_12px_36px_-10px_rgba(15,23,42,0.12)] backdrop-blur-xl dark:border-slate-800/90 dark:bg-slate-900/90 dark:shadow-[0_12px_36px_-10px_rgba(0,0,0,0.6)]">
+          {/* 4 Dynamic Small Rectangles (Rotating & Cycling Colors with Diagonal Rounded Corners) */}
+          <DiagonalQuadLoader size="md" />
 
           {/* Divider */}
-          <div className="h-4 w-[1px] bg-slate-200 dark:bg-slate-800" />
+          <div className="h-5 w-[1px] bg-slate-200 dark:bg-slate-800" />
 
           {/* Compact Info Copy */}
           <div className="flex flex-col text-left pr-1">
@@ -66,12 +63,10 @@ export function PublicPageLoading({
             </span>
           </div>
 
-          {/* Micro Card Accent Line */}
-          <div className="absolute -bottom-[1px] left-4 right-4 h-[1.5px] rounded-full bg-gradient-to-r from-blue-600/0 via-blue-500/60 to-cyan-400/0 dark:via-cyan-400/70" />
+          {/* Micro Card Accent Line (Diagonal-cut glow) */}
+          <div className="absolute -bottom-[1px] left-5 right-5 h-[1.5px] rounded-full bg-gradient-to-r from-blue-600/0 via-cyan-400/80 to-purple-600/0" />
         </div>
       </div>
     </div>
   );
 }
-
-export default PublicPageLoading;

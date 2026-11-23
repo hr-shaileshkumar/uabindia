@@ -1836,6 +1836,112 @@ p, .pub-paragraph, .readability-limit {
   }
 }
 
+/* ── QUAD RECTANGLE DIAGONAL LOADER ────────────────────────────── */
+@keyframes quad-rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes quad-color-1 {
+  0%, 100% {
+    background-color: #2563eb; /* Electric Blue */
+    box-shadow: 0 0 12px rgba(37, 99, 235, 0.75);
+  }
+  25% {
+    background-color: #8b5cf6; /* Vivid Violet */
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.75);
+  }
+  50% {
+    background-color: #ec4899; /* Hot Pink */
+    box-shadow: 0 0 12px rgba(236, 72, 153, 0.75);
+  }
+  75% {
+    background-color: #06b6d4; /* Bright Cyan */
+    box-shadow: 0 0 12px rgba(6, 182, 212, 0.75);
+  }
+}
+
+@keyframes quad-color-2 {
+  0%, 100% {
+    background-color: #8b5cf6; /* Vivid Violet */
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.75);
+  }
+  25% {
+    background-color: #ec4899; /* Hot Pink */
+    box-shadow: 0 0 12px rgba(236, 72, 153, 0.75);
+  }
+  50% {
+    background-color: #06b6d4; /* Bright Cyan */
+    box-shadow: 0 0 12px rgba(6, 182, 212, 0.75);
+  }
+  75% {
+    background-color: #10b981; /* Emerald Green */
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.75);
+  }
+}
+
+@keyframes quad-color-3 {
+  0%, 100% {
+    background-color: #06b6d4; /* Bright Cyan */
+    box-shadow: 0 0 12px rgba(6, 182, 212, 0.75);
+  }
+  25% {
+    background-color: #10b981; /* Emerald Green */
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.75);
+  }
+  50% {
+    background-color: #f59e0b; /* Amber Gold */
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.75);
+  }
+  75% {
+    background-color: #2563eb; /* Electric Blue */
+    box-shadow: 0 0 12px rgba(37, 99, 235, 0.75);
+  }
+}
+
+@keyframes quad-color-4 {
+  0%, 100% {
+    background-color: #10b981; /* Emerald Green */
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.75);
+  }
+  25% {
+    background-color: #f59e0b; /* Amber Gold */
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.75);
+  }
+  50% {
+    background-color: #2563eb; /* Electric Blue */
+    box-shadow: 0 0 12px rgba(37, 99, 235, 0.75);
+  }
+  75% {
+    background-color: #8b5cf6; /* Vivid Violet */
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.75);
+  }
+}
+
+.animate-quad-spin {
+  animation: quad-rotate 2.2s linear infinite;
+}
+
+.animate-quad-rect-1 {
+  animation: quad-color-1 2.2s ease-in-out infinite;
+}
+
+.animate-quad-rect-2 {
+  animation: quad-color-2 2.2s ease-in-out infinite;
+}
+
+.animate-quad-rect-3 {
+  animation: quad-color-3 2.2s ease-in-out infinite;
+}
+
+.animate-quad-rect-4 {
+  animation: quad-color-4 2.2s ease-in-out infinite;
+}
+
 /* ── GLOBAL DRAWER ──────────────────────────────────────────────── */
 .global-drawer-overlay {
   position: fixed;

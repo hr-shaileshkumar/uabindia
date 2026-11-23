@@ -1,7 +1,10 @@
 "use client";
 
 import React from "react";
+import { DiagonalQuadLoader } from "@/components/ui/DiagonalQuadLoader";
 import { cn } from "@/lib/utils";
+
+export { DiagonalQuadLoader };
 
 export type GlobalLoadingVariant = "card" | "fullscreen" | "inline" | "minimal";
 export type GlobalLoadingSize = "sm" | "md" | "lg" | "xl";
@@ -119,8 +122,8 @@ export function GlobalLoading({
 
   if (variant === "minimal") {
     return (
-      <div className={cn("inline-flex items-center gap-2 text-slate-600 dark:text-slate-300", className)}>
-        <RoundArcSpinner size={effectiveSize} />
+      <div className={cn("inline-flex items-center gap-2.5 text-slate-600 dark:text-slate-300 select-none", className)}>
+        <DiagonalQuadLoader size="sm" />
         {label ? <span className="text-xs font-medium text-slate-700 dark:text-slate-200">{label}</span> : null}
       </div>
     );
@@ -128,10 +131,10 @@ export function GlobalLoading({
 
   if (variant === "inline") {
     return (
-      <div className={cn("flex min-h-[8rem] w-full items-center justify-center p-4 text-center", className)}>
-        <div className="inline-flex items-center gap-3 rounded-2xl border border-sky-100/80 bg-white/70 px-5 py-3 shadow-[0_4px_20px_-8px_rgba(56,189,248,0.15)] backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/70">
-          <RoundArcSpinner size={effectiveSize} />
-          {label ? <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{label}</span> : null}
+      <div className={cn("flex min-h-[6rem] w-full items-center justify-center p-4 text-center select-none", className)}>
+        <div className="inline-flex items-center gap-3.5 rounded-tl-[18px] rounded-br-[18px] rounded-tr-[8px] rounded-bl-[8px] border border-slate-200/90 bg-white/95 px-5 py-3 shadow-md backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/90">
+          <DiagonalQuadLoader size="sm" />
+          {label ? <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">{label}</span> : null}
         </div>
       </div>
     );
@@ -158,15 +161,12 @@ export function GlobalLoading({
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_50%,rgba(37,99,235,0.06),transparent_65%)] dark:bg-[radial-gradient(ellipse_70%_50%_at_50%_50%,rgba(37,99,235,0.14),transparent_65%)]"
         />
 
-        {/* Compact Pill */}
-        <div className="relative z-10 flex items-center gap-3.5 rounded-2xl border border-slate-200/90 bg-white/95 px-5 py-3 shadow-[0_12px_36px_-10px_rgba(15,23,42,0.12)] backdrop-blur-xl dark:border-slate-800/90 dark:bg-slate-900/90 dark:shadow-[0_12px_36px_-10px_rgba(0,0,0,0.6)]">
-          <div className="relative flex h-6 w-6 shrink-0 items-center justify-center">
-            <span className="absolute inset-0 rounded-full border-[2px] border-slate-200 dark:border-slate-800" />
-            <span className="absolute inset-0 rounded-full border-[2px] border-transparent border-t-blue-600 border-r-cyan-400 dark:border-t-cyan-400 dark:border-r-blue-500 animate-spin [animation-duration:0.9s]" />
-            <span className="h-1.5 w-1.5 rounded-full bg-blue-600 dark:bg-cyan-400 shadow-[0_0_6px_rgba(56,189,248,0.8)]" />
-          </div>
+        {/* Center Diagonal Rounded Pill */}
+        <div className="relative z-10 flex items-center gap-4 rounded-tl-[26px] rounded-br-[26px] rounded-tr-[10px] rounded-bl-[10px] border border-slate-200/90 bg-white/95 px-5 py-3.5 shadow-[0_12px_36px_-10px_rgba(15,23,42,0.12)] backdrop-blur-xl dark:border-slate-800/90 dark:bg-slate-900/90 dark:shadow-[0_12px_36px_-10px_rgba(0,0,0,0.6)]">
+          {/* 4 Rotating Diagonal Rectangles with Dynamic Colors */}
+          <DiagonalQuadLoader size="md" />
 
-          <div className="h-4 w-[1px] bg-slate-200 dark:bg-slate-800" />
+          <div className="h-5 w-[1px] bg-slate-200 dark:bg-slate-800" />
 
           <div className="flex flex-col text-left pr-1">
             <span className="text-xs font-bold tracking-tight text-slate-900 dark:text-white">
@@ -178,23 +178,27 @@ export function GlobalLoading({
             </span>
           </div>
 
-          <div className="absolute -bottom-[1px] left-4 right-4 h-[1.5px] rounded-full bg-gradient-to-r from-blue-600/0 via-blue-500/60 to-cyan-400/0 dark:via-cyan-400/70" />
+          <div className="absolute -bottom-[1px] left-5 right-5 h-[1.5px] rounded-full bg-gradient-to-r from-blue-600/0 via-cyan-400/80 to-purple-600/0" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className={cn("flex min-h-[40vh] w-full flex-col items-center justify-center p-6 text-center", className)}>
-      <RoundArcSpinner size={effectiveSize} className="mx-auto" />
-      <p className="mt-5 text-base sm:text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-100 select-none">
-        {label}
-      </p>
-      {sublabel ? (
-        <p className="mt-1.5 text-xs sm:text-sm text-slate-500 dark:text-slate-400 select-none">
-          {sublabel}
-        </p>
-      ) : null}
+    <div className={cn("flex min-h-[30vh] w-full flex-col items-center justify-center p-6 text-center select-none", className)}>
+      <div className="relative flex flex-col items-center gap-3.5 rounded-tl-[24px] rounded-br-[24px] rounded-tr-[10px] rounded-bl-[10px] border border-slate-200/90 bg-white/95 p-6 shadow-xl backdrop-blur-xl dark:border-slate-800/90 dark:bg-slate-900/90">
+        <DiagonalQuadLoader size="lg" className="mx-auto" />
+        <div className="flex flex-col items-center">
+          <p className="text-sm font-bold tracking-tight text-slate-900 dark:text-slate-100">
+            {label}
+          </p>
+          {sublabel ? (
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {sublabel}
+            </p>
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 }
