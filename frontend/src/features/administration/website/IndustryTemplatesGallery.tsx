@@ -277,7 +277,7 @@ export default function IndustryTemplatesGallery({
                   Sample Hero Section Copy
                 </p>
                 <p className="mt-2 text-sm font-extrabold text-slate-900 dark:text-white">
-                  "{previewTemplate.hero.title}"
+                  &ldquo;{previewTemplate.hero.title}&rdquo;
                 </p>
                 <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
                   {previewTemplate.hero.subtitle}

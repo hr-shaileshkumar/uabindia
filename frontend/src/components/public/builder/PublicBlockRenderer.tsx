@@ -397,7 +397,7 @@ function RenderTestimonials({ data }: { data: TestimonialsBlockData }) {
                 ))}
               </div>
               <p className="text-sm text-slate-700 dark:text-slate-200 italic leading-relaxed">
-                "{t.quote}"
+                &ldquo;{t.quote}&rdquo;
               </p>
             </div>
 

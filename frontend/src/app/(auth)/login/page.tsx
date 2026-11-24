@@ -12,7 +12,7 @@ import PublicAuthAlert from "@/components/public/auth/PublicAuthAlert";
 import PublicAuthCard, { PublicAuthFooterLink } from "@/components/public/auth/PublicAuthCard";
 import { PublicAuthFormField, PublicAuthInput } from "@/components/public/auth/PublicAuthFormField";
 import PublicAuthShell from "@/components/public/auth/PublicAuthShell";
-import { publicAuthLinkClassName, publicButtonClassName } from "@/components/public/publicStyles";
+import { publicAuthLinkClassName } from "@/components/public/publicStyles";
 import { useAuth } from "@/context/AuthContext";
 import { usePublicPageData } from "@/hooks/usePublicPageData";
 import { useResolvedPublicAudience } from "@/hooks/useResolvedPublicAudience";

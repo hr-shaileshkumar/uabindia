@@ -135,6 +135,22 @@ export default function ClientHomePage() {
     ],
   });
 
+  const [customBlocks, setCustomBlocks] = useState<WebsiteBlock[] | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("uab_custom_page_/");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.blocks && Array.isArray(parsed.blocks) && parsed.blocks.length > 0) {
+          setCustomBlocks(parsed.blocks);
+        }
+      }
+    } catch {
+      // fallback
+    }
+  }, []);
+
   if (isTenantContext && loading) {
     return <PublicPageLoading label="Loading..." sublabel="Preparing your company workspace" />;
   }
@@ -175,22 +191,6 @@ export default function ClientHomePage() {
           href: tile.href || "/login",
         }))
       : defaultTiles;
-
-  const [customBlocks, setCustomBlocks] = useState<WebsiteBlock[] | null>(null);
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("uab_custom_page_/");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.blocks && Array.isArray(parsed.blocks) && parsed.blocks.length > 0) {
-          setCustomBlocks(parsed.blocks);
-        }
-      }
-    } catch {
-      // fallback
-    }
-  }, []);
 
   return (
     <PublicAudiencePageFrame

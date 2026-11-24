@@ -724,7 +724,7 @@ export function VisualPageBuilder() {
                         ERP CRM Connection
                       </div>
                       <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
-                        Submissions from this form automatically create Leads in `dbo.CrmLeads` with source set to "Public Website".
+                        Submissions from this form automatically create Leads in `dbo.CrmLeads` with source set to &ldquo;Public Website&rdquo;.
                       </p>
                     </div>
                   )}

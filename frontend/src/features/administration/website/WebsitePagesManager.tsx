@@ -3,14 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
-  CheckCircle2,
   Copy,
   ExternalLink,
   FileCode,
   FilePlus,
   Globe,
   Layers,
-  MoreVertical,
   Pencil,
   Search,
   Sparkles,
@@ -28,6 +26,12 @@ export interface ManagedPageItem {
   lastModified: string;
   views: number;
   isSystem?: boolean;
+}
+
+let pageIdSequence = 1000;
+function createManagedPageId(prefix = "page"): string {
+  pageIdSequence += 1;
+  return `${prefix}-${pageIdSequence}`;
 }
 
 const INITIAL_PAGES: ManagedPageItem[] = [
@@ -138,7 +142,7 @@ export default function WebsitePagesManager() {
 
     const formattedSlug = newSlug.startsWith("/") ? newSlug : `/${newSlug.trim().toLowerCase().replace(/\s+/g, "-")}`;
     const newPage: ManagedPageItem = {
-      id: `page-${Date.now()}`,
+      id: createManagedPageId("page"),
       title: newTitle.trim(),
       slug: formattedSlug,
       template: newTemplate,
@@ -157,7 +161,7 @@ export default function WebsitePagesManager() {
 
   const handleDuplicatePage = (page: ManagedPageItem) => {
     const duplicate: ManagedPageItem = {
-      id: `page-${Date.now()}`,
+      id: createManagedPageId(`${page.id}-copy`),
       title: `${page.title} (Copy)`,
       slug: `${page.slug}-copy`,
       template: page.template,

@@ -1685,7 +1685,7 @@ export default function WebsiteCustomizer({ defaultTab = "hero" }: { defaultTab?
                     Website Form Submissions & Captured Leads
                   </h2>
                   <p className="mt-0.5 text-xs text-slate-500">
-                    Live enterprise inquiries submitted through your website's contact and demo forms.
+                    Live enterprise inquiries submitted through your website&apos;s contact and demo forms.
                   </p>
                 </div>
 
